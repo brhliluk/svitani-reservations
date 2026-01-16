@@ -1,0 +1,107 @@
+package cz.svitaninymburk.projects.reservations.repository.event
+
+import cz.svitaninymburk.projects.reservations.event.EventDefinition
+import cz.svitaninymburk.projects.reservations.event.EventInstance
+import kotlinx.datetime.LocalDateTime
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.uuid.Uuid
+
+
+class InMemoryEventDefinitionRepository : EventDefinitionRepository {
+    private val events = ConcurrentHashMap<String, EventDefinition>()
+
+    override suspend fun findById(id: String): EventDefinition? = events[id]
+
+    override suspend fun findAll(): List<EventDefinition> = events.values.toList()
+
+    
+    override suspend fun create(event: EventDefinition): EventDefinition {
+        val id = Uuid.random().toString()
+        val newEvent = event.copy(id = id)
+        events[id] = newEvent
+        return newEvent
+    }
+
+    override suspend fun update(event: EventDefinition): EventDefinition {
+        events[event.id] = event
+        return event
+    }
+
+    override suspend fun delete(id: String): Boolean {
+        if (events.containsKey(id)) {
+            events.remove(id)
+            return true
+        }
+        else return false
+    }
+}
+
+class InMemoryEventInstanceRepository : EventInstanceRepository {
+
+    private val instances = ConcurrentHashMap<String, EventInstance>()
+
+    override suspend fun get(id: String): EventInstance? {
+        return instances[id]
+    }
+
+    override suspend fun getAll(eventIds: List<String>): List<EventInstance> {
+        return instances.filterKeys { it in eventIds }.values.toList()
+    }
+
+    override suspend fun create(instance: EventInstance): EventInstance {
+        val id = instance.id.ifBlank { Uuid.random().toString() }
+        val newInstance = instance.copy(id = id)
+        instances[id] = newInstance
+        return newInstance
+    }
+
+    override suspend fun update(instance: EventInstance): EventInstance {
+        instances[instance.id] = instance
+        return instance
+    }
+
+    override suspend fun delete(id: String): Boolean {
+        if (instances.containsKey(id)) {
+            instances.remove(id)
+            return true
+        }
+        return false
+    }
+
+    override suspend fun deleteAllByDefinitionId(definitionId: String) {
+        instances.values.removeAll { it.definitionId == definitionId }
+    }
+
+
+    override suspend fun findByDateRange(from: LocalDateTime, to: LocalDateTime): List<EventInstance> {
+        return instances.values.filter { instance -> instance.startDateTime in from..to }.toList()
+    }
+
+    override suspend fun incrementOccupiedSpots(instanceId: String, amount: Int): Int? {
+        return instances.computeIfPresent(instanceId) { _, currentInstance ->
+            currentInstance.copy(occupiedSpots = currentInstance.occupiedSpots + amount)
+        }?.occupiedSpots
+    }
+
+    override suspend fun decrementOccupiedSpots(instanceId: String, amount: Int): Int? {
+        return instances.computeIfPresent(instanceId) { _, currentInstance ->
+            currentInstance.copy(occupiedSpots = currentInstance.occupiedSpots - amount)
+        }?.occupiedSpots
+    }
+
+    override suspend fun attemptToReserveSpots(instanceId: String, amount: Int): Boolean {
+        var reservationSuccess = false
+
+        instances.computeIfPresent(instanceId) { _, currentInstance ->
+            if (currentInstance.occupiedSpots + amount <= currentInstance.occupiedSpots) {
+                reservationSuccess = true
+                currentInstance.copy(occupiedSpots = currentInstance.occupiedSpots + amount)
+            } else {
+                reservationSuccess = false
+                currentInstance
+            }
+        }
+
+        return reservationSuccess
+    }
+}
