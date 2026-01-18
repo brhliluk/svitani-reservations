@@ -10,7 +10,6 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.kilua.rpc)
     alias(libs.plugins.kilua)
-    alias(libs.plugins.gettext)
     alias(libs.plugins.vite.kotlin)
 }
 
@@ -125,17 +124,19 @@ kotlin {
         val webMain by getting {
             dependencies {
                 implementation(libs.kilua)
-                implementation(libs.kilua.tailwindcss)
-                implementation(libs.kilua.fontawesome)
                 implementation(libs.kilua.bootstrap.icons)
                 implementation(libs.kilua.routing)
-                implementation(libs.kilua.i18n)
                 implementation(libs.kilua.tempus.dominus)
                 implementation(libs.kilua.tom.select)
                 implementation(libs.kilua.imask)
                 implementation(libs.kilua.rsup.progress)
                 implementation(libs.kilua.animation)
                 implementation(libs.kilua.ssr)
+
+                implementation(libs.kilua.tailwindcss)
+                implementation(npm("daisyui", "5.5.14"))
+                implementation(npm("@iconify/tailwind4", "1.2.0"))
+                implementation(npm("@iconify-json/heroicons", "1.2.3"))
             }
         }
         val webTest by getting {
@@ -156,11 +157,6 @@ composeCompiler {
             .filterNot { it == KotlinPlatformType.jvm }
             .asIterable()
     )
-}
-
-gettext {
-    potFile.set(File(projectDir, "src/webMain/resources/modules/i18n/messages.pot"))
-    keywords.set(listOf("tr","trn:1,2","trc:2","trnc:2,3","marktr"))
 }
 
 vite {

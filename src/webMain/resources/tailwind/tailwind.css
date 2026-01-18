@@ -1,4 +1,8 @@
 @config "./tailwind.config.js";
 @import "tailwindcss";
+@plugin "daisyui" {
+    themes: caramellatte --default, halloween --prefersdark;
+}
+@plugin "@iconify/tailwind4";
 @custom-variant dark (&:where(.dark, .dark *));
 @source inline("bg-neutral-500 text-white font-bold inline-block rounded-full");
