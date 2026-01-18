@@ -7,8 +7,7 @@ ksp = "2.3.4"
 kotlinx-datetime = "0.7.1"
 ktor = "3.3.3"
 logback = "1.5.23"
-gettext = "0.7.0"
-vite-kotlin = "0.7.1"
+vite-kotlin = "0.8.0"
 tailwindcss = "4.1.18"
 arrow = "2.2.0"
 mail = "1.5"
@@ -37,10 +36,8 @@ ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt", version.ref = 
 
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 kilua-tailwindcss = { module = "dev.kilua:kilua-tailwindcss", version.ref = "kilua" }
-kilua-fontawesome = { module = "dev.kilua:kilua-fontawesome", version.ref = "kilua" }
 kilua-bootstrap-icons = { module = "dev.kilua:kilua-bootstrap-icons", version.ref = "kilua" }
 kilua-routing = { module = "dev.kilua:kilua-routing", version.ref = "kilua" }
-kilua-i18n = { module = "dev.kilua:kilua-i18n", version.ref = "kilua" }
 kilua-tempus-dominus = { module = "dev.kilua:kilua-tempus-dominus", version.ref = "kilua" }
 kilua-tom-select = { module = "dev.kilua:kilua-tom-select", version.ref = "kilua" }
 kilua-imask = { module = "dev.kilua:kilua-imask", version.ref = "kilua" }
@@ -73,5 +70,4 @@ kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", vers
 kilua = { id = "dev.kilua", version.ref = "kilua" }
 kilua-rpc = { id = "dev.kilua.rpc", version.ref = "kilua-rpc" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-gettext = { id = "name.kropp.kotlinx-gettext", version.ref = "gettext" }
 vite-kotlin = { id = "dev.opensavvy.vite.kotlin", version.ref = "vite-kotlin" }
