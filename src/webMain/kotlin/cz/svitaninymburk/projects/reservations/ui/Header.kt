@@ -26,9 +26,11 @@ fun IComponent.AppHeader(user: User?) {
         }
 
         div(className = "navbar-end gap-4") {
-            a(className = "btn btn-ghost btn-sm hidden sm:inline-flex") {
-                href("#")
-                +"My reservations"
+            if (user != null) {
+                a(className = "btn btn-ghost btn-sm hidden sm:inline-flex") {
+                    href("#")
+                    +currentStrings.myReservations
+                }
             }
 
             div(className = "flex items-center gap-3 pl-4 border-l border-base-200") {

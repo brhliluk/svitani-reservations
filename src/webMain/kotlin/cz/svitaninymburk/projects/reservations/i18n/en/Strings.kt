@@ -13,6 +13,7 @@ object EnStrings : AppStrings {
     override val noEvents = "No events"
     override val currentMonth = "Current month"
     override val contact = "Contact"
+    override val myReservations = "My reservations"
 
     override val course = "Course"
     override val courseLessons = "lessons"
