@@ -32,6 +32,7 @@ interface AppStrings {
     val noEvents: String
     val currentMonth: String
     val contact: String
+    val myReservations: String
 
     val course: String
     val courseLessons: String

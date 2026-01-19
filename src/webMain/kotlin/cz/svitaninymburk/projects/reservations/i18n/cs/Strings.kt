@@ -13,6 +13,7 @@ object CsStrings : AppStrings {
     override val noEvents = "Žádné události"
     override val currentMonth = "Aktuální měsíc"
     override val contact = "Kontakt"
+    override val myReservations = "Moje rezervace"
 
     override val course = "Kroužek"
     override val courseLessons = "lekcí"
