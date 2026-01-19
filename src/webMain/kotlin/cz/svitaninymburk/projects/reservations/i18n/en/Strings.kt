@@ -14,6 +14,10 @@ object EnStrings : AppStrings {
     override val currentMonth = "Current month"
     override val contact = "Contact"
 
+    override val course = "Course"
+    override val courseLessons = "lessons"
+    override val courseSignUp = "Sign up"
+
     override val nameLabel = "First name"
     override val nameHint = "John"
     override val surnameLabel = "Last name"

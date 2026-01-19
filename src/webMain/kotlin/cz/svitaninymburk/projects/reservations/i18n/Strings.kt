@@ -33,6 +33,10 @@ interface AppStrings {
     val currentMonth: String
     val contact: String
 
+    val course: String
+    val courseLessons: String
+    val courseSignUp: String
+
     // Form labels & hints
     val nameLabel: String
     val nameHint: String

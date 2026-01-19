@@ -1,6 +1,9 @@
 package cz.svitaninymburk.projects.reservations.event
 
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration
 import kotlin.time.Instant
@@ -18,9 +21,26 @@ data class EventDefinition(
 )
 
 @Serializable
+data class EventSeries(
+    val id: String,
+    val definitionId: String,
+    val title: String,
+    val description: String,
+    val price: Double,
+    val capacity: Int,
+    val occupiedSpots: Int = 0,
+
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+
+    val lessonCount: Int
+)
+
+@Serializable
 data class EventInstance(
     val id: String,
     val definitionId: String,
+    val seriesId: String? = null,
     val title: String,
     val description: String,
     val startDateTime: LocalDateTime,
@@ -30,8 +50,13 @@ data class EventInstance(
     val occupiedSpots: Int = 0,
     val isCancelled: Boolean = false,
 ) {
+    val currentTimeZone get() = TimeZone.currentSystemDefault()
     val isFull: Boolean
         get() = occupiedSpots >= capacity
+    val duration: Duration
+        get() = endDateTime.toInstant(currentTimeZone) - startDateTime.toInstant(currentTimeZone)
+    val isSeries: Boolean
+        get() = seriesId != null
 }
 
 @Serializable
