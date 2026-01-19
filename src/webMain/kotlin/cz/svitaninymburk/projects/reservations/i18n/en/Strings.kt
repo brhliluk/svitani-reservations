@@ -8,17 +8,41 @@ object EnStrings : AppStrings {
     override val logIn = "Log in"
     override val reserve = "Reserve"
     override val dashboard = "Dashboard"
-    override val listView = "List-view"
-    override val calendarView = "Calendar-view"
-    override val noEvents = "No events"
-    override val currentMonth = "Current month"
     override val contact = "Contact"
     override val myReservations = "My reservations"
 
+    // Dashboard
+    override val schedule = "Schedule"
+    override val catalog = "Catalog"
+    override val listView = "List"
+    override val calendarView = "Calendar"
+
+    // Headers
+    override val allEvents = "All events"
+    override val openCourses = "Open Courses"
+    override val upcomingEvents = "Upcoming Events"
+    override val individualEvents = "Individual Events"
+
+    // States
+    override val noEvents = "No events"
+    override val noEventsFoundForFilter = "No events found for this selection."
+    override val calendarUnderConstruction = "Calendar is under construction :)"
+
+    // Filter
+    override val filter = "Filter"
+    override val clearFilterTooltip = "Click to clear filter"
+
+    // Cards
     override val course = "Course"
     override val courseLessons = "lessons"
     override val courseSignUp = "Sign up"
+    override val partOfCourse = "Part of course"
+    override val showDates = "Dates"
+    override val detail = "Detail"
+    override val priceLabel = "Price"
+    override val maxCapacity = "Max"
 
+    // Forms
     override val nameLabel = "First name"
     override val nameHint = "John"
     override val surnameLabel = "Last name"

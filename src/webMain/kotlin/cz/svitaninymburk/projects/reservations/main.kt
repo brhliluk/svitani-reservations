@@ -1,6 +1,8 @@
 package cz.svitaninymburk.projects.reservations
 
+import cz.svitaninymburk.projects.reservations.debug.randomDefinitionList
 import cz.svitaninymburk.projects.reservations.debug.randomEventList
+import cz.svitaninymburk.projects.reservations.debug.randomSeriesList
 import cz.svitaninymburk.projects.reservations.i18n.detectLanguage
 import cz.svitaninymburk.projects.reservations.ui.DashboardScreen
 import dev.kilua.Application
@@ -28,7 +30,15 @@ class App : Application() {
         root("root") {
             browserRouter {
                 route("/debug") {
-                    view { DashboardScreen(user = null, randomEventList, {}) }
+                    view { DashboardScreen(
+                        user = null,
+                        randomEventList,
+                        randomSeriesList,
+                        randomDefinitionList,
+                        null,
+                        {},
+                        {},
+                    ) }
                 }
             }
 //            ssrRouter {

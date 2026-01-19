@@ -27,16 +27,39 @@ interface AppStrings {
     val logIn: String
     val reserve: String
     val dashboard: String
-    val listView: String
-    val calendarView: String
-    val noEvents: String
-    val currentMonth: String
     val contact: String
     val myReservations: String
 
+    // Dashboard & Navigation
+    val schedule: String
+    val catalog: String
+    val listView: String
+    val calendarView: String
+
+    // Headers & Sections
+    val allEvents: String
+    val openCourses: String
+    val upcomingEvents: String
+    val individualEvents: String
+
+    // Feedback & Empty states
+    val noEvents: String
+    val noEventsFoundForFilter: String
+    val calendarUnderConstruction: String
+
+    // Filter logic
+    val filter: String
+    val clearFilterTooltip: String
+
+    // Card Labels (Series/Event)
     val course: String
     val courseLessons: String
     val courseSignUp: String
+    val partOfCourse: String
+    val showDates: String
+    val detail: String
+    val priceLabel: String
+    val maxCapacity: String
 
     // Form labels & hints
     val nameLabel: String

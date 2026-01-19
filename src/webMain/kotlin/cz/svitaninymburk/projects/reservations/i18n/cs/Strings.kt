@@ -8,17 +8,41 @@ object CsStrings : AppStrings {
     override val logIn = "Přihlásit se"
     override val reserve = "Rezervovat"
     override val dashboard = "Přehled"
-    override val listView = "Seznam"
-    override val calendarView = "Kalendář"
-    override val noEvents = "Žádné události"
-    override val currentMonth = "Aktuální měsíc"
     override val contact = "Kontakt"
     override val myReservations = "Moje rezervace"
 
+    // Dashboard
+    override val schedule = "Program"
+    override val catalog = "Nabídka"
+    override val listView = "Seznam"
+    override val calendarView = "Kalendář"
+
+    // Headers
+    override val allEvents = "Všechny akce"
+    override val openCourses = "Otevřené kroužky"
+    override val upcomingEvents = "Nadcházející akce"
+    override val individualEvents = "Jednotlivé termíny"
+
+    // States
+    override val noEvents = "Žádné události"
+    override val noEventsFoundForFilter = "Pro tento výběr nejsou vypsané žádné termíny."
+    override val calendarUnderConstruction = "Kalendář je zatím ve výstavbě :)"
+
+    // Filter
+    override val filter = "Filtr"
+    override val clearFilterTooltip = "Kliknutím zrušíte filtr"
+
+    // Cards
     override val course = "Kroužek"
     override val courseLessons = "lekcí"
     override val courseSignUp = "Přihlásit se"
+    override val partOfCourse = "Součást kroužku"
+    override val showDates = "Termíny"
+    override val detail = "Detail"
+    override val priceLabel = "Cena"
+    override val maxCapacity = "Max"
 
+    // Forms
     override val nameLabel = "Jméno"
     override val nameHint = "Jan"
     override val surnameLabel = "Příjmení"
