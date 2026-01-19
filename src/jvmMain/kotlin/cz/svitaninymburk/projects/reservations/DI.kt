@@ -8,8 +8,10 @@ import cz.svitaninymburk.projects.reservations.repository.auth.InMemoryRefreshTo
 import cz.svitaninymburk.projects.reservations.repository.auth.RefreshTokenRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
+import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
+import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
@@ -17,7 +19,6 @@ import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.service.*
 import org.koin.dsl.bind
 import org.koin.dsl.module
-import kotlin.math.sin
 
 
 val appModule = module {
@@ -40,6 +41,7 @@ val appModule = module {
     single<UserRepository> { InMemoryUserRepository() }
     single<EventDefinitionRepository> { InMemoryEventDefinitionRepository() }
     single<EventInstanceRepository> { InMemoryEventInstanceRepository() }
+    single<EventSeriesRepository> { InMemoryEventSeriesRepository() }
     single<ReservationRepository> { InMemoryReservationRepository() }
     single<RefreshTokenRepository> { InMemoryRefreshTokenRepository() }
 
@@ -49,8 +51,8 @@ val appModule = module {
     single { EventService(get(), get()) }
     single { GmailEmailService(System.getenv("GMAIL_USERNAME") ?: "username", System.getenv("GMAIL_APP_PASSWORD") ?: "password", get()) } bind EmailService::class
     single { QrCodeService(accountNumber = System.getenv("BANK_ACCOUNT_NUMBER") ?: "123456-123456789/0100") }
-    single { ReservationService(get(), get(), get(), get(), get()) }
-    single { AuthenticatedReservationService(get(), get()) }
+    single { ReservationService(get(), get(), get(), get(), get(), get()) }
+    single { AuthenticatedReservationService(get(), get(), get()) }
     single { PaymentPairingService(get(), get(), get(), get(), System.getenv("FIO_TOKEN") ?: "fio-token") }
     single { AdminService(get()) }
     single { UserService(get()) }

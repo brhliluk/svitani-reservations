@@ -1,7 +1,9 @@
 package cz.svitaninymburk.projects.reservations.repository.event
 
+import arrow.core.getOrNone
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
+import cz.svitaninymburk.projects.reservations.event.EventSeries
 import kotlinx.datetime.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.uuid.Uuid
@@ -93,7 +95,7 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
         var reservationSuccess = false
 
         instances.computeIfPresent(instanceId) { _, currentInstance ->
-            if (currentInstance.occupiedSpots + amount <= currentInstance.occupiedSpots) {
+            if (currentInstance.occupiedSpots + amount <= currentInstance.capacity) {
                 reservationSuccess = true
                 currentInstance.copy(occupiedSpots = currentInstance.occupiedSpots + amount)
             } else {
@@ -103,5 +105,42 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
         }
 
         return reservationSuccess
+    }
+}
+
+class InMemoryEventSeriesRepository : EventSeriesRepository {
+    private val instances = ConcurrentHashMap<String, EventSeries>()
+
+    override suspend fun findById(id: String): EventSeries? = instances[id]
+    override suspend fun getAll(seriesIds: List<String>): List<EventSeries> {
+        return instances.filterKeys { it in seriesIds }.values.toList()
+    }
+
+    override suspend fun attemptToReserveSpots(seriesId: String, amount: Int): Boolean {
+        var reservationSuccess = false
+
+        instances.computeIfPresent(seriesId) { _, currentInstance ->
+            if (currentInstance.occupiedSpots + amount <= currentInstance.capacity) {
+                reservationSuccess = true
+                currentInstance.copy(occupiedSpots = currentInstance.occupiedSpots + amount)
+            } else {
+                reservationSuccess = false
+                currentInstance
+            }
+        }
+
+        return reservationSuccess
+    }
+
+    override suspend fun incrementOccupiedSpots(seriesId: String, amount: Int): Int? {
+        return instances.computeIfPresent(seriesId) { _, currentInstance ->
+            currentInstance.copy(occupiedSpots = currentInstance.occupiedSpots + amount)
+        }?.occupiedSpots
+    }
+
+    override suspend fun decrementOccupiedSpots(seriesId: String, amount: Int): Int? {
+        return instances.computeIfPresent(seriesId) { _, currentInstance ->
+            currentInstance.copy(occupiedSpots = currentInstance.occupiedSpots - amount)
+        }?.occupiedSpots
     }
 }

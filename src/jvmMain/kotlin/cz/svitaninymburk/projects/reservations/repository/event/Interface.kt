@@ -2,6 +2,7 @@ package cz.svitaninymburk.projects.reservations.repository.event
 
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
+import cz.svitaninymburk.projects.reservations.event.EventSeries
 import kotlinx.datetime.LocalDateTime
 
 
@@ -28,4 +29,13 @@ interface EventInstanceRepository {
     suspend fun decrementOccupiedSpots(instanceId: String, amount: Int): Int?
 
     suspend fun attemptToReserveSpots(instanceId: String, amount: Int): Boolean
+}
+
+interface EventSeriesRepository {
+    suspend fun findById(id: String): EventSeries?
+    suspend fun getAll(seriesIds: List<String>): List<EventSeries>
+
+    suspend fun attemptToReserveSpots(seriesId: String, amount: Int): Boolean
+    suspend fun incrementOccupiedSpots(seriesId: String, amount: Int): Int?
+    suspend fun decrementOccupiedSpots(seriesId: String, amount: Int): Int?
 }

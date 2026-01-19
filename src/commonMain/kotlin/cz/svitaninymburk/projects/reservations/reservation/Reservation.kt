@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations.reservation
 
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -8,7 +9,7 @@ import kotlin.time.Instant
 @Serializable
 data class Reservation(
     val id: String,
-    val eventInstanceId: String,
+    val reference: Reference,
     val registeredUserId: String? = null,
 
     val contactName: String,
@@ -40,20 +41,32 @@ data class Reservation(
 }
 
 @Serializable
-data class CreateReservationRequest(
-    val eventInstanceId: String,
-    val seatCount: Int,
+sealed interface Reference {
+    val id: String
+    @Serializable @SerialName("instance")
+    data class Instance(override val id: String): Reference
+    @Serializable @SerialName("series")
+    data class Series(override val id: String): Reference
+}
 
+@Serializable
+data class CreateInstanceReservationRequest(
+    val eventInstanceId: String,
+    val seatCount: Int = 1,
     val contactName: String,
     val contactEmail: String,
-    val contactPhone: String? = null,
-    val userId: String? = null,
-
+    val contactPhone: String,
     val paymentType: PaymentInfo.Type,
     val customValues: List<CustomFieldValue>,
 )
 
 @Serializable
-data class GetReservationsRequest(
-    val userId: String,
+data class CreateSeriesReservationRequest(
+    val eventSeriesId: String,
+    val seatCount: Int = 1,
+    val contactName: String,
+    val contactEmail: String,
+    val contactPhone: String,
+    val paymentType: PaymentInfo.Type,
+    val customValues: List<CustomFieldValue>,
 )

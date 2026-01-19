@@ -14,6 +14,10 @@ object CsStrings : AppStrings {
     override val currentMonth = "Aktuální měsíc"
     override val contact = "Kontakt"
 
+    override val course = "Kroužek"
+    override val courseLessons = "lekcí"
+    override val courseSignUp = "Přihlásit se"
+
     override val nameLabel = "Jméno"
     override val nameHint = "Jan"
     override val surnameLabel = "Příjmení"
