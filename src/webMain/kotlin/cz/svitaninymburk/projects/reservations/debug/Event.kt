@@ -5,7 +5,7 @@ import kotlinx.datetime.LocalDateTime
 
 val randomEventList: List<EventInstance> get() = listOf(
     EventInstance(
-        "0", "1",
+        "0", "1", null,
         "Smyslohrátky", "Druhé smyslohrátky letošní",
         LocalDateTime(2026, 12, 12, 12, 12),
         LocalDateTime(2026, 12, 12, 14, 12),
@@ -13,7 +13,7 @@ val randomEventList: List<EventInstance> get() = listOf(
         30
     ),
     EventInstance(
-        "1", "0",
+        "1", "0", null,
         "Herna", "Letsgooo",
         LocalDateTime(2026, 12, 24, 12, 12),
         LocalDateTime(2026, 12, 24, 14, 12),

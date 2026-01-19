@@ -80,11 +80,6 @@
   resolved "https://registry.yarnpkg.com/@eonasdan/tempus-dominus/-/tempus-dominus-6.10.4.tgz#693da2c6be7de65ead5be9d302eaaaa9e7ea0b05"
   integrity sha512-aR1QkKUEFyfpqKuRs3ZnIfMhhB4aAS6WO3CpHn4FTLABe2ia3tm4pb7w+ium3w5b/d+mIKSi6VcbDukU+dtnYA==
 
-"@fortawesome/fontawesome-free@7.1.0":
-  version "7.1.0"
-  resolved "https://registry.yarnpkg.com/@fortawesome/fontawesome-free/-/fontawesome-free-7.1.0.tgz#8eb76278515341720aa74485266f8be121089529"
-  integrity sha512-+WxNld5ZCJHvPQCr/GnzCTVREyStrAJjisUPtUxG5ngDA8TMlPnKp6dddlTpai4+1GNmltAeuk1hJEkBohwZYA==
-
 "@iconify-json/heroicons@1.2.3":
   version "1.2.3"
   resolved "https://registry.yarnpkg.com/@iconify-json/heroicons/-/heroicons-1.2.3.tgz#041fe0d689535dddc51e97c8b692cdff792ac4b2"

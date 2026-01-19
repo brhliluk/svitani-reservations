@@ -1,13 +1,11 @@
 package cz.svitaninymburk.projects.reservations
 
-import cz.svitaninymburk.projects.reservations.debug.ComponentGallery
 import cz.svitaninymburk.projects.reservations.debug.randomEventList
 import cz.svitaninymburk.projects.reservations.i18n.detectLanguage
 import cz.svitaninymburk.projects.reservations.ui.DashboardScreen
 import dev.kilua.Application
 import dev.kilua.CoreModule
 import dev.kilua.TailwindcssModule
-import dev.kilua.FontAwesomeModule
 import dev.kilua.BootstrapIconsModule
 import dev.kilua.TempusDominusModule
 import dev.kilua.TomSelectModule
@@ -56,7 +54,6 @@ fun main() {
         ::App,
         bundlerHot(),
         TailwindcssModule,
-        FontAwesomeModule,
         BootstrapIconsModule,
         TempusDominusModule,
         TomSelectModule,
