@@ -80,10 +80,8 @@ fun IComponent.DashboardScreen(
                         }
                     }
                 }
-
             } else {
                 div(className = "flex flex-col sm:flex-row justify-between items-center gap-4 mb-2") {
-
                     if (activeFilterName != null) {
                         div(className = "badge badge-lg badge-primary gap-2 p-4 cursor-pointer hover:badge-error hover:text-white transition-colors tooltip tooltip-bottom") {
                             attribute("data-tip", "Click to clear filter")
