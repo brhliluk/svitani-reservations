@@ -23,10 +23,7 @@ fun IComponent.CalendarView(
 
     // Pomocné výpočty
     val daysInMonth = remember(viewDate) {
-        val firstDayOfCurrentMonth = LocalDate(viewDate.year, viewDate.month, 1)
-        val firstDayOfNextMonth = firstDayOfCurrentMonth.plus(1, DateTimeUnit.MONTH)
-        val lastDayOfCurrentMonth = firstDayOfNextMonth.minus(1, DateTimeUnit.DAY)
-        lastDayOfCurrentMonth.day
+        YearMonth(viewDate.year, viewDate.month).numberOfDays
     }
     val startDayOffset = viewDate.dayOfWeek.isoDayNumber - 1
 
