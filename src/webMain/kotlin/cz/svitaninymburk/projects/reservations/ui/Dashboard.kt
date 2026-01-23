@@ -9,6 +9,9 @@ import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.i18n.strings
+import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormData
+import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationModal
+import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
@@ -24,10 +27,12 @@ fun IComponent.DashboardScreen(
     definitions: List<EventDefinition>,
     initialFilterId: String? = null,
     onReserveInstance: (EventInstance) -> Unit,
-    onReserveSeries: (EventSeries) -> Unit
+    onReserveSeries: (EventSeries) -> Unit,
+    onSubmitReservation: (ReservationTarget, ReservationFormData) -> Unit,
 ) {
     val currentStrings by strings
 
+    var reservationTarget by remember { mutableStateOf<ReservationTarget?>(null) }
     var activeTab by remember { mutableStateOf(if (initialFilterId != null) DashboardTab.SCHEDULE else DashboardTab.SCHEDULE) }
     var selectedDefinitionId by remember { mutableStateOf(initialFilterId) }
     var viewMode by remember { mutableStateOf(ViewMode.LIST) }
@@ -115,7 +120,7 @@ fun IComponent.DashboardScreen(
                         if (filteredSeries.isNotEmpty()) {
                             div(className = "grid grid-cols-1 md:grid-cols-2 gap-6") {
                                 filteredSeries.forEach { seriesItem ->
-                                    SeriesCard(seriesItem) { onReserveSeries(seriesItem) }
+                                    SeriesCard(seriesItem) { reservationTarget = ReservationTarget.Series(seriesItem) }
                                 }
                             }
                             if (filteredEvents.isNotEmpty()) {
@@ -130,13 +135,12 @@ fun IComponent.DashboardScreen(
                             }
                         } else {
                             filteredEvents.forEach { eventItem ->
-                                Event(eventItem) { onReserveInstance(eventItem) }
+                                Event(eventItem) { reservationTarget = ReservationTarget.Instance(eventItem) }
                             }
                         }
                     }
                 } else {
-                    CalendarView(filteredEvents, { /*TODO*/ })
-                    // TODO: Calendar View Component
+                    CalendarView(filteredEvents, { reservationTarget = ReservationTarget.Instance(it) })
                 }
             }
         }
@@ -147,5 +151,14 @@ fun IComponent.DashboardScreen(
                 p { +"© 2024 Reservation System" }
             }
         }
+
+        ReservationModal(
+            target = reservationTarget,
+            onClose = { reservationTarget = null },
+            onSubmit = { target, data ->
+                onSubmitReservation(target, data)
+                reservationTarget = null
+            }
+        )
     }
 }

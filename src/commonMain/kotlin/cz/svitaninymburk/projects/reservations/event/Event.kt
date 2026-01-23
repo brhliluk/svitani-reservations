@@ -18,6 +18,7 @@ data class EventDefinition(
     val defaultDuration: Duration,
     val recurrenceType: RecurrenceType = RecurrenceType.NONE,
     val recurrenceEndDate: Instant? = null,
+    val customFields: List<CustomFieldDefinition> = emptyList(),
 )
 
 @Serializable
@@ -29,11 +30,10 @@ data class EventSeries(
     val price: Double,
     val capacity: Int,
     val occupiedSpots: Int = 0,
-
     val startDate: LocalDate,
     val endDate: LocalDate,
-
-    val lessonCount: Int
+    val lessonCount: Int,
+    val customFields: List<CustomFieldDefinition> = emptyList(),
 )
 
 @Serializable
@@ -49,6 +49,7 @@ data class EventInstance(
     val capacity: Int,
     val occupiedSpots: Int = 0,
     val isCancelled: Boolean = false,
+    val customFields: List<CustomFieldDefinition> = emptyList(),
 ) {
     val currentTimeZone get() = TimeZone.currentSystemDefault()
     val isFull: Boolean
