@@ -1,8 +1,8 @@
 package cz.svitaninymburk.projects.reservations.event
 
+import kotlinx.datetime.LocalTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
 
 
 @Serializable
@@ -21,7 +21,7 @@ data class TextValue(
 @SerialName("number_value")
 data class NumberValue(
     override val fieldKey: String,
-    val value: Int
+    val value: Float
 ) : CustomFieldValue
 
 @Serializable
@@ -35,6 +35,6 @@ data class BooleanValue(
 @SerialName("time_range_value")
 data class TimeRangeValue(
     override val fieldKey: String,
-    val from: Instant,
-    val to: Instant,
+    val from: LocalTime,
+    val to: LocalTime,
 ) : CustomFieldValue

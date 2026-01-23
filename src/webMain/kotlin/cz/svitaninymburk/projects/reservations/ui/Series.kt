@@ -38,7 +38,6 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                 div(className = "flex items-center gap-2 text-sm text-base-content/70 mt-2 bg-base-200/50 p-2 rounded-lg") {
                     span(className = "icon-[heroicons--calendar-days] size-5 text-primary")
                     span(className = "font-medium") {
-                        // Tady by to chtělo formátování data (např. 1.9. - 31.1.)
                         +"${series.startDate} — ${series.endDate}"
                     }
                 }
