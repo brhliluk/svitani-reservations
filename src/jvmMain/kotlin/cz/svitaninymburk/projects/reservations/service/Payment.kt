@@ -7,6 +7,7 @@ import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.bank.FioResponse
 import cz.svitaninymburk.projects.reservations.bank.parseFioTransactions
 import cz.svitaninymburk.projects.reservations.error.PaymentPairingError
+import cz.svitaninymburk.projects.reservations.qr.QrCodeService
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import io.ktor.client.*
@@ -65,7 +66,7 @@ class PaymentPairingService(
 
         if ((transaction.amount < reservation.totalPrice) || (transaction.amount != reservation.unpaidAmount)) {
             logger.warn("⚠️ Nedoplatek! VS $vs: Očekávaná čáska: ${reservation.unpaidAmount}, přišlo ${transaction.amount}.")
-            emailService.sendPaymentNotPaidInFull(reservation, transaction, fioToken, qrCodeService.generateQrPaymentImage(reservation.copy(totalPrice = reservation.unpaidAmount - transaction.amount)))
+            emailService.sendPaymentNotPaidInFull(reservation, transaction, fioToken, qrCodeService.generateQrSvg(reservation.copy(totalPrice = reservation.unpaidAmount - transaction.amount)))
             return
         }
 

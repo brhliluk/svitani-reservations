@@ -15,6 +15,7 @@ import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
 import dev.kilua.form.NumberFormControl
 import dev.kilua.form.check.checkBox
+import dev.kilua.form.number.imaskNumeric
 import dev.kilua.form.text.text
 import dev.kilua.form.text.textArea
 import dev.kilua.html.Time
@@ -67,8 +68,10 @@ fun IComponent.renderCustomField(
                     span(className = "label-text") { +field.label }
                 }
                 text(value = (stateMap[field.key] as? NumberValue)?.value?.toString(), type = InputType.Number, className = "input input-bordered w-full") {
-                    field.min?.let { attribute("min", it.toString()) }
-                    field.max?.let { attribute("max", it.toString()) }
+                    imaskNumeric {
+                        field.max?.let { max(it) }
+                        field.min?.let { min(it) }
+                    }
 //                    bind(field.key, object : NumberFormControl {}) TODO: if setAttr not enough
                     required(field.isRequired)
                     onInput { stateMap[field.key] = NumberValue(field.key, this.value?.toFloatOrNull() ?: 0f) }

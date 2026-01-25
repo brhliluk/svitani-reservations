@@ -26,8 +26,6 @@ fun IComponent.DashboardScreen(
     series: List<EventSeries>,
     definitions: List<EventDefinition>,
     initialFilterId: String? = null,
-    onReserveInstance: (EventInstance) -> Unit,
-    onReserveSeries: (EventSeries) -> Unit,
     onSubmitReservation: (ReservationTarget, ReservationFormData) -> Unit,
 ) {
     val currentStrings by strings

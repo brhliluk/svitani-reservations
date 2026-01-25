@@ -102,14 +102,14 @@ fun IComponent.ReservationModal(
                             div(className = "label") { span(className = "label-text") { +currentStrings.nameLabel } }
                             text(value = firstName, className = "input input-bordered w-full") {
                                 placeholder(currentStrings.nameHint)
-                                onInput { firstName = it.data ?: "" }
+                                onInput { firstName = value ?: "" }
                             }
                         }
                         label(className = "form-control w-full") {
                             div(className = "label") { span(className = "label-text") { +currentStrings.surnameLabel } }
                             text(value = lastName, className = "input input-bordered w-full") {
                                 placeholder(currentStrings.surnameHint)
-                                onInput { lastName = it.data ?: "" }
+                                onInput { lastName = value ?: "" }
                             }
                         }
                     }
@@ -119,7 +119,7 @@ fun IComponent.ReservationModal(
                         div(className = "label") { span(className = "label-text") { +currentStrings.emailLabel } }
                         text(value = email, type = InputType.Email, className = "input input-bordered w-full") {
                             placeholder(currentStrings.emailHint)
-                            onInput { email = it.data ?: "" }
+                            onInput { email = value ?: "" }
                         }
                     }
 
@@ -128,7 +128,7 @@ fun IComponent.ReservationModal(
                         div(className = "label") { span(className = "label-text") { +currentStrings.phoneLabel } }
                         text(value = phone, type = InputType.Tel, className = "input input-bordered w-full") {
                             placeholder(currentStrings.phoneHint)
-                            onInput { phone = it.data ?: "" }
+                            onInput { phone = value ?: "" }
                         }
                     }
 

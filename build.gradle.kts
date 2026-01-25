@@ -77,6 +77,7 @@ kotlin {
                 implementation(project.dependencies.platform(libs.arrow.stack))
                 implementation(libs.arrow.core)
                 implementation(libs.arrow.serialization)
+                implementation(libs.qrCode)
             }
         }
         val jvmMain by getting {

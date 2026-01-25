@@ -6,6 +6,7 @@ import arrow.core.raise.context.ensureNotNull
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import cz.svitaninymburk.projects.reservations.error.ReservationError
+import cz.svitaninymburk.projects.reservations.qr.QrCodeService
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
@@ -24,7 +25,7 @@ class ReservationService(
     private val eventSeriesRepository: EventSeriesRepository,
     private val reservationRepository: ReservationRepository,
     private val emailService: EmailService,
-    private val qrCodeService: QrCodeService,
+    private val qrCodeService: BackendQrCodeGenerator,
     private val paymentTrigger: PaymentTrigger,
 ): ReservationServiceInterface {
     override suspend fun reserveInstance(request: CreateInstanceReservationRequest, userId: String?): Either<ReservationError.CreateReservation, Reservation> = either {
@@ -98,7 +99,7 @@ class ReservationService(
             is Reference.Series -> eventSeriesRepository.incrementOccupiedSpots(resourceId, reservation.seatCount)
         }
 
-        val qrImage = qrCodeService.generateQrPaymentImage(reservation)
+        val qrImage = qrCodeService.generateQrPng(reservation)
         emailService.sendReservationConfirmation(
             reservation.contactEmail,
             reservation,
