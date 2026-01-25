@@ -4,6 +4,7 @@ import cz.svitaninymburk.projects.reservations.auth.BCryptHashingService
 import cz.svitaninymburk.projects.reservations.auth.GoogleAuthService
 import cz.svitaninymburk.projects.reservations.auth.HashingService
 import cz.svitaninymburk.projects.reservations.auth.JwtTokenService
+import cz.svitaninymburk.projects.reservations.qr.QrCodeService
 import cz.svitaninymburk.projects.reservations.repository.auth.InMemoryRefreshTokenRepository
 import cz.svitaninymburk.projects.reservations.repository.auth.RefreshTokenRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
@@ -51,6 +52,7 @@ val appModule = module {
     single { EventService(get(), get()) }
     single { GmailEmailService(System.getenv("GMAIL_USERNAME") ?: "username", System.getenv("GMAIL_APP_PASSWORD") ?: "password", get()) } bind EmailService::class
     single { QrCodeService(accountNumber = System.getenv("BANK_ACCOUNT_NUMBER") ?: "123456-123456789/0100") }
+    single { BackendQrCodeGenerator(get()) }
     single { ReservationService(get(), get(), get(), get(), get(), get()) }
     single { AuthenticatedReservationService(get(), get(), get()) }
     single { PaymentPairingService(get(), get(), get(), get(), System.getenv("FIO_TOKEN") ?: "fio-token") }
