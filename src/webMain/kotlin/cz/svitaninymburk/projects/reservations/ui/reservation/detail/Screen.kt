@@ -1,4 +1,4 @@
-package cz.svitaninymburk.projects.reservations.ui.reservation
+package cz.svitaninymburk.projects.reservations.ui.reservation.detail
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -6,6 +6,7 @@ import androidx.compose.runtime.produceState
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import dev.kilua.core.IComponent
 import dev.kilua.html.button
 import dev.kilua.html.div
@@ -34,13 +35,7 @@ fun IComponent.ReservationDetailScreen(
     }
 
     when (val state = uiState) {
-        is ReservationLoadingUiState.Loading -> {
-            // --- LOADING ---
-            div(className = "min-h-screen flex items-center justify-center bg-base-200") {
-                div(className = "loading loading-spinner loading-lg text-primary")
-            }
-        }
-
+        is ReservationLoadingUiState.Loading -> Loading()
         is ReservationLoadingUiState.Success -> {
             ReservationDetailLayout(
                 reservation = state.detail.reservation,
@@ -51,7 +46,6 @@ fun IComponent.ReservationDetailScreen(
                 onBackToDashboard = onBackClick,
             )
         }
-
         is ReservationLoadingUiState.Error -> {
             // --- ERROR (Not Found) ---
             div(className = "min-h-screen flex items-center justify-center bg-base-200 p-4") {

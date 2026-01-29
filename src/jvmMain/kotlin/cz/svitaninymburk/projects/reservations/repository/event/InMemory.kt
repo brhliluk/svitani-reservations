@@ -12,9 +12,11 @@ import kotlin.uuid.Uuid
 class InMemoryEventDefinitionRepository : EventDefinitionRepository {
     private val events = ConcurrentHashMap<String, EventDefinition>()
 
-    override suspend fun findById(id: String): EventDefinition? = events[id]
-
-    override suspend fun findAll(): List<EventDefinition> = events.values.toList()
+    override suspend fun get(id: String): EventDefinition? = events[id]
+    override suspend fun getAll(definitionIds: List<String>?): List<EventDefinition> {
+        return if (definitionIds == null) events.values.toList()
+        else events.filterKeys { it in definitionIds }.values.toList()
+    }
 
     
     override suspend fun create(event: EventDefinition): EventDefinition {
@@ -46,8 +48,9 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
         return instances[id]
     }
 
-    override suspend fun getAll(eventIds: List<String>): List<EventInstance> {
-        return instances.filterKeys { it in eventIds }.values.toList()
+    override suspend fun getAll(eventIds: List<String>?): List<EventInstance> {
+        return if (eventIds == null) instances.values.toList()
+        else instances.filterKeys { it in eventIds }.values.toList()
     }
 
     override suspend fun create(instance: EventInstance): EventInstance {
@@ -112,8 +115,9 @@ class InMemoryEventSeriesRepository : EventSeriesRepository {
     private val instances = ConcurrentHashMap<String, EventSeries>()
 
     override suspend fun get(id: String): EventSeries? = instances[id]
-    override suspend fun getAll(seriesIds: List<String>): List<EventSeries> {
-        return instances.filterKeys { it in seriesIds }.values.toList()
+    override suspend fun getAll(seriesIds: List<String>?): List<EventSeries> {
+        return if (seriesIds == null) instances.values.toList()
+        else instances.filterKeys { it in seriesIds }.values.toList()
     }
 
     override suspend fun attemptToReserveSpots(seriesId: String, amount: Int): Boolean {

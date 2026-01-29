@@ -1,4 +1,4 @@
-package cz.svitaninymburk.projects.reservations.ui
+package cz.svitaninymburk.projects.reservations.ui.dashboard
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -10,6 +10,11 @@ import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
+import cz.svitaninymburk.projects.reservations.ui.AppHeader
+import cz.svitaninymburk.projects.reservations.ui.CalendarView
+import cz.svitaninymburk.projects.reservations.ui.DefinitionCard
+import cz.svitaninymburk.projects.reservations.ui.Event
+import cz.svitaninymburk.projects.reservations.ui.SeriesCard
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormData
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationModal
 import cz.svitaninymburk.projects.reservations.user.User
@@ -20,7 +25,7 @@ enum class DashboardTab { SCHEDULE, CATALOG }
 enum class ViewMode { LIST, CALENDAR }
 
 @Composable
-fun IComponent.DashboardScreen(
+fun IComponent.DashboardLayout(
     user: User?,
     events: List<EventInstance>,
     series: List<EventSeries>,

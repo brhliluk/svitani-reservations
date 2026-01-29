@@ -1,4 +1,4 @@
-package cz.svitaninymburk.projects.reservations.ui.reservation
+package cz.svitaninymburk.projects.reservations.ui.reservation.detail
 
 import dev.kilua.form.InputType
 import dev.kilua.form.text.text
@@ -23,16 +23,12 @@ fun IComponent.ReservationDetailLayout(
     onCancelReservation: () -> Unit,
     onBackToDashboard: () -> Unit
 ) {
-    // 1. PŘÍPRAVA UI STAVU (Barvy, texty, viditelnost)
-    val uiState = remember(reservation.status) {
-        getReservationUiState(reservation)
-    }
+    val uiState = remember(reservation.status) { getReservationUiState(reservation) }
 
     div(className = "min-h-screen bg-base-200 flex items-center justify-center p-4 font-sans") {
 
         div(className = "card w-full max-w-5xl bg-base-100 shadow-xl overflow-hidden") {
 
-            // --- HEADER (Dynamické barvy) ---
             div(className = "${uiState.headerBgClass} p-8 text-center border-b border-base-200 transition-colors duration-300") {
                 div(className = "flex justify-center mb-3") {
                     div(className = "rounded-full p-4 ${uiState.iconBgClass}") {

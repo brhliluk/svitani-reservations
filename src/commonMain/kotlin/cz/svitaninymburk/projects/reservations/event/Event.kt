@@ -88,3 +88,10 @@ data class CreateEventInstanceRequest(
     val capacity: Int? = null,
     val customFields: List<CustomFieldDefinition> = emptyList(),
 )
+
+@Serializable
+data class DashboardData(
+    val instances: List<EventInstance>,
+    val series: List<EventSeries>,
+    val definitions: List<EventDefinition>
+)
