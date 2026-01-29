@@ -1,12 +1,12 @@
 package cz.svitaninymburk.projects.reservations.service
 
 import arrow.core.Either
+import arrow.core.getOrElse
 import arrow.core.raise.Raise
 import arrow.core.raise.context.ensureNotNull
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import cz.svitaninymburk.projects.reservations.error.ReservationError
-import cz.svitaninymburk.projects.reservations.qr.QrCodeService
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
@@ -14,6 +14,8 @@ import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReserva
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
+import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -28,9 +30,31 @@ class ReservationService(
     private val qrCodeService: BackendQrCodeGenerator,
     private val paymentTrigger: PaymentTrigger,
 ): ReservationServiceInterface {
+    override suspend fun get(id: String): Either<ReservationError.Get, Reservation> = either {
+        reservationRepository.findById(id) ?: raise(ReservationError.ReservationNotFound)
+    }
+
+    override suspend fun getDetail(id: String): Either<ReservationError.GetDetail, ReservationDetail> = either {
+        val reservation = get(id).getOrElse { raise(ReservationError.ReservationNotFound) }
+
+        val target: ReservationTarget = when (val ref = reservation.reference) {
+            is Reference.Instance -> {
+                val event = eventInstanceRepository.get(ref.id) ?: raise(ReservationError.EventInstanceNotFound)
+                ReservationTarget.Instance(event)
+            }
+            is Reference.Series -> {
+                val series = eventSeriesRepository.get(ref.id) ?: raise(ReservationError.EventSeriesNotFound)
+                ReservationTarget.Series(series)
+            }
+        }
+
+        ReservationDetail(reservation, target)
+    }
+
+
     override suspend fun reserveInstance(request: CreateInstanceReservationRequest, userId: String?): Either<ReservationError.CreateReservation, Reservation> = either {
 
-        val instance = ensureNotNull(eventInstanceRepository.get(request.eventInstanceId)) { ReservationError.NotFound }
+        val instance = ensureNotNull(eventInstanceRepository.get(request.eventInstanceId)) { ReservationError.ReservationNotFound }
 
         ensure(!instance.isCancelled) { ReservationError.EventCancelled }
         ensure(instance.endDateTime > Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) { ReservationError.EventAlreadyFinished }
@@ -64,7 +88,7 @@ class ReservationService(
         userId: String?
     ): Either<ReservationError.CreateReservation, Reservation> = either {
 
-        val series = ensureNotNull(eventSeriesRepository.findById(request.eventSeriesId)) { ReservationError.NotFound }
+        val series = ensureNotNull(eventSeriesRepository.get(request.eventSeriesId)) { ReservationError.ReservationNotFound }
 
         val isReserved = eventSeriesRepository.attemptToReserveSpots(series.id, request.seatCount)
         ensure(isReserved) { ReservationError.CapacityExceeded }
@@ -113,7 +137,7 @@ class ReservationService(
     }
 
     override suspend fun cancelReservation(reservationId: String): Either<ReservationError.CancelReservation, Boolean> = either {
-        val reservation = ensureNotNull(reservationRepository.findById(reservationId)) { ReservationError.NotFound }
+        val reservation = ensureNotNull(reservationRepository.findById(reservationId)) { ReservationError.ReservationNotFound }
 
         ensure(Clock.System.now() < reservation.createdAt) { ReservationError.EventAlreadyFinished }
 

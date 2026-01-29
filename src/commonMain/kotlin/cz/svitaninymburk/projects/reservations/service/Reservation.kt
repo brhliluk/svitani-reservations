@@ -5,11 +5,14 @@ import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
 import dev.kilua.rpc.annotations.RpcService
 
 
 @RpcService
 interface ReservationServiceInterface {
+    suspend fun get(id: String): Either<ReservationError.Get, Reservation>
+    suspend fun getDetail(id: String): Either<ReservationError.GetDetail, ReservationDetail>
     suspend fun reserveInstance(request: CreateInstanceReservationRequest, userId: String?): Either<ReservationError.CreateReservation, Reservation>
     suspend fun reserveSeries(request: CreateSeriesReservationRequest, userId: String?): Either<ReservationError.CreateReservation, Reservation>
     suspend fun cancelReservation(reservationId: String): Either<ReservationError.CancelReservation, Boolean>

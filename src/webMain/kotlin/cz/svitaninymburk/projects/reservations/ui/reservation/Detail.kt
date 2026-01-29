@@ -6,6 +6,7 @@ import kotlin.time.Duration.Companion.seconds
 import androidx.compose.runtime.*
 import cz.svitaninymburk.projects.reservations.copyToClipboard
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.shareSvgAsPng
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
@@ -14,7 +15,7 @@ import kotlinx.coroutines.launch
 
 
 @Composable
-fun IComponent.ReservationDetailScreen(
+fun IComponent.ReservationDetailLayout(
     reservation: Reservation,
     target: ReservationTarget,
     qrCodeSvg: String,
