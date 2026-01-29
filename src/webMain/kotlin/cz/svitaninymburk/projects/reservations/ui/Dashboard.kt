@@ -9,9 +9,9 @@ import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.i18n.strings
+import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormData
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationModal
-import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.html.*

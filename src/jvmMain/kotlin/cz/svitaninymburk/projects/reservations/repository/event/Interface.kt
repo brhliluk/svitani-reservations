@@ -32,7 +32,7 @@ interface EventInstanceRepository {
 }
 
 interface EventSeriesRepository {
-    suspend fun findById(id: String): EventSeries?
+    suspend fun get(id: String): EventSeries?
     suspend fun getAll(seriesIds: List<String>): List<EventSeries>
 
     suspend fun attemptToReserveSpots(seriesId: String, amount: Int): Boolean
