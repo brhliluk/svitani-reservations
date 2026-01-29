@@ -46,16 +46,16 @@ val appModule = module {
     single<ReservationRepository> { InMemoryReservationRepository() }
     single<RefreshTokenRepository> { InMemoryRefreshTokenRepository() }
 
-    single { AuthService(get(), get(), get(), get(), get()) }
-    single { AuthRefreshTokenService(get(), get(), get()) }
+    single { AuthService(get(), get(), get(), get(), get()) } bind AuthServiceInterface::class
+    single { AuthRefreshTokenService(get(), get(), get()) } bind RefreshTokenServiceInterface::class
     single { RefreshTokenService(get(), get()) }
-    single { EventService(get(), get(), get()) }
-    single { AuthenticatedEventService(get(), get()) }
+    single { EventService(get(), get(), get()) } bind EventServiceInterface::class
+    single { AuthenticatedEventService(get(), get()) } bind AuthenticatedEventServiceInterface::class
     single { GmailEmailService(System.getenv("GMAIL_USERNAME") ?: "username", System.getenv("GMAIL_APP_PASSWORD") ?: "password", get()) } bind EmailService::class
     single { QrCodeService(accountNumber = System.getenv("BANK_ACCOUNT_NUMBER") ?: "123456-123456789/0100") }
     single { BackendQrCodeGenerator(get()) }
-    single { ReservationService(get(), get(), get(), get(), get(), get()) }
-    single { AuthenticatedReservationService(get(), get(), get()) }
+    single { ReservationService(get(), get(), get(), get(), get(), get()) } bind ReservationServiceInterface::class
+    single { AuthenticatedReservationService(get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
     single { PaymentPairingService(get(), get(), get(), get(), System.getenv("FIO_TOKEN") ?: "fio-token") }
     single { AdminService(get()) }
     single { UserService(get()) }

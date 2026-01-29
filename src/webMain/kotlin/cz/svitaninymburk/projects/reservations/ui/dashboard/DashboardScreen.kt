@@ -8,6 +8,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import app.softwork.routingcompose.Router
+import arrow.core.serialization.ArrowModule
+import cz.svitaninymburk.projects.reservations.AppJson
+import cz.svitaninymburk.projects.reservations.AppSerializersModule
+import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
@@ -36,16 +40,21 @@ fun IComponent.DashboardScreen(
 
     val router = Router.current
     val scope = rememberCoroutineScope()
-    val eventService = getService<EventServiceInterface>()
-    val reservationService = getService<ReservationServiceInterface>()
+    val eventService = getService<EventServiceInterface>(RpcSerializersModules)
+    val reservationService = getService<ReservationServiceInterface>(RpcSerializersModules)
 
     val uiState by produceState<DashboardUiState>(initialValue = DashboardUiState.Loading, key1 = retryTrigger) {
         value = DashboardUiState.Loading
 
-        eventService.getDashboardData().fold(
-            ifRight = { data -> value = DashboardUiState.Success(data.instances, data.series, data.definitions) },
-            ifLeft = { error -> value = DashboardUiState.Error(error.localizedMessage) }
-        )
+        try {
+            eventService.getDashboardData().fold(
+                ifRight = { data -> value = DashboardUiState.Success(data.instances, data.series, data.definitions) },
+                ifLeft = { error -> value = DashboardUiState.Error(error.localizedMessage) }
+            )
+        } catch (e: Exception) {
+            value = DashboardUiState.Error("Chyba komunikace se serverem: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     suspend fun submitReservation(target: ReservationTarget, formData: ReservationFormData) {

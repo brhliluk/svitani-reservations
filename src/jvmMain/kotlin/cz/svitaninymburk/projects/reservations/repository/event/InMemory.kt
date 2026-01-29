@@ -120,6 +120,13 @@ class InMemoryEventSeriesRepository : EventSeriesRepository {
         else instances.filterKeys { it in seriesIds }.values.toList()
     }
 
+    override suspend fun create(series: EventSeries): EventSeries {
+        val id = series.id.ifBlank { Uuid.random().toString() }
+        val newSeries = series.copy(id = id)
+        instances[id] = newSeries
+        return newSeries
+    }
+
     override suspend fun attemptToReserveSpots(seriesId: String, amount: Int): Boolean {
         var reservationSuccess = false
 

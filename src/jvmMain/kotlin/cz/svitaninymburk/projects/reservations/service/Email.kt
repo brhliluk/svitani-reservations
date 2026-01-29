@@ -56,10 +56,11 @@ class GmailEmailService(
         val dataSource = ByteArrayDataSource(qrCodeImage, "image/png")
         val cid = email.embed(dataSource, "qr-code-platba")
 
-        val event = eventRepository.get(reservation.eventInstanceId)
+        // TODO: differentiate between services and instances
+        val event = eventRepository.get(reservation.reference.id)
         val htmlMessage = buildString { appendHTML().html { body {
             h1 { +"Děkujeme za rezervaci!" }
-            p { +"Vaše místa na akci: ${event?.title ?: reservation.eventInstanceId} jsou zarezervována." }
+            p { +"Vaše místa na akci: ${event?.title ?: reservation.reference.id} jsou zarezervována." }
             p { +"Pokud jste ještě neplatili, platební údaje:" }
             p {
                 strong { +"Cena:" }
@@ -102,7 +103,7 @@ class GmailEmailService(
         email.addTo(reservation.contactEmail)
         email.subject = "Potvrzení platby"
 
-        val event = eventRepository.get(reservation.eventInstanceId)
+        val event = eventRepository.get(reservation.reference.id)
 
         email.setTextMsg("Vaše rezervace na akci: ${event?.title} byla zaplacena, děkujeme!")
 
@@ -115,14 +116,15 @@ class GmailEmailService(
         reservation: Reservation,
         paymentInfo: BankTransaction,
         bankAccount: String,
-        qrCodeImage: ByteArray,
+        qrCodeImage: String,
     ): Either<EmailError.SendReservationConfirmation, Unit> = either { withContext(Dispatchers.IO) {
         val email = setupEmail()
         email.addTo(reservation.contactEmail)
         email.subject = "Částečně zaplaceno"
 
-        val event = eventRepository.get(reservation.eventInstanceId)
+        val event = eventRepository.get(reservation.reference.id)
 
+        // TODO: reflect the change from byteArray to svg string
         val dataSource = ByteArrayDataSource(qrCodeImage, "image/png")
         val cid = email.embed(dataSource, "qr-code-platba")
 

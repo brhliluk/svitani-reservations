@@ -7,6 +7,6 @@ interface ReservationRepository {
     suspend fun findById(id: String): Reservation?
     suspend fun findAwaitingPayment(vs: String): Reservation?
     suspend fun hasPendingReservations(): Boolean
-    suspend fun countSeats(eventId: String): Int
+    suspend fun countSeats(id: String): Int
     suspend fun getAll(userId: String): List<Reservation>
 }
