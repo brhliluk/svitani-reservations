@@ -35,6 +35,7 @@ interface EventSeriesRepository {
     suspend fun get(id: String): EventSeries?
     suspend fun getAll(seriesIds: List<String>?): List<EventSeries>
 
+    suspend fun create(series: EventSeries): EventSeries
     suspend fun attemptToReserveSpots(seriesId: String, amount: Int): Boolean
     suspend fun incrementOccupiedSpots(seriesId: String, amount: Int): Int?
     suspend fun decrementOccupiedSpots(seriesId: String, amount: Int): Int?

@@ -24,7 +24,7 @@ fun IComponent.ReservationDetailLayout(
     onBackToDashboard: () -> Unit
 ) {
     val uiState = remember(reservation.status) { getReservationUiState(reservation) }
-    val qrCodeService = getService<QrCodeService>()
+    val qrCodeService = QrCodeService("12354657/100") // TODO:
 
     val qrCodeSvg = remember(reservation, uiState.showPaymentInfo) {
         if (uiState.showPaymentInfo) qrCodeService.generateReservationPaymentSvg(reservation)

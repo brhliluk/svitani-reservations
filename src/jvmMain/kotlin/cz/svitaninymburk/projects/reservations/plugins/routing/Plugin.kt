@@ -1,8 +1,10 @@
 package cz.svitaninymburk.projects.reservations.plugins.routing
 
+import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.routing.adminRoutes
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import cz.svitaninymburk.projects.reservations.service.AuthenticatedReservationServiceInterface
+import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
 import cz.svitaninymburk.projects.reservations.service.RefreshTokenServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.service.UserServiceInterface
@@ -18,7 +20,8 @@ import org.koin.ktor.ext.inject
 
 fun Application.configureRouting() {
     routing {
-        applyRoutes(getServiceManager<AuthServiceInterface>())
+        applyRoutes(getServiceManager<AuthServiceInterface>(), RpcSerializersModules)
+        applyRoutes(getServiceManager<EventServiceInterface>(), RpcSerializersModules)
 
         authenticate("auth-jwt") {
 
@@ -30,14 +33,14 @@ fun Application.configureRouting() {
                 call.respond(mapOf("id" to userId, "email" to email))
             }
 
-            applyRoutes(getServiceManager<RefreshTokenServiceInterface>())
-            applyRoutes(getServiceManager<AuthenticatedReservationServiceInterface>())
-            applyRoutes(getServiceManager<UserServiceInterface>())
+            applyRoutes(getServiceManager<RefreshTokenServiceInterface>(), RpcSerializersModules)
+            applyRoutes(getServiceManager<AuthenticatedReservationServiceInterface>(), RpcSerializersModules)
+            applyRoutes(getServiceManager<UserServiceInterface>(), RpcSerializersModules)
             adminRoutes()
         }
 
         authenticate("auth-jwt", optional = true) {
-            applyRoutes(getServiceManager<ReservationServiceInterface>())
+            applyRoutes(getServiceManager<ReservationServiceInterface>(), RpcSerializersModules)
         }
     }
 }

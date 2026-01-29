@@ -25,9 +25,9 @@ class InMemoryReservationRepository : ReservationRepository {
         return reservations.values.any { it.status == Reservation.Status.PENDING_PAYMENT }
     }
 
-    override suspend fun countSeats(eventId: String): Int {
+    override suspend fun countSeats(id: String): Int {
         return reservations.values
-            .filter { it.eventInstanceId == eventId }
+            .filter { it.reference.id == id }
             .filter { it.status != Reservation.Status.CANCELLED && it.status != Reservation.Status.REJECTED }
             .sumOf { it.seatCount }
     }

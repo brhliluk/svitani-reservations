@@ -7,6 +7,8 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import arrow.core.serialization.ArrowModule
+import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
@@ -30,7 +32,7 @@ fun IComponent.ReservationDetailScreen(
     val scope = rememberCoroutineScope()
     var refreshTrigger by remember { mutableStateOf(0) }
 
-    val reservationService = getService<ReservationServiceInterface>()
+    val reservationService = getService<ReservationServiceInterface>(RpcSerializersModules)
 
     val uiState by produceState<ReservationLoadingUiState>(initialValue = ReservationLoadingUiState.Loading, key1 = refreshTrigger, key2 = reservationId) {
         value = ReservationLoadingUiState.Loading
