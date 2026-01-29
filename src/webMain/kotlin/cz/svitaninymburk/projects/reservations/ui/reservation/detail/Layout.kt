@@ -5,11 +5,13 @@ import dev.kilua.form.text.text
 import kotlin.time.Duration.Companion.seconds
 import androidx.compose.runtime.*
 import cz.svitaninymburk.projects.reservations.copyToClipboard
+import cz.svitaninymburk.projects.reservations.qr.QrCodeService
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.shareSvgAsPng
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
+import dev.kilua.rpc.getService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -18,12 +20,16 @@ import kotlinx.coroutines.launch
 fun IComponent.ReservationDetailLayout(
     reservation: Reservation,
     target: ReservationTarget,
-    qrCodeSvg: String,
-    bankAccountNumber: String,
     onCancelReservation: () -> Unit,
     onBackToDashboard: () -> Unit
 ) {
     val uiState = remember(reservation.status) { getReservationUiState(reservation) }
+    val qrCodeService = getService<QrCodeService>()
+
+    val qrCodeSvg = remember(reservation, uiState.showPaymentInfo) {
+        if (uiState.showPaymentInfo) qrCodeService.generateReservationPaymentSvg(reservation)
+        else ""
+    }
 
     div(className = "min-h-screen bg-base-200 flex items-center justify-center p-4 font-sans") {
 
@@ -96,7 +102,7 @@ fun IComponent.ReservationDetailLayout(
                             }
 
                             div(className = "w-full max-w-sm flex flex-col gap-4") {
-                                CopyToClipboardButton("Číslo účtu", bankAccountNumber)
+                                CopyToClipboardButton("Číslo účtu", qrCodeService.accountNumber)
                                 CopyToClipboardButton("VS", reservation.variableSymbol ?: "---")
                             }
 
