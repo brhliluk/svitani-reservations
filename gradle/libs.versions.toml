@@ -46,8 +46,9 @@ kilua-animation = { module = "dev.kilua:kilua-animation", version.ref = "kilua" 
 kilua-testutils = { module = "dev.kilua:kilua-testutils", version.ref = "kilua" }
 
 arrow-stack = { module = "io.arrow-kt:arrow-stack", version.ref = "arrow" }
-arrow-serialization = { module = "io.arrow-kt:arrow-core-serialization", version.ref = "arrow" }
+arrow-serialization = { module = "io.arrow-kt:arrow-core-serialization" }
 arrow-core = { module = "io.arrow-kt:arrow-core" }
+arrow-fx-coroutines = { module = "io.arrow-kt:arrow-fx-coroutines" }
 
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core" }

@@ -1,6 +1,11 @@
 package cz.svitaninymburk.projects.reservations.error
 
 sealed interface EventError : AppError {
+    sealed interface GetDashboardData: EventError
+    sealed interface GetInstances: EventError, GetDashboardData
+    sealed interface GetSeries: EventError, GetDashboardData
+    sealed interface GetDefinitions: EventError, GetDashboardData
+
     sealed interface CreateEventDefinition: EventError
     sealed interface UpdateEventDefinition: EventError
     sealed interface DeleteEventDefiniton: EventError
@@ -11,9 +16,16 @@ sealed interface EventError : AppError {
 
     data class EventDefinitionNotFound(val id: String): CreateEventInstance, UpdateEventDefinition, DeleteEventDefiniton
     data class EventInstanceNotFound(val id: String): UpdateEventInstance, DeleteEventInstance
+
+    data object FailedToGetInstances: GetInstances
+    data object FailedToGetSeries: GetSeries
+    data object FailedToGetDefinitions: GetDefinitions
 }
 
 val EventError.localizedMessage: String get() = when (this) {
     is EventError.EventInstanceNotFound -> "Událost s id $id nenalezena"
     is EventError.EventDefinitionNotFound -> "Šablona události s id $id nenalezena"
+    is EventError.FailedToGetDefinitions -> "Nepodařilo se získat definice"
+    is EventError.FailedToGetInstances -> "Nepodařilo se získat události"
+    is EventError.FailedToGetSeries -> "Nepodařilo se získat kurzy"
 }

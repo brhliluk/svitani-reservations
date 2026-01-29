@@ -7,8 +7,8 @@ import kotlinx.datetime.LocalDateTime
 
 
 interface EventDefinitionRepository {
-    suspend fun findById(id: String): EventDefinition?
-    suspend fun findAll(): List<EventDefinition>
+    suspend fun get(id: String): EventDefinition?
+    suspend fun getAll(definitionIds: List<String>?): List<EventDefinition>
     suspend fun create(event: EventDefinition): EventDefinition
     suspend fun update(event: EventDefinition): EventDefinition
     suspend fun delete(id: String): Boolean
@@ -16,7 +16,7 @@ interface EventDefinitionRepository {
 
 interface EventInstanceRepository {
     suspend fun get(id: String): EventInstance?
-    suspend fun getAll(eventIds: List<String>): List<EventInstance>
+    suspend fun getAll(eventIds: List<String>?): List<EventInstance>
 
     suspend fun create(instance: EventInstance): EventInstance
     suspend fun update(instance: EventInstance): EventInstance
@@ -33,7 +33,7 @@ interface EventInstanceRepository {
 
 interface EventSeriesRepository {
     suspend fun get(id: String): EventSeries?
-    suspend fun getAll(seriesIds: List<String>): List<EventSeries>
+    suspend fun getAll(seriesIds: List<String>?): List<EventSeries>
 
     suspend fun attemptToReserveSpots(seriesId: String, amount: Int): Boolean
     suspend fun incrementOccupiedSpots(seriesId: String, amount: Int): Int?

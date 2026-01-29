@@ -29,7 +29,7 @@ data class Reservation(
     val status: Status,
     val createdAt: Instant,
 
-    val customValues: List<CustomFieldValue>,
+    val customValues: Map<String, CustomFieldValue>,
 
     val paymentType: PaymentInfo.Type,
     val variableSymbol: String? = null, // VS pro párování platby
@@ -92,7 +92,7 @@ data class CreateInstanceReservationRequest(
     val contactEmail: String,
     val contactPhone: String,
     val paymentType: PaymentInfo.Type,
-    val customValues: List<CustomFieldValue>,
+    val customValues: Map<String, CustomFieldValue>,
 )
 
 @Serializable
@@ -103,7 +103,7 @@ data class CreateSeriesReservationRequest(
     val contactEmail: String,
     val contactPhone: String,
     val paymentType: PaymentInfo.Type,
-    val customValues: List<CustomFieldValue>,
+    val customValues: Map<String, CustomFieldValue>,
 )
 
 @Serializable
