@@ -24,7 +24,7 @@ fun IComponent.ReservationDetailLayout(
     onBackToDashboard: () -> Unit
 ) {
     val uiState = remember(reservation.status) { getReservationUiState(reservation) }
-    val qrCodeService = QrCodeService("12354657/100") // TODO:
+    val qrCodeService = QrCodeService("12354657/0100") // TODO:
 
     val qrCodeSvg = remember(reservation, uiState.showPaymentInfo) {
         if (uiState.showPaymentInfo) qrCodeService.generateReservationPaymentSvg(reservation)
@@ -95,7 +95,7 @@ fun IComponent.ReservationDetailLayout(
 
                                 div(className = "bg-white p-3 rounded-xl shadow-sm border border-base-300 mb-6 transition-transform group-hover:scale-105 duration-200") {
                                     div("w-48 h-48") {
-                                        html { +qrCodeSvg }
+                                        rawHtml(qrCodeSvg)
                                     }
                                 }
                                 // ... overlay ...

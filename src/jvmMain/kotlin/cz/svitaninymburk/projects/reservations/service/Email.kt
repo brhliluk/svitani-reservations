@@ -3,6 +3,7 @@ package cz.svitaninymburk.projects.reservations.service
 import arrow.core.Either
 import arrow.core.raise.catch
 import arrow.core.raise.either
+import arrow.core.right
 import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.error.EmailError
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
@@ -147,6 +148,42 @@ class GmailEmailService(
             EmailError.SendPaymentNotPaidInFullFailed(e.message ?: "Unknown error")
         }
     } }
+}
 
+class ConsoleEmailService : EmailService {
+    override suspend fun sendReservationConfirmation(
+        toEmail: String,
+        reservation: Reservation,
+        bankAccount: String,
+        qrCodeImage: ByteArray
+    ): Either<EmailError.SendReservationConfirmation, Unit> {
+        println("📧 [MOCK EMAIL] Odesílám potvrzení rezervace na: $toEmail")
+        println("   ID: ${reservation.id}, Cena: ${reservation.totalPrice}")
+        return Unit.right()
+    }
 
+    override suspend fun sendCancellationNotice(
+        toEmail: String,
+        reservationId: String
+    ): Either<EmailError.SendCancellation, Unit> {
+        println("📧 [MOCK EMAIL] Odesílám storno na: $toEmail (ID: $reservationId)")
+        return Unit.right()
+    }
+
+    override suspend fun sendPaymentReceivedConfirmation(
+        reservation: Reservation
+    ): Either<EmailError.SendReservationConfirmation, Unit> {
+        println("📧 [MOCK EMAIL] Potvrzení platby pro: ${reservation.contactEmail}")
+        return Unit.right()
+    }
+
+    override suspend fun sendPaymentNotPaidInFull(
+        reservation: Reservation,
+        paymentInfo: BankTransaction,
+        bankAccount: String,
+        qrCodeImage: String
+    ): Either<EmailError.SendReservationConfirmation, Unit> {
+        println("📧 [MOCK EMAIL] Nedoplatek pro: ${reservation.contactEmail}")
+        return Unit.right()
+    }
 }

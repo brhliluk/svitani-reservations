@@ -54,6 +54,7 @@ sealed interface Reference {
     data class Series(override val id: String): Reference
 }
 
+@Serializable
 sealed interface ReservationTarget {
     val id: String
     val title: String
@@ -63,6 +64,8 @@ sealed interface ReservationTarget {
     val startDateTime: LocalDateTime
     val endDateTime: LocalDateTime
 
+    @Serializable
+    @SerialName("instance")
     data class Instance(val event: EventInstance) : ReservationTarget {
         override val id = event.id
         override val title = event.title
@@ -73,6 +76,8 @@ sealed interface ReservationTarget {
         override val customFields = event.customFields
     }
 
+    @Serializable
+    @SerialName("series")
     data class Series(val series: EventSeries) : ReservationTarget {
         override val id = series.id
         override val title = series.title
