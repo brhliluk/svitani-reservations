@@ -5,6 +5,7 @@ import dev.kilua.form.text.text
 import kotlin.time.Duration.Companion.seconds
 import androidx.compose.runtime.*
 import cz.svitaninymburk.projects.reservations.copyToClipboard
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.qr.QrCodeService
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -23,7 +24,8 @@ fun IComponent.ReservationDetailLayout(
     onCancelReservation: () -> Unit,
     onBackToDashboard: () -> Unit
 ) {
-    val uiState = remember(reservation.status) { getReservationUiState(reservation) }
+    val currentStrings by strings
+    val uiState = remember(reservation.status, currentStrings) { getReservationUiState(reservation, currentStrings) }
     val qrCodeService = QrCodeService("19-2000145399/0800") // TODO:
 
     val qrCodeSvg = remember(reservation, uiState.showPaymentInfo) {
@@ -53,7 +55,7 @@ fun IComponent.ReservationDetailLayout(
 
                         // ... (Zobrazení detailů rezervace - stejné jako minule) ...
                         div {
-                            h2(className = "text-xs font-bold uppercase tracking-widest text-base-content/50 mb-2") { +"Souhrn rezervace" }
+                            h2(className = "text-xs font-bold uppercase tracking-widest text-base-content/50 mb-2") { +currentStrings.reservationSummary }
                             h3(className = "text-3xl font-bold text-primary mb-2") { +target.title }
                             div(className = "flex items-center gap-2 text-base-content/70 font-medium") {
                                 span(className = "icon-[heroicons--calendar] size-5")
@@ -62,9 +64,9 @@ fun IComponent.ReservationDetailLayout(
                         }
 
                         div(className = "flex flex-col gap-4 bg-base-200/50 p-6 rounded-xl") {
-                            DetailRow("Stav", uiState.statusLabel) // Zobrazíme textový stav
-                            DetailRow("Jméno", reservation.contactName)
-                            DetailRow("Cena celkem", "${reservation.totalPrice} Kč")
+                            DetailRow(currentStrings.status, uiState.statusLabel) // Zobrazíme textový stav
+                            DetailRow(currentStrings.name, reservation.contactName)
+                            DetailRow(currentStrings.totalPrice, "${reservation.totalPrice} Kč")
                         }
 
                         // Tlačítko Zrušit (jen pokud to dává smysl)
@@ -73,7 +75,7 @@ fun IComponent.ReservationDetailLayout(
                                 button(className = "btn btn-outline btn-error btn-sm gap-2") {
                                     onClick { onCancelReservation() }
                                     span(className = "icon-[heroicons--trash] size-4")
-                                    +"Zrušit rezervaci"
+                                    +currentStrings.cancelReservation
                                 }
                             }
                         }
@@ -86,11 +88,11 @@ fun IComponent.ReservationDetailLayout(
                             // === ZOBRAZIT QR KÓD (Čeká se na platbu) ===
                             h2(className = "text-lg font-bold mb-8 flex items-center gap-3 text-base-content") {
                                 span(className = "icon-[heroicons--qr-code] size-6 text-primary")
-                                +"Platba QR kódem"
+                                +currentStrings.qrPayment
                             }
 
                             div(className = "relative group cursor-pointer tooltip tooltip-bottom") {
-                                attribute("data-tip", "Kliknutím sdílet / stáhnout")
+                                attribute("data-tip", currentStrings.shareOrDownload)
                                 onClick { shareSvgAsPng(qrCodeSvg) }
 
                                 div(className = "bg-white p-3 rounded-xl shadow-sm border border-base-300 mb-6 transition-transform group-hover:scale-105 duration-200") {
@@ -102,8 +104,8 @@ fun IComponent.ReservationDetailLayout(
                             }
 
                             div(className = "w-full max-w-sm flex flex-col gap-4") {
-                                CopyToClipboardButton("Číslo účtu", qrCodeService.accountNumber)
-                                CopyToClipboardButton("VS", reservation.variableSymbol ?: "---")
+                                CopyToClipboardButton(currentStrings.accountNumber, qrCodeService.accountNumber)
+                                CopyToClipboardButton(currentStrings.variableSymbol, reservation.variableSymbol ?: "---")
                             }
 
                         } else {
@@ -111,8 +113,8 @@ fun IComponent.ReservationDetailLayout(
                             div(className = "opacity-50 flex flex-col items-center gap-4") {
                                 span(className = "size-24 ${uiState.iconClass}")
                                 p(className = "text-xl font-medium") {
-                                    if (reservation.status == Reservation.Status.CANCELLED) "Tato rezervace je zrušena."
-                                    else "Vše je uhrazeno. Těšíme se na vás!"
+                                    if (reservation.status == Reservation.Status.CANCELLED) +currentStrings.reservationCancelledMessage
+                                    else +currentStrings.reservationPaidMessage
                                 }
                             }
                         }
@@ -124,7 +126,7 @@ fun IComponent.ReservationDetailLayout(
             div(className = "bg-base-200/50 p-6 flex justify-center border-t border-base-200") {
                 button(className = "btn btn-primary w-full sm:w-auto px-12 font-bold text-lg shadow-lg") {
                     onClick { onBackToDashboard() }
-                    +"Zpět na přehled"
+                    +currentStrings.backToDashboard
                 }
             }
         }
@@ -145,13 +147,13 @@ private data class ReservationUiState(
     val canBeCancelled: Boolean
 )
 
-private fun getReservationUiState(reservation: Reservation): ReservationUiState {
+private fun getReservationUiState(reservation: Reservation, strings: cz.svitaninymburk.projects.reservations.i18n.AppStrings): ReservationUiState {
     return when (reservation.status) {
         // 1. NOVÁ / ČEKÁ NA PLATBU
         Reservation.Status.PENDING_PAYMENT -> ReservationUiState(
-            title = "Rezervace vytvořena",
-            subtitle = "Čekáme na platbu",
-            statusLabel = "Nezaplaceno",
+            title = strings.reservationCreated,
+            subtitle = strings.waitingForPayment,
+            statusLabel = strings.unpaid,
             headerBgClass = "bg-warning/10", // Žlutá/Oranžová pro "Attention"
             iconBgClass = "bg-warning/20 text-warning",
             iconClass = "icon-[heroicons--clock] text-warning",
@@ -161,9 +163,9 @@ private fun getReservationUiState(reservation: Reservation): ReservationUiState 
         )
         // 2. POTVRZENÁ / ZAPLACENÁ
         Reservation.Status.CONFIRMED -> ReservationUiState(
-            title = "Rezervace potvrzena",
-            subtitle = "Vše je v pořádku",
-            statusLabel = "Zaplaceno",
+            title = strings.reservationConfirmed,
+            subtitle = strings.everythingIsOK,
+            statusLabel = strings.paid,
             headerBgClass = "bg-success/10", // Zelená
             iconBgClass = "bg-success/20 text-success",
             iconClass = "icon-[heroicons--check-circle] text-success",
@@ -173,9 +175,9 @@ private fun getReservationUiState(reservation: Reservation): ReservationUiState 
         )
         // 3. ZRUŠENÁ
         Reservation.Status.CANCELLED -> ReservationUiState(
-            title = "Rezervace zrušena",
-            subtitle = "Tato rezervace není platná",
-            statusLabel = "Stornováno",
+            title = strings.reservationCancelled,
+            subtitle = strings.reservationNotValid,
+            statusLabel = strings.cancelled,
             headerBgClass = "bg-error/10", // Červená
             iconBgClass = "bg-error/20 text-error",
             iconClass = "icon-[heroicons--x-circle] text-error",
@@ -184,9 +186,9 @@ private fun getReservationUiState(reservation: Reservation): ReservationUiState 
             canBeCancelled = false // Už nejde zrušit znovu
         )
         Reservation.Status.REJECTED -> ReservationUiState(
-            title = "Rezervace zamítnuta",
-            subtitle = "Organizátor rezervaci neschválil",
-            statusLabel = "Zamítnuto",
+            title = strings.reservationRejected,
+            subtitle = strings.reservationNotApproved,
+            statusLabel = strings.rejected,
             headerBgClass = "bg-error/10", // Také červená, je to "chyba/konec"
             iconBgClass = "bg-error/20 text-error",
             iconClass = "icon-[heroicons--x-circle] text-error", // Ikona křížku/zákazu
@@ -209,6 +211,7 @@ fun IComponent.DetailRow(label: String, value: String) {
 
 @Composable
 fun IComponent.CopyToClipboardButton(label: String, value: String) {
+    val currentStrings by strings
     var isCopied by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
@@ -235,7 +238,7 @@ fun IComponent.CopyToClipboardButton(label: String, value: String) {
 
                 if (isCopied) {
                     span(className = "icon-[heroicons--check] size-5 text-success")
-                    span(className = "hidden sm:inline text-success") { +"Zkopírováno" }
+                    span(className = "hidden sm:inline text-success") { +currentStrings.copied }
                 } else {
                     span(className = "icon-[heroicons--document-duplicate] size-5")
                 }

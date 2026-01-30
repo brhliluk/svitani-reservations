@@ -16,6 +16,7 @@ object EnStrings : AppStrings {
     override val catalog = "Catalog"
     override val listView = "List"
     override val calendarView = "Calendar"
+    override val backToDashboard = "Back to dashboard"
 
     // Headers
     override val allEvents = "All events"
@@ -31,6 +32,7 @@ object EnStrings : AppStrings {
     // Filter
     override val filter = "Filter"
     override val clearFilterTooltip = "Click to clear filter"
+    override val filterIsActive: (String) -> String = { "Filter: $it" }
 
     // Cards
     override val course = "Course"
@@ -53,6 +55,51 @@ object EnStrings : AppStrings {
     override val phoneHint = "+420 123 456 789"
     override val seatCountLabel = "Number of seats"
     override val seatCountHint = "1"
+
+    // Reservation Detail
+    override val reservationSummary = "Reservation summary"
+    override val status = "Status"
+    override val name = "Name"
+    override val totalPrice = "Total price"
+    override val cancelReservation = "Cancel reservation"
+    override val qrPayment = "QR payment"
+    override val shareOrDownload = "Click to share / download"
+    override val accountNumber = "Account number"
+    override val variableSymbol = "VS"
+    override val reservationCancelledMessage = "This reservation is cancelled."
+    override val reservationPaidMessage = "Everything is paid. We look forward to seeing you!"
+    override val copied = "Copied"
+
+    // Reservation Statuses
+    override val reservationCreated = "Reservation created"
+    override val waitingForPayment = "Waiting for payment"
+    override val unpaid = "Unpaid"
+    override val reservationConfirmed = "Reservation confirmed"
+    override val everythingIsOK = "Everything is in order"
+    override val paid = "Paid"
+    override val reservationCancelled = "Reservation cancelled"
+    override val reservationNotValid = "This reservation is not valid"
+    override val cancelled = "Cancelled"
+    override val reservationRejected = "Reservation rejected"
+    override val reservationNotApproved = "The organizer did not approve the reservation"
+    override val rejected = "Rejected"
+    override val copyright = "© 2024 Reservation System"
+
+    // Reservation Modal
+    override val reservationFor: (String) -> String = { "Reservation for: $it" }
+    override val formTotalPrice = "Total price"
+    override val free = "Free"
+    override val currency = "CZK"
+    override val persons = "persons"
+    override val moreDetails = "More details"
+    override val paymentType = "Payment type"
+    override val bankTransfer = "Bank transfer"
+    override val onSite = "On-site"
+    override val cancel = "Cancel"
+    override val close = "close"
+
+    // Calendar
+    override val more: (Int) -> String = { "+$it more" }
 
     // Lists for helper functions
     private val months = listOf(

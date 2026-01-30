@@ -65,7 +65,7 @@ fun IComponent.DashboardLayout(
                     a(className = "tab rounded-full transition-all duration-300 ${if (activeTab == DashboardTab.SCHEDULE) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
                         onClick { activeTab = DashboardTab.SCHEDULE }
                         span(className = "icon-[heroicons--calendar-days] size-5 mr-2")
-                        +"Program" // currentStrings.schedule
+                        +currentStrings.schedule
                     }
 
                     a(className = "tab rounded-full transition-all duration-300 ${if (activeTab == DashboardTab.CATALOG) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
@@ -74,7 +74,7 @@ fun IComponent.DashboardLayout(
                             selectedDefinitionId = null
                         }
                         span(className = "icon-[heroicons--swatch] size-5 mr-2")
-                        +"Nabídka"
+                        +currentStrings.catalog
                     }
                 }
             }
@@ -92,15 +92,15 @@ fun IComponent.DashboardLayout(
                 div(className = "flex flex-col sm:flex-row justify-between items-center gap-4 mb-2") {
                     if (activeFilterName != null) {
                         div(className = "badge badge-lg badge-primary gap-2 p-4 cursor-pointer hover:badge-error hover:text-white transition-colors tooltip tooltip-bottom") {
-                            attribute("data-tip", "Click to clear filter")
+                            attribute("data-tip", currentStrings.clearFilterTooltip)
                             onClick { selectedDefinitionId = null }
                             span(className = "icon-[heroicons--funnel] size-4")
-                            +"Filter: $activeFilterName"
+                            +currentStrings.filterIsActive(activeFilterName)
                             span(className = "icon-[heroicons--x-mark] size-4 ml-1")
                         }
                     } else {
                         div(className = "text-xl font-bold text-base-content") {
-                            +"Všechny akce"
+                            +currentStrings.allEvents
                         }
                     }
 
@@ -134,7 +134,7 @@ fun IComponent.DashboardLayout(
                         if (filteredEvents.isEmpty() && filteredSeries.isEmpty()) {
                             div(className = "alert bg-base-100 shadow-sm") {
                                 span(className = "icon-[heroicons--information-circle] size-6 text-info")
-                                +"Pro tento výběr nejsou vypsané žádné termíny."
+                                +currentStrings.noEventsFoundForFilter
                             }
                         } else {
                             filteredEvents.forEach { eventItem ->
@@ -151,7 +151,7 @@ fun IComponent.DashboardLayout(
         footer(className = "footer footer-center p-8 text-base-content/50") {
             aside {
                 a(href="#", className = "link link-hover") { +currentStrings.contact }
-                p { +"© 2024 Reservation System" }
+                p { +currentStrings.copyright }
             }
         }
 

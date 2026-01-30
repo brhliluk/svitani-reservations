@@ -74,21 +74,21 @@ fun IComponent.ReservationModal(
                 // --- HLAVIČKA ---
                 h3(className = "font-bold text-lg flex items-center gap-2") {
                     span(className = "icon-[heroicons--ticket] size-6 text-primary")
-                    +"Rezervace: ${target.title}"
+                    +currentStrings.reservationFor(target.title)
                 }
 
                 // Cena info
                 div(className = "py-4") {
                     div(className = "stats shadow w-full bg-base-200/50") {
                         div(className = "stat py-2") {
-                            div(className = "stat-title") { +"Celková cena" }
+                            div(className = "stat-title") { +currentStrings.formTotalPrice }
                             div(className = "stat-value text-primary text-2xl") {
                                 // Dynamický výpočet ceny
                                 val total = target.price * seats
-                                if (total == 0.0) +"Zdarma" else +"$total Kč"
+                                if (total == 0.0) +currentStrings.free else +"$total ${currentStrings.currency}"
                             }
                             div(className = "stat-desc") {
-                                +"${target.price} Kč x $seats osob"
+                                +"${target.price} ${currentStrings.currency} x $seats ${currentStrings.persons}"
                             }
                         }
                     }
@@ -134,7 +134,7 @@ fun IComponent.ReservationModal(
                     }
 
                     if (target.customFields.isNotEmpty()) {
-                        div(className = "divider text-xs text-base-content/50 my-1") { +"Další údaje" }
+                        div(className = "divider text-xs text-base-content/50 my-1") { +currentStrings.moreDetails }
 
                         target.customFields.forEach { field ->
                             renderCustomField(field, customValuesState)
@@ -153,10 +153,10 @@ fun IComponent.ReservationModal(
 
                         // Typ platby
                         label(className = "form-control w-2/3") {
-                            div(className = "label") { span(className = "label-text") { +"Typ platby" } }
+                            div(className = "label") { span(className = "label-text") { +currentStrings.paymentType } }
                             select(className = "select select-bordered w-full") {
-                                option(value = PaymentInfo.Type.BANK_TRANSFER.name, label = "Převodem")
-                                option(value = PaymentInfo.Type.ON_SITE.name, label = "Hotově na místě")
+                                option(value = PaymentInfo.Type.BANK_TRANSFER.name, label = currentStrings.bankTransfer)
+                                option(value = PaymentInfo.Type.ON_SITE.name, label = currentStrings.onSite)
 
                                 onChange { event ->
                                     val targetSelect = event.target as? HTMLSelectElement
@@ -173,7 +173,7 @@ fun IComponent.ReservationModal(
                     // Cancel
                     button(className = "btn btn-ghost") {
                         onClick { onClose() }
-                        +"Zrušit"
+                        +currentStrings.cancel
                     }
                     // Submit
                     button(className = "btn btn-primary px-8") {
@@ -194,7 +194,7 @@ fun IComponent.ReservationModal(
 
             div(className = "modal-backdrop") {
                 onClick { onClose() }
-                button { +"close" }
+                button { +currentStrings.close }
             }
         }
     }

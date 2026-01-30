@@ -16,6 +16,7 @@ object CsStrings : AppStrings {
     override val catalog = "Nabídka"
     override val listView = "Seznam"
     override val calendarView = "Kalendář"
+    override val backToDashboard = "Zpět na přehled"
 
     // Headers
     override val allEvents = "Všechny akce"
@@ -31,6 +32,7 @@ object CsStrings : AppStrings {
     // Filter
     override val filter = "Filtr"
     override val clearFilterTooltip = "Kliknutím zrušíte filtr"
+    override val filterIsActive: (String) -> String = { "Filtr: $it" }
 
     // Cards
     override val course = "Kroužek"
@@ -53,6 +55,51 @@ object CsStrings : AppStrings {
     override val phoneHint = "+420 123 456 789"
     override val seatCountLabel = "Počet míst"
     override val seatCountHint = "1"
+
+    // Reservation Detail
+    override val reservationSummary = "Souhrn rezervace"
+    override val status = "Stav"
+    override val name = "Jméno"
+    override val totalPrice = "Cena celkem"
+    override val cancelReservation = "Zrušit rezervaci"
+    override val qrPayment = "Platba QR kódem"
+    override val shareOrDownload = "Kliknutím sdílet / stáhnout"
+    override val accountNumber = "Číslo účtu"
+    override val variableSymbol = "VS"
+    override val reservationCancelledMessage = "Tato rezervace je zrušena."
+    override val reservationPaidMessage = "Vše je uhrazeno. Těšíme se na vás!"
+    override val copied = "Zkopírováno"
+
+    // Reservation Statuses
+    override val reservationCreated = "Rezervace vytvořena"
+    override val waitingForPayment = "Čekáme na platbu"
+    override val unpaid = "Nezaplaceno"
+    override val reservationConfirmed = "Rezervace potvrzena"
+    override val everythingIsOK = "Vše je v pořádku"
+    override val paid = "Zaplaceno"
+    override val reservationCancelled = "Rezervace zrušena"
+    override val reservationNotValid = "Tato rezervace není platná"
+    override val cancelled = "Stornováno"
+    override val reservationRejected = "Rezervace zamítnuta"
+    override val reservationNotApproved = "Organizátor rezervaci neschválil"
+    override val rejected = "Zamítnuto"
+    override val copyright = "© 2024 Reservation System"
+
+    // Reservation Modal
+    override val reservationFor: (String) -> String = { "Rezervace: $it" }
+    override val formTotalPrice = "Celková cena"
+    override val free = "Zdarma"
+    override val currency = "Kč"
+    override val persons = "osob"
+    override val moreDetails = "Další údaje"
+    override val paymentType = "Typ platby"
+    override val bankTransfer = "Převodem"
+    override val onSite = "Hotově na místě"
+    override val cancel = "Zrušit"
+    override val close = "zavřít"
+
+    // Calendar
+    override val more: (Int) -> String = { "+$it další" }
 
     private val months = listOf(
         "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
