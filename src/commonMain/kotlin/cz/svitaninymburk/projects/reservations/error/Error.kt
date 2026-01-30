@@ -1,3 +1,5 @@
 package cz.svitaninymburk.projects.reservations.error
 
-sealed interface AppError
+import kotlinx.serialization.Serializable
+
+@Serializable sealed interface AppError

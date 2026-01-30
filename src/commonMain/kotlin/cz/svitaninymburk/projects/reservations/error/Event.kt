@@ -1,25 +1,28 @@
 package cz.svitaninymburk.projects.reservations.error
 
-sealed interface EventError : AppError {
-    sealed interface GetDashboardData: EventError
-    sealed interface GetInstances: EventError, GetDashboardData
-    sealed interface GetSeries: EventError, GetDashboardData
-    sealed interface GetDefinitions: EventError, GetDashboardData
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-    sealed interface CreateEventDefinition: EventError
-    sealed interface UpdateEventDefinition: EventError
-    sealed interface DeleteEventDefiniton: EventError
+@Serializable @SerialName("event") sealed interface EventError : AppError {
+    @Serializable @SerialName("get_dashboard_data") sealed interface GetDashboardData: EventError
+    @Serializable @SerialName("get_instances") sealed interface GetInstances: EventError, GetDashboardData
+    @Serializable @SerialName("get_series") sealed interface GetSeries: EventError, GetDashboardData
+    @Serializable @SerialName("get_definitions") sealed interface GetDefinitions: EventError, GetDashboardData
 
-    sealed interface CreateEventInstance: EventError
-    sealed interface UpdateEventInstance: EventError
-    sealed interface DeleteEventInstance: EventError
+    @Serializable @SerialName("create_definition") sealed interface CreateEventDefinition: EventError
+    @Serializable @SerialName("update_definition") sealed interface UpdateEventDefinition: EventError
+    @Serializable @SerialName("delete_definition") sealed interface DeleteEventDefiniton: EventError
 
-    data class EventDefinitionNotFound(val id: String): CreateEventInstance, UpdateEventDefinition, DeleteEventDefiniton
-    data class EventInstanceNotFound(val id: String): UpdateEventInstance, DeleteEventInstance
+    @Serializable @SerialName("create_instance") sealed interface CreateEventInstance: EventError
+    @Serializable @SerialName("update_instance") sealed interface UpdateEventInstance: EventError
+    @Serializable @SerialName("delete_instance") sealed interface DeleteEventInstance: EventError
 
-    data object FailedToGetInstances: GetInstances
-    data object FailedToGetSeries: GetSeries
-    data object FailedToGetDefinitions: GetDefinitions
+    @Serializable data class EventDefinitionNotFound(val id: String): CreateEventInstance, UpdateEventDefinition, DeleteEventDefiniton
+    @Serializable data class EventInstanceNotFound(val id: String): UpdateEventInstance, DeleteEventInstance
+
+    @Serializable data object FailedToGetInstances: GetInstances
+    @Serializable data object FailedToGetSeries: GetSeries
+    @Serializable data object FailedToGetDefinitions: GetDefinitions
 }
 
 val EventError.localizedMessage: String get() = when (this) {

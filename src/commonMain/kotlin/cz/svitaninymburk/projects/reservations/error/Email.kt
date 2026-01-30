@@ -1,16 +1,19 @@
 package cz.svitaninymburk.projects.reservations.error
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-sealed interface EmailError : AppError {
-    sealed interface SendReservationConfirmation: EmailError
-    sealed interface SendCancellation: EmailError
-    sealed interface SendPaymentConfirmation : EmailError
-    sealed interface SendPaymentNotPaidInFull : EmailError
 
-    data class SendReservationConfirmationFailed(val message: String) : SendReservationConfirmation
-    data class SendCancellationFailed(val message: String) : SendCancellation
-    data class SendPaymentConfirmationFailed(val message: String) : SendPaymentConfirmation
-    data class SendPaymentNotPaidInFullFailed(val message: String) : SendPaymentNotPaidInFull
+@Serializable @SerialName("email") sealed interface EmailError : AppError {
+    @Serializable @SerialName("reservation_confirmation") sealed interface SendReservationConfirmation: EmailError
+    @Serializable @SerialName("cancellation") sealed interface SendCancellation: EmailError
+    @Serializable @SerialName("payment_confirmation") sealed interface SendPaymentConfirmation : EmailError
+    @Serializable @SerialName("payment_not_paid_in_full") sealed interface SendPaymentNotPaidInFull : EmailError
+
+    @Serializable data class SendReservationConfirmationFailed(val message: String) : SendReservationConfirmation
+    @Serializable data class SendCancellationFailed(val message: String) : SendCancellation
+    @Serializable data class SendPaymentConfirmationFailed(val message: String) : SendPaymentConfirmation
+    @Serializable data class SendPaymentNotPaidInFullFailed(val message: String) : SendPaymentNotPaidInFull
 }
 
 val EmailError.localizedMessage: String get() = when (this) {
