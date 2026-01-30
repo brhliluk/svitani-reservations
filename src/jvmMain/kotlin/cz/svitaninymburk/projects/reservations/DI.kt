@@ -53,7 +53,7 @@ val appModule = module {
     single { AuthenticatedEventService(get(), get()) } bind AuthenticatedEventServiceInterface::class
 //    single { GmailEmailService(System.getenv("GMAIL_USERNAME") ?: "username", System.getenv("GMAIL_APP_PASSWORD") ?: "password", get()) } bind EmailService::class
     single { ConsoleEmailService() } bind EmailService::class
-    single { QrCodeService(accountNumber = System.getenv("BANK_ACCOUNT_NUMBER") ?: "123456-123456789/0100") }
+    single { QrCodeService(accountNumber = System.getenv("BANK_ACCOUNT_NUMBER") ?: "19-2000145399/0800") }
     single { BackendQrCodeGenerator(get()) }
     single { ReservationService(get(), get(), get(), get(), get(), get()) } bind ReservationServiceInterface::class
     single { AuthenticatedReservationService(get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class

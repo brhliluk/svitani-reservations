@@ -1,23 +1,27 @@
 package cz.svitaninymburk.projects.reservations.error
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+
+@Serializable
 sealed interface ReservationError : AppError {
-    sealed interface CreateReservation : ReservationError
-    sealed interface CancelReservation : ReservationError
-    sealed interface GetAll : ReservationError
-    sealed interface Get : ReservationError
-    sealed interface GetDetail: ReservationError
+    @Serializable @SerialName("create") sealed interface CreateReservation : ReservationError
+    @Serializable @SerialName("cancel") sealed interface CancelReservation : ReservationError
+    @Serializable @SerialName("get_all") sealed interface GetAll : ReservationError
+    @Serializable @SerialName("get") sealed interface Get : ReservationError
+    @Serializable @SerialName("get_detail") sealed interface GetDetail: ReservationError
 
-    data object ReservationNotFound : CreateReservation, CancelReservation, Get, GetDetail
-    data object EventInstanceNotFound : GetDetail
-    data object EventSeriesNotFound : GetDetail
-    data object EventAlreadyFinished : CreateReservation, CancelReservation
-    data object EventAlreadyStarted : CreateReservation, CancelReservation
-    data object EventCancelled : CreateReservation
-    data object CapacityExceeded : CreateReservation
-    data object FailedToGetAllReservations : GetAll
-    data class FailedToSendCancellationEmail(val cause: EmailError.SendCancellation) : CancelReservation
-    data class SystemError(val message: String) : CreateReservation
+    @Serializable data object ReservationNotFound : CreateReservation, CancelReservation, Get, GetDetail
+    @Serializable data object EventInstanceNotFound : GetDetail
+    @Serializable data object EventSeriesNotFound : GetDetail
+    @Serializable data object EventAlreadyFinished : CreateReservation, CancelReservation
+    @Serializable data object EventAlreadyStarted : CreateReservation, CancelReservation
+    @Serializable data object EventCancelled : CreateReservation
+    @Serializable data object CapacityExceeded : CreateReservation
+    @Serializable data object FailedToGetAllReservations : GetAll
+    @Serializable data class FailedToSendCancellationEmail(val cause: EmailError.SendCancellation) : CancelReservation
+    @Serializable data class SystemError(val message: String) : CreateReservation
 }
 
 val ReservationError.localizedMessage: String get() = when (this) {
