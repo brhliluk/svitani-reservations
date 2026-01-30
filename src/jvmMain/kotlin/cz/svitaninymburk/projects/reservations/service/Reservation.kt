@@ -15,6 +15,7 @@ import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservati
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
+import cz.svitaninymburk.projects.reservations.reservation.ReservationRequestData
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -64,23 +65,12 @@ class ReservationService(
 
         ensure(isReserved) { ReservationError.CapacityExceeded }
 
-        val reservation = reservationRepository.save(
-            Reservation(
-                id = Uuid.random().toString(),
-                reference = Reference.Instance(request.eventInstanceId),
-                registeredUserId = userId,
-                seatCount = request.seatCount,
-                contactName = request.contactName,
-                contactEmail = request.contactEmail,
-                contactPhone = request.contactPhone,
-                paymentType = request.paymentType,
-                totalPrice = instance.price * request.seatCount,
-                status = Reservation.Status.PENDING_PAYMENT,
-                createdAt = Clock.System.now(),
-                customValues = request.customValues,
-            )
+        createReservationFlow(
+            reference = Reference.Instance(instance.id),
+            userId = userId,
+            requestData = request,
+            pricePerSeat = instance.price
         )
-        finalizeReservation(reservation, instance.id)
     }
 
     override suspend fun reserveSeries(
@@ -93,43 +83,55 @@ class ReservationService(
         val isReserved = eventSeriesRepository.attemptToReserveSpots(series.id, request.seatCount)
         ensure(isReserved) { ReservationError.CapacityExceeded }
 
-        val reservation = Reservation(
-            id = Uuid.random().toString(),
-            reference = Reference.Series(request.eventSeriesId),
-            registeredUserId = userId,
-            seatCount = request.seatCount,
-            contactName = request.contactName,
-            contactEmail = request.contactEmail,
-            contactPhone = request.contactPhone,
-            paymentType = request.paymentType,
-            totalPrice = series.price * request.seatCount,
-            status = Reservation.Status.PENDING_PAYMENT,
-            createdAt = Clock.System.now(),
-            customValues = request.customValues,
+        createReservationFlow(
+            reference = Reference.Instance(series.id),
+            userId = userId,
+            requestData = request,
+            pricePerSeat = series.price
         )
-
-        finalizeReservation(reservation, series.id)
     }
 
-    private suspend fun Raise<ReservationError.CreateReservation>.finalizeReservation(
-        reservation: Reservation,
-        resourceId: String,
+    private suspend fun Raise<ReservationError.CreateReservation>.createReservationFlow(
+        reference: Reference,
+        userId: String?,
+        requestData: ReservationRequestData,
+        pricePerSeat: Double,
     ): Reservation {
+        val variableSymbol = generateUniqueVariableSymbol()
+
+        val reservation = Reservation(
+            id = Uuid.random().toString(),
+            reference = reference,
+            registeredUserId = userId,
+            seatCount = requestData.seatCount,
+            contactName = requestData.contactName,
+            contactEmail = requestData.contactEmail,
+            contactPhone = requestData.contactPhone,
+            paymentType = requestData.paymentType,
+            customValues = requestData.customValues,
+            totalPrice = pricePerSeat * requestData.seatCount,
+            status = Reservation.Status.PENDING_PAYMENT,
+            createdAt = Clock.System.now(),
+            variableSymbol = variableSymbol,
+        )
 
         reservationRepository.save(reservation)
 
-        when (reservation.reference) {
-            is Reference.Instance -> eventInstanceRepository.incrementOccupiedSpots(resourceId, reservation.seatCount)
-            is Reference.Series -> eventSeriesRepository.incrementOccupiedSpots(resourceId, reservation.seatCount)
+        when (reference) {
+            is Reference.Instance -> eventInstanceRepository.incrementOccupiedSpots(reference.id, reservation.seatCount)
+            is Reference.Series -> eventSeriesRepository.incrementOccupiedSpots(reference.id, reservation.seatCount)
         }
 
         val qrImage = qrCodeService.generateQrPng(reservation)
+
         emailService.sendReservationConfirmation(
             reservation.contactEmail,
             reservation,
             qrCodeService.accountNumber,
             qrImage
-        )
+        ).onLeft {
+            println("⚠️ Failed to send confirmation email: $it")
+        }
 
         paymentTrigger.notifyNewReservation()
 
@@ -152,6 +154,35 @@ class ReservationService(
         emailService.sendCancellationNotice(cancelledReservation.contactEmail, reservationId)
             .mapLeft { ReservationError.FailedToSendCancellationEmail(it) }
         true
+    }
+
+    private suspend fun Raise<ReservationError.CreateReservation>.generateUniqueVariableSymbol(): String {
+        var attempts = 0
+        var vs: String
+
+        do {
+            if (attempts > 10) { raise(ReservationError.SystemError("Unable to generate unique Variable Symbol")) }
+            vs = generateCandidateVS()
+            val exists = reservationRepository.existsByVariableSymbol(vs)
+            attempts++
+
+        } while (exists)
+
+        return vs
+    }
+
+    private fun generateCandidateVS(): String {
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        // 1. ROK (2 znaky): "26"
+        val year = now.year.toString().takeLast(2)
+        // 2. DEN V ROCE (3 znaky): "030" (30. leden)
+        val dayOfYear = now.dayOfYear.toString().padStart(3, '0')
+
+        // 3. NÁHODA (5 znaků): "12345"
+        // Celkem 2 + 3 + 5 = 10 znaků (Maximum pro banky)
+        val random = (0..99999).random().toString().padStart(5, '0')
+
+        return "$year$dayOfYear$random"
     }
 }
 

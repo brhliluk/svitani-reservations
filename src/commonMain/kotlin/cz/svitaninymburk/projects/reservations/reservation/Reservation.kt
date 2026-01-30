@@ -89,27 +89,36 @@ sealed interface ReservationTarget {
     }
 }
 
+interface ReservationRequestData {
+    val seatCount: Int
+    val contactName: String
+    val contactEmail: String
+    val contactPhone: String
+    val paymentType: PaymentInfo.Type
+    val customValues: Map<String, CustomFieldValue>
+}
+
 @Serializable
 data class CreateInstanceReservationRequest(
     val eventInstanceId: String,
-    val seatCount: Int = 1,
-    val contactName: String,
-    val contactEmail: String,
-    val contactPhone: String,
-    val paymentType: PaymentInfo.Type,
-    val customValues: Map<String, CustomFieldValue>,
-)
+    override val seatCount: Int = 1,
+    override val contactName: String,
+    override val contactEmail: String,
+    override val contactPhone: String,
+    override val paymentType: PaymentInfo.Type,
+    override val customValues: Map<String, CustomFieldValue>,
+) : ReservationRequestData
 
 @Serializable
 data class CreateSeriesReservationRequest(
     val eventSeriesId: String,
-    val seatCount: Int = 1,
-    val contactName: String,
-    val contactEmail: String,
-    val contactPhone: String,
-    val paymentType: PaymentInfo.Type,
-    val customValues: Map<String, CustomFieldValue>,
-)
+    override val seatCount: Int = 1,
+    override val contactName: String,
+    override val contactEmail: String,
+    override val contactPhone: String,
+    override val paymentType: PaymentInfo.Type,
+    override val customValues: Map<String, CustomFieldValue>,
+) : ReservationRequestData
 
 @Serializable
 data class ReservationDetail(
