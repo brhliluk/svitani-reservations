@@ -53,7 +53,7 @@ fun IComponent.CalendarView(
 
         div(className = "bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden") {
 
-            div(className = "grid grid-cols-7 border-b border-base-200 bg-base-200/30") {
+            div(className = "grid grid-cols-7 border-b border-r border-base-200 bg-base-200/30") {
                 (0..6).forEach { dayIndex ->
                     div(className = "py-3 text-center text-xs font-bold uppercase tracking-wider text-base-content/50") {
                         +currentStrings.shortDayName(dayIndex)
@@ -106,7 +106,7 @@ fun IComponent.CalendarView(
 
                             if (dailyEvents.size > 3) {
                                 div(className = "text-[10px] text-base-content/40 text-center font-medium") {
-                                    +"+${dailyEvents.size - 3} more"
+                                    +currentStrings.more(dailyEvents.size - 3)
                                 }
                             }
                         }

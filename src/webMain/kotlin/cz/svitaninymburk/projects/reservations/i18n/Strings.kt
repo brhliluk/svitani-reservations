@@ -35,6 +35,7 @@ interface AppStrings {
     val catalog: String
     val listView: String
     val calendarView: String
+    val backToDashboard: String
 
     // Headers & Sections
     val allEvents: String
@@ -50,6 +51,7 @@ interface AppStrings {
     // Filter logic
     val filter: String
     val clearFilterTooltip: String
+    val filterIsActive: (String) -> String
 
     // Card Labels (Series/Event)
     val course: String
@@ -72,6 +74,52 @@ interface AppStrings {
     val phoneHint: String
     val seatCountLabel: String
     val seatCountHint: String
+
+    // Reservation Detail
+    val reservationSummary: String
+    val status: String
+    val name: String
+    val totalPrice: String
+    val cancelReservation: String
+    val qrPayment: String
+    val shareOrDownload: String
+    val accountNumber: String
+    val variableSymbol: String
+    val reservationCancelledMessage: String
+    val reservationPaidMessage: String
+    val copied: String
+
+    // Reservation Statuses
+    val reservationCreated: String
+    val waitingForPayment: String
+    val unpaid: String
+    val reservationConfirmed: String
+    val everythingIsOK: String
+    val paid: String
+    val reservationCancelled: String
+    val reservationNotValid: String
+    val cancelled: String
+    val reservationRejected: String
+    val reservationNotApproved: String
+    val rejected: String
+    val copyright: String
+
+    // Reservation Modal
+    val reservationFor: (String) -> String
+    val formTotalPrice: String
+    val free: String
+    val currency: String
+    val persons: String
+    val moreDetails: String
+    val paymentType: String
+    val bankTransfer: String
+    val onSite: String
+    val cancel: String
+    val close: String
+
+    // Calendar
+    val more: (Int) -> String
+
 
     // Helper functions for Calendar
     fun monthName(index: Int): String
