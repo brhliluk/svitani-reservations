@@ -5,8 +5,10 @@ import kotlin.text.iterator
 object CzechIbanGenerator {
 
     fun toIban(localAccount: String): String {
-        val parts = localAccount.split("/")
-        if (parts.size != 2) throw IllegalArgumentException("Invalid format")
+        val cleanAccount = localAccount.filter { !it.isWhitespace() }
+
+        val parts = cleanAccount.split("/")
+        if (parts.size != 2) throw IllegalArgumentException("Invalid format: $localAccount")
 
         val accountPart = parts[0]
         val bankCode = parts[1]
