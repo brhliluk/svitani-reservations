@@ -1,22 +1,24 @@
 package cz.svitaninymburk.projects.reservations.error
 
 import cz.svitaninymburk.projects.reservations.user.User
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlin.reflect.KClass
 
 
-sealed interface AuthError : AppError {
-    sealed interface LoginWithGoogle : AuthError
-    sealed interface Register : AuthError
-    sealed interface LoginWithEmail : AuthError
-    sealed interface RefreshToken : AuthError
+@Serializable @SerialName("auth") sealed interface AuthError : AppError {
+    @Serializable @SerialName("google_login") sealed interface LoginWithGoogle : AuthError
+    @Serializable @SerialName("register") sealed interface Register : AuthError
+    @Serializable @SerialName("email_login") sealed interface LoginWithEmail : AuthError
+    @Serializable @SerialName("refresh_token") sealed interface RefreshToken : AuthError
 
-    data object InvalidGoogleToken : LoginWithGoogle
-    data class LoggedInWithAnotherProvider(val userClass: KClass<User>) : LoginWithEmail
-    data object InvalidCredentials : LoginWithEmail
-    data object UserAlreadyExists : Register
-    data object InvalidToken : RefreshToken
-    data object TokenExpired : RefreshToken
-    data object UserNotFound : RefreshToken
+    @Serializable data object InvalidGoogleToken : LoginWithGoogle
+    @Serializable data class LoggedInWithAnotherProvider(val userClass: KClass<User>) : LoginWithEmail
+    @Serializable data object InvalidCredentials : LoginWithEmail
+    @Serializable data object UserAlreadyExists : Register
+    @Serializable data object InvalidToken : RefreshToken
+    @Serializable data object TokenExpired : RefreshToken
+    @Serializable data object UserNotFound : RefreshToken
 }
 
 val AuthError.localizedMessage: String get() = when (this) {

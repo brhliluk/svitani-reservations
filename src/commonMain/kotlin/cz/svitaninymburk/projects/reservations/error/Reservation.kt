@@ -4,8 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 
-@Serializable
-sealed interface ReservationError : AppError {
+@Serializable @SerialName("reservation") sealed interface ReservationError : AppError {
     @Serializable @SerialName("create") sealed interface CreateReservation : ReservationError
     @Serializable @SerialName("cancel") sealed interface CancelReservation : ReservationError
     @Serializable @SerialName("get_all") sealed interface GetAll : ReservationError
