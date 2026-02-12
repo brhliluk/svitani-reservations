@@ -15,6 +15,9 @@ import cz.svitaninymburk.projects.reservations.error.AuthError
 import cz.svitaninymburk.projects.reservations.repository.auth.RefreshTokenRepository
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.user.User
+import cz.svitaninymburk.projects.reservations.util.currentCall
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import kotlin.reflect.KClass
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
@@ -100,6 +103,14 @@ class AuthService(
         AuthResponse(token, refreshToken, user.toDto())
     }
 
+    override suspend fun getCurrentUser(): Either<AuthError.GetCurrentUser, User> = either {
+        val call = ensureNotNull(currentCall()) { AuthError.ApplicationCallLost }
+        val principal = ensureNotNull(call.principal<JWTPrincipal>()) { AuthError.NoJwtPrincipal }
+
+        val userId = ensureNotNull(principal.payload.getClaim("id").asString()) { AuthError.NoIdInPrincipal }
+
+        userRepository.findById(userId) ?: raise(AuthError.UserNotFound)
+    }
 }
 
 class AuthRefreshTokenService(

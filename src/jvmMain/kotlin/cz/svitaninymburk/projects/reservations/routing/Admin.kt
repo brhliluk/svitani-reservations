@@ -1,6 +1,6 @@
 package cz.svitaninymburk.projects.reservations.routing
 
-import cz.svitaninymburk.projects.reservations.plugins.auth.AdminAuthorization
+import cz.svitaninymburk.projects.reservations.plugins.AdminAuthorization
 import cz.svitaninymburk.projects.reservations.service.AdminUserServiceInterface
 import cz.svitaninymburk.projects.reservations.service.AuthenticatedEventServiceInterface
 import dev.kilua.rpc.applyRoutes

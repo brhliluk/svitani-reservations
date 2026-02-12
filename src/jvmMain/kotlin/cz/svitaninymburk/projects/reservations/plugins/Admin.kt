@@ -1,4 +1,4 @@
-package cz.svitaninymburk.projects.reservations.plugins.auth
+package cz.svitaninymburk.projects.reservations.plugins
 
 import cz.svitaninymburk.projects.reservations.user.User
 import io.ktor.http.HttpStatusCode

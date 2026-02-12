@@ -10,14 +10,12 @@ import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
-import cz.svitaninymburk.projects.reservations.ui.AppHeader
 import cz.svitaninymburk.projects.reservations.ui.CalendarView
 import cz.svitaninymburk.projects.reservations.ui.DefinitionCard
 import cz.svitaninymburk.projects.reservations.ui.Event
 import cz.svitaninymburk.projects.reservations.ui.SeriesCard
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormData
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationModal
-import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
 
@@ -26,7 +24,6 @@ enum class ViewMode { LIST, CALENDAR }
 
 @Composable
 fun IComponent.DashboardLayout(
-    user: User?,
     events: List<EventInstance>,
     series: List<EventSeries>,
     definitions: List<EventDefinition>,
@@ -55,8 +52,6 @@ fun IComponent.DashboardLayout(
     }
 
     div(className = "min-h-screen bg-base-200 flex flex-col font-sans") {
-        AppHeader(user)
-
         main(className = "flex-1 w-full max-w-5xl mx-auto py-8 px-4 flex flex-col gap-6") {
 
             div(className = "flex justify-center") {
