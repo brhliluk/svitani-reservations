@@ -1,4 +1,4 @@
-package cz.svitaninymburk.projects.reservations.plugins.payment
+package cz.svitaninymburk.projects.reservations.plugins
 
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.service.PaymentPairingService

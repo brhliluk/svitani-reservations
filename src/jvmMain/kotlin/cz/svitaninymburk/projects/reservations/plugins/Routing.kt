@@ -1,4 +1,4 @@
-package cz.svitaninymburk.projects.reservations.plugins.routing
+package cz.svitaninymburk.projects.reservations.plugins
 
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.routing.adminRoutes
@@ -15,12 +15,11 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.koin.ktor.ext.inject
 
 
 fun Application.configureRouting() {
     routing {
-        applyRoutes(getServiceManager<AuthServiceInterface>(), RpcSerializersModules)
+        install(CallContextPlugin)
         applyRoutes(getServiceManager<EventServiceInterface>(), RpcSerializersModules)
 
         authenticate("auth-jwt") {
@@ -40,6 +39,7 @@ fun Application.configureRouting() {
         }
 
         authenticate("auth-jwt", optional = true) {
+            applyRoutes(getServiceManager<AuthServiceInterface>(), RpcSerializersModules)
             applyRoutes(getServiceManager<ReservationServiceInterface>(), RpcSerializersModules)
         }
     }

@@ -2,7 +2,11 @@ package cz.svitaninymburk.projects.reservations.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import cz.svitaninymburk.projects.reservations.i18n.strings
+import cz.svitaninymburk.projects.reservations.ui.auth.LoginDialog
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.html.a
@@ -10,10 +14,23 @@ import dev.kilua.html.button
 import dev.kilua.html.div
 import dev.kilua.html.header
 import dev.kilua.html.span
+import web.window.window
 
 @Composable
-fun IComponent.AppHeader(user: User?) {
+fun IComponent.AppHeader(
+    user: User?,
+    onLogin: () -> Unit,
+    onLogout: () -> Unit,
+) {
     val currentStrings by strings
+    var showLoginModal by remember { mutableStateOf(false) }
+
+    LoginDialog(
+        isOpen = showLoginModal,
+        onClose = { showLoginModal = false },
+        onLoginSuccess = { onLogin() }
+    )
+
     header(className = "navbar bg-base-100 border-b border-base-200 px-4 sm:px-8") {
 
         div(className = "navbar-start gap-4") {
@@ -45,9 +62,15 @@ fun IComponent.AppHeader(user: User?) {
                         span(className = "font-semibold text-base-content") {
                             +"${user.name} ${user.surname}"
                         }
-                        span(className = "text-xs text-base-content/60") { +user.email }
+                        button(className = "text-xs text-base-content/60 hover:text-primary text-left") {
+                            onClick { onLogout() }
+                            +"Odhlásit se"
+                        }
                     } else {
-                        button(className = "btn btn-sm btn-ghost") { +currentStrings.logIn }
+                        button(className = "btn btn-sm btn-ghost") {
+                            onClick { showLoginModal = true }
+                            +currentStrings.logIn
+                        }
                     }
                 }
             }

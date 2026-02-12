@@ -18,6 +18,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.Reservatio
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.service.*
+import io.ktor.client.HttpClient
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
@@ -31,6 +32,8 @@ val appModule = module {
             realm = "Access to Reservation System"
         )
     }
+
+    single { HttpClient() }
 
     single { PaymentTrigger() }
 

@@ -1,10 +1,9 @@
 package cz.svitaninymburk.projects.reservations
 
-import arrow.core.serialization.ArrowModule
 import cz.svitaninymburk.projects.reservations.mock.MockDataLoader
-import cz.svitaninymburk.projects.reservations.plugins.payment.startPaymentCheck
-import cz.svitaninymburk.projects.reservations.plugins.routing.configureRouting
-import cz.svitaninymburk.projects.reservations.plugins.security.configureSecurity
+import cz.svitaninymburk.projects.reservations.plugins.startPaymentCheck
+import cz.svitaninymburk.projects.reservations.plugins.configureRouting
+import cz.svitaninymburk.projects.reservations.plugins.configureSecurity
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
@@ -14,8 +13,6 @@ import io.ktor.server.application.*
 import io.ktor.server.plugins.compression.*
 import io.ktor.server.websocket.*
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.modules.plus
 import org.koin.ktor.ext.inject
 
 
@@ -30,7 +27,6 @@ fun Application.main() {
     startPaymentCheck()
     configureSecurity()
     configureRouting()
-    initSsr()
 
     val mockLoader = MockDataLoader
     val repositories = object {

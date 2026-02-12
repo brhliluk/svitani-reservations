@@ -11,6 +11,7 @@ import kotlin.reflect.KClass
     @Serializable @SerialName("register") sealed interface Register : AuthError
     @Serializable @SerialName("email_login") sealed interface LoginWithEmail : AuthError
     @Serializable @SerialName("refresh_token") sealed interface RefreshToken : AuthError
+    @Serializable @SerialName("get_current") sealed interface GetCurrentUser : AuthError
 
     @Serializable data object InvalidGoogleToken : LoginWithGoogle
     @Serializable data class LoggedInWithAnotherProvider(val userClass: KClass<User>) : LoginWithEmail
@@ -18,7 +19,10 @@ import kotlin.reflect.KClass
     @Serializable data object UserAlreadyExists : Register
     @Serializable data object InvalidToken : RefreshToken
     @Serializable data object TokenExpired : RefreshToken
-    @Serializable data object UserNotFound : RefreshToken
+    @Serializable data object UserNotFound : RefreshToken, GetCurrentUser
+    @Serializable data object ApplicationCallLost: GetCurrentUser
+    @Serializable data object NoJwtPrincipal: GetCurrentUser
+    @Serializable data object NoIdInPrincipal: GetCurrentUser
 }
 
 val AuthError.localizedMessage: String get() = when (this) {
@@ -29,4 +33,6 @@ val AuthError.localizedMessage: String get() = when (this) {
     is AuthError.InvalidToken -> "Neplatný token"
     is AuthError.TokenExpired -> "Token vypršel"
     is AuthError.UserNotFound -> "Uživatel nenalezen"
+    is AuthError.ApplicationCallLost -> "Chyba při zpracování požadavku"
+    is AuthError.NoJwtPrincipal, is AuthError.NoIdInPrincipal -> "Uživatel není přihlášen"
 }

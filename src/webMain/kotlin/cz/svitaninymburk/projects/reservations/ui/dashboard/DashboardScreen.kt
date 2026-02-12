@@ -8,9 +8,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import app.softwork.routingcompose.Router
-import arrow.core.serialization.ArrowModule
-import cz.svitaninymburk.projects.reservations.AppJson
-import cz.svitaninymburk.projects.reservations.AppSerializersModule
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
@@ -47,10 +44,9 @@ fun IComponent.DashboardScreen(
         value = DashboardUiState.Loading
 
         try {
-            eventService.getDashboardData().fold(
-                ifRight = { data -> value = DashboardUiState.Success(data.instances, data.series, data.definitions) },
-                ifLeft = { error -> value = DashboardUiState.Error(error.localizedMessage) }
-            )
+            eventService.getDashboardData()
+                .onRight { data -> value = DashboardUiState.Success(data.instances, data.series, data.definitions) }
+                .onLeft { error -> value = DashboardUiState.Error(error.localizedMessage) }
         } catch (e: Exception) {
             value = DashboardUiState.Error("Chyba komunikace se serverem: ${e.message}")
             e.printStackTrace()
@@ -92,7 +88,6 @@ fun IComponent.DashboardScreen(
     when (val state = uiState) {
         is DashboardUiState.Loading -> Loading()
         is DashboardUiState.Success -> DashboardLayout(
-            user = user,
             events = state.instances,
             series = state.series,
             definitions = state.definitions,

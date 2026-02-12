@@ -1,4 +1,4 @@
-package cz.svitaninymburk.projects.reservations.plugins.security
+package cz.svitaninymburk.projects.reservations.plugins
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm

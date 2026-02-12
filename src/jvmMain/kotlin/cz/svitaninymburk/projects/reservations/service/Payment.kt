@@ -31,26 +31,26 @@ class PaymentPairingService(
 ) {
     private val logger = KtorSimpleLogger(this::class.jvmName)
     suspend fun checkAndPairPayments(): Either<PaymentPairingError.CheckAndPairPayments, Unit> = either {
-            logger.info("🔄 Spouštím kontrolu plateb Fio banky...")
+        logger.info("🔄 Spouštím kontrolu plateb Fio banky...")
 
-            val response = try {
-                httpClient.get(url {
-                    protocol = URLProtocol.HTTPS
-                    host = "fio.cz"
-                    path("ib_api/rest/last/$fioToken/transactions.json")
-                })
-            } catch (e: Exception) {
-                raise(PaymentPairingError.Upstream(e, e.message ?: "Unknown error"))
-            }
-
-            ensure(response.status.isSuccess()) { PaymentPairingError.Failed(response.status.toString())  }
-
-            val transactions = parseFioTransactions(response.body<FioResponse>())
-
-            logger.info("📥 Staženo ${transactions.size} nových transakcí.")
-
-            transactions.forEach { processTransaction(it) }
+        val response = try {
+            httpClient.get(url {
+                protocol = URLProtocol.HTTPS
+                host = "fio.cz"
+                path("ib_api/rest/last/$fioToken/transactions.json")
+            })
+        } catch (e: Exception) {
+            raise(PaymentPairingError.Upstream(e, e.message ?: "Unknown error"))
         }
+
+        ensure(response.status.isSuccess()) { PaymentPairingError.Failed(response.status.toString())  }
+
+        val transactions = parseFioTransactions(response.body<FioResponse>())
+
+        logger.info("📥 Staženo ${transactions.size} nových transakcí.")
+
+        transactions.forEach { processTransaction(it) }
+    }
 
     private suspend fun processTransaction(transaction: BankTransaction) {
         val vs = transaction.variableSymbol
