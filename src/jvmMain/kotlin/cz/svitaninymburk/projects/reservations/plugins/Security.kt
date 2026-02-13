@@ -24,7 +24,7 @@ fun Application.configureSecurity() {
             )
 
             validate { credential ->
-                if (credential.payload.getClaim("id").asString() != "") {
+                if (!credential.payload.getClaim("id").asString().isNullOrBlank()) {
                     JWTPrincipal(credential.payload)
                 } else {
                     null

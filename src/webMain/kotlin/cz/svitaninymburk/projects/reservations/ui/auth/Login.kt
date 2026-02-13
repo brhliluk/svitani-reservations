@@ -6,6 +6,7 @@ import cz.svitaninymburk.projects.reservations.auth.LoginRequest
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import dev.kilua.core.IComponent
+import dev.kilua.form.Autocomplete
 import dev.kilua.form.text.password
 import dev.kilua.form.text.text
 import dev.kilua.html.*
@@ -16,7 +17,8 @@ import kotlinx.coroutines.launch
 fun IComponent.LoginDialog(
     isOpen: Boolean,
     onClose: () -> Unit,
-    onLoginSuccess: () -> Unit
+    onLogin: () -> Unit,
+    onSwitchToRegister: () -> Unit,
 ) {
     if (!isOpen) return
 
@@ -40,7 +42,7 @@ fun IComponent.LoginDialog(
             authService.login(LoginRequest(email, password))
                 .onRight {
                     isLoading = false
-                    onLoginSuccess()
+                    onLogin()
                     onClose()
                 }
                 .onLeft {
@@ -64,6 +66,7 @@ fun IComponent.LoginDialog(
 
                 text(value = email, className = "input input-bordered w-full") {
                     placeholder("vas@email.cz")
+                    autocomplete(Autocomplete.Username)
                     onInput { email = value ?: "" }
                 }
             }
@@ -73,6 +76,7 @@ fun IComponent.LoginDialog(
 
                 password(value = password, className = "input input-bordered w-full") {
                     placeholder("******")
+                    autocomplete(Autocomplete.CurrentPassword)
                     onInput { password = value ?: "" }
                     onKeydown { e -> if (e.key == "Enter") login() }
                 }
@@ -107,8 +111,8 @@ fun IComponent.LoginDialog(
 
             div(className = "text-center mt-4 text-sm") {
                 +"Ještě nemáte účet? "
-                a(className = "link link-primary") {
-                    href("/register")
+                a(className = "link link-primary cursor-pointer") {
+                    onClick { onSwitchToRegister() }
                     +"Zaregistrujte se"
                 }
             }
