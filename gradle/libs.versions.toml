@@ -1,6 +1,6 @@
 [versions]
 kilua = "0.0.31"
-kotlin = "2.3.0"
+kotlin = "2.3.10"
 compose = "1.11.0-alpha01"
 kilua-rpc = "0.0.41"
 ksp = "2.3.4"

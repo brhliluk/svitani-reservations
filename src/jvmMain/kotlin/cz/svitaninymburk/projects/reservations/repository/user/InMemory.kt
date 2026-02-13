@@ -16,6 +16,10 @@ class InMemoryUserRepository : UserRepository {
         return users[id]
     }
 
+    override suspend fun findByResetToken(token: String): User.Email? {
+        return users.values.find { it is User.Email && it.passwordResetToken == token } as User.Email?
+    }
+
     override suspend fun create(user: User): User {
         users[user.id] = user
         return user

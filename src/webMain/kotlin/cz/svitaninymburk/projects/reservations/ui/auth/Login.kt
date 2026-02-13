@@ -19,6 +19,7 @@ fun IComponent.LoginDialog(
     onClose: () -> Unit,
     onLogin: () -> Unit,
     onSwitchToRegister: () -> Unit,
+    onSwitchToForgottenPassword: () -> Unit,
 ) {
     if (!isOpen) return
 
@@ -86,7 +87,7 @@ fun IComponent.LoginDialog(
 
                     a(className = "label-text-alt link link-hover text-primary text-sm cursor-pointer") {
                         href("#")
-                        // onClick { ... } // TODO: Logika pro reset hesla
+                         onClick { onSwitchToForgottenPassword() }
                         +"Zapomněli jste heslo?"
                     }
                 }

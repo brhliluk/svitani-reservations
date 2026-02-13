@@ -12,14 +12,16 @@ import kotlin.reflect.KClass
     @Serializable @SerialName("email_login") sealed interface LoginWithEmail : AuthError
     @Serializable @SerialName("refresh_token") sealed interface RefreshToken : AuthError
     @Serializable @SerialName("get_current") sealed interface GetCurrentUser : AuthError
+    @Serializable @SerialName("request_password_reset") sealed interface RequestPasswordReset : AuthError
+    @Serializable @SerialName("reset_password") sealed interface ResetPassword : AuthError
 
     @Serializable data object InvalidGoogleToken : LoginWithGoogle
-    @Serializable data class LoggedInWithAnotherProvider(val userClass: KClass<User>) : LoginWithEmail
+    @Serializable data class LoggedInWithAnotherProvider(val userClass: KClass<User>) : LoginWithEmail, RequestPasswordReset
     @Serializable data object InvalidCredentials : LoginWithEmail
     @Serializable data object UserAlreadyExists : Register
     @Serializable data object InvalidToken : RefreshToken
-    @Serializable data object TokenExpired : RefreshToken
-    @Serializable data object UserNotFound : RefreshToken, GetCurrentUser
+    @Serializable data object TokenExpired : RefreshToken, ResetPassword
+    @Serializable data object UserNotFound : RefreshToken, GetCurrentUser, RequestPasswordReset, ResetPassword
     @Serializable data object ApplicationCallLost: GetCurrentUser
     @Serializable data object NoJwtPrincipal: GetCurrentUser
     @Serializable data object NoIdInPrincipal: GetCurrentUser

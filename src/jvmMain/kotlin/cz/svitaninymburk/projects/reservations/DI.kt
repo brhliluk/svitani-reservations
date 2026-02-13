@@ -49,7 +49,7 @@ val appModule = module {
     single<ReservationRepository> { InMemoryReservationRepository() }
     single<RefreshTokenRepository> { InMemoryRefreshTokenRepository() }
 
-    single { AuthService(get(), get(), get(), get(), get()) } bind AuthServiceInterface::class
+    single { AuthService(get(), get(), get(), get(), get(), get()) } bind AuthServiceInterface::class
     single { AuthRefreshTokenService(get(), get(), get()) } bind RefreshTokenServiceInterface::class
     single { RefreshTokenService(get(), get()) }
     single { EventService(get(), get(), get()) } bind EventServiceInterface::class

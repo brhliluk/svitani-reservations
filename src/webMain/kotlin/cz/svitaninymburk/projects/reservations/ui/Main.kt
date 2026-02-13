@@ -11,9 +11,12 @@ import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.auth.ResetPasswordScreen
 import cz.svitaninymburk.projects.reservations.ui.dashboard.DashboardScreen
 import cz.svitaninymburk.projects.reservations.ui.reservation.detail.ReservationDetailScreen
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
+import cz.svitaninymburk.projects.reservations.ui.util.ToastData
+import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.html.div
@@ -29,7 +32,11 @@ fun IComponent.MainLayout() {
     val scope = rememberCoroutineScope()
 
     var currentUser by remember { mutableStateOf<User?>(null) }
-    var toastMessage by remember { mutableStateOf<String?>(null) }
+    var toastState by remember { mutableStateOf<ToastData?>(null) }
+
+    fun showToast(message: String, type: ToastType = ToastType.Success) {
+        toastState = ToastData(message, type)
+    }
 
     fun refreshUser() = scope.launch {
         authService.getCurrentUser()
@@ -45,13 +52,14 @@ fun IComponent.MainLayout() {
     div(className = "min-h-screen flex flex-col bg-base-100 text-base-content") {
 
         Toast(
-            message = toastMessage,
-            onDismiss = { toastMessage = null }
+            message = toastState?.message,
+            type = toastState?.type ?: ToastType.Success,
+            onDismiss = { toastState = null }
         )
 
         AppHeader(
             user = currentUser,
-            onShowMessage = { toastMessage = it },
+            onShowMessage = ::showToast,
             onLogin = { refreshUser() },
             onLogout = {
                 scope.launch {
@@ -72,6 +80,15 @@ fun IComponent.MainLayout() {
                         view {
                             val router = Router.current
                             ReservationDetailScreen(reservationId = reservationId.value, onBackClick = { router.navigate("/") })
+                        }
+                    }
+                }
+
+                route("/reset-password") {
+                    string { token ->
+                        view {
+                            val router = Router.current
+                            ResetPasswordScreen(token = token.value, onSuccess = { router.navigate("/") })
                         }
                     }
                 }

@@ -20,9 +20,13 @@ import io.ktor.http.Cookie
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.util.date.GMTDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.mindrot.jbcrypt.BCrypt
 import kotlin.reflect.KClass
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 import kotlin.uuid.Uuid
 
 
@@ -30,6 +34,7 @@ class AuthService(
     private val userRepository: UserRepository,
     private val refreshTokenService: RefreshTokenService,
     private val googleAuth: GoogleAuthService,
+    private val emailService: EmailService,
     private val tokenService: JwtTokenService,
     private val hashingService: HashingService,
 ): AuthServiceInterface {
@@ -139,6 +144,38 @@ class AuthService(
         val userId = ensureNotNull(principal.payload.getClaim("id").asString()) { AuthError.NoIdInPrincipal }
 
         userRepository.findById(userId) ?: raise(AuthError.UserNotFound)
+    }
+
+    override suspend fun requestPasswordReset(email: String): Either<AuthError.RequestPasswordReset, Unit> = either {
+        val user = ensureNotNull(userRepository.findByEmail(email)) { AuthError.UserNotFound }
+        ensure(user is User.Email) { AuthError.LoggedInWithAnotherProvider(User.Google::class.java.kotlin as KClass<User>) }
+
+        val token = Uuid.random().toString()
+
+        val updatedUser = user.copy(
+            passwordResetToken = token,
+            passwordResetTokenExpiresAt = Clock.System.now().plus(1.hours).toLocalDateTime(TimeZone.currentSystemDefault())
+        )
+        userRepository.update(user.id, updatedUser)
+        emailService.sendPasswordResetEmail(user.email, token)
+    }
+
+    override suspend fun resetPassword(token: String, newPassword: String): Either<AuthError.ResetPassword, Unit> = either {
+        val user = ensureNotNull(userRepository.findByResetToken(token)) { AuthError.UserNotFound }
+
+        if (user.passwordResetTokenExpiresAt == null || user.passwordResetTokenExpiresAt < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) {
+            raise(AuthError.TokenExpired)
+        }
+
+        val salt = BCrypt.gensalt()
+        val hashedPassword = BCrypt.hashpw(newPassword, salt)
+
+        val updatedUser = user.copy(
+            passwordHash = hashedPassword,
+            passwordResetToken = null,
+            passwordResetTokenExpiresAt = null
+        )
+        userRepository.update(user.id, updatedUser)
     }
 }
 
