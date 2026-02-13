@@ -16,10 +16,13 @@ import cz.svitaninymburk.projects.reservations.repository.auth.RefreshTokenRepos
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.util.currentCall
+import io.ktor.http.Cookie
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
+import io.ktor.util.date.GMTDate
 import kotlin.reflect.KClass
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import kotlin.uuid.Uuid
 
 
@@ -100,7 +103,33 @@ class AuthService(
         val token = tokenService.generateToken(user)
         val refreshToken = refreshTokenService.getToken(user.id)
 
+        val call = currentCall() ?: throw IllegalStateException("Call context is missing")
+        call.response.cookies.append(
+            Cookie(
+                name = "auth_token",
+                value = token,
+                httpOnly = true,
+                secure = false,  // TODO: na HTTPS dej true
+                path = "/",
+                maxAge = 7.days.inWholeSeconds.toInt(),
+            )
+        )
+
         AuthResponse(token, refreshToken, user.toDto())
+    }
+
+    override suspend fun logout(): Either<AuthError, Unit> = either {
+        val call = currentCall()
+        call?.response?.cookies?.append(
+            Cookie(
+                name = "auth_token",
+                value = "",
+                path = "/",
+                maxAge = 0,
+                expires = GMTDate.START
+            )
+        )
+        Unit
     }
 
     override suspend fun getCurrentUser(): Either<AuthError.GetCurrentUser, User> = either {

@@ -13,6 +13,7 @@ interface AuthServiceInterface {
     suspend fun loginWithGoogle(token: String): Either<AuthError.LoginWithGoogle, AuthResponse>
     suspend fun register(request: RegisterRequest): Either<AuthError.Register, AuthResponse>
     suspend fun login(request: LoginRequest): Either<AuthError.LoginWithEmail, AuthResponse>
+    suspend fun logout(): Either<AuthError, Unit>
 
     suspend fun getCurrentUser(): Either<AuthError.GetCurrentUser, User>
 }

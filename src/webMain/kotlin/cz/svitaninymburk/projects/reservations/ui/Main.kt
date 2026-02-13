@@ -47,9 +47,8 @@ fun IComponent.MainLayout() {
             onLogin = { refreshUser() },
             onLogout = {
                 scope.launch {
-                    // TODO: authService.logout()
+                    authService.logout()
                     currentUser = null
-                    refreshUser()
                 }
             }
         )
