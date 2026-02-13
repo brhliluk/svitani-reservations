@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.ui.auth.LoginDialog
+import cz.svitaninymburk.projects.reservations.ui.auth.RegisterDialog
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.html.a
@@ -14,21 +15,39 @@ import dev.kilua.html.button
 import dev.kilua.html.div
 import dev.kilua.html.header
 import dev.kilua.html.span
-import web.window.window
+
+enum class AuthModalState { Closed, Login, Register }
 
 @Composable
 fun IComponent.AppHeader(
     user: User?,
+    onShowMessage: (String) -> Unit,
     onLogin: () -> Unit,
     onLogout: () -> Unit,
 ) {
     val currentStrings by strings
-    var showLoginModal by remember { mutableStateOf(false) }
+    var modalState by remember { mutableStateOf(AuthModalState.Closed) }
 
     LoginDialog(
-        isOpen = showLoginModal,
-        onClose = { showLoginModal = false },
-        onLoginSuccess = { onLogin() }
+        isOpen = modalState == AuthModalState.Login,
+        onClose = { modalState = AuthModalState.Closed },
+        onLogin = {
+            modalState = AuthModalState.Closed
+            onLogin()
+        },
+        onSwitchToRegister = { modalState = AuthModalState.Register }
+    )
+
+    // 2. REGISTER DIALOG
+    RegisterDialog(
+        isOpen = modalState == AuthModalState.Register,
+        onClose = { modalState = AuthModalState.Closed },
+        onSwitchToLogin = { modalState = AuthModalState.Login },
+        onRegisterSuccess = {
+            modalState = AuthModalState.Closed
+            onLogin()
+            onShowMessage("Registrace úspěšná! Potvrzení jsme poslali na váš email.")
+        }
     )
 
     header(className = "navbar bg-base-100 border-b border-base-200 px-4 sm:px-8") {
@@ -68,7 +87,7 @@ fun IComponent.AppHeader(
                         }
                     } else {
                         button(className = "btn btn-sm btn-ghost") {
-                            onClick { showLoginModal = true }
+                            onClick { modalState = AuthModalState.Login }
                             +currentStrings.logIn
                         }
                     }

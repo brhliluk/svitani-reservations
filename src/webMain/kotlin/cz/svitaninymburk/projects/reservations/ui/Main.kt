@@ -13,6 +13,7 @@ import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.dashboard.DashboardScreen
 import cz.svitaninymburk.projects.reservations.ui.reservation.detail.ReservationDetailScreen
+import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.html.div
@@ -28,6 +29,7 @@ fun IComponent.MainLayout() {
     val scope = rememberCoroutineScope()
 
     var currentUser by remember { mutableStateOf<User?>(null) }
+    var toastMessage by remember { mutableStateOf<String?>(null) }
 
     fun refreshUser() = scope.launch {
         authService.getCurrentUser()
@@ -42,8 +44,14 @@ fun IComponent.MainLayout() {
 
     div(className = "min-h-screen flex flex-col bg-base-100 text-base-content") {
 
+        Toast(
+            message = toastMessage,
+            onDismiss = { toastMessage = null }
+        )
+
         AppHeader(
             user = currentUser,
+            onShowMessage = { toastMessage = it },
             onLogin = { refreshUser() },
             onLogout = {
                 scope.launch {
