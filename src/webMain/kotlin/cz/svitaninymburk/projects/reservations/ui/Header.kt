@@ -6,8 +6,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import cz.svitaninymburk.projects.reservations.i18n.strings
+import cz.svitaninymburk.projects.reservations.ui.auth.ForgotPasswordDialog
 import cz.svitaninymburk.projects.reservations.ui.auth.LoginDialog
 import cz.svitaninymburk.projects.reservations.ui.auth.RegisterDialog
+import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.html.a
@@ -16,12 +18,12 @@ import dev.kilua.html.div
 import dev.kilua.html.header
 import dev.kilua.html.span
 
-enum class AuthModalState { Closed, Login, Register }
+enum class AuthModalState { Closed, Login, Register, ForgotPassword }
 
 @Composable
 fun IComponent.AppHeader(
     user: User?,
-    onShowMessage: (String) -> Unit,
+    onShowMessage: (String, ToastType) -> Unit,
     onLogin: () -> Unit,
     onLogout: () -> Unit,
 ) {
@@ -35,10 +37,10 @@ fun IComponent.AppHeader(
             modalState = AuthModalState.Closed
             onLogin()
         },
-        onSwitchToRegister = { modalState = AuthModalState.Register }
+        onSwitchToRegister = { modalState = AuthModalState.Register },
+        onSwitchToForgottenPassword = { modalState = AuthModalState.ForgotPassword },
     )
 
-    // 2. REGISTER DIALOG
     RegisterDialog(
         isOpen = modalState == AuthModalState.Register,
         onClose = { modalState = AuthModalState.Closed },
@@ -46,7 +48,21 @@ fun IComponent.AppHeader(
         onRegisterSuccess = {
             modalState = AuthModalState.Closed
             onLogin()
-            onShowMessage("Registrace úspěšná! Potvrzení jsme poslali na váš email.")
+            onShowMessage("Registrace úspěšná! Potvrzení jsme poslali na váš email.", ToastType.Success)
+        }
+    )
+
+    ForgotPasswordDialog(
+        isOpen = modalState == AuthModalState.ForgotPassword,
+        onClose = { modalState = AuthModalState.Closed },
+        onSwitchToLogin = { modalState = AuthModalState.Login },
+        onSuccess = {
+            modalState = AuthModalState.Closed
+            onShowMessage("Email s instrukcemi ke změně hesla byl odeslán.", ToastType.Success)
+        },
+        onFailure = {
+            modalState = AuthModalState.Closed
+            onShowMessage(it, ToastType.Error)
         }
     )
 

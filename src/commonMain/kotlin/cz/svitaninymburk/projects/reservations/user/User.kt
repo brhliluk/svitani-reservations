@@ -1,6 +1,8 @@
 package cz.svitaninymburk.projects.reservations.user
 
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
 
 @Serializable
@@ -28,7 +30,9 @@ sealed class User {
         override val name: String,
         override val surname: String,
         override val role: Role,
-        val passwordHash: String
+        val passwordHash: String,
+        val passwordResetToken: String? = null,
+        val passwordResetTokenExpiresAt: LocalDateTime? = null,
     ): User() {
         fun toGoogle(googleSub: String): Google {
             return Google(id = id, email = email, name = name, surname = surname, role = role, googleSub = googleSub)

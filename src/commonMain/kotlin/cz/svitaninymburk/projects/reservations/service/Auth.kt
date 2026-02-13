@@ -16,6 +16,9 @@ interface AuthServiceInterface {
     suspend fun logout(): Either<AuthError, Unit>
 
     suspend fun getCurrentUser(): Either<AuthError.GetCurrentUser, User>
+
+    suspend fun requestPasswordReset(email: String): Either<AuthError, Unit>
+    suspend fun resetPassword(token: String, newPassword: String): Either<AuthError, Unit>
 }
 
 @RpcService

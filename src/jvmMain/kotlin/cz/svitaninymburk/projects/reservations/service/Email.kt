@@ -10,6 +10,7 @@ import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRep
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.html.a
 import kotlinx.html.body
 import kotlinx.html.br
 import kotlinx.html.h1
@@ -148,6 +149,26 @@ class GmailEmailService(
             EmailError.SendPaymentNotPaidInFullFailed(e.message ?: "Unknown error")
         }
     } }
+
+    override suspend fun sendPasswordResetEmail(toEmail: String, resetToken: String): Either<EmailError.SendPasswordReset, Unit> = either {
+        val email = setupEmail()
+        email.addTo(toEmail)
+        email.subject = "Změna hesla"
+
+        email.setHtmlMsg(buildString { appendHTML().html { body {
+            h1 { +"Změna hesla" }
+
+            p { +"Pro změnu hesla klikněte na následující odkaz:" }
+            a {
+                + "rezervace.svitaninymburk.cz/reset"
+                href = "https://moje-appka.cz/reset-password/$resetToken" // TODO: store and reference url
+            }
+        } } })
+
+        catch({ email.send() }) { e: EmailException ->
+            EmailError.SendPasswordResetFailed(e.message ?: "Unknown error")
+        }
+    }
 }
 
 class ConsoleEmailService : EmailService {
@@ -184,6 +205,14 @@ class ConsoleEmailService : EmailService {
         qrCodeImage: String
     ): Either<EmailError.SendReservationConfirmation, Unit> {
         println("📧 [MOCK EMAIL] Nedoplatek pro: ${reservation.contactEmail}")
+        return Unit.right()
+    }
+
+    override suspend fun sendPasswordResetEmail(
+        toEmail: String,
+        resetToken: String
+    ): Either<EmailError.SendPasswordReset, Unit> {
+        println("📧 [MOCK EMAIL] Odesílám reset hesla na: $toEmail")
         return Unit.right()
     }
 }
