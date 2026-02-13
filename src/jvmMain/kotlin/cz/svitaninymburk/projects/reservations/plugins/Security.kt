@@ -3,6 +3,7 @@ package cz.svitaninymburk.projects.reservations.plugins
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import cz.svitaninymburk.projects.reservations.auth.JwtTokenService
+import io.ktor.http.auth.parseAuthorizationHeader
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
@@ -23,10 +24,21 @@ fun Application.configureSecurity() {
             )
 
             validate { credential ->
-                if (credential.payload.audience.contains(jwtConfig.audience) && credential.payload.getClaim("email").asString() != "") {
+                if (credential.payload.getClaim("id").asString() != "") {
                     JWTPrincipal(credential.payload)
                 } else {
                     null
+                }
+            }
+
+            authHeader { call ->
+                val cookieValue = call.request.cookies["auth_token"]
+
+                if (cookieValue != null) {
+                    try { parseAuthorizationHeader("Bearer $cookieValue") }
+                    catch (_: Exception) { null }
+                } else {
+                    call.request.parseAuthorizationHeader()
                 }
             }
         }
