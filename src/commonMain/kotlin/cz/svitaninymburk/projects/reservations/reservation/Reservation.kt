@@ -59,6 +59,7 @@ sealed interface ReservationTarget {
     val id: String
     val title: String
     val price: Double
+    val allowedPaymentTypes: List<PaymentInfo.Type>
     val maxCapacity: Int
     val customFields: List<CustomFieldDefinition>
     val startDateTime: LocalDateTime
@@ -70,6 +71,7 @@ sealed interface ReservationTarget {
         override val id = event.id
         override val title = event.title
         override val price = event.price
+        override val allowedPaymentTypes = event.allowedPaymentTypes
         override val maxCapacity = event.capacity - event.occupiedSpots
         override val startDateTime = event.startDateTime
         override val endDateTime = event.endDateTime
@@ -82,6 +84,7 @@ sealed interface ReservationTarget {
         override val id = series.id
         override val title = series.title
         override val price = series.price
+        override val allowedPaymentTypes = series.allowedPaymentTypes
         override val maxCapacity = series.capacity - series.occupiedSpots
         override val startDateTime = LocalDateTime(date = series.startDate, time = LocalTime(0,0))
         override val endDateTime = LocalDateTime(date = series.endDate, time = LocalTime(24,0))
