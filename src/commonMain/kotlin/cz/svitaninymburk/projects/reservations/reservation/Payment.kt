@@ -14,7 +14,6 @@ data class PaymentInfo(
     val beneficiaryAccount: String,
     val dueDateTime: Instant,
 ) {
-    // Pomocná funkce pro SPAYD string (obsah QR kódu)
     fun toSpaydString(): String {
         return "SPD*1.0*ACC:$beneficiaryAccount*AM:$amount*CC:$currency*X-VS:$variableSymbol*MSG:Rezervace $reservationId"
     }
