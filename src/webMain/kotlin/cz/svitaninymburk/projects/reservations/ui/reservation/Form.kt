@@ -15,6 +15,7 @@ import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
+import cz.svitaninymburk.projects.reservations.ui.util.label
 import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
 import dev.kilua.form.select.select
@@ -155,8 +156,9 @@ fun IComponent.ReservationModal(
                         label(className = "form-control w-2/3") {
                             div(className = "label") { span(className = "label-text") { +currentStrings.paymentType } }
                             select(className = "select select-bordered w-full") {
-                                option(value = PaymentInfo.Type.BANK_TRANSFER.name, label = currentStrings.bankTransfer)
-                                option(value = PaymentInfo.Type.ON_SITE.name, label = currentStrings.onSite)
+                                for (paymentOption in target.allowedPaymentTypes) {
+                                    option(paymentOption.name, label = paymentOption.label)
+                                }
 
                                 onChange { event ->
                                     val targetSelect = event.target as? HTMLSelectElement
