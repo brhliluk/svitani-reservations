@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations
 
 import cz.svitaninymburk.projects.reservations.mock.MockDataLoader
+import cz.svitaninymburk.projects.reservations.plugins.configureDatabases
 import cz.svitaninymburk.projects.reservations.plugins.startPaymentCheck
 import cz.svitaninymburk.projects.reservations.plugins.configureRouting
 import cz.svitaninymburk.projects.reservations.plugins.configureSecurity
@@ -27,6 +28,7 @@ fun Application.main() {
     startPaymentCheck()
     configureSecurity()
     configureRouting()
+    configureDatabases()
 
     val mockLoader = MockDataLoader
     val repositories = object {

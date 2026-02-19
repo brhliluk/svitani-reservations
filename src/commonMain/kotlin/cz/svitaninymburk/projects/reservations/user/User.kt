@@ -3,11 +3,12 @@ package cz.svitaninymburk.projects.reservations.user
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
+import kotlin.uuid.Uuid
 
 
 @Serializable
 sealed class User {
-    abstract val id: String
+    abstract val id: Uuid
     abstract val email: String
     abstract val name: String
     abstract val surname: String
@@ -15,7 +16,7 @@ sealed class User {
 
     @Serializable
     data class Google(
-        override val id: String,
+        override val id: Uuid,
         override val email: String,
         override val name: String,
         override val surname: String,
@@ -25,7 +26,7 @@ sealed class User {
 
     @Serializable
     data class Email(
-        override val id: String,
+        override val id: Uuid,
         override val email: String,
         override val name: String,
         override val surname: String,

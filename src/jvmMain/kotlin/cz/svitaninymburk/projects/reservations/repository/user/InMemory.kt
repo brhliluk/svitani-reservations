@@ -3,16 +3,17 @@ package cz.svitaninymburk.projects.reservations.repository.user
 import cz.svitaninymburk.projects.reservations.user.User
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
+import kotlin.uuid.Uuid
 
 class InMemoryUserRepository : UserRepository {
 
-    private val users = ConcurrentHashMap<String, User>()
+    private val users = ConcurrentHashMap<Uuid, User>()
 
     override suspend fun findByEmail(email: String): User? {
         return users.values.find { it.email == email }
     }
 
-    override suspend fun findById(id: String): User? {
+    override suspend fun findById(id: Uuid): User? {
         return users[id]
     }
 
@@ -25,13 +26,13 @@ class InMemoryUserRepository : UserRepository {
         return user
     }
 
-    override suspend fun update(userId: String, user: User): User {
+    override suspend fun update(userId: Uuid, user: User): User {
         users[userId] = user
         return user
     }
 
 
-    override suspend fun linkGoogleAccount(userId: String, googleSub: String): User.Google {
+    override suspend fun linkGoogleAccount(userId: Uuid, googleSub: String): User.Google {
         val user = users[userId] ?: throw IllegalStateException("User not found inside repo logic")
 
         val updatedUser = when (user) {
