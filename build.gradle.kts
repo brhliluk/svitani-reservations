@@ -108,6 +108,8 @@ kotlin {
                 implementation(libs.mail)
                 implementation(libs.kotlinx.html)
                 implementation(libs.qrCode)
+
+                implementation(libs.bundles.database)
             }
         }
         val commonTest by getting {

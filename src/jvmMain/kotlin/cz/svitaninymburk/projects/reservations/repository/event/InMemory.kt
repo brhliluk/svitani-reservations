@@ -10,17 +10,17 @@ import kotlin.uuid.Uuid
 
 
 class InMemoryEventDefinitionRepository : EventDefinitionRepository {
-    private val events = ConcurrentHashMap<String, EventDefinition>()
+    private val events = ConcurrentHashMap<Uuid, EventDefinition>()
 
-    override suspend fun get(id: String): EventDefinition? = events[id]
-    override suspend fun getAll(definitionIds: List<String>?): List<EventDefinition> {
+    override suspend fun get(id: Uuid): EventDefinition? = events[id]
+    override suspend fun getAll(definitionIds: List<Uuid>?): List<EventDefinition> {
         return if (definitionIds == null) events.values.toList()
         else events.filterKeys { it in definitionIds }.values.toList()
     }
 
     
     override suspend fun create(event: EventDefinition): EventDefinition {
-        val id = Uuid.random().toString()
+        val id = Uuid.random()
         val newEvent = event.copy(id = id)
         events[id] = newEvent
         return newEvent
@@ -31,7 +31,7 @@ class InMemoryEventDefinitionRepository : EventDefinitionRepository {
         return event
     }
 
-    override suspend fun delete(id: String): Boolean {
+    override suspend fun delete(id: Uuid): Boolean {
         if (events.containsKey(id)) {
             events.remove(id)
             return true
@@ -42,20 +42,20 @@ class InMemoryEventDefinitionRepository : EventDefinitionRepository {
 
 class InMemoryEventInstanceRepository : EventInstanceRepository {
 
-    private val instances = ConcurrentHashMap<String, EventInstance>()
+    private val instances = ConcurrentHashMap<Uuid, EventInstance>()
 
-    override suspend fun get(id: String): EventInstance? {
+    override suspend fun get(id: Uuid): EventInstance? {
         return instances[id]
     }
 
-    override suspend fun getAll(eventIds: List<String>?): List<EventInstance> {
+    override suspend fun getAll(eventIds: List<Uuid>?): List<EventInstance> {
         return if (eventIds == null) instances.values.toList()
         else instances.filterKeys { it in eventIds }.values.toList()
     }
 
     override suspend fun create(instance: EventInstance): EventInstance {
-        val id = instance.id.ifBlank { Uuid.random().toString() }
-        val newInstance = instance.copy(id = id)
+        val id = instance.id
+        val newInstance = instance.copy(id = instance.id)
         instances[id] = newInstance
         return newInstance
     }
@@ -65,7 +65,7 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
         return instance
     }
 
-    override suspend fun delete(id: String): Boolean {
+    override suspend fun delete(id: Uuid): Boolean {
         if (instances.containsKey(id)) {
             instances.remove(id)
             return true
@@ -73,7 +73,7 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
         return false
     }
 
-    override suspend fun deleteAllByDefinitionId(definitionId: String) {
+    override suspend fun deleteAllByDefinitionId(definitionId: Uuid) {
         instances.values.removeAll { it.definitionId == definitionId }
     }
 
@@ -82,19 +82,19 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
         return instances.values.filter { instance -> instance.startDateTime in from..to }.toList()
     }
 
-    override suspend fun incrementOccupiedSpots(instanceId: String, amount: Int): Int? {
+    override suspend fun incrementOccupiedSpots(instanceId: Uuid, amount: Int): Int? {
         return instances.computeIfPresent(instanceId) { _, currentInstance ->
             currentInstance.copy(occupiedSpots = currentInstance.occupiedSpots + amount)
         }?.occupiedSpots
     }
 
-    override suspend fun decrementOccupiedSpots(instanceId: String, amount: Int): Int? {
+    override suspend fun decrementOccupiedSpots(instanceId: Uuid, amount: Int): Int? {
         return instances.computeIfPresent(instanceId) { _, currentInstance ->
             currentInstance.copy(occupiedSpots = currentInstance.occupiedSpots - amount)
         }?.occupiedSpots
     }
 
-    override suspend fun attemptToReserveSpots(instanceId: String, amount: Int): Boolean {
+    override suspend fun attemptToReserveSpots(instanceId: Uuid, amount: Int): Boolean {
         var reservationSuccess = false
 
         instances.computeIfPresent(instanceId) { _, currentInstance ->
@@ -112,22 +112,22 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
 }
 
 class InMemoryEventSeriesRepository : EventSeriesRepository {
-    private val instances = ConcurrentHashMap<String, EventSeries>()
+    private val instances = ConcurrentHashMap<Uuid, EventSeries>()
 
-    override suspend fun get(id: String): EventSeries? = instances[id]
-    override suspend fun getAll(seriesIds: List<String>?): List<EventSeries> {
+    override suspend fun get(id: Uuid): EventSeries? = instances[id]
+    override suspend fun getAll(seriesIds: List<Uuid>?): List<EventSeries> {
         return if (seriesIds == null) instances.values.toList()
         else instances.filterKeys { it in seriesIds }.values.toList()
     }
 
     override suspend fun create(series: EventSeries): EventSeries {
-        val id = series.id.ifBlank { Uuid.random().toString() }
+        val id = series.id
         val newSeries = series.copy(id = id)
         instances[id] = newSeries
         return newSeries
     }
 
-    override suspend fun attemptToReserveSpots(seriesId: String, amount: Int): Boolean {
+    override suspend fun attemptToReserveSpots(seriesId: Uuid, amount: Int): Boolean {
         var reservationSuccess = false
 
         instances.computeIfPresent(seriesId) { _, currentInstance ->
@@ -143,13 +143,13 @@ class InMemoryEventSeriesRepository : EventSeriesRepository {
         return reservationSuccess
     }
 
-    override suspend fun incrementOccupiedSpots(seriesId: String, amount: Int): Int? {
+    override suspend fun incrementOccupiedSpots(seriesId: Uuid, amount: Int): Int? {
         return instances.computeIfPresent(seriesId) { _, currentInstance ->
             currentInstance.copy(occupiedSpots = currentInstance.occupiedSpots + amount)
         }?.occupiedSpots
     }
 
-    override suspend fun decrementOccupiedSpots(seriesId: String, amount: Int): Int? {
+    override suspend fun decrementOccupiedSpots(seriesId: Uuid, amount: Int): Int? {
         return instances.computeIfPresent(seriesId) { _, currentInstance ->
             currentInstance.copy(occupiedSpots = currentInstance.occupiedSpots - amount)
         }?.occupiedSpots

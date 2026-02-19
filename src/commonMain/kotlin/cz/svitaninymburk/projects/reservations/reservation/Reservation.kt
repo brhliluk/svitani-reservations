@@ -9,18 +9,19 @@ import kotlinx.datetime.LocalTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
+import kotlin.uuid.Uuid
 
 
 @Serializable
 data class Reservation(
-    val id: String,
+    val id: Uuid,
     val reference: Reference,
-    val registeredUserId: String? = null,
+    val registeredUserId: Uuid? = null,
 
     val contactName: String,
     val contactEmail: String,
     val contactPhone: String? = null,
-    val userId: String? = null,
+    val userId: Uuid? = null,
 
     val seatCount: Int = 1,
     val totalPrice: Double,
@@ -47,16 +48,16 @@ data class Reservation(
 
 @Serializable
 sealed interface Reference {
-    val id: String
+    val id: Uuid
     @Serializable @SerialName("instance")
-    data class Instance(override val id: String): Reference
+    data class Instance(override val id: Uuid): Reference
     @Serializable @SerialName("series")
-    data class Series(override val id: String): Reference
+    data class Series(override val id: Uuid): Reference
 }
 
 @Serializable
 sealed interface ReservationTarget {
-    val id: String
+    val id: Uuid
     val title: String
     val price: Double
     val allowedPaymentTypes: List<PaymentInfo.Type>

@@ -8,10 +8,11 @@ import kotlinx.datetime.toInstant
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration
 import kotlin.time.Instant
+import kotlin.uuid.Uuid
 
 @Serializable
 data class EventDefinition(
-    val id: String,
+    val id: Uuid,
     val title: String,
     val description: String,
     val defaultPrice: Double,
@@ -25,8 +26,8 @@ data class EventDefinition(
 
 @Serializable
 data class EventSeries(
-    val id: String,
-    val definitionId: String,
+    val id: Uuid,
+    val definitionId: Uuid,
     val title: String,
     val description: String,
     val price: Double,
@@ -41,9 +42,9 @@ data class EventSeries(
 
 @Serializable
 data class EventInstance(
-    val id: String,
-    val definitionId: String,
-    val seriesId: String? = null,
+    val id: Uuid,
+    val definitionId: Uuid,
+    val seriesId: Uuid? = null,
     val title: String,
     val description: String,
     val startDateTime: LocalDateTime,

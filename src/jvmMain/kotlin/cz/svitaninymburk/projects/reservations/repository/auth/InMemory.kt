@@ -2,6 +2,7 @@ package cz.svitaninymburk.projects.reservations.repository.auth
 
 import cz.svitaninymburk.projects.reservations.auth.RefreshToken
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.uuid.Uuid
 
 
 class InMemoryRefreshTokenRepository : RefreshTokenRepository {
@@ -19,7 +20,7 @@ class InMemoryRefreshTokenRepository : RefreshTokenRepository {
         tokens.remove(token)
     }
 
-    override suspend fun deleteByUserId(userId: String) {
+    override suspend fun deleteByUserId(userId: Uuid) {
         tokens.values.removeIf { it.userId == userId }
     }
 }

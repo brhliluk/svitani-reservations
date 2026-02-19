@@ -17,6 +17,9 @@ google-api-client = "2.4.0"
 jwt = "4.5.0"
 bcrypt = "0.4"
 koin = "4.1.1"
+exposed = "1.0.0"
+sqlite-jdbc = "3.51.2.0"
+hikaricp = "7.0.2"
 
 [libraries]
 kilua = { module = "dev.kilua:kilua", version.ref = "kilua" }
@@ -62,6 +65,17 @@ kotlinx-html = { module = "org.jetbrains.kotlinx:kotlinx-html-jvm", version.ref 
 bcrypt = { module = "org.mindrot:jbcrypt", version.ref = "bcrypt" }
 google-api-client = { module = "com.google.api-client:google-api-client", version.ref = "google-api-client" }
 jwt = { module = "com.auth0:java-jwt", version.ref = "jwt" }
+
+exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
+exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
+exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "exposed" }
+exposed-json = { module = "org.jetbrains.exposed:exposed-json", version.ref = "exposed" }
+sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite-jdbc" }
+hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
+
+
+[bundles]
+database = ["exposed-core", "exposed-jdbc", "exposed-kotlin-datetime", "exposed-json", "sqlite-jdbc", "hikaricp"]
 
 [plugins]
 compose = { id = "org.jetbrains.compose", version.ref = "compose" }
