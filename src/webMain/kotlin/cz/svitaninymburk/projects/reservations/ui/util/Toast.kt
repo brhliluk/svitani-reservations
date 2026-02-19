@@ -7,7 +7,6 @@ import dev.kilua.html.div
 import dev.kilua.html.span
 import kotlinx.coroutines.delay
 
-// 1. Definice typů
 enum class ToastType(val cssClass: String, val iconClass: String) {
     Success("alert-success", "icon-[heroicons--check-circle]"),
     Error("alert-error", "icon-[heroicons--x-circle]"),
@@ -33,7 +32,7 @@ fun IComponent.Toast(
             }
         }
 
-        LaunchedEffect(message, type) { // Restartuje časovač při změně zprávy
+        LaunchedEffect(message, type) {
             delay(durationMs)
             onDismiss()
         }

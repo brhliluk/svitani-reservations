@@ -5,6 +5,7 @@ import dev.kilua.form.text.text
 import kotlin.time.Duration.Companion.seconds
 import androidx.compose.runtime.*
 import cz.svitaninymburk.projects.reservations.copyToClipboard
+import cz.svitaninymburk.projects.reservations.i18n.AppStrings
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.qr.QrCodeService
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
@@ -15,6 +16,9 @@ import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 
 
 @Composable
@@ -25,7 +29,7 @@ fun IComponent.ReservationDetailLayout(
     onBackToDashboard: () -> Unit
 ) {
     val currentStrings by strings
-    val uiState = remember(reservation.status, currentStrings) { getReservationUiState(reservation, currentStrings) }
+    val uiState = remember(reservation.status, currentStrings) { getReservationUiState(reservation, target, currentStrings) }
     val qrCodeService = QrCodeService("19-2000145399/0800") // TODO:
 
     val qrCodeSvg = remember(reservation, uiState.showPaymentInfo) {
@@ -147,7 +151,7 @@ private data class ReservationUiState(
     val canBeCancelled: Boolean
 )
 
-private fun getReservationUiState(reservation: Reservation, strings: cz.svitaninymburk.projects.reservations.i18n.AppStrings): ReservationUiState {
+private fun getReservationUiState(reservation: Reservation, reservationTarget: ReservationTarget, strings: AppStrings): ReservationUiState {
     return when (reservation.status) {
         // 1. NOVÁ / ČEKÁ NA PLATBU
         Reservation.Status.PENDING_PAYMENT -> ReservationUiState(
@@ -159,7 +163,7 @@ private fun getReservationUiState(reservation: Reservation, strings: cz.svitanin
             iconClass = "icon-[heroicons--clock] text-warning",
             textColorClass = "text-warning",
             showPaymentInfo = true,
-            canBeCancelled = true
+            canBeCancelled = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) < reservationTarget.startDateTime
         )
         // 2. POTVRZENÁ / ZAPLACENÁ
         Reservation.Status.CONFIRMED -> ReservationUiState(
@@ -171,7 +175,7 @@ private fun getReservationUiState(reservation: Reservation, strings: cz.svitanin
             iconClass = "icon-[heroicons--check-circle] text-success",
             textColorClass = "text-success",
             showPaymentInfo = false, // Už neukazujeme QR kód (nebo ho můžeme ukázat jako "daňový doklad")
-            canBeCancelled = true // Stále lze stornovat (s vratkou)
+            canBeCancelled = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) < reservationTarget.startDateTime
         )
         // 3. ZRUŠENÁ
         Reservation.Status.CANCELLED -> ReservationUiState(

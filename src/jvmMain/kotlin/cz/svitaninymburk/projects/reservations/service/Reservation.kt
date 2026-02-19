@@ -140,8 +140,12 @@ class ReservationService(
 
     override suspend fun cancelReservation(reservationId: String): Either<ReservationError.CancelReservation, Boolean> = either {
         val reservation = ensureNotNull(reservationRepository.findById(reservationId)) { ReservationError.ReservationNotFound }
+        val target: ReservationTarget = ensureNotNull( when (reservation.reference) {
+            is Reference.Instance -> eventInstanceRepository.get(reservation.reference.id)?.let { ReservationTarget.Instance(it) }
+            is Reference.Series -> eventSeriesRepository.get(reservation.reference.id)?.let { ReservationTarget.Series(it) }
+        }) { ReservationError.ReservationNotFound }
 
-        ensure(Clock.System.now() < reservation.createdAt) { ReservationError.EventAlreadyFinished }
+        ensure(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) < target.startDateTime) { ReservationError.EventAlreadyFinished }
 
         val cancelledReservation = reservation.copy(status = Reservation.Status.CANCELLED)
         reservationRepository.save(cancelledReservation)
