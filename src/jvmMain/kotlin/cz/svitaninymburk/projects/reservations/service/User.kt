@@ -7,28 +7,29 @@ import arrow.core.raise.ensureNotNull
 import cz.svitaninymburk.projects.reservations.error.UserError
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.user.User
+import kotlin.uuid.Uuid
 
 
 class UserService(val userRepository: UserRepository): UserServiceInterface {
 
-    override suspend fun changeName(userId: String, name: String): Either<UserError.ChangeName, User> = either {
-        val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId) }
+    override suspend fun changeName(userId: Uuid, name: String): Either<UserError.ChangeName, User> = either {
+        val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId.toString()) }
         userRepository.update(user.id, when (user) {
             is User.Email -> user.copy(name = name)
             is User.Google -> user.copy(name = name)
         })
     }
 
-    override suspend fun changeSurname(userId: String, surname: String): Either<UserError.ChangeName, User> = either {
-        val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId) }
+    override suspend fun changeSurname(userId: Uuid, surname: String): Either<UserError.ChangeName, User> = either {
+        val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId.toString()) }
         userRepository.update(user.id, when (user) {
             is User.Email -> user.copy(surname = surname)
             is User.Google -> user.copy(surname = surname)
         })
     }
 
-    override suspend fun changeEmail(userId: String, email: String): Either<UserError.ChangeEmail, User> = either {
-        val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId) }
+    override suspend fun changeEmail(userId: Uuid, email: String): Either<UserError.ChangeEmail, User> = either {
+        val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId.toString()) }
         userRepository.update(user.id, when (user) {
             is User.Email -> user.copy(email = email)
             is User.Google -> user.copy(email = email)
@@ -37,8 +38,8 @@ class UserService(val userRepository: UserRepository): UserServiceInterface {
 }
 
 class AdminService(val userRepository: UserRepository): AdminUserServiceInterface {
-    override suspend fun raiseToAdmin(userId: String): Either<UserError.RaiseToAdmin, User> = either {
-        val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId) }
+    override suspend fun raiseToAdmin(userId: Uuid): Either<UserError.RaiseToAdmin, User> = either {
+        val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId.toString()) }
         ensure(user.role != User.Role.ADMIN) { UserError.AdminAlready }
         userRepository.update(user.id, when (user) {
             is User.Email -> user.copy(role = User.Role.ADMIN)
@@ -46,8 +47,8 @@ class AdminService(val userRepository: UserRepository): AdminUserServiceInterfac
         })
     }
 
-    override suspend fun downgradeToUser(userId: String): Either<UserError.DowngradeToUser, User> = either {
-        val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId) }
+    override suspend fun downgradeToUser(userId: Uuid): Either<UserError.DowngradeToUser, User> = either {
+        val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId.toString()) }
         userRepository.update(user.id, when (user) {
             is User.Email -> user.copy(role = User.Role.USER)
             is User.Google -> user.copy(role = User.Role.USER)

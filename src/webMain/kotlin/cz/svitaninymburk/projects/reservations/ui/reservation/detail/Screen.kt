@@ -7,7 +7,6 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import arrow.core.serialization.ArrowModule
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
@@ -22,11 +21,12 @@ import dev.kilua.html.p
 import dev.kilua.html.span
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
+import kotlin.uuid.Uuid
 
 
 @Composable
 fun IComponent.ReservationDetailScreen(
-    reservationId: String,
+    reservationId: Uuid,
     onBackClick: () -> Unit
 ) {
     val scope = rememberCoroutineScope()

@@ -9,7 +9,6 @@ import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionR
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import dev.kilua.rpc.initRpc
-import dev.kilua.ssr.initSsr
 import io.ktor.server.application.*
 import io.ktor.server.plugins.compression.*
 import io.ktor.server.websocket.*
@@ -20,6 +19,7 @@ import org.koin.ktor.ext.inject
 fun Application.main() {
     install(Compression)
     install(WebSockets)
+    configureDatabases()
     initRpc(
         initStaticResources = false,
         AppJson,
@@ -28,7 +28,6 @@ fun Application.main() {
     startPaymentCheck()
     configureSecurity()
     configureRouting()
-    configureDatabases()
 
     val mockLoader = MockDataLoader
     val repositories = object {
@@ -38,6 +37,7 @@ fun Application.main() {
     }
 
     launch {
+        mockLoader.clearAll(repositories.definition, repositories.instance, repositories.series)
         mockLoader.load(repositories.definition, repositories.instance, repositories.series)
         println("Mock data pro Rodinné centrum načtena ✅")
     }

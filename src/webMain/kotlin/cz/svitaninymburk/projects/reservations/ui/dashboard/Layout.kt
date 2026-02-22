@@ -18,6 +18,7 @@ import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormDat
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationModal
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
+import kotlin.uuid.Uuid
 
 enum class DashboardTab { SCHEDULE, CATALOG }
 enum class ViewMode { LIST, CALENDAR }
@@ -34,7 +35,7 @@ fun IComponent.DashboardLayout(
 
     var reservationTarget by remember { mutableStateOf<ReservationTarget?>(null) }
     var activeTab by remember { mutableStateOf(if (initialFilterId != null) DashboardTab.SCHEDULE else DashboardTab.SCHEDULE) }
-    var selectedDefinitionId by remember { mutableStateOf(initialFilterId) }
+    var selectedDefinitionId by remember { mutableStateOf(initialFilterId?.let { Uuid.parse(it) }) }
     var viewMode by remember { mutableStateOf(ViewMode.LIST) }
 
     val filteredEvents = remember(events, selectedDefinitionId) {

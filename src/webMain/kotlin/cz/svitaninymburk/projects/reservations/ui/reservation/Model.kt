@@ -4,7 +4,7 @@ import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
-
+import kotlin.uuid.Uuid
 
 
 data class ReservationFormData(
@@ -16,7 +16,7 @@ data class ReservationFormData(
     val paymentType: PaymentInfo.Type,
     val customValues: Map<String, CustomFieldValue>
 ) {
-    fun toCreateInstanceReservationRequest(id: String): CreateInstanceReservationRequest = CreateInstanceReservationRequest(
+    fun toCreateInstanceReservationRequest(id: Uuid): CreateInstanceReservationRequest = CreateInstanceReservationRequest(
         eventInstanceId = id,
         seatCount = seats,
         contactName = "$name $surname",
@@ -26,7 +26,7 @@ data class ReservationFormData(
         customValues = customValues,
     )
 
-    fun toCreateSeriesReservationRequest(id: String): CreateSeriesReservationRequest = CreateSeriesReservationRequest(
+    fun toCreateSeriesReservationRequest(id: Uuid): CreateSeriesReservationRequest = CreateSeriesReservationRequest(
         eventSeriesId = id,
         seatCount = seats,
         contactName = "$name $surname",
