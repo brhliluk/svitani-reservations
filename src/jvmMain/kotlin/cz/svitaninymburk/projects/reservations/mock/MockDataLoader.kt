@@ -14,24 +14,46 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
+import kotlin.uuid.Uuid // Náš nový nejlepší kamarád pro IDčka
 
 object MockDataLoader {
 
     private val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
     private val today = now.date
 
+    suspend fun clearAll(
+        defRepo: EventDefinitionRepository,
+        instRepo: EventInstanceRepository,
+        seriesRepo: EventSeriesRepository,
+    ) {
+       defRepo.getAll(null).forEach {
+           defRepo.delete(it.id)
+       }
+        instRepo.getAll(null).forEach {
+            instRepo.delete(it.id)
+        }
+        seriesRepo.getAll(null).forEach {
+            seriesRepo.delete(it.id)
+        }
+    }
+
     suspend fun load(
         defRepo: EventDefinitionRepository,
         instRepo: EventInstanceRepository,
         seriesRepo: EventSeriesRepository
     ) {
+        // Vygenerujeme si pevná IDčka pro provázání dat
+        val defYogaId = Uuid.random()
+        val defCeramicsId = Uuid.random()
+        val defPartyId = Uuid.random()
+        val seriesCeramicsId = Uuid.random()
+
         // ==========================================
         // 1. DEFINICE (Šablony s Custom Fields)
         // ==========================================
 
-        // A) CVIČENÍ: Jóga (Jednoduchý formulář)
         val defYoga = EventDefinition(
-            id = "def-yoga",
+            id = defYogaId,
             title = "Jóga pro zdravá záda",
             description = "Lekce zaměřená na protažení a posílení středu těla. Vhodné i pro začátečníky.",
             defaultPrice = 180.0,
@@ -46,12 +68,11 @@ object MockDataLoader {
             )
         )
 
-        // B) KROUŽEK: Keramika pro děti (Formulář pro rodiče)
         val defCeramics = EventDefinition(
-            id = "def-ceramics",
+            id = defCeramicsId,
             title = "Keramická dílna pro děti",
             description = "Tvoření z hlíny pro děti od 6 let. Cena zahrnuje výpal i glazury.",
-            defaultPrice = 2200.0, // Cena za semestr
+            defaultPrice = 2200.0,
             defaultCapacity = 8,
             defaultDuration = 120.minutes,
             customFields = listOf(
@@ -77,9 +98,8 @@ object MockDataLoader {
             )
         )
 
-        // C) PRONÁJEM: Oslava narozenin (Složitější formulář s TimeRange)
         val defParty = EventDefinition(
-            id = "def-birthday",
+            id = defPartyId,
             title = "Soukromý pronájem herny (Oslava)",
             description = "Rezervace celé herny pro dětskou oslavu. K dispozici kuchyňka a audio systém.",
             defaultPrice = 3000.0,
@@ -98,7 +118,6 @@ object MockDataLoader {
                     min = 1,
                     max = 30
                 ),
-                // Tady využijeme TimeRange - uživatel si vybere konkrétní čas v rámci bloku
                 TimeRangeFieldDefinition(
                     key = "party_time_range",
                     label = "Preferovaný čas oslavy (od - do)",
@@ -108,12 +127,11 @@ object MockDataLoader {
                     key = "catering_note",
                     label = "Poznámka k občerstvení / Alergie",
                     isRequired = false,
-                    isMultiline = true // Víceřádkový text
+                    isMultiline = true
                 )
             )
         )
 
-        // Uložení definic
         defRepo.create(defYoga)
         defRepo.create(defCeramics)
         defRepo.create(defParty)
@@ -124,19 +142,18 @@ object MockDataLoader {
         // ==========================================
 
         val seriesCeramics = EventSeries(
-            id = "ser-ceramics-spring",
-            definitionId = defCeramics.id, // Vazba na definici Keramiky
+            id = seriesCeramicsId,
+            definitionId = defCeramicsId, // Bezpečně napojeno přes Uuid
             title = "Jarní Keramika (Úterky)",
             capacity = 8,
-            occupiedSpots = 6, // Zbývají 2 místa
+            occupiedSpots = 6,
             price = 2200.0,
             startDate = today.plus(DatePeriod(days = 7)),
-            endDate = today.plus(DatePeriod(days = 7 + (10 * 7))), // 10 týdnů
+            endDate = today.plus(DatePeriod(days = 7 + (10 * 7))),
             lessonCount = 10,
             description = "Keramika pro začátečníky",
             customFields = listOf(),
         )
-        // Pozor: Musíš mít implementovanou metodu create v InMemoryEventSeriesRepository
         seriesRepo.create(seriesCeramics)
 
 
@@ -144,11 +161,10 @@ object MockDataLoader {
         // 3. INSTANCE (Jednorázovky)
         // ==========================================
 
-        // 1. Jóga DNES (Volno)
         instRepo.create(EventInstance(
-            id = "evt-yoga-today",
-            definitionId = defYoga.id,
-            title = defYoga.title, // Dědí název
+            id = Uuid.random(),
+            definitionId = defYogaId, // Vazba na jógu
+            title = defYoga.title,
             startDateTime = now.date.atTime(18, 0),
             endDateTime = now.date.atTime(19, 0),
             price = 180.0,
@@ -157,11 +173,10 @@ object MockDataLoader {
             description = defYoga.description
         ))
 
-        // 2. Jóga ZÍTRA (Plno - testování statusu VYPRODÁNO)
         instRepo.create(EventInstance(
-            id = "evt-yoga-tomorrow",
-            definitionId = defYoga.id,
-            title = "Power Jóga (Intenzivní)", // Override názvu
+            id = Uuid.random(),
+            definitionId = defYogaId,
+            title = "Power Jóga (Intenzivní)",
             startDateTime = now.date.plus(DatePeriod(days = 1)).atTime(18, 0),
             endDateTime = now.date.plus(DatePeriod(days = 1)).atTime(19, 0),
             price = 200.0,
@@ -170,24 +185,21 @@ object MockDataLoader {
             description = defYoga.description,
         ))
 
-        // 3. Oslava o Víkendu (Testování TimeRange a Multiline textu)
         instRepo.create(EventInstance(
-            id = "evt-party-saturday",
-            definitionId = defParty.id,
+            id = Uuid.random(),
+            definitionId = defPartyId, // Vazba na oslavy
             title = "Víkendový pronájem herny",
-            // Celý slot je od 10:00 do 18:00, uživatel si v TimeRange vybere třeba 14:00-16:00
             startDateTime = today.plus(DatePeriod(days = 2)).atTime(10, 0),
             endDateTime = today.plus(DatePeriod(days = 2)).atTime(18, 0),
             price = 3000.0,
-            capacity = 1, // Jedna herna
+            capacity = 1,
             occupiedSpots = 0,
             description = defParty.description,
         ))
 
-        // 4. Minulá akce (Pro test filtrování)
         instRepo.create(EventInstance(
-            id = "evt-past",
-            definitionId = defYoga.id,
+            id = Uuid.random(),
+            definitionId = defYogaId,
             title = "Jóga (Proběhlo)",
             startDateTime = now.date.minus(DatePeriod(days = 5)).atTime(10, 0),
             endDateTime = now.date.minus(DatePeriod(days = 5)).atTime(11, 0),

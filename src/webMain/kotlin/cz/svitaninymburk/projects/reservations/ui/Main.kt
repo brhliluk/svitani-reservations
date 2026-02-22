@@ -25,6 +25,7 @@ import dev.kilua.routing.browserRouter
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
 import web.console.console
+import kotlin.uuid.Uuid
 
 @Composable
 fun IComponent.MainLayout() {
@@ -78,8 +79,12 @@ fun IComponent.MainLayout() {
                 route("/reservation") {
                     string { reservationId ->
                         view {
+                            val reservationUuid =
+                                try { Uuid.parse(reservationId.value) }
+                                catch (_: IllegalArgumentException) { null }
                             val router = Router.current
-                            ReservationDetailScreen(reservationId = reservationId.value, onBackClick = { router.navigate("/") })
+                            if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/") }
+                            else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/") })
                         }
                     }
                 }

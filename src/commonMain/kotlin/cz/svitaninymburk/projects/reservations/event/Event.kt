@@ -85,7 +85,7 @@ data class CreateEventDefinitionRequest(
 
 @Serializable
 data class CreateEventInstanceRequest(
-    val definitionId: String,
+    val definitionId: Uuid,
     val startDateTime: LocalDateTime,
     val title: String? = null,
     val description: String? = null,

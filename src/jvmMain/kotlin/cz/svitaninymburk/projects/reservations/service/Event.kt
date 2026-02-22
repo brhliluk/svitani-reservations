@@ -28,7 +28,7 @@ class AuthenticatedEventService(
     override suspend fun createEventDefinition(request: CreateEventDefinitionRequest): Either<EventError.CreateEventDefinition, Unit> = either {
         eventDefinitionRepository.create(
             EventDefinition(
-                id = Uuid.random().toString(),
+                id = Uuid.random(),
                 title = request.title,
                 description = request.description,
                 defaultPrice = request.defaultPrice,
@@ -41,22 +41,22 @@ class AuthenticatedEventService(
     }
 
     override suspend fun updateEventDefinition(definition: EventDefinition): Either<EventError.UpdateEventDefinition, Unit> = either {
-        ensureNotNull(eventDefinitionRepository.get(definition.id)) { EventError.EventDefinitionNotFound(definition.id) }
+        ensureNotNull(eventDefinitionRepository.get(definition.id)) { EventError.EventDefinitionNotFound(definition.id.toString()) }
         eventDefinitionRepository.update(definition)
     }
 
-    override suspend fun deleteEventDefinition(id: String): Either<EventError.DeleteEventDefiniton, Boolean> = either {
-        ensureNotNull(eventDefinitionRepository.get(id)) { EventError.EventDefinitionNotFound(id) }
+    override suspend fun deleteEventDefinition(id: Uuid): Either<EventError.DeleteEventDefiniton, Boolean> = either {
+        ensureNotNull(eventDefinitionRepository.get(id)) { EventError.EventDefinitionNotFound(id.toString()) }
         eventInstanceRepository.deleteAllByDefinitionId(id)
         eventDefinitionRepository.delete(id)
     }
 
     override suspend fun createEventInstance(request: CreateEventInstanceRequest): Either<EventError.CreateEventInstance, Unit> = either {
-        val eventDefinition = ensureNotNull(eventDefinitionRepository.get(request.definitionId)) { EventError.EventDefinitionNotFound(request.definitionId) }
+        val eventDefinition = ensureNotNull(eventDefinitionRepository.get(request.definitionId)) { EventError.EventDefinitionNotFound(request.definitionId.toString()) }
 
         eventInstanceRepository.create(
             EventInstance(
-                id = Uuid.random().toString(),
+                id = Uuid.random(),
                 definitionId = eventDefinition.id,
                 title = request.title ?: eventDefinition.title,
                 description = request.description ?: eventDefinition.description,
@@ -72,12 +72,12 @@ class AuthenticatedEventService(
     }
 
     override suspend fun updateEventInstance(instance: EventInstance): Either<EventError.UpdateEventInstance, Unit> = either {
-        ensureNotNull(eventInstanceRepository.get(instance.id)) { EventError.EventInstanceNotFound(instance.id) }
+        ensureNotNull(eventInstanceRepository.get(instance.id)) { EventError.EventInstanceNotFound(instance.id.toString()) }
         eventInstanceRepository.update(instance)
     }
 
-    override suspend fun deleteEventInstance(id: String): Either<EventError.DeleteEventInstance, Boolean> = either {
-        ensureNotNull(eventInstanceRepository.get(id)) { EventError.EventInstanceNotFound(id) }
+    override suspend fun deleteEventInstance(id: Uuid): Either<EventError.DeleteEventInstance, Boolean> = either {
+        ensureNotNull(eventInstanceRepository.get(id)) { EventError.EventInstanceNotFound(id.toString()) }
         eventInstanceRepository.delete(id)
     }
 }

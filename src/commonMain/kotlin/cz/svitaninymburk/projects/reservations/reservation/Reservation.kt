@@ -104,7 +104,7 @@ interface ReservationRequestData {
 
 @Serializable
 data class CreateInstanceReservationRequest(
-    val eventInstanceId: String,
+    val eventInstanceId: Uuid,
     override val seatCount: Int = 1,
     override val contactName: String,
     override val contactEmail: String,
@@ -115,7 +115,7 @@ data class CreateInstanceReservationRequest(
 
 @Serializable
 data class CreateSeriesReservationRequest(
-    val eventSeriesId: String,
+    val eventSeriesId: Uuid,
     override val seatCount: Int = 1,
     override val contactName: String,
     override val contactEmail: String,

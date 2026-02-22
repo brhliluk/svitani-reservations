@@ -9,6 +9,7 @@ import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import dev.kilua.rpc.annotations.RpcService
+import kotlin.uuid.Uuid
 
 
 @RpcService
@@ -23,8 +24,8 @@ interface EventServiceInterface {
 interface AuthenticatedEventServiceInterface {
     suspend fun createEventDefinition(request: CreateEventDefinitionRequest): Either<EventError.CreateEventDefinition, Unit>
     suspend fun updateEventDefinition(definition: EventDefinition): Either<EventError.UpdateEventDefinition, Unit>
-    suspend fun deleteEventDefinition(id: String): Either<EventError.DeleteEventDefiniton, Boolean>
+    suspend fun deleteEventDefinition(id: Uuid): Either<EventError.DeleteEventDefiniton, Boolean>
     suspend fun createEventInstance(request: CreateEventInstanceRequest): Either<EventError.CreateEventInstance, Unit>
     suspend fun updateEventInstance(instance: EventInstance): Either<EventError.UpdateEventInstance, Unit>
-    suspend fun deleteEventInstance(id: String): Either<EventError.DeleteEventInstance, Boolean>
+    suspend fun deleteEventInstance(id: Uuid): Either<EventError.DeleteEventInstance, Boolean>
 }

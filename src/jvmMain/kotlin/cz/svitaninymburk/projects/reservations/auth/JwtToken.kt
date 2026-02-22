@@ -25,7 +25,7 @@ class JwtTokenService(
         return JWT.create()
             .withAudience(audience)
             .withIssuer(issuer)
-            .withClaim("id", user.id)
+            .withClaim("id", user.id.toString())
             .withClaim("email", user.email)
             .withClaim("role", if (user.role == User.Role.ADMIN) "ADMIN" else "USER")
             .withExpiresAt((Clock.System.now() + expirationTime).toJavaInstant())

@@ -49,7 +49,7 @@ class AuthService(
         if (user == null) {
             user = userRepository.create(
                 User.Google(
-                    id = Uuid.random().toString(),
+                    id = Uuid.random(),
                     email = googleUser.email,
                     name = googleUser.name,
                     surname = googleUser.surname,
@@ -78,7 +78,7 @@ class AuthService(
 
         val newUser = userRepository.create(
             User.Email(
-                id = Uuid.random().toString(),
+                id = Uuid.random(),
                 email = request.email,
                 name = request.name,
                 surname = request.surname,
@@ -141,7 +141,7 @@ class AuthService(
         val call = ensureNotNull(currentCall()) { AuthError.ApplicationCallLost }
         val principal = ensureNotNull(call.principal<JWTPrincipal>()) { AuthError.NoJwtPrincipal }
 
-        val userId = ensureNotNull(principal.payload.getClaim("id").asString()) { AuthError.NoIdInPrincipal }
+        val userId = ensureNotNull(Uuid.parse(principal.payload.getClaim("id").asString())) { AuthError.NoIdInPrincipal }
 
         userRepository.findById(userId) ?: raise(AuthError.UserNotFound)
     }

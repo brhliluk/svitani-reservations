@@ -23,6 +23,7 @@ import org.apache.commons.mail.DefaultAuthenticator
 import org.apache.commons.mail.EmailException
 import org.apache.commons.mail.HtmlEmail
 import javax.mail.util.ByteArrayDataSource
+import kotlin.uuid.Uuid
 
 
 class GmailEmailService(
@@ -87,7 +88,7 @@ class GmailEmailService(
         }
     } }
 
-    override suspend fun sendCancellationNotice(toEmail: String, reservationId: String): Either<EmailError.SendCancellation, Unit> = either { withContext(Dispatchers.IO) {
+    override suspend fun sendCancellationNotice(toEmail: String, reservationId: Uuid): Either<EmailError.SendCancellation, Unit> = either { withContext(Dispatchers.IO) {
         val email = setupEmail()
         email.addTo(toEmail)
         val event = eventRepository.get(reservationId)
@@ -185,7 +186,7 @@ class ConsoleEmailService : EmailService {
 
     override suspend fun sendCancellationNotice(
         toEmail: String,
-        reservationId: String
+        reservationId: Uuid
     ): Either<EmailError.SendCancellation, Unit> {
         println("📧 [MOCK EMAIL] Odesílám storno na: $toEmail (ID: $reservationId)")
         return Unit.right()

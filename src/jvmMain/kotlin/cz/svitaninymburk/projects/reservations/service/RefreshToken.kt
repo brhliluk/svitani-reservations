@@ -5,13 +5,14 @@ import cz.svitaninymburk.projects.reservations.repository.auth.RefreshTokenRepos
 import cz.svitaninymburk.projects.reservations.auth.JwtTokenService
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.uuid.Uuid
 
 
 class RefreshTokenService(
     val refreshTokenRepository: RefreshTokenRepository,
     private val tokenService: JwtTokenService,
 ) {
-    suspend fun getToken(userId: String): String {
+    suspend fun getToken(userId: Uuid): String {
         val refreshTokenString = tokenService.generateRefreshToken()
 
         refreshTokenRepository.save(

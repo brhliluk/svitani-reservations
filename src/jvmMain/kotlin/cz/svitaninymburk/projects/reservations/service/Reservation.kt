@@ -31,11 +31,11 @@ class ReservationService(
     private val qrCodeService: BackendQrCodeGenerator,
     private val paymentTrigger: PaymentTrigger,
 ): ReservationServiceInterface {
-    override suspend fun get(id: String): Either<ReservationError.Get, Reservation> = either {
+    override suspend fun get(id: Uuid): Either<ReservationError.Get, Reservation> = either {
         reservationRepository.findById(id) ?: raise(ReservationError.ReservationNotFound)
     }
 
-    override suspend fun getDetail(id: String): Either<ReservationError.GetDetail, ReservationDetail> = either {
+    override suspend fun getDetail(id: Uuid): Either<ReservationError.GetDetail, ReservationDetail> = either {
         val reservation = get(id).getOrElse { raise(ReservationError.ReservationNotFound) }
 
         val target: ReservationTarget = when (val ref = reservation.reference) {
@@ -53,7 +53,7 @@ class ReservationService(
     }
 
 
-    override suspend fun reserveInstance(request: CreateInstanceReservationRequest, userId: String?): Either<ReservationError.CreateReservation, Reservation> = either {
+    override suspend fun reserveInstance(request: CreateInstanceReservationRequest, userId: Uuid?): Either<ReservationError.CreateReservation, Reservation> = either {
 
         val instance = ensureNotNull(eventInstanceRepository.get(request.eventInstanceId)) { ReservationError.ReservationNotFound }
 
@@ -75,7 +75,7 @@ class ReservationService(
 
     override suspend fun reserveSeries(
         request: CreateSeriesReservationRequest,
-        userId: String?
+        userId: Uuid?
     ): Either<ReservationError.CreateReservation, Reservation> = either {
 
         val series = ensureNotNull(eventSeriesRepository.get(request.eventSeriesId)) { ReservationError.ReservationNotFound }
@@ -93,14 +93,14 @@ class ReservationService(
 
     private suspend fun Raise<ReservationError.CreateReservation>.createReservationFlow(
         reference: Reference,
-        userId: String?,
+        userId: Uuid?,
         requestData: ReservationRequestData,
         pricePerSeat: Double,
     ): Reservation {
         val variableSymbol = generateUniqueVariableSymbol()
 
         val reservation = Reservation(
-            id = Uuid.random().toString(),
+            id = Uuid.random(),
             reference = reference,
             registeredUserId = userId,
             seatCount = requestData.seatCount,
@@ -138,7 +138,7 @@ class ReservationService(
         return reservation
     }
 
-    override suspend fun cancelReservation(reservationId: String): Either<ReservationError.CancelReservation, Boolean> = either {
+    override suspend fun cancelReservation(reservationId: Uuid): Either<ReservationError.CancelReservation, Boolean> = either {
         val reservation = ensureNotNull(reservationRepository.findById(reservationId)) { ReservationError.ReservationNotFound }
         val target: ReservationTarget = ensureNotNull( when (reservation.reference) {
             is Reference.Instance -> eventInstanceRepository.get(reservation.reference.id)?.let { ReservationTarget.Instance(it) }
@@ -195,7 +195,7 @@ class AuthenticatedReservationService(
     private val eventSeriesRepository: EventSeriesRepository,
     private val reservationRepository: ReservationRepository,
 ) : AuthenticatedReservationServiceInterface {
-    override suspend fun getReservations(userId: String): Either<ReservationError.GetAll, List<Reservation>> = either {
+    override suspend fun getReservations(userId: Uuid): Either<ReservationError.GetAll, List<Reservation>> = either {
         val reservations = reservationRepository.getAll(userId)
         if (reservations.isEmpty()) return@either emptyList()
 

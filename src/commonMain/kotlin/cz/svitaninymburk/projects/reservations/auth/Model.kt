@@ -2,6 +2,7 @@ package cz.svitaninymburk.projects.reservations.auth
 
 import cz.svitaninymburk.projects.reservations.user.User
 import kotlinx.serialization.Serializable
+import kotlin.uuid.Uuid
 
 
 @Serializable
@@ -32,7 +33,7 @@ data class AuthResponse(
 
 @Serializable
 data class UserDto(
-    val id: String,
+    val id: Uuid,
     val email: String,
     val fullName: String,
     val role: User.Role,
