@@ -139,7 +139,7 @@ fun IComponent.DashboardLayout(
                         }
                     }
                 } else {
-                    CalendarView(filteredEvents, { reservationTarget = ReservationTarget.Instance(it) })
+                    CalendarView(filteredEvents) { reservationTarget = ReservationTarget.Instance(it) }
                 }
             }
         }
