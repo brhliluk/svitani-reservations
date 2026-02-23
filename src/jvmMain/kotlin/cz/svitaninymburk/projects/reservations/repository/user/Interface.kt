@@ -9,5 +9,6 @@ interface UserRepository {
     suspend fun findByResetToken(token: String): User.Email?
     suspend fun create(user: User): User
     suspend fun update(userId: Uuid, user: User): User
+    suspend fun delete(userId: Uuid): Boolean
     suspend fun linkGoogleAccount(userId: Uuid, googleSub: String): User.Google
 }

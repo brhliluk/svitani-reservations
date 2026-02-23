@@ -11,6 +11,8 @@ import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminDashboardScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminLayout
 import cz.svitaninymburk.projects.reservations.ui.auth.ResetPasswordScreen
 import cz.svitaninymburk.projects.reservations.ui.dashboard.DashboardScreen
 import cz.svitaninymburk.projects.reservations.ui.reservation.detail.ReservationDetailScreen
@@ -50,7 +52,31 @@ fun IComponent.MainLayout() {
 
     LaunchedEffect(Unit) { refreshUser() }
 
-    div(className = "min-h-screen flex flex-col bg-base-100 text-base-content") {
+    if (currentUser?.role == User.Role.ADMIN) {
+        // ADMIN VIDÍ ADMIN LAYOUT
+        browserRouter {
+            route("/admin") {
+                view {
+                    AdminLayout(
+                        user = currentUser!!,
+                        onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                    ) {
+                        AdminDashboardScreen()
+                    }
+                }
+                route("/events") {
+                    view { div { +"Zde bude správa událostí" } }
+                }
+            }
+            route("/") {
+                view {
+                    val router = Router.current
+                    LaunchedEffect(Unit) { router.navigate("/admin") }
+                }
+            }
+        }
+
+    } else div(className = "min-h-screen flex flex-col bg-base-100 text-base-content") {
 
         Toast(
             message = toastState?.message,

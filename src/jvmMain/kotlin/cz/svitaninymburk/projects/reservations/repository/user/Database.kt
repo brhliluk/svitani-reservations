@@ -6,6 +6,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.datetime.datetime
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -94,6 +95,10 @@ class ExposedUserRepository : UserRepository {
             }
         }
         user
+    }
+
+    override suspend fun delete(userId: Uuid): Boolean = dbQuery {
+        UsersTable.deleteWhere { UsersTable.id eq userId } > 0
     }
 
     override suspend fun linkGoogleAccount(userId: Uuid, googleSub: String): User.Google = dbQuery {

@@ -31,6 +31,10 @@ class InMemoryUserRepository : UserRepository {
         return user
     }
 
+    override suspend fun delete(userId: Uuid): Boolean {
+        return users.remove(userId) != null
+    }
+
 
     override suspend fun linkGoogleAccount(userId: Uuid, googleSub: String): User.Google {
         val user = users[userId] ?: throw IllegalStateException("User not found inside repo logic")

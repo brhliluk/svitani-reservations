@@ -1,9 +1,14 @@
 package cz.svitaninymburk.projects.reservations.mock
 
+import cz.svitaninymburk.projects.reservations.auth.HashingService
 import cz.svitaninymburk.projects.reservations.event.*
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
+import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
+import cz.svitaninymburk.projects.reservations.repository.user.UsersTable
+import cz.svitaninymburk.projects.reservations.user.User
+import cz.svitaninymburk.projects.reservations.user.User.Email
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -11,21 +16,27 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.java.KoinJavaComponent.inject
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.Uuid // Náš nový nejlepší kamarád pro IDčka
 
-object MockDataLoader {
+class MockDataLoader: KoinComponent {
+    val defRepo: EventDefinitionRepository by inject()
+    val instRepo: EventInstanceRepository by inject()
+    val seriesRepo: EventSeriesRepository by inject()
+    val userRepo: UserRepository by inject()
+    val hashingService: HashingService by inject()
+
+    val adminUuid = Uuid.random()
 
     private val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
     private val today = now.date
 
-    suspend fun clearAll(
-        defRepo: EventDefinitionRepository,
-        instRepo: EventInstanceRepository,
-        seriesRepo: EventSeriesRepository,
-    ) {
+    suspend fun clearAll() {
        defRepo.getAll(null).forEach {
            defRepo.delete(it.id)
        }
@@ -35,13 +46,21 @@ object MockDataLoader {
         seriesRepo.getAll(null).forEach {
             seriesRepo.delete(it.id)
         }
+        userRepo.delete(adminUuid)
     }
 
-    suspend fun load(
-        defRepo: EventDefinitionRepository,
-        instRepo: EventInstanceRepository,
-        seriesRepo: EventSeriesRepository
-    ) {
+    suspend fun load() {
+        userRepo.create(
+            Email(
+                id = adminUuid,
+                email = "admin@reservations.cz",
+                name = "Hlavní",
+                surname = "Administrátor",
+                role = User.Role.ADMIN,
+                passwordHash = hashingService.generateSaltedHash("123456"),
+            )
+        )
+
         // Vygenerujeme si pevná IDčka pro provázání dat
         val defYogaId = Uuid.random()
         val defCeramicsId = Uuid.random()
