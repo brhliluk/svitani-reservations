@@ -88,7 +88,7 @@ sealed interface ReservationTarget {
         override val allowedPaymentTypes = series.allowedPaymentTypes
         override val maxCapacity = series.capacity - series.occupiedSpots
         override val startDateTime = LocalDateTime(date = series.startDate, time = LocalTime(0,0))
-        override val endDateTime = LocalDateTime(date = series.endDate, time = LocalTime(24,0))
+        override val endDateTime = LocalDateTime(date = series.endDate, time = LocalTime(23,0))
         override val customFields = series.customFields
     }
 }

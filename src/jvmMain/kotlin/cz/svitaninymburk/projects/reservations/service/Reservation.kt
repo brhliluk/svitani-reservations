@@ -84,7 +84,7 @@ class ReservationService(
         ensure(isReserved) { ReservationError.CapacityExceeded }
 
         createReservationFlow(
-            reference = Reference.Instance(series.id),
+            reference = Reference.Series(series.id),
             userId = userId,
             requestData = request,
             pricePerSeat = series.price

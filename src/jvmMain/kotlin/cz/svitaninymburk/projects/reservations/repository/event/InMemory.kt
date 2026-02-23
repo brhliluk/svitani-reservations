@@ -127,6 +127,19 @@ class InMemoryEventSeriesRepository : EventSeriesRepository {
         return newSeries
     }
 
+    override suspend fun update(series: EventSeries): EventSeries {
+        instances[series.id] = series
+        return series
+    }
+
+    override suspend fun delete(id: Uuid): Boolean {
+        if (instances.containsKey(id)) {
+            instances.remove(id)
+            return true
+        }
+        return false
+    }
+
     override suspend fun attemptToReserveSpots(seriesId: Uuid, amount: Int): Boolean {
         var reservationSuccess = false
 
