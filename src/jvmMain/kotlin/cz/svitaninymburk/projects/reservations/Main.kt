@@ -29,16 +29,12 @@ fun Application.main() {
     configureSecurity()
     configureRouting()
 
-    val mockLoader = MockDataLoader
-    val repositories = object {
-        val definition: EventDefinitionRepository by inject()
-        val instance: EventInstanceRepository by inject()
-        val series: EventSeriesRepository by inject()
-    }
+    val mockLoader = MockDataLoader()
+
 
     launch {
-        mockLoader.clearAll(repositories.definition, repositories.instance, repositories.series)
-        mockLoader.load(repositories.definition, repositories.instance, repositories.series)
+        mockLoader.clearAll()
+        mockLoader.load()
         println("Mock data pro Rodinné centrum načtena ✅")
     }
 }
