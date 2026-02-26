@@ -10,5 +10,6 @@ interface ReservationRepository {
     suspend fun hasPendingReservations(): Boolean
     suspend fun countSeats(id: Uuid): Int
     suspend fun getAll(userId: Uuid): List<Reservation>
+    suspend fun findAll(): List<Reservation>
     suspend fun existsByVariableSymbol(variableSymbol: String): Boolean
 }

@@ -50,16 +50,19 @@ class MockDataLoader: KoinComponent {
     }
 
     suspend fun load() {
-        userRepo.create(
-            Email(
-                id = adminUuid,
-                email = "admin@reservations.cz",
-                name = "Hlavní",
-                surname = "Administrátor",
-                role = User.Role.ADMIN,
-                passwordHash = hashingService.generateSaltedHash("123456"),
+        val adminEmail = "admin@reservations.cz"
+        if (userRepo.findByEmail(adminEmail) == null) {
+            userRepo.create(
+                Email(
+                    id = adminUuid,
+                    email = "admin@reservations.cz",
+                    name = "Hlavní",
+                    surname = "Administrátor",
+                    role = User.Role.ADMIN,
+                    passwordHash = hashingService.generateSaltedHash("123456"),
+                )
             )
-        )
+        }
 
         // Vygenerujeme si pevná IDčka pro provázání dat
         val defYogaId = Uuid.random()

@@ -1,91 +1,110 @@
 package cz.svitaninymburk.projects.reservations.ui.admin
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import cz.svitaninymburk.projects.reservations.RpcSerializersModules
+import cz.svitaninymburk.projects.reservations.reservation.AdminDashboardData
+import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
+import dev.kilua.rpc.getService
+import kotlinx.datetime.number
+
+private sealed interface AdminDashboardUiState {
+    data object Loading : AdminDashboardUiState
+    data class Success(val data: AdminDashboardData) : AdminDashboardUiState
+    data class Error(val message: String) : AdminDashboardUiState
+}
 
 @Composable
 fun IComponent.AdminDashboardScreen() {
-    div(className = "flex flex-col gap-8 animate-fade-in") {
+    val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
 
-        // Hlavička obrazovky
-        div {
-            h1(className = "text-3xl font-bold text-base-content") { +"Přehled" }
-            p(className = "text-base-content/60 mt-1") { +"Vítejte zpět! Takhle to aktuálně vypadá s vašimi rezervacemi." }
+    // Stažení dat z backendu
+    val uiState by produceState<AdminDashboardUiState>(initialValue = AdminDashboardUiState.Loading) {
+        adminService.getDashboardSummary()
+            .onRight { value = AdminDashboardUiState.Success(it) }
+            .onLeft { value = AdminDashboardUiState.Error(it.toString()) }
+    }
+
+    when (val state = uiState) {
+        is AdminDashboardUiState.Loading -> Loading()
+        is AdminDashboardUiState.Error -> {
+            div(className = "alert alert-error") { +"Chyba načítání dat: ${state.message}" }
         }
+        is AdminDashboardUiState.Success -> {
+            val data = state.data
 
-        // --- 1. KPI STATISTIKY (Horní panel) ---
-        // DaisyUI 'stats' komponenta vytvoří krásný spojený panel kartiček
-        div(className = "stats stats-vertical lg:stats-horizontal shadow-sm w-full bg-base-100") {
-
-            div(className = "stat") {
-                div(className = "stat-figure text-primary") {
-                    span(className = "icon-[heroicons--users] size-8")
+            div(className = "flex flex-col gap-8 animate-fade-in") {
+                // Hlavička
+                div {
+                    h1(className = "text-3xl font-bold text-base-content") { +"Přehled" }
+                    p(className = "text-base-content/60 mt-1") { +"Vítejte zpět! Takhle to aktuálně vypadá s vašimi rezervacemi." }
                 }
-                div(className = "stat-title") { +"Dnešní účastníci" }
-                div(className = "stat-value text-primary") { +"24" }
-                div(className = "stat-desc") { +"Ve 3 událostech" }
-            }
 
-            div(className = "stat") {
-                div(className = "stat-figure text-warning") {
-                    span(className = "icon-[heroicons--banknotes] size-8")
-                }
-                div(className = "stat-title") { +"Čeká na platbu" }
-                div(className = "stat-value text-warning") { +"15 400 Kč" }
-                div(className = "stat-desc") { +"Celkem 12 rezervací" }
-            }
-
-            div(className = "stat") {
-                div(className = "stat-figure text-info") {
-                    span(className = "icon-[heroicons--ticket] size-8")
-                }
-                div(className = "stat-title") { +"Volná místa" }
-                div(className = "stat-value text-info") { +"18" }
-                div(className = "stat-desc") { +"Na akcích v tomto týdnu" }
-            }
-        }
-
-        // --- 2. HLAVNÍ OBSAH (Dva sloupce) ---
-        div(className = "grid grid-cols-1 lg:grid-cols-2 gap-8") {
-
-            // LEVÝ SLOUPEC: Nejbližší události s Progress Bary
-            div(className = "card bg-base-100 shadow-sm") {
-                div(className = "card-body p-6") {
-                    div(className = "flex justify-between items-center mb-4") {
-                        h2(className = "card-title text-lg") { +"Nejbližší události" }
-                        button(className = "btn btn-sm btn-ghost") { +"Zobrazit kalendář" }
+                // --- 1. KPI STATISTIKY ---
+                div(className = "stats stats-vertical lg:stats-horizontal shadow-sm w-full bg-base-100") {
+                    div(className = "stat") {
+                        div(className = "stat-figure text-primary") { span(className = "icon-[heroicons--users] size-8") }
+                        div(className = "stat-title") { +"Dnešní účastníci" }
+                        div(className = "stat-value text-primary") { +"${data.todayParticipantsCount}" }
                     }
-
-                    div(className = "flex flex-col gap-4") {
-                        // Ukázkové položky (Později sem dáme forEach z backendu)
-                        AdminUpcomingEventRow("Jóga pro zdravá záda", "Dnes 18:00", 10, 12)
-                        AdminUpcomingEventRow("Keramická dílna pro děti", "Zítra 15:00", 8, 8)
-                        AdminUpcomingEventRow("Soukromá oslava (Herna)", "Sobota 10:00", 1, 1)
+                    div(className = "stat") {
+                        div(className = "stat-figure text-warning") { span(className = "icon-[heroicons--banknotes] size-8") }
+                        div(className = "stat-title") { +"Čeká na platbu" }
+                        div(className = "stat-value text-warning") { +"${data.pendingPaymentsTotal} Kč" }
+                        div(className = "stat-desc") { +"Celkem ${data.pendingPaymentsCount} rezervací" }
+                    }
+                    div(className = "stat") {
+                        div(className = "stat-figure text-info") { span(className = "icon-[heroicons--ticket] size-8") }
+                        div(className = "stat-title") { +"Volná místa" }
+                        div(className = "stat-value text-info") { +"${data.freeSpotsThisWeek}" }
+                        div(className = "stat-desc") { +"Na akcích v tomto týdnu" }
                     }
                 }
-            }
 
-            // PRAVÝ SLOUPEC: Akce vyžadující pozornost (Neuhrazené rezervace)
-            div(className = "card bg-base-100 shadow-sm") {
-                div(className = "card-body p-6") {
-                    div(className = "flex justify-between items-center mb-4") {
-                        h2(className = "card-title text-lg") { +"Poslední neuhrazené rezervace" }
-                        button(className = "btn btn-sm btn-ghost text-warning") { +"Zobrazit všechny" }
+                // --- 2. HLAVNÍ OBSAH ---
+                div(className = "grid grid-cols-1 lg:grid-cols-2 gap-8") {
+                    // LEVÝ SLOUPEC: Události
+                    div(className = "card bg-base-100 shadow-sm") {
+                        div(className = "card-body p-6") {
+                            h2(className = "card-title text-lg mb-4") { +"Nejbližší události" }
+                            div(className = "flex flex-col gap-4") {
+                                if (data.upcomingEvents.isEmpty()) {
+                                    p(className = "text-sm text-base-content/50 italic") { +"Žádné nadcházející události." }
+                                } else {
+                                    data.upcomingEvents.forEach { event ->
+                                        // Formátování data: "DD.MM.YYYY HH:mm"
+                                        val timeString = "${event.startDateTime.date.day}.${event.startDateTime.date.month.number}. ${event.startDateTime.hour}:${event.startDateTime.minute.toString().padStart(2, '0')}"
+                                        AdminUpcomingEventRow(event.title, timeString, event.occupiedSpots, event.capacity)
+                                    }
+                                }
+                            }
+                        }
                     }
 
-                    div(className = "flex flex-col gap-3") {
-                        AdminPendingReservationRow("Jana Nováková", "Jóga pro zdravá záda", "360 Kč", "VS: 2605412345")
-                        AdminPendingReservationRow("Petr Svoboda", "Keramická dílna", "2 200 Kč", "VS: 2605498765")
-                        AdminPendingReservationRow("Lucie Bílá", "Soukromá oslava", "3 000 Kč", "VS: 2605455555")
+                    // PRAVÝ SLOUPEC: Rezervace
+                    div(className = "card bg-base-100 shadow-sm") {
+                        div(className = "card-body p-6") {
+                            h2(className = "card-title text-lg mb-4") { +"Poslední neuhrazené rezervace" }
+                            div(className = "flex flex-col gap-3") {
+                                if (data.pendingReservations.isEmpty()) {
+                                    p(className = "text-sm text-base-content/50 italic") { +"Všechny rezervace jsou uhrazené!" }
+                                } else {
+                                    data.pendingReservations.forEach { res ->
+                                        AdminPendingReservationRow(res.contactName, res.eventName, "${res.totalPrice} Kč", "VS: ${res.variableSymbol}")
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 }
-
-// --- POMOCNÉ KOMPONENTY PRO ŘÁDKY ---
 
 @Composable
 fun IComponent.AdminUpcomingEventRow(title: String, time: String, occupied: Int, capacity: Int) {
@@ -107,7 +126,8 @@ fun IComponent.AdminUpcomingEventRow(title: String, time: String, occupied: Int,
                 div(className = "text-xs font-bold text-base-content/70") { +"$occupied / $capacity" }
             }
         }
-        // DaisyUI progress bar
+
+        // Náš opravený Kilua progress bar pomocí attribute()
         progress(className = "progress $progressClass w-full h-2") {
             attribute("value", occupied.toString())
             attribute("max", capacity.toString())
@@ -124,7 +144,8 @@ fun IComponent.AdminPendingReservationRow(name: String, eventName: String, price
             span(className = "text-xs font-mono text-base-content/40 mt-1") { +vs }
         }
         div(className = "flex items-center gap-3") {
-            span(className = "font-bold text-warning") { +price }
+            span(className = "font-bold text-warning whitespace-nowrap") { +price }
+            // Tlačítko pro schválení platby (zatím vizuální)
             button(className = "btn btn-circle btn-ghost btn-sm text-success") {
                 attribute("title", "Označit jako zaplacené")
                 span(className = "icon-[heroicons--check] size-5")

@@ -36,6 +36,10 @@ class InMemoryReservationRepository : ReservationRepository {
         return reservations.values.filter { it.userId == userId }
     }
 
+    override suspend fun findAll(): List<Reservation> {
+        return reservations.values.toList()
+    }
+
     override suspend fun existsByVariableSymbol(variableSymbol: String): Boolean {
         return reservations.values.any { it.variableSymbol == variableSymbol }
     }

@@ -27,7 +27,7 @@ class JwtTokenService(
             .withIssuer(issuer)
             .withClaim("id", user.id.toString())
             .withClaim("email", user.email)
-            .withClaim("role", if (user.role == User.Role.ADMIN) "ADMIN" else "USER")
+            .withClaim("role", user.role.name)
             .withExpiresAt((Clock.System.now() + expirationTime).toJavaInstant())
             .sign(algorithm)
     }

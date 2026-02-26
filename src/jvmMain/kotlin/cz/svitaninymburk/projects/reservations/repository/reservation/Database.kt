@@ -149,6 +149,10 @@ class ExposedReservationRepository : ReservationRepository {
             .map { it.toReservation() }
     }
 
+    override suspend fun findAll(): List<Reservation> = dbQuery {
+        ReservationsTable.selectAll().map { it.toReservation() }
+    }
+
     override suspend fun existsByVariableSymbol(variableSymbol: String): Boolean = dbQuery {
         !ReservationsTable.selectAll()
             .where { ReservationsTable.variableSymbol eq variableSymbol }

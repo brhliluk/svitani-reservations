@@ -73,5 +73,6 @@ val appModule = module {
     single { AuthenticatedReservationService(get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
     single { PaymentPairingService(get(), get(), get(), get(), System.getenv("FIO_TOKEN") ?: "fio-token") }
     single { AdminService(get()) }
+    single { AdminDashboardService(get(), get(), get()) } bind AdminServiceInterface::class
     single { UserService(get()) }
 }
