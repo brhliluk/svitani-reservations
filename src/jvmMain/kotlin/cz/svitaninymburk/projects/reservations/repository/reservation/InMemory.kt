@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.repository.reservation
 
+import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.uuid.Uuid
@@ -16,6 +17,9 @@ class InMemoryReservationRepository : ReservationRepository {
     }
 
     override suspend fun findById(id: Uuid): Reservation? = reservations[id]
+    override suspend fun findByReference(reference: Reference): List<Reservation> {
+        return reservations.filterValues { it.reference == reference }.values.toList()
+    }
 
     override suspend fun findAwaitingPayment(vs: String): Reservation? {
         return reservations.values.find { it.variableSymbol == vs && it.status == Reservation.Status.PENDING_PAYMENT }

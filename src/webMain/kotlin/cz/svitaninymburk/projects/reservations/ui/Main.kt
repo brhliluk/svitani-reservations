@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminDashboardScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventDetailScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminLayout
 import cz.svitaninymburk.projects.reservations.ui.auth.ResetPasswordScreen
 import cz.svitaninymburk.projects.reservations.ui.dashboard.DashboardScreen
@@ -65,7 +66,26 @@ fun IComponent.MainLayout() {
                     }
                 }
                 route("/events") {
-                    view { div { +"Zde bude správa událostí" } }
+                    route("/instance") { string { eventId ->
+                        view {
+                            AdminLayout(
+                                user = currentUser!!,
+                                onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                            ) {
+                                AdminEventDetailScreen(eventId = eventId.value, isSeries = false)
+                            }
+                        }
+                    } }
+                    route("/series") { string { seriesId ->
+                        view {
+                            AdminLayout(
+                                user = currentUser!!,
+                                onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                            ) {
+                                AdminEventDetailScreen(eventId = seriesId.value, isSeries = true)
+                            }
+                        }
+                    } }
                 }
             }
             route("/") {
