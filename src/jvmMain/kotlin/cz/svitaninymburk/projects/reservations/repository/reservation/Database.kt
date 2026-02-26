@@ -158,6 +158,12 @@ class ExposedReservationRepository : ReservationRepository {
             .where { ReservationsTable.variableSymbol eq variableSymbol }
             .empty()
     }
+
+    override suspend fun updateStatus(id: Uuid, status: Reservation.Status): Boolean = dbQuery {
+        ReservationsTable.update({ ReservationsTable.id eq id }) {
+            it[ReservationsTable.status] = status
+        } > 0
+    }
 }
 
 fun ResultRow.toReservation(): Reservation {

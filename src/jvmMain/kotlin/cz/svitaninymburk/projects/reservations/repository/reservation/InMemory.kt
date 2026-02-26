@@ -43,4 +43,10 @@ class InMemoryReservationRepository : ReservationRepository {
     override suspend fun existsByVariableSymbol(variableSymbol: String): Boolean {
         return reservations.values.any { it.variableSymbol == variableSymbol }
     }
+
+    override suspend fun updateStatus(id: Uuid, status: Reservation.Status): Boolean {
+        val reservation = reservations[id] ?: return false
+        reservations[id] = reservation.copy(status = status)
+        return true
+    }
 }
