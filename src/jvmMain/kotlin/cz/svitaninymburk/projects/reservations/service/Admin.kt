@@ -1,7 +1,9 @@
 package cz.svitaninymburk.projects.reservations.service
 
 import arrow.core.Either
+import arrow.core.raise.context.ensureNotNull
 import arrow.core.raise.either
+import arrow.core.raise.ensure
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
@@ -17,6 +19,7 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import kotlin.uuid.Uuid
 
 class AdminDashboardService(
     private val eventSeriesRepository: EventSeriesRepository,
@@ -87,5 +90,20 @@ class AdminDashboardService(
             upcomingEvents = upcomingEventsData,
             pendingReservations = pendingReservationsData,
         )
+    }
+
+    override suspend fun markReservationAsPaid(reservationId: Uuid): Either<AdminError.MarkReservationPaid, Unit> = either {
+        val reservation = ensureNotNull(reservationRepository.findById(reservationId)) { AdminError.ReservationNotFound(reservationId) }
+
+        ensure(reservation.status == Reservation.Status.PENDING_PAYMENT) { AdminError.WrongReservationState(reservation.status) }
+
+        // Změníme status v DB
+        val success = reservationRepository.updateStatus(reservationId, Reservation.Status.CONFIRMED)
+
+        if (!success) {
+            raise(AdminError.FailedToMarkReservationPaid("Chyba při aktualizaci stavu v databázi."))
+        }
+
+        // 💡 TIP DO BUDOUCNA: Tady můžeš zavolat emailService a poslat mamince "Platba přijata, těšíme se na vás!"
     }
 }

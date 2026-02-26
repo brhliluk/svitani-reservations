@@ -2,14 +2,23 @@ package cz.svitaninymburk.projects.reservations.ui.admin
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
+import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.reservation.AdminDashboardData
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
+import cz.svitaninymburk.projects.reservations.ui.util.Toast
+import cz.svitaninymburk.projects.reservations.ui.util.ToastData
+import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
+import kotlinx.coroutines.launch
 import kotlinx.datetime.number
 
 private sealed interface AdminDashboardUiState {
@@ -21,9 +30,13 @@ private sealed interface AdminDashboardUiState {
 @Composable
 fun IComponent.AdminDashboardScreen() {
     val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
+    val scope = rememberCoroutineScope()
+
+    var refreshTrigger by remember { mutableStateOf(0) }
+    var toastData by remember { mutableStateOf<ToastData?>(null) }
 
     // Stažení dat z backendu
-    val uiState by produceState<AdminDashboardUiState>(initialValue = AdminDashboardUiState.Loading) {
+    val uiState by produceState<AdminDashboardUiState>(initialValue = AdminDashboardUiState.Loading, key1 = refreshTrigger) {
         adminService.getDashboardSummary()
             .onRight { value = AdminDashboardUiState.Success(it) }
             .onLeft { value = AdminDashboardUiState.Error(it.toString()) }
@@ -94,7 +107,18 @@ fun IComponent.AdminDashboardScreen() {
                                     p(className = "text-sm text-base-content/50 italic") { +"Všechny rezervace jsou uhrazené!" }
                                 } else {
                                     data.pendingReservations.forEach { res ->
-                                        AdminPendingReservationRow(res.contactName, res.eventName, "${res.totalPrice} Kč", "VS: ${res.variableSymbol}")
+                                        AdminPendingReservationRow(res.contactName, res.eventName, "${res.totalPrice} Kč", "VS: ${res.variableSymbol}") {
+                                            scope.launch {
+                                                adminService.markReservationAsPaid(res.id)
+                                                    .onRight {
+                                                        toastData = ToastData("Platba od ${res.contactName} potvrzena!", ToastType.Success)
+                                                        refreshTrigger++
+                                                    }
+                                                    .onLeft { error ->
+                                                        toastData = ToastData(error.localizedMessage, ToastType.Error)
+                                                    }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -102,6 +126,11 @@ fun IComponent.AdminDashboardScreen() {
                     }
                 }
             }
+            Toast(
+                message = toastData?.message,
+                type = toastData?.type ?: ToastType.Success,
+                onDismiss = { toastData = null }
+            )
         }
     }
 }
@@ -127,7 +156,6 @@ fun IComponent.AdminUpcomingEventRow(title: String, time: String, occupied: Int,
             }
         }
 
-        // Náš opravený Kilua progress bar pomocí attribute()
         progress(className = "progress $progressClass w-full h-2") {
             attribute("value", occupied.toString())
             attribute("max", capacity.toString())
@@ -136,7 +164,7 @@ fun IComponent.AdminUpcomingEventRow(title: String, time: String, occupied: Int,
 }
 
 @Composable
-fun IComponent.AdminPendingReservationRow(name: String, eventName: String, price: String, vs: String) {
+fun IComponent.AdminPendingReservationRow(name: String, eventName: String, price: String, vs: String, onMarkAsPaid: () -> Unit) {
     div(className = "flex justify-between items-center p-3 border border-base-200 rounded-lg hover:border-warning/50 transition-colors") {
         div(className = "flex flex-col") {
             span(className = "font-bold text-sm") { +name }
@@ -147,7 +175,8 @@ fun IComponent.AdminPendingReservationRow(name: String, eventName: String, price
             span(className = "font-bold text-warning whitespace-nowrap") { +price }
             // Tlačítko pro schválení platby (zatím vizuální)
             button(className = "btn btn-circle btn-ghost btn-sm text-success") {
-                attribute("title", "Označit jako zaplacené")
+                title("Označit jako zaplacené")
+                onClick { onMarkAsPaid() }
                 span(className = "icon-[heroicons--check] size-5")
             }
         }
