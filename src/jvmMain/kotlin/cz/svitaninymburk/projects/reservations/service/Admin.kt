@@ -8,9 +8,11 @@ import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRep
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.error.AdminError
-import cz.svitaninymburk.projects.reservations.reservation.AdminDashboardData
-import cz.svitaninymburk.projects.reservations.reservation.AdminPendingReservation
-import cz.svitaninymburk.projects.reservations.reservation.AdminUpcomingEvent
+import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
+import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
+import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
+import cz.svitaninymburk.projects.reservations.admin.AdminPendingReservation
+import cz.svitaninymburk.projects.reservations.admin.AdminUpcomingEvent
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.datetime.DatePeriod
@@ -97,7 +99,6 @@ class AdminDashboardService(
 
         ensure(reservation.status == Reservation.Status.PENDING_PAYMENT) { AdminError.WrongReservationState(reservation.status) }
 
-        // Změníme status v DB
         val success = reservationRepository.updateStatus(reservationId, Reservation.Status.CONFIRMED)
 
         if (!success) {
@@ -105,5 +106,61 @@ class AdminDashboardService(
         }
 
         // 💡 TIP DO BUDOUCNA: Tady můžeš zavolat emailService a poslat mamince "Platba přijata, těšíme se na vás!"
+    }
+
+    override suspend fun getEventDetail(eventId: Uuid, isSeries: Boolean): Either<AdminError.GetEventDetail, AdminEventDetailData> = either {
+        val title: String
+        val subtitle: String
+        val capacity: Int
+        val occupiedSpots: Int
+
+        if (isSeries) {
+            val series = ensureNotNull(eventSeriesRepository.get(eventId)) { AdminError.EventSeriesNotFound(eventId) }
+            title = series.title
+            subtitle = "Kurz (${series.lessonCount} lekcí) • Od ${series.startDate}"
+            capacity = series.capacity
+            occupiedSpots = series.occupiedSpots
+        } else {
+            val instance = ensureNotNull(eventInstanceRepository.get(eventId)) { AdminError.EventInstanceNotFound(eventId) }
+            title = instance.title
+            val time = "${instance.startDateTime.date.dayOfMonth}.${instance.startDateTime.date.monthNumber}. ${instance.startDateTime.hour}:${instance.startDateTime.minute.toString().padStart(2, '0')}"
+            subtitle = "Jednorázová událost • $time"
+            capacity = instance.capacity
+            occupiedSpots = instance.occupiedSpots
+        }
+
+        val reference = if (isSeries) Reference.Series(eventId) else Reference.Instance(eventId)
+
+        val eventReservations = reservationRepository.findByReference(reference)
+
+        val activeReservations = eventReservations.filter { it.status != Reservation.Status.CANCELLED }
+        val totalCollected = activeReservations
+            .filter { it.status == Reservation.Status.CONFIRMED }
+            .sumOf { it.totalPrice }
+
+        val participants = activeReservations
+            .sortedBy { it.createdAt }
+            .map { res ->
+                AdminParticipantRow(
+                    reservationId = res.id,
+                    contactName = res.contactName,
+                    contactEmail = res.contactEmail,
+                    contactPhone = res.contactPhone,
+                    seatCount = res.seatCount,
+                    totalPrice = res.totalPrice,
+                    status = res.status,
+                    paymentType = res.paymentType
+                )
+            }
+
+        AdminEventDetailData(
+            eventId = eventId,
+            title = title,
+            subtitle = subtitle,
+            capacity = capacity,
+            occupiedSpots = occupiedSpots,
+            totalCollected = totalCollected,
+            participants = participants
+        )
     }
 }

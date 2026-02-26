@@ -1,7 +1,6 @@
 package cz.svitaninymburk.projects.reservations
 
 import dev.kilua.Hot
-import dev.kilua.utils.unsafeCast
 import kotlinx.browser.document
 import kotlinx.browser.window
 import org.w3c.dom.CanvasRenderingContext2D

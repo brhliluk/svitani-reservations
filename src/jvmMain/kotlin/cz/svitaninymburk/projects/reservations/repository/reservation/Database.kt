@@ -114,6 +114,17 @@ class ExposedReservationRepository : ReservationRepository {
             .singleOrNull()
     }
 
+    override suspend fun findByReference(reference: Reference): List<Reservation> = dbQuery {
+        val dbType = if (reference is Reference.Instance) {
+            ReferenceDbDiscriminator.INSTANCE
+        } else {
+            ReferenceDbDiscriminator.SERIES
+        }
+        ReservationsTable.selectAll()
+            .where { (ReservationsTable.referenceId eq reference.id) and (ReservationsTable.referenceType eq dbType) }
+            .map { it.toReservation() }
+    }
+
     override suspend fun findAwaitingPayment(vs: String): Reservation? = dbQuery {
         ReservationsTable.selectAll()
             .where {

@@ -1,4 +1,4 @@
-package cz.svitaninymburk.projects.reservations.reservation
+package cz.svitaninymburk.projects.reservations.admin
 
 import kotlinx.serialization.Serializable
 import kotlinx.datetime.LocalDateTime

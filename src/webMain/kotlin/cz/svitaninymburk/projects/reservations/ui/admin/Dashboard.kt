@@ -7,9 +7,10 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
-import cz.svitaninymburk.projects.reservations.reservation.AdminDashboardData
+import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
@@ -29,6 +30,7 @@ private sealed interface AdminDashboardUiState {
 
 @Composable
 fun IComponent.AdminDashboardScreen() {
+    val router = Router.current
     val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
 
@@ -91,7 +93,9 @@ fun IComponent.AdminDashboardScreen() {
                                     data.upcomingEvents.forEach { event ->
                                         // Formátování data: "DD.MM.YYYY HH:mm"
                                         val timeString = "${event.startDateTime.date.day}.${event.startDateTime.date.month.number}. ${event.startDateTime.hour}:${event.startDateTime.minute.toString().padStart(2, '0')}"
-                                        AdminUpcomingEventRow(event.title, timeString, event.occupiedSpots, event.capacity)
+                                        AdminUpcomingEventRow(event.title, timeString, event.occupiedSpots, event.capacity) {
+                                            router.navigate("/admin/events/instance/${event.id}")
+                                        }
                                     }
                                 }
                             }
@@ -136,11 +140,12 @@ fun IComponent.AdminDashboardScreen() {
 }
 
 @Composable
-fun IComponent.AdminUpcomingEventRow(title: String, time: String, occupied: Int, capacity: Int) {
+fun IComponent.AdminUpcomingEventRow(title: String, time: String, occupied: Int, capacity: Int, onClick: () -> Unit) {
     val isFull = occupied >= capacity
     val progressClass = if (isFull) "progress-error" else if (occupied.toDouble() / capacity > 0.8) "progress-warning" else "progress-success"
 
     div(className = "flex flex-col gap-2 p-3 bg-base-200/50 rounded-lg hover:bg-base-200 transition-colors cursor-pointer") {
+        onClick { onClick() }
         div(className = "flex justify-between items-start") {
             div {
                 div(className = "font-bold text-sm") { +title }
