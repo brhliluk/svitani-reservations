@@ -19,10 +19,14 @@ import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import dev.kilua.core.IComponent
+import dev.kilua.form.form
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
+
+enum class AdminActionType { CONFIRM_PAYMENT, CANCEL_RESERVATION }
+data class PendingAction(val type: AdminActionType, val reservationId: Uuid, val participantName: String)
 
 // UI Stavy
 private sealed interface AdminEventDetailUiState {
@@ -39,6 +43,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
 
     var refreshTrigger by remember { mutableStateOf(0) }
     var toastData by remember { mutableStateOf<ToastData?>(null) }
+    var pendingAction by remember { mutableStateOf<PendingAction?>(null) }
 
     // Načítání dat z backendu
     val uiState by produceState<AdminEventDetailUiState>(initialValue = AdminEventDetailUiState.Loading, key1 = refreshTrigger) {
@@ -174,30 +179,34 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                                 td(className = "text-right") {
                                                     div(className = "flex justify-end gap-1") {
 
-                                                        // Tlačítko pro potvrzení platby (ukazujeme jen u nezaplacených)
                                                         if (!isPaid) {
                                                             button(className = "btn btn-xs tooltip tooltip-left ${if (isCash) "btn-outline btn-info" else "btn-ghost text-success"}") {
                                                                 attribute("data-tip", if (isCash) "Přijmout hotovost" else "Označit jako zaplacené")
+
                                                                 onClick {
-                                                                    scope.launch {
-                                                                        adminService.markReservationAsPaid(participant.reservationId)
-                                                                            .onRight {
-                                                                                toastData = ToastData("Platba od ${participant.contactName} potvrzena!", ToastType.Success)
-                                                                                refreshTrigger++
-                                                                            }
-                                                                            .onLeft { error ->
-                                                                                toastData = ToastData("Chyba: $error", ToastType.Error)
-                                                                            }
-                                                                    }
+                                                                    pendingAction = PendingAction(
+                                                                        type = AdminActionType.CONFIRM_PAYMENT,
+                                                                        reservationId = participant.reservationId,
+                                                                        participantName = participant.contactName
+                                                                    )
                                                                 }
+
                                                                 span(className = "icon-[heroicons--check-circle] size-5")
                                                                 if (isCash) +"Vybrat"
                                                             }
                                                         }
 
-                                                        // Tlačítko zrušit (Zatím jen vizuální, můžeme napojit na cancelReservation)
                                                         button(className = "btn btn-ghost btn-xs text-error tooltip tooltip-left") {
                                                             attribute("data-tip", "Zrušit rezervaci")
+
+                                                            onClick {
+                                                                pendingAction = PendingAction(
+                                                                    type = AdminActionType.CANCEL_RESERVATION,
+                                                                    reservationId = participant.reservationId,
+                                                                    participantName = participant.contactName
+                                                                )
+                                                            }
+
                                                             span(className = "icon-[heroicons--trash] size-5")
                                                         }
                                                     }
@@ -214,7 +223,69 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
         }
     }
 
-    // Náš globální Toast
+    if (pendingAction != null) {
+        val action = pendingAction!!
+
+        div(className = "modal modal-open") {
+            div(className = "modal-box") {
+
+                h3(className = "font-bold text-lg") {
+                    if (action.type == AdminActionType.CONFIRM_PAYMENT) +"Potvrdit platbu"
+                    else +"Zrušit rezervaci"
+                }
+
+                p(className = "py-4") {
+                    if (action.type == AdminActionType.CONFIRM_PAYMENT) {
+                        +"Opravdu chcete označit rezervaci pro účastníka "
+                        strong { +action.participantName }
+                        +" jako zaplacenou?"
+                    } else {
+                        +"Opravdu chcete zrušit rezervaci pro účastníka "
+                        strong { +action.participantName }
+                        +"? Tato akce je nevratná."
+                    }
+                }
+
+                div(className = "modal-action") {
+                    // Tlačítko Zrušit (zavře dialog)
+                    button(className = "btn") {
+                        onClick { pendingAction = null }
+                        +"Zpět"
+                    }
+
+                    button(className = "btn ${if (action.type == AdminActionType.CONFIRM_PAYMENT) "btn-success" else "btn-error"}") {
+                        onClick {
+                            scope.launch {
+                                if (action.type == AdminActionType.CONFIRM_PAYMENT) {
+                                    adminService.markReservationAsPaid(action.reservationId)
+                                        .onRight {
+                                            toastData = ToastData("Platba od ${action.participantName} potvrzena!", ToastType.Success)
+                                            refreshTrigger++
+                                        }
+                                        .onLeft { error ->
+                                            toastData = ToastData("Chyba: $error", ToastType.Error)
+                                        }
+                                } else {
+                                    // TODO: Tady časem zavoláme adminService.cancelReservation(action.reservationId)
+                                    toastData = ToastData("Zatím nepřipojeno k backendu. Ale zrušili bychom: ${action.participantName}", ToastType.Warning)
+                                }
+                                pendingAction = null
+                            }
+                        }
+                        if (action.type == AdminActionType.CONFIRM_PAYMENT) +"Ano, potvrdit" else +"Ano, zrušit"
+                    }
+                }
+            }
+
+            form(className = "modal-backdrop") {
+                button {
+                    onClick { pendingAction = null }
+                    +"close"
+                }
+            }
+        }
+    }
+
     Toast(
         message = toastData?.message,
         type = toastData?.type ?: ToastType.Success,
