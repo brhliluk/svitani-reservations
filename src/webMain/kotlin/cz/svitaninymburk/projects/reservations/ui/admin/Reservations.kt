@@ -155,7 +155,12 @@ fun IComponent.AdminReservationsScreen() {
                                                 // Sloupec 3 a 4: Místa a Cena
                                                 td { +"${res.seatCount}" }
                                                 td(className = if (!isPaid && isCash) "font-bold text-info" else "") {
-                                                    +"${res.totalPrice} Kč"
+                                                    div { +"${res.totalPrice} Kč" }
+                                                    if (!res.variableSymbol.isNullOrBlank()) {
+                                                        div(className = "text-xs font-mono text-base-content/40 mt-1") {
+                                                            +"VS: ${res.variableSymbol}"
+                                                        }
+                                                    }
                                                 }
                                                 // Sloupec 5: Stav platby
                                                 td {
