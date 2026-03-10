@@ -1,7 +1,10 @@
 package cz.svitaninymburk.projects.reservations.admin
 
+import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.serialization.Serializable
 import kotlinx.datetime.LocalDateTime
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 @Serializable
@@ -30,4 +33,18 @@ data class AdminPendingReservation(
     val eventName: String,
     val totalPrice: Double,
     val variableSymbol: String?,
+)
+
+@Serializable
+data class AdminReservationListItem(
+    val id: Uuid,
+    val contactName: String,
+    val contactEmail: String,
+    val eventTitle: String,
+    val eventDate: String,
+    val seatCount: Int,
+    val totalPrice: Double,
+    val status: Reservation.Status,
+    val paymentType: PaymentInfo.Type,
+    val createdAt: Instant,
 )

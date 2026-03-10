@@ -12,12 +12,15 @@ import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
 import cz.svitaninymburk.projects.reservations.admin.AdminPendingReservation
+import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminUpcomingEvent
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
+import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -123,7 +126,7 @@ class AdminDashboardService(
         } else {
             val instance = ensureNotNull(eventInstanceRepository.get(eventId)) { AdminError.EventInstanceNotFound(eventId) }
             title = instance.title
-            val time = "${instance.startDateTime.date.dayOfMonth}.${instance.startDateTime.date.monthNumber}. ${instance.startDateTime.hour}:${instance.startDateTime.minute.toString().padStart(2, '0')}"
+            val time = "${instance.startDateTime.date.day}.${instance.startDateTime.date.month.number}. ${instance.startDateTime.hour}:${instance.startDateTime.minute.toString().padStart(2, '0')}"
             subtitle = "Jednorázová událost • $time"
             capacity = instance.capacity
             occupiedSpots = instance.occupiedSpots
@@ -162,5 +165,60 @@ class AdminDashboardService(
             totalCollected = totalCollected,
             participants = participants
         )
+    }
+
+    override suspend fun getAllReservations(searchQuery: String?): Either<AdminError.GetReservations, List<AdminReservationListItem>> = either {
+        try {
+            var reservations = reservationRepository.findAll()
+
+            if (!searchQuery.isNullOrBlank()) {
+                val query = searchQuery.lowercase()
+                reservations = reservations.filter {
+                    it.contactName.lowercase().contains(query) ||
+                            it.contactEmail.lowercase().contains(query) ||
+                            it.variableSymbol?.lowercase()?.contains(query) == true
+                }
+            }
+
+            val sortedReservations = reservations.sortedByDescending { it.createdAt }
+
+            sortedReservations.map { res ->
+                var eventTitle = "Neznámá událost"
+                var eventDate = ""
+
+                when (val ref = res.reference) {
+                    is Reference.Instance -> {
+                        val instance = eventInstanceRepository.get(ref.id)
+                        if (instance != null) {
+                            eventTitle = instance.title
+                            eventDate = "${instance.startDateTime.date.day}.${instance.startDateTime.date.month.number}. ${instance.startDateTime.hour}:${instance.startDateTime.minute.toString().padStart(2, '0')}"
+                        }
+                    }
+                    is Reference.Series -> {
+                        val series = eventSeriesRepository.get(ref.id)
+                        if (series != null) {
+                            eventTitle = series.title
+                            eventDate = "Kurz (od ${series.startDate})"
+                        }
+                    }
+                }
+
+                AdminReservationListItem(
+                    id = res.id,
+                    contactName = res.contactName,
+                    contactEmail = res.contactEmail,
+                    eventTitle = eventTitle,
+                    eventDate = eventDate,
+                    seatCount = res.seatCount,
+                    totalPrice = res.totalPrice,
+                    status = res.status,
+                    paymentType = res.paymentType,
+                    createdAt = res.createdAt
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            raise(AdminError.FailedToGetReservations("Nepodařilo se načíst seznam rezervací: ${e.message}"))
+        }
     }
 }
