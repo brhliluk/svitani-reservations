@@ -14,6 +14,7 @@ import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
@@ -39,6 +40,7 @@ private sealed interface AdminEventDetailUiState {
 fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
     val router = Router.current
     val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
+    val reservationService = getService<ReservationServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
 
     var refreshTrigger by remember { mutableStateOf(0) }
@@ -256,18 +258,25 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                     button(className = "btn ${if (action.type == AdminActionType.CONFIRM_PAYMENT) "btn-success" else "btn-error"}") {
                         onClick {
                             scope.launch {
-                                if (action.type == AdminActionType.CONFIRM_PAYMENT) {
-                                    adminService.markReservationAsPaid(action.reservationId)
-                                        .onRight {
-                                            toastData = ToastData("Platba od ${action.participantName} potvrzena!", ToastType.Success)
-                                            refreshTrigger++
-                                        }
-                                        .onLeft { error ->
-                                            toastData = ToastData("Chyba: $error", ToastType.Error)
-                                        }
-                                } else {
-                                    // TODO: Tady časem zavoláme adminService.cancelReservation(action.reservationId)
-                                    toastData = ToastData("Zatím nepřipojeno k backendu. Ale zrušili bychom: ${action.participantName}", ToastType.Warning)
+                                when (action.type) {
+                                    AdminActionType.CONFIRM_PAYMENT -> {
+                                        adminService.markReservationAsPaid(action.reservationId)
+                                            .onRight {
+                                                toastData = ToastData("Platba od ${action.participantName} potvrzena!", ToastType.Success)
+                                                refreshTrigger++
+                                            }
+                                            .onLeft { error ->
+                                                toastData = ToastData("Chyba: $error", ToastType.Error)
+                                            }
+                                    }
+                                    AdminActionType.CANCEL_RESERVATION -> {
+                                        reservationService.cancelReservation(action.reservationId)
+                                            .onRight {
+                                                toastData = ToastData("Rezervace od ${action.participantName} byla zrušena!", ToastType.Success)
+                                                refreshTrigger++
+                                            }
+                                            .onLeft { error -> toastData = ToastData("Chyba: $error", ToastType.Error) }
+                                    }
                                 }
                                 pendingAction = null
                             }
@@ -280,7 +289,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             form(className = "modal-backdrop") {
                 button {
                     onClick { pendingAction = null }
-                    +"close"
+                    +"zavřít"
                 }
             }
         }
