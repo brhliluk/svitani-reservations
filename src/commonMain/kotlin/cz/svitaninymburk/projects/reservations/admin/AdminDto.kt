@@ -44,6 +44,7 @@ data class AdminReservationListItem(
     val eventDate: String,
     val seatCount: Int,
     val totalPrice: Double,
+    val variableSymbol: String?,
     val status: Reservation.Status,
     val paymentType: PaymentInfo.Type,
     val createdAt: Instant,

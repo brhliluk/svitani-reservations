@@ -211,6 +211,7 @@ class AdminDashboardService(
                     eventDate = eventDate,
                     seatCount = res.seatCount,
                     totalPrice = res.totalPrice,
+                    variableSymbol = res.variableSymbol,
                     status = res.status,
                     paymentType = res.paymentType,
                     createdAt = res.createdAt
