@@ -142,17 +142,14 @@ fun IComponent.AdminReservationsScreen() {
                                             val isCash = res.paymentType == PaymentInfo.Type.ON_SITE
 
                                             tr(className = if (!isPaid && isCash) "bg-info/5" else "") {
-                                                // Sloupec 1: Účastník
                                                 td {
                                                     div(className = "font-bold") { +res.contactName }
                                                     div(className = "text-xs text-base-content/50") { +res.contactEmail }
                                                 }
-                                                // Sloupec 2: Událost
                                                 td {
                                                     div(className = "font-bold text-sm") { +res.eventTitle }
                                                     div(className = "text-xs text-base-content/50") { +res.eventDate }
                                                 }
-                                                // Sloupec 3 a 4: Místa a Cena
                                                 td { +"${res.seatCount}" }
                                                 td(className = if (!isPaid && isCash) "font-bold text-info" else "") {
                                                     div { +"${res.totalPrice} Kč" }
@@ -162,7 +159,6 @@ fun IComponent.AdminReservationsScreen() {
                                                         }
                                                     }
                                                 }
-                                                // Sloupec 5: Stav platby
                                                 td {
                                                     div(className = "flex flex-col gap-1 items-start") {
                                                         if (isPaid) {

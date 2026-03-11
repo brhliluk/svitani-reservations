@@ -13,6 +13,7 @@ import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminDashboardScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventDetailScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminLayout
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminReservationsScreen
 import cz.svitaninymburk.projects.reservations.ui.auth.ResetPasswordScreen
@@ -67,6 +68,14 @@ fun IComponent.MainLayout() {
                     }
                 }
                 route("/events") {
+                    view {
+                        AdminLayout(
+                            user = currentUser!!,
+                            onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                        ) {
+                            AdminEventsScreen()
+                        }
+                    }
                     route("/instance") { string { eventId ->
                         view {
                             AdminLayout(

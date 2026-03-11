@@ -49,3 +49,14 @@ data class AdminReservationListItem(
     val paymentType: PaymentInfo.Type,
     val createdAt: Instant,
 )
+
+@Serializable
+data class AdminEventListItem(
+    val id: Uuid,
+    val title: String,
+    val isSeries: Boolean,
+    val dateInfo: String,
+    val capacity: Int,
+    val occupiedSpots: Int,
+    val priceString: String
+)
