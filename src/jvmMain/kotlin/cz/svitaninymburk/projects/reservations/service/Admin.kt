@@ -10,6 +10,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.Reservatio
 import cz.svitaninymburk.projects.reservations.error.AdminError
 import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
+import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
 import cz.svitaninymburk.projects.reservations.admin.AdminPendingReservation
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
@@ -220,6 +221,43 @@ class AdminDashboardService(
         } catch (e: Exception) {
             e.printStackTrace()
             raise(AdminError.FailedToGetReservations("Nepodařilo se načíst seznam rezervací: ${e.message}"))
+        }
+    }
+
+    override suspend fun getAllEvents(): Either<AdminError.GetEvents, List<AdminEventListItem>> = either {
+        try {
+            val series = eventSeriesRepository.getAll(null)
+            val seriesDtos = series.map { s ->
+                AdminEventListItem(
+                    id = s.id,
+                    title = s.title,
+                    isSeries = true,
+                    dateInfo = "Od ${s.startDate} (${s.lessonCount} lekcí)",
+                    capacity = s.capacity,
+                    occupiedSpots = s.occupiedSpots,
+                    priceString = "${s.price} Kč",
+                )
+            }
+
+            val instances = eventInstanceRepository.getAll(null).filter { it.seriesId == null }
+            val instanceDtos = instances.map { i ->
+                val time = "${i.startDateTime.date.day}.${i.startDateTime.date.month.number}. ${i.startDateTime.hour}:${i.startDateTime.minute.toString().padStart(2, '0')}"
+                AdminEventListItem(
+                    id = i.id,
+                    title = i.title,
+                    isSeries = false,
+                    dateInfo = time,
+                    capacity = i.capacity,
+                    occupiedSpots = i.occupiedSpots,
+                    priceString = "${i.price} Kč"
+                )
+            }
+
+            (seriesDtos + instanceDtos).sortedBy { it.title }
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            raise(AdminError.FailedToGetEvents("Nepodařilo se načíst katalog událostí: ${e.message}"))
         }
     }
 }
