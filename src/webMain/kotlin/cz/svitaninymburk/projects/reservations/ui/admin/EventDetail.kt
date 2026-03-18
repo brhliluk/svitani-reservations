@@ -24,6 +24,7 @@ import dev.kilua.form.form
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
+import kotlin.js.js
 import kotlin.uuid.Uuid
 
 enum class AdminActionType { CONFIRM_PAYMENT, CANCEL_RESERVATION }
@@ -80,7 +81,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                 div(className = "flex items-center gap-4") {
                     button(className = "btn btn-circle btn-ghost btn-sm") {
                         span(className = "icon-[heroicons--arrow-left] size-5")
-                        onClick { router.navigate("/admin") }
+                        onClick { js("window.history.back()") }
                     }
                     div {
                         h1(className = "text-2xl font-bold text-base-content flex items-center gap-2") {
