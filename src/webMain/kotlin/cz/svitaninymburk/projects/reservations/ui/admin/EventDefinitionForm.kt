@@ -273,10 +273,7 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                     if (allowBankTransfer) allowedPayments.add(PaymentInfo.Type.BANK_TRANSFER)
                     if (allowOnSite) allowedPayments.add(PaymentInfo.Type.ON_SITE)
 
-                    // Spojíme hodiny a minuty do jednoho objektu Duration
-                    val h = durationHours
-                    val m = durationMinutes
-                    val finalDuration = h.hours + m.minutes
+                    val finalDuration = durationHours.hours + durationMinutes.minutes
 
                     val request = CreateEventDefinitionRequest(
                         title = title,
@@ -292,7 +289,7 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                         adminService.createEventDefinition(request)
                             .onRight {
                                 toastData = ToastData("Šablona úspěšně uložena!", ToastType.Success)
-                                kotlinx.coroutines.delay(1500)
+                                kotlinx.coroutines.delay(500)
                                 router.navigate("/admin/events") // Zpět do katalogu
                             }
                             .onLeft { error ->
