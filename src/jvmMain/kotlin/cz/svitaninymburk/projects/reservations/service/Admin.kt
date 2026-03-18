@@ -15,6 +15,9 @@ import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
 import cz.svitaninymburk.projects.reservations.admin.AdminPendingReservation
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminUpcomingEvent
+import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
+import cz.svitaninymburk.projects.reservations.event.EventDefinition
+import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.datetime.DatePeriod
@@ -28,6 +31,7 @@ import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 class AdminDashboardService(
+    private val eventDefinitionRepository: EventDefinitionRepository,
     private val eventSeriesRepository: EventSeriesRepository,
     private val eventInstanceRepository: EventInstanceRepository,
     private val reservationRepository: ReservationRepository,
@@ -258,6 +262,30 @@ class AdminDashboardService(
         } catch (e: Exception) {
             e.printStackTrace()
             raise(AdminError.FailedToGetEvents("Nepodařilo se načíst katalog událostí: ${e.message}"))
+        }
+    }
+
+    override suspend fun createEventDefinition(request: CreateEventDefinitionRequest): Either<AdminError.CreateEvent, Uuid> = either {
+        try {
+            val newDefinition = EventDefinition(
+                id = Uuid.random(),
+                title = request.title,
+                description = request.description,
+                defaultPrice = request.defaultPrice,
+                defaultCapacity = request.defaultCapacity,
+                defaultDuration = request.defaultDuration,
+                allowedPaymentTypes = request.allowedPaymentTypes,
+                recurrenceType = request.recurrenceType,
+                recurrenceEndDate = request.recurrenceEndDate,
+                customFields = request.customFields
+            )
+
+            eventDefinitionRepository.create(newDefinition)
+
+            newDefinition.id
+        } catch (e: Exception) {
+            e.printStackTrace()
+            raise(AdminError.FailedToCreateEvent("Nepodařilo se vytvořit definici: ${e.message}"))
         }
     }
 }

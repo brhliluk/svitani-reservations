@@ -6,6 +6,7 @@ import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
+import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
 import dev.kilua.rpc.annotations.RpcService
 import kotlin.uuid.Uuid
 
@@ -16,4 +17,5 @@ interface AdminServiceInterface {
     suspend fun getEventDetail(eventId: Uuid, isSeries: Boolean): Either<AdminError.GetEventDetail, AdminEventDetailData>
     suspend fun getAllReservations(searchQuery: String? = null): Either<AdminError.GetReservations, List<AdminReservationListItem>>
     suspend fun getAllEvents(): Either<AdminError.GetEvents, List<AdminEventListItem>>
+    suspend fun createEventDefinition(request: CreateEventDefinitionRequest): Either<AdminError.CreateEvent, Uuid>
 }
