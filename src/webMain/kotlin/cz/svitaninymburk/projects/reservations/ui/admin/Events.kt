@@ -83,13 +83,22 @@ fun IComponent.AdminEventsScreen() {
                                             // Celý řádek bude klikací a hodí nás na detail
                                             tr(className = "hover cursor-pointer") {
                                                 onClick {
-                                                    val typePath = if (item.isSeries) "series" else "instance"
-                                                    router.navigate("/admin/events/$typePath/${item.id}")
+                                                    if (item.isDefinitionOnly) {
+                                                        router.navigate("/admin/events/create/instance/${item.id}")
+                                                    } else {
+                                                        val typePath = if (item.isSeries) "series" else "instance"
+                                                        router.navigate("/admin/events/$typePath/${item.id}")
+                                                    }
                                                 }
 
                                                 td(className = "font-bold") { +item.title }
                                                 td {
-                                                    if (item.isSeries) {
+                                                    if (item.isDefinitionOnly) {
+                                                        div(className = "badge badge-ghost badge-outline gap-1") {
+                                                            span(className = "icon-[heroicons--document-text] size-3")
+                                                            +"Šablona"
+                                                        }
+                                                    } else if (item.isSeries) {
                                                         div(className = "badge badge-secondary badge-outline gap-1") {
                                                             span(className = "icon-[heroicons--academic-cap] size-3")
                                                             +"Kurz"

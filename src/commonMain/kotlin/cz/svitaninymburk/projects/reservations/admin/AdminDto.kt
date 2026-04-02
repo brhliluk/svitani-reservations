@@ -58,5 +58,6 @@ data class AdminEventListItem(
     val dateInfo: String,
     val capacity: Int,
     val occupiedSpots: Int,
-    val priceString: String
+    val priceString: String,
+    val isDefinitionOnly: Boolean = false,
 )
