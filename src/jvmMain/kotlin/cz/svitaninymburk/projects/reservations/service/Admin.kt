@@ -16,7 +16,9 @@ import cz.svitaninymburk.projects.reservations.admin.AdminPendingReservation
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminUpcomingEvent
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
+import cz.svitaninymburk.projects.reservations.event.CreateEventSeriesRequest
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
+import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
@@ -304,6 +306,31 @@ class AdminDashboardService(
         } catch (e: Exception) {
             e.printStackTrace()
             raise(AdminError.FailedToCreateEvent("Nepodařilo se vytvořit definici: ${e.message}"))
+        }
+    }
+
+    override suspend fun createEventSeries(request: CreateEventSeriesRequest): Either<AdminError.CreateSeries, Uuid> = either {
+        try {
+            val newSeries = EventSeries(
+                id = Uuid.random(),
+                definitionId = request.definitionId,
+                title = request.title,
+                description = request.description,
+                price = request.price,
+                capacity = request.capacity,
+                startDate = request.startDate,
+                endDate = request.endDate,
+                lessonCount = request.lessonCount,
+                allowedPaymentTypes = request.allowedPaymentTypes,
+                customFields = request.customFields,
+            )
+
+            eventSeriesRepository.create(newSeries)
+
+            newSeries.id
+        } catch (e: Exception) {
+            e.printStackTrace()
+            raise(AdminError.FailedToCreateSeries("Nepodařilo se vytvořit kurz: ${e.message}"))
         }
     }
 }
