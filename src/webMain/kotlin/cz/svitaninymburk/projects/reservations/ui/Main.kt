@@ -13,7 +13,9 @@ import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventDefinitionScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventInstanceScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventSeriesScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminDashboardScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventCreateChooseScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventDetailScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminLayout
@@ -109,6 +111,18 @@ fun IComponent.MainLayout() {
                                 }
                             }
                         }
+                        route("/choose") {
+                            string { definitionId ->
+                                view {
+                                    AdminLayout(
+                                        user = currentUser!!,
+                                        onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                                    ) {
+                                        AdminEventCreateChooseScreen(definitionId = definitionId.value)
+                                    }
+                                }
+                            }
+                        }
                         route("/instance") {
                             view {
                                 AdminLayout(
@@ -125,6 +139,26 @@ fun IComponent.MainLayout() {
                                         onLogout = { scope.launch { authService.logout(); currentUser = null } }
                                     ) {
                                         AdminCreateEventInstanceScreen(preselectedDefinitionId = definitionId.value)
+                                    }
+                                }
+                            }
+                        }
+                        route("/series") {
+                            view {
+                                AdminLayout(
+                                    user = currentUser!!,
+                                    onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                                ) {
+                                    AdminCreateEventSeriesScreen()
+                                }
+                            }
+                            string { definitionId ->
+                                view {
+                                    AdminLayout(
+                                        user = currentUser!!,
+                                        onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                                    ) {
+                                        AdminCreateEventSeriesScreen(preselectedDefinitionId = definitionId.value)
                                     }
                                 }
                             }

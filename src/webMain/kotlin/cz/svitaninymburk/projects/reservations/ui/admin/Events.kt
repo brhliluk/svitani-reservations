@@ -84,7 +84,7 @@ fun IComponent.AdminEventsScreen() {
                                             tr(className = "hover cursor-pointer") {
                                                 onClick {
                                                     if (item.isDefinitionOnly) {
-                                                        router.navigate("/admin/events/create/instance/${item.id}")
+                                                        router.navigate("/admin/events/create/choose/${item.id}")
                                                     } else {
                                                         val typePath = if (item.isSeries) "series" else "instance"
                                                         router.navigate("/admin/events/$typePath/${item.id}")

@@ -84,6 +84,20 @@ data class CreateEventDefinitionRequest(
 )
 
 @Serializable
+data class CreateEventSeriesRequest(
+    val definitionId: Uuid,
+    val title: String,
+    val description: String,
+    val price: Double,
+    val capacity: Int,
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val lessonCount: Int,
+    val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
+    val customFields: List<CustomFieldDefinition> = emptyList(),
+)
+
+@Serializable
 data class CreateEventInstanceRequest(
     val definitionId: Uuid,
     val startDateTime: LocalDateTime,
