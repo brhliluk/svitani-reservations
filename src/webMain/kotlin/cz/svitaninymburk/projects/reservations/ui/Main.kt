@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventDefinitionScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventInstanceScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminDashboardScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventDetailScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventsScreen
@@ -105,6 +106,26 @@ fun IComponent.MainLayout() {
                                     onLogout = { scope.launch { authService.logout(); currentUser = null } }
                                 ) {
                                     AdminCreateEventDefinitionScreen()
+                                }
+                            }
+                        }
+                        route("/instance") {
+                            view {
+                                AdminLayout(
+                                    user = currentUser!!,
+                                    onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                                ) {
+                                    AdminCreateEventInstanceScreen()
+                                }
+                            }
+                            string { definitionId ->
+                                view {
+                                    AdminLayout(
+                                        user = currentUser!!,
+                                        onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                                    ) {
+                                        AdminCreateEventInstanceScreen(preselectedDefinitionId = definitionId.value)
+                                    }
                                 }
                             }
                         }

@@ -243,7 +243,8 @@ class AdminDashboardService(
                 )
             }
 
-            val instances = eventInstanceRepository.getAll(null).filter { it.seriesId == null }
+            val allInstances = eventInstanceRepository.getAll(null)
+            val instances = allInstances.filter { it.seriesId == null }
             val instanceDtos = instances.map { i ->
                 val time = "${i.startDateTime.date.day}.${i.startDateTime.date.month.number}. ${i.startDateTime.hour}:${i.startDateTime.minute.toString().padStart(2, '0')}"
                 AdminEventListItem(
@@ -257,7 +258,24 @@ class AdminDashboardService(
                 )
             }
 
-            (seriesDtos + instanceDtos).sortedBy { it.title }
+            val usedDefinitionIds = (allInstances.map { it.definitionId } + series.map { it.definitionId }).toSet()
+            val definitions = eventDefinitionRepository.getAll(null)
+            val definitionDtos = definitions
+                .filter { it.id !in usedDefinitionIds }
+                .map { d ->
+                    AdminEventListItem(
+                        id = d.id,
+                        title = d.title,
+                        isSeries = false,
+                        dateInfo = "Šablona – bez termínů",
+                        capacity = d.defaultCapacity,
+                        occupiedSpots = 0,
+                        priceString = "${d.defaultPrice} Kč",
+                        isDefinitionOnly = true,
+                    )
+                }
+
+            (seriesDtos + instanceDtos + definitionDtos).sortedBy { it.title }
 
         } catch (e: Exception) {
             e.printStackTrace()
