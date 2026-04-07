@@ -232,10 +232,14 @@ class AdminDashboardService(
 
     override suspend fun getAllEvents(): Either<AdminError.GetEvents, List<AdminEventListItem>> = either {
         try {
+            val definitions = eventDefinitionRepository.getAll(null)
             val series = eventSeriesRepository.getAll(null)
+            val allInstances = eventInstanceRepository.getAll(null)
+
             val seriesDtos = series.map { s ->
                 AdminEventListItem(
                     id = s.id,
+                    definitionId = s.definitionId,
                     title = s.title,
                     isSeries = true,
                     dateInfo = "Od ${s.startDate} (${s.lessonCount} lekcí)",
@@ -245,12 +249,12 @@ class AdminDashboardService(
                 )
             }
 
-            val allInstances = eventInstanceRepository.getAll(null)
             val instances = allInstances.filter { it.seriesId == null }
             val instanceDtos = instances.map { i ->
                 val time = "${i.startDateTime.date.day}.${i.startDateTime.date.month.number}. ${i.startDateTime.hour}:${i.startDateTime.minute.toString().padStart(2, '0')}"
                 AdminEventListItem(
                     id = i.id,
+                    definitionId = i.definitionId,
                     title = i.title,
                     isSeries = false,
                     dateInfo = time,
@@ -260,24 +264,21 @@ class AdminDashboardService(
                 )
             }
 
-            val usedDefinitionIds = (allInstances.map { it.definitionId } + series.map { it.definitionId }).toSet()
-            val definitions = eventDefinitionRepository.getAll(null)
-            val definitionDtos = definitions
-                .filter { it.id !in usedDefinitionIds }
-                .map { d ->
-                    AdminEventListItem(
-                        id = d.id,
-                        title = d.title,
-                        isSeries = false,
-                        dateInfo = "Šablona – bez termínů",
-                        capacity = d.defaultCapacity,
-                        occupiedSpots = 0,
-                        priceString = "${d.defaultPrice} Kč",
-                        isDefinitionOnly = true,
-                    )
-                }
+            val definitionDtos = definitions.map { d ->
+                AdminEventListItem(
+                    id = d.id,
+                    definitionId = null,
+                    title = d.title,
+                    isSeries = false,
+                    dateInfo = "Šablona",
+                    capacity = d.defaultCapacity,
+                    occupiedSpots = 0,
+                    priceString = "${d.defaultPrice} Kč",
+                    isDefinitionOnly = true,
+                )
+            }
 
-            (seriesDtos + instanceDtos + definitionDtos).sortedBy { it.title }
+            (seriesDtos + instanceDtos + definitionDtos)
 
         } catch (e: Exception) {
             e.printStackTrace()
