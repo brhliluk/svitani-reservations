@@ -2,7 +2,9 @@ package cz.svitaninymburk.projects.reservations.ui.admin
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
@@ -12,6 +14,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
+import kotlin.uuid.Uuid
 
 private sealed interface AdminEventsUiState {
     data object Loading : AdminEventsUiState
@@ -23,6 +26,8 @@ private sealed interface AdminEventsUiState {
 fun IComponent.AdminEventsScreen() {
     val router = Router.current
     val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
+
+    val expandedGroups = remember { mutableStateMapOf<Uuid, Boolean>() }
 
     val uiState by produceState<AdminEventsUiState>(initialValue = AdminEventsUiState.Loading) {
         adminService.getAllEvents()
@@ -56,77 +61,118 @@ fun IComponent.AdminEventsScreen() {
             is AdminEventsUiState.Success -> {
                 val data = state.data
 
-                div(className = "card bg-base-100 shadow-sm") {
-                    div(className = "card-body p-0") {
-                        div(className = "overflow-x-auto") {
-                            table(className = "table table-zebra w-full table-pin-rows") {
-                                thead {
-                                    tr {
-                                        th { +"Název" }
-                                        th { +"Typ" }
-                                        th { +"Termín" }
-                                        th { +"Obsazenost" }
-                                        th { +"Cena" }
-                                        th(className = "text-right") { +"Akce" }
+                val definitions = data.filter { it.isDefinitionOnly }.sortedBy { it.title }
+                val childrenByDef = data.filter { !it.isDefinitionOnly }
+                    .groupBy { it.definitionId }
+
+                if (definitions.isEmpty()) {
+                    div(className = "card bg-base-100 shadow-sm") {
+                        div(className = "card-body") {
+                            div(className = "text-center text-base-content/50 py-8") { +"Zatím tu nic není. Vytvořte první šablonu!" }
+                        }
+                    }
+                } else {
+                    div(className = "flex flex-col gap-4") {
+                        definitions.forEach { def ->
+                            val children = childrenByDef[def.id]?.sortedBy { it.dateInfo } ?: emptyList()
+
+                            div(className = "card bg-base-100 shadow-sm") {
+                                // Definition header
+                                div(className = "bg-base-200 px-4 py-3 flex items-center justify-between gap-4 rounded-t-2xl") {
+                                    div(className = "flex items-center gap-3 min-w-0") {
+                                        span(className = "icon-[heroicons--document-text] size-5 text-base-content/50 shrink-0")
+                                        span(className = "font-bold text-base-content truncate") { +def.title }
+                                        if (children.isEmpty()) {
+                                            div(className = "badge badge-ghost badge-sm shrink-0") { +"Bez termínů" }
+                                        } else {
+                                            div(className = "badge badge-neutral badge-sm shrink-0") { +"${children.size} termínů" }
+                                        }
+                                    }
+                                    div(className = "flex items-center gap-2 shrink-0") {
+                                        button(className = "btn btn-xs btn-outline btn-primary") {
+                                            onClick { router.navigate("/admin/events/create/instance/${def.id}") }
+                                            span(className = "icon-[heroicons--plus] size-3")
+                                            +"Termín"
+                                        }
+                                        button(className = "btn btn-xs btn-outline btn-secondary") {
+                                            onClick { router.navigate("/admin/events/create/series/${def.id}") }
+                                            span(className = "icon-[heroicons--plus] size-3")
+                                            +"Kurz"
+                                        }
                                     }
                                 }
-                                tbody {
-                                    if (data.isEmpty()) {
-                                        tr {
-                                            td {
-                                                attribute("colspan", "6")
-                                                div(className = "text-center text-base-content/50 py-8") { +"Zatím tu nic není. Vytvořte první událost!" }
-                                            }
-                                        }
-                                    } else {
-                                        data.forEach { item ->
-                                            // Celý řádek bude klikací a hodí nás na detail
-                                            tr(className = "hover cursor-pointer") {
-                                                onClick {
-                                                    if (item.isDefinitionOnly) {
-                                                        router.navigate("/admin/events/create/choose/${item.id}")
-                                                    } else {
-                                                        val typePath = if (item.isSeries) "series" else "instance"
-                                                        router.navigate("/admin/events/$typePath/${item.id}")
+
+                                // Children table
+                                if (children.isEmpty()) {
+                                    div(className = "px-4 py-6 text-center text-sm text-base-content/40 italic") {
+                                        +"Žádné termíny. Vytvořte první kliknutím na + Termín nebo + Kurz."
+                                    }
+                                } else {
+                                    val isExpanded = expandedGroups[def.id] ?: false
+                                    val visibleChildren = if (isExpanded) children else children.take(3)
+                                    val hiddenCount = children.size - 3
+
+                                    div(className = "overflow-x-auto") {
+                                        table(className = "table table-sm w-full") {
+                                            tbody {
+                                                visibleChildren.forEach { item ->
+                                                    tr(className = "hover cursor-pointer") {
+                                                        onClick {
+                                                            val typePath = if (item.isSeries) "series" else "instance"
+                                                            router.navigate("/admin/events/$typePath/${item.id}")
+                                                        }
+                                                        td(className = "pl-8 font-medium") { +item.title }
+                                                        td {
+                                                            if (item.isSeries) {
+                                                                div(className = "badge badge-secondary badge-outline badge-sm gap-1") {
+                                                                    span(className = "icon-[heroicons--academic-cap] size-3")
+                                                                    +"Kurz"
+                                                                }
+                                                            } else {
+                                                                div(className = "badge badge-primary badge-outline badge-sm gap-1") {
+                                                                    span(className = "icon-[heroicons--calendar] size-3")
+                                                                    +"Jednorázovka"
+                                                                }
+                                                            }
+                                                        }
+                                                        td(className = "text-sm text-base-content/70") { +item.dateInfo }
+                                                        td {
+                                                            val isFull = item.occupiedSpots >= item.capacity
+                                                            div(className = "flex items-center gap-2") {
+                                                                span(className = if (isFull) "text-error font-bold" else "") {
+                                                                    +"${item.occupiedSpots} / ${item.capacity}"
+                                                                }
+                                                                if (isFull) {
+                                                                    div(className = "badge badge-error badge-xs") { +"PLNO" }
+                                                                }
+                                                            }
+                                                        }
+                                                        td(className = "font-medium text-base-content/80") { +item.priceString }
+                                                        td(className = "text-right") {
+                                                            button(className = "btn btn-ghost btn-xs btn-circle") {
+                                                                span(className = "icon-[heroicons--chevron-right] size-5 text-base-content/50")
+                                                            }
+                                                        }
                                                     }
                                                 }
 
-                                                td(className = "font-bold") { +item.title }
-                                                td {
-                                                    if (item.isDefinitionOnly) {
-                                                        div(className = "badge badge-ghost badge-outline gap-1") {
-                                                            span(className = "icon-[heroicons--document-text] size-3")
-                                                            +"Šablona"
+                                                if (hiddenCount > 0 || isExpanded) {
+                                                    tr {
+                                                        td {
+                                                            attribute("colspan", "6")
+                                                            div(className = "flex justify-center py-1") {
+                                                                button(className = "btn btn-ghost btn-xs gap-1 text-base-content/50") {
+                                                                    onClick { expandedGroups[def.id] = !isExpanded }
+                                                                    if (isExpanded) {
+                                                                        span(className = "icon-[heroicons--chevron-up] size-3")
+                                                                        +"Zobrazit méně"
+                                                                    } else {
+                                                                        span(className = "icon-[heroicons--chevron-down] size-3")
+                                                                        +"Zobrazit dalších $hiddenCount"
+                                                                    }
+                                                                }
+                                                            }
                                                         }
-                                                    } else if (item.isSeries) {
-                                                        div(className = "badge badge-secondary badge-outline gap-1") {
-                                                            span(className = "icon-[heroicons--academic-cap] size-3")
-                                                            +"Kurz"
-                                                        }
-                                                    } else {
-                                                        div(className = "badge badge-primary badge-outline gap-1") {
-                                                            span(className = "icon-[heroicons--calendar] size-3")
-                                                            +"Jednorázovka"
-                                                        }
-                                                    }
-                                                }
-                                                td(className = "text-sm text-base-content/70") { +item.dateInfo }
-                                                td {
-                                                    val isFull = item.occupiedSpots >= item.capacity
-                                                    div(className = "flex items-center gap-2") {
-                                                        span(className = if (isFull) "text-error font-bold" else "") {
-                                                            +"${item.occupiedSpots} / ${item.capacity}"
-                                                        }
-                                                        if (isFull) {
-                                                            div(className = "badge badge-error badge-xs") { +"PLNO" }
-                                                        }
-                                                    }
-                                                }
-                                                td(className = "font-medium text-base-content/80") { +item.priceString }
-                                                td(className = "text-right") {
-                                                    // Ikonka pro jasný signál "klikni sem"
-                                                    button(className = "btn btn-ghost btn-xs btn-circle") {
-                                                        span(className = "icon-[heroicons--chevron-right] size-5 text-base-content/50")
                                                     }
                                                 }
                                             }

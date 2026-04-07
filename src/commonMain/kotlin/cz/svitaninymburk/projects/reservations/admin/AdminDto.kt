@@ -53,6 +53,7 @@ data class AdminReservationListItem(
 @Serializable
 data class AdminEventListItem(
     val id: Uuid,
+    val definitionId: Uuid? = null,
     val title: String,
     val isSeries: Boolean,
     val dateInfo: String,
