@@ -60,6 +60,11 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
         allowOnSite = definition.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
     }
 
+    val selectedDefinition = definitions.find { it.id.toString() == selectedDefinitionId }
+    val isRecurring = selectedDefinition?.recurrenceType != null
+        && selectedDefinition.recurrenceType != RecurrenceType.NONE
+        && selectedDefinition.recurrenceEndDate != null
+
     LaunchedEffect(Unit) {
         eventService.getAllDefinitions()
             .onRight { defs ->
@@ -73,6 +78,16 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                 toastData = ToastData("Chyba při načítání šablon: $error", ToastType.Error)
                 isLoadingDefinitions = false
             }
+    }
+
+    LaunchedEffect(selectedDefinitionId, startDate) {
+        val def = selectedDefinition ?: return@LaunchedEffect
+        if (!isRecurring || startDate.isBlank()) return@LaunchedEffect
+        val parsedStart = try { LocalDate.parse(startDate) } catch (_: Exception) { return@LaunchedEffect }
+        val autoFill = computeSeriesAutoFill(parsedStart, def.recurrenceType, def.recurrenceEndDate!!)
+            ?: return@LaunchedEffect
+        endDate = autoFill.endDate.toString()
+        lessonCount = autoFill.lessonCount
     }
 
     div(className = "flex flex-col gap-6 animate-fade-in max-w-4xl mx-auto pb-20") {
@@ -158,6 +173,15 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                     onInput { lessonCount = value?.toInt() ?: 1 }
                                 }
                                 span(className = "absolute right-4 text-base-content/50 text-sm") { +"lekcí" }
+                            }
+                        }
+
+                        if (isRecurring && startDate.isNotBlank()) {
+                            div(className = "md:col-span-2") {
+                                div(className = "alert alert-info py-2 text-sm") {
+                                    span(className = "icon-[heroicons--information-circle] size-4")
+                                    +"Datum konce a počet lekcí byly předvyplněny ze šablony. Můžete je upravit."
+                                }
                             }
                         }
                     }
