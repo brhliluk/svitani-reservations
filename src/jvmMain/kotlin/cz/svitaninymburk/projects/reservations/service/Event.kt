@@ -67,6 +67,7 @@ class AuthenticatedEventService(
                         .toLocalDateTime(TimeZone.currentSystemDefault()),
                 price = request.price ?: eventDefinition.defaultPrice,
                 capacity = request.capacity ?: eventDefinition.defaultCapacity,
+                customFields = request.customFields.ifEmpty { eventDefinition.customFields },
             )
         )
     }
