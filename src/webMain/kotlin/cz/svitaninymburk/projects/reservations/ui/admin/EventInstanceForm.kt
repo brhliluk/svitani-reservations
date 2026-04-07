@@ -19,9 +19,12 @@ import dev.kilua.form.text.text
 import dev.kilua.form.text.textArea
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
+import cz.svitaninymburk.projects.reservations.event.generateRecurrenceDates
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import web.html.HTMLSelectElement
 import kotlin.js.js
 import kotlin.time.Duration.Companion.hours
@@ -55,6 +58,19 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
     var durationMinutes by remember { mutableIntStateOf(0) }
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
+
+    val selectedDefinition = definitions.find { it.id.toString() == selectedDefinitionId }
+    val isRecurring = selectedDefinition?.recurrenceType != null
+        && selectedDefinition.recurrenceType != RecurrenceType.NONE
+        && selectedDefinition.recurrenceEndDate != null
+
+    val previewDates: List<LocalDateTime> = remember(startDate, startTime, selectedDefinition) {
+        val def = selectedDefinition ?: return@remember emptyList()
+        if (!isRecurring || startDate.isBlank() || startTime.isBlank()) return@remember emptyList()
+        val d = try { LocalDate.parse(startDate) } catch (e: Exception) { return@remember emptyList() }
+        val t = try { LocalTime.parse(startTime) } catch (e: Exception) { return@remember emptyList() }
+        generateRecurrenceDates(d, t, def.recurrenceType, def.recurrenceEndDate!!)
+    }
 
     // Funkce pro předvyplnění formuláře při změně šablony
     fun applyDefinitionDefaults(definition: EventDefinition) {
@@ -258,6 +274,32 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                     }
                 }
 
+                // --- NÁHLED OPAKOVÁNÍ ---
+                if (isRecurring && startDate.isNotBlank() && startTime.isNotBlank()) {
+                    div(className = "card bg-base-100 shadow-sm border border-primary/30") {
+                        div(className = "card-body") {
+                            div(className = "flex items-center gap-2 mb-3") {
+                                span(className = "icon-[heroicons--calendar-days] size-5 text-primary")
+                                h2(className = "card-title text-base") {
+                                    +"Náhled termínů (${previewDates.size})"
+                                }
+                            }
+                            if (previewDates.isEmpty()) {
+                                p(className = "text-warning text-sm") { +"Datum konce je před datem začátku. Žádné termíny nevzniknou." }
+                            } else {
+                                div(className = "flex flex-wrap gap-2") {
+                                    previewDates.forEach { dt ->
+                                        val min = dt.minute.toString().padStart(2, '0')
+                                        span(className = "badge badge-outline badge-primary") {
+                                            +"${dt.date.dayOfMonth}.${dt.date.monthNumber}.${dt.date.year} ${dt.hour}:$min"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // --- ULOŽIT ---
                 div(className = "flex justify-end gap-2 mt-4") {
                     button(className = "btn") {
@@ -285,8 +327,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                             if (allowBankTransfer) allowedPayments.add(PaymentInfo.Type.BANK_TRANSFER)
                             if (allowOnSite) allowedPayments.add(PaymentInfo.Type.ON_SITE)
 
-                            // Podle requestu můžeme poslat přepsané hodnoty. Vše z UI teď bere upravený stav.
-                            val request = CreateEventInstanceRequest(
+                            val baseRequest = CreateEventInstanceRequest(
                                 definitionId = Uuid.parse(selectedDefinitionId!!),
                                 startDateTime = parsedDateTime,
                                 title = titleOverride.takeIf { it.isNotBlank() },
@@ -298,20 +339,35 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                 customFields = emptyList(),
                             )
 
+                            val dateTimes = if (isRecurring && previewDates.isNotEmpty()) previewDates else listOf(parsedDateTime)
+
+                            if (dateTimes.isEmpty()) {
+                                toastData = ToastData("Žádné termíny ke vytvoření.", ToastType.Error)
+                                return@onClick
+                            }
+
                             scope.launch {
-                                authEventService.createEventInstance(request)
-                                    .onRight {
-                                        toastData = ToastData("Termín byl úspěšně vypsán!", ToastType.Success)
-                                        delay(500)
-                                        router.navigate("/admin/events")
-                                    }
-                                    .onLeft { error ->
-                                        toastData = ToastData("Chyba: $error", ToastType.Error)
-                                    }
+                                var failed = false
+                                for (dt in dateTimes) {
+                                    authEventService.createEventInstance(baseRequest.copy(startDateTime = dt))
+                                        .onLeft { error ->
+                                            toastData = ToastData("Chyba při vytváření termínu $dt: $error", ToastType.Error)
+                                            failed = true
+                                        }
+                                    if (failed) break
+                                }
+                                if (!failed) {
+                                    toastData = ToastData(
+                                        if (dateTimes.size > 1) "Vytvořeno ${dateTimes.size} termínů!" else "Termín byl úspěšně vypsán!",
+                                        ToastType.Success
+                                    )
+                                    delay(500)
+                                    router.navigate("/admin/events")
+                                }
                             }
                         }
                         span(className = "icon-[heroicons--check] size-5")
-                        +"Vypsat termín"
+                        +(if (isRecurring && previewDates.size > 1) "Vypsat ${previewDates.size} termínů" else "Vypsat termín")
                     }
                 }
             }
