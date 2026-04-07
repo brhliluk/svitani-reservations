@@ -38,6 +38,7 @@ import kotlin.uuid.Uuid
 
 @Composable
 fun IComponent.MainLayout() {
+    val router = Router.current
     val authService = getService<AuthServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
 
@@ -57,6 +58,12 @@ fun IComponent.MainLayout() {
             }
     }
 
+    fun doLogout() = scope.launch {
+        authService.logout()
+        currentUser = null
+        router.navigate("/")
+    }
+
     LaunchedEffect(Unit) { refreshUser() }
 
     if (currentUser?.role == User.Role.ADMIN) {
@@ -66,7 +73,7 @@ fun IComponent.MainLayout() {
                 view {
                     AdminLayout(
                         user = currentUser!!,
-                        onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                        onLogout = { doLogout() }
                     ) {
                         AdminDashboardScreen()
                     }
@@ -75,7 +82,7 @@ fun IComponent.MainLayout() {
                     view {
                         AdminLayout(
                             user = currentUser!!,
-                            onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                            onLogout = { doLogout() }
                         ) {
                             AdminEventsScreen()
                         }
@@ -84,7 +91,7 @@ fun IComponent.MainLayout() {
                         view {
                             AdminLayout(
                                 user = currentUser!!,
-                                onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                                onLogout = { doLogout() }
                             ) {
                                 AdminEventDetailScreen(eventId = eventId.value, isSeries = false)
                             }
@@ -94,7 +101,7 @@ fun IComponent.MainLayout() {
                         view {
                             AdminLayout(
                                 user = currentUser!!,
-                                onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                                onLogout = { doLogout() }
                             ) {
                                 AdminEventDetailScreen(eventId = seriesId.value, isSeries = true)
                             }
@@ -105,7 +112,7 @@ fun IComponent.MainLayout() {
                             view {
                                 AdminLayout(
                                     user = currentUser!!,
-                                    onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                                    onLogout = { doLogout() }
                                 ) {
                                     AdminCreateEventDefinitionScreen()
                                 }
@@ -116,7 +123,7 @@ fun IComponent.MainLayout() {
                                 view {
                                     AdminLayout(
                                         user = currentUser!!,
-                                        onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                                        onLogout = { doLogout() }
                                     ) {
                                         AdminEventCreateChooseScreen(definitionId = definitionId.value)
                                     }
@@ -127,7 +134,7 @@ fun IComponent.MainLayout() {
                             view {
                                 AdminLayout(
                                     user = currentUser!!,
-                                    onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                                    onLogout = { doLogout() }
                                 ) {
                                     AdminCreateEventInstanceScreen()
                                 }
@@ -136,7 +143,7 @@ fun IComponent.MainLayout() {
                                 view {
                                     AdminLayout(
                                         user = currentUser!!,
-                                        onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                                        onLogout = { doLogout() }
                                     ) {
                                         AdminCreateEventInstanceScreen(preselectedDefinitionId = definitionId.value)
                                     }
@@ -147,7 +154,7 @@ fun IComponent.MainLayout() {
                             view {
                                 AdminLayout(
                                     user = currentUser!!,
-                                    onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                                    onLogout = { doLogout() }
                                 ) {
                                     AdminCreateEventSeriesScreen()
                                 }
@@ -156,7 +163,7 @@ fun IComponent.MainLayout() {
                                 view {
                                     AdminLayout(
                                         user = currentUser!!,
-                                        onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                                        onLogout = { doLogout() }
                                     ) {
                                         AdminCreateEventSeriesScreen(preselectedDefinitionId = definitionId.value)
                                     }
@@ -169,7 +176,7 @@ fun IComponent.MainLayout() {
                     view {
                         AdminLayout(
                             user = currentUser!!,
-                            onLogout = { scope.launch { authService.logout(); currentUser = null } }
+                            onLogout = { doLogout() }
                         ) {
                             AdminReservationsScreen()
                         }
@@ -196,12 +203,7 @@ fun IComponent.MainLayout() {
             user = currentUser,
             onShowMessage = ::showToast,
             onLogin = { refreshUser() },
-            onLogout = {
-                scope.launch {
-                    authService.logout()
-                    currentUser = null
-                }
-            }
+            onLogout = { doLogout() }
         )
 
         main(className = "flex-grow") {
