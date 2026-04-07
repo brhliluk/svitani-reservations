@@ -1,6 +1,5 @@
 package cz.svitaninymburk.projects.reservations
 
-import cz.svitaninymburk.projects.reservations.i18n.detectLanguage
 import cz.svitaninymburk.projects.reservations.ui.MainLayout
 import dev.kilua.Application
 import dev.kilua.CoreModule
@@ -14,11 +13,9 @@ import dev.kilua.Hot
 import dev.kilua.compose.root
 import dev.kilua.startApplication
 import web.blob.Blob
-import web.navigator.navigator
 
 class App : Application() {
     override fun start() {
-        detectLanguage(navigator.language)
         root("root") {
             MainLayout()
         }

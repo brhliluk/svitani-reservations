@@ -38,7 +38,6 @@ import kotlin.uuid.Uuid
 
 @Composable
 fun IComponent.MainLayout() {
-    val router = Router.current
     val authService = getService<AuthServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
 
@@ -61,7 +60,6 @@ fun IComponent.MainLayout() {
     fun doLogout() = scope.launch {
         authService.logout()
         currentUser = null
-        router.navigate("/")
     }
 
     LaunchedEffect(Unit) { refreshUser() }
@@ -71,38 +69,26 @@ fun IComponent.MainLayout() {
         browserRouter {
             route("/admin") {
                 view {
-                    AdminLayout(
-                        user = currentUser!!,
-                        onLogout = { doLogout() }
-                    ) {
+                    AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                         AdminDashboardScreen()
                     }
                 }
                 route("/events") {
                     view {
-                        AdminLayout(
-                            user = currentUser!!,
-                            onLogout = { doLogout() }
-                        ) {
+                        AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                             AdminEventsScreen()
                         }
                     }
                     route("/instance") { string { eventId ->
                         view {
-                            AdminLayout(
-                                user = currentUser!!,
-                                onLogout = { doLogout() }
-                            ) {
+                            AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                                 AdminEventDetailScreen(eventId = eventId.value, isSeries = false)
                             }
                         }
                     } }
                     route("/series") { string { seriesId ->
                         view {
-                            AdminLayout(
-                                user = currentUser!!,
-                                onLogout = { doLogout() }
-                            ) {
+                            AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                                 AdminEventDetailScreen(eventId = seriesId.value, isSeries = true)
                             }
                         }
@@ -110,10 +96,7 @@ fun IComponent.MainLayout() {
                     route("/create") {
                         route("/definition") {
                             view {
-                                AdminLayout(
-                                    user = currentUser!!,
-                                    onLogout = { doLogout() }
-                                ) {
+                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                                     AdminCreateEventDefinitionScreen()
                                 }
                             }
@@ -121,10 +104,7 @@ fun IComponent.MainLayout() {
                         route("/choose") {
                             string { definitionId ->
                                 view {
-                                    AdminLayout(
-                                        user = currentUser!!,
-                                        onLogout = { doLogout() }
-                                    ) {
+                                    AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                                         AdminEventCreateChooseScreen(definitionId = definitionId.value)
                                     }
                                 }
@@ -132,19 +112,13 @@ fun IComponent.MainLayout() {
                         }
                         route("/instance") {
                             view {
-                                AdminLayout(
-                                    user = currentUser!!,
-                                    onLogout = { doLogout() }
-                                ) {
+                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                                     AdminCreateEventInstanceScreen()
                                 }
                             }
                             string { definitionId ->
                                 view {
-                                    AdminLayout(
-                                        user = currentUser!!,
-                                        onLogout = { doLogout() }
-                                    ) {
+                                    AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                                         AdminCreateEventInstanceScreen(preselectedDefinitionId = definitionId.value)
                                     }
                                 }
@@ -152,19 +126,13 @@ fun IComponent.MainLayout() {
                         }
                         route("/series") {
                             view {
-                                AdminLayout(
-                                    user = currentUser!!,
-                                    onLogout = { doLogout() }
-                                ) {
+                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                                     AdminCreateEventSeriesScreen()
                                 }
                             }
                             string { definitionId ->
                                 view {
-                                    AdminLayout(
-                                        user = currentUser!!,
-                                        onLogout = { doLogout() }
-                                    ) {
+                                    AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                                         AdminCreateEventSeriesScreen(preselectedDefinitionId = definitionId.value)
                                     }
                                 }
@@ -174,10 +142,7 @@ fun IComponent.MainLayout() {
                 }
                 route("/reservations") {
                     view {
-                        AdminLayout(
-                            user = currentUser!!,
-                            onLogout = { doLogout() }
-                        ) {
+                        AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                             AdminReservationsScreen()
                         }
                     }
@@ -208,6 +173,12 @@ fun IComponent.MainLayout() {
 
         main(className = "flex-grow") {
             browserRouter {
+                route("/admin") {
+                    view {
+                        val router = Router.current
+                        LaunchedEffect(Unit) { router.navigate("/") }
+                    }
+                }
                 route("/") {
                     view { DashboardScreen(user = currentUser, initialFilterId = null) }
                 }
