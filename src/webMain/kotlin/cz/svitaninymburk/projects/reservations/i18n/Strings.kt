@@ -3,24 +3,21 @@ package cz.svitaninymburk.projects.reservations.i18n
 import androidx.compose.runtime.mutableStateOf
 import cz.svitaninymburk.projects.reservations.i18n.cs.CsStrings
 import cz.svitaninymburk.projects.reservations.i18n.en.EnStrings
+import web.navigator.navigator
+import kotlin.js.toList
 
 
-val strings = mutableStateOf<AppStrings>(EnStrings)
+private val supportedLanguages = mapOf(
+    "cs" to CsStrings,
+    "en" to EnStrings
+)
 
-fun setLanguage(lang: String) {
-    strings.value = when(lang) {
-        "cs" -> CsStrings
-        else -> EnStrings
-    }
+private fun resolveStrings(): AppStrings {
+    val languages = navigator.languages.toList().map { it.toString().substringBefore('-') }
+    return supportedLanguages.firstNotNullOfOrNull { (key, value) -> languages.find { it == key }?.let { value } } ?: CsStrings
 }
 
-fun detectLanguage(navigatorLanguage: String?) {
-    when (navigatorLanguage) {
-        "cs" -> setLanguage("cs")
-        "en" -> setLanguage("en")
-        else -> setLanguage("en")
-    }
-}
+val strings = mutableStateOf(resolveStrings())
 
 interface AppStrings {
     val appName: String
