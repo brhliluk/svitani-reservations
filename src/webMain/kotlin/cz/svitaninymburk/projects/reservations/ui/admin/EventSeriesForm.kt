@@ -4,6 +4,7 @@ import androidx.compose.runtime.*
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.event.*
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
@@ -33,6 +34,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
 
     val scope = rememberCoroutineScope()
+    val currentStrings by strings
     var toastData by remember { mutableStateOf<ToastData?>(null) }
 
     var definitions by remember { mutableStateOf<List<EventDefinition>>(emptyList()) }
@@ -75,7 +77,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                 }
             }
             .onLeft { error ->
-                toastData = ToastData("Chyba při načítání šablon: $error", ToastType.Error)
+                toastData = ToastData(currentStrings.toastTemplatesLoadError(error.toString()), ToastType.Error)
                 isLoadingDefinitions = false
             }
     }
@@ -99,8 +101,8 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                 onClick { js("window.history.back()") }
             }
             div {
-                h1(className = "text-3xl font-bold text-base-content") { +"Vytvořit kurz" }
-                p(className = "text-base-content/60") { +"Nastavte období a počet lekcí. Detaily jsou předvyplněné ze šablony." }
+                h1(className = "text-3xl font-bold text-base-content") { +currentStrings.newSeriesTitle }
+                p(className = "text-base-content/60") { +currentStrings.newSeriesSubtitle }
             }
         }
 
@@ -112,12 +114,12 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
             div(className = "alert alert-warning shadow-sm") {
                 span(className = "icon-[heroicons--exclamation-triangle] size-6")
                 div {
-                    h3(className = "font-bold") { +"Žádné šablony" }
-                    div(className = "text-sm") { +"Než vytvoříte kurz, musíte nejprve vytvořit šablonu události." }
+                    h3(className = "font-bold") { +currentStrings.noTemplatesHeading }
+                    div(className = "text-sm") { +currentStrings.noTemplatesSeriesMessage }
                 }
                 button(className = "btn btn-sm btn-primary") {
                     onClick { router.navigate("/admin/events/create/definition") }
-                    +"Vytvořit šablonu"
+                    +currentStrings.createTemplateButton
                 }
             }
         } else {
@@ -129,9 +131,9 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                         // Výběr šablony (skryto pokud je předvybrána)
                         if (preselectedDefinitionId == null) {
                             div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") { span(className = "label-text font-bold") { +"Ze které šablony vycházíme?" } }
+                                label(className = "label") { span(className = "label-text font-bold") { +currentStrings.templateSelectionLabel } }
                                 select(className = "select select-bordered w-full text-base") {
-                                    option(value = "", label = "-- Vyberte šablonu --") {
+                                    option(value = "", label = currentStrings.templatePlaceholder) {
                                         if (selectedDefinitionId == null) attribute("selected", "true")
                                         attribute("disabled", "true")
                                     }
@@ -150,7 +152,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
 
                         // Datum začátku
                         div(className = "form-control w-full") {
-                            label(className = "label") { span(className = "label-text font-bold") { +"Datum začátku" } }
+                            label(className = "label") { span(className = "label-text font-bold") { +currentStrings.startDateLabel } }
                             text(value = startDate, type = InputType.Date, className = "input input-bordered w-full") {
                                 onInput { startDate = value ?: "" }
                             }
@@ -158,7 +160,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
 
                         // Datum konce
                         div(className = "form-control w-full") {
-                            label(className = "label") { span(className = "label-text font-bold") { +"Datum konce" } }
+                            label(className = "label") { span(className = "label-text font-bold") { +currentStrings.endDateLabel } }
                             text(value = endDate, type = InputType.Date, className = "input input-bordered w-full") {
                                 onInput { endDate = value ?: "" }
                             }
@@ -166,13 +168,13 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
 
                         // Počet lekcí
                         div(className = "form-control w-full") {
-                            label(className = "label") { span(className = "label-text font-bold") { +"Počet lekcí" } }
+                            label(className = "label") { span(className = "label-text font-bold") { +currentStrings.lessonCountLabel } }
                             div(className = "relative flex items-center") {
                                 numeric(value = lessonCount, min = 1, decimals = 0, className = "input input-bordered w-full pr-16") {
                                     attribute("step", "1")
                                     onInput { lessonCount = value?.toInt() ?: 1 }
                                 }
-                                span(className = "absolute right-4 text-base-content/50 text-sm") { +"lekcí" }
+                                span(className = "absolute right-4 text-base-content/50 text-sm") { +currentStrings.courseLessons }
                             }
                         }
 
@@ -180,7 +182,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                             div(className = "md:col-span-2") {
                                 div(className = "alert alert-info py-2 text-sm") {
                                     span(className = "icon-[heroicons--information-circle] size-4")
-                                    +"Datum konce a počet lekcí byly předvyplněny ze šablony. Můžete je upravit."
+                                    +currentStrings.autoFillAlert
                                 }
                             }
                         }
@@ -192,39 +194,39 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
             if (selectedDefinitionId != null) {
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body") {
-                        h2(className = "card-title text-lg mb-2") { +"Úpravy pro tento kurz" }
+                        h2(className = "card-title text-lg mb-2") { +currentStrings.seriesOverrideHeading }
                         p(className = "text-sm text-base-content/60 mb-4") {
-                            +"Předvyplněno ze šablony. Změny se projeví pouze u tohoto kurzu."
+                            +currentStrings.seriesOverrideDescription
                         }
 
                         div(className = "grid grid-cols-1 md:grid-cols-2 gap-4") {
 
                             div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") { span(className = "label-text font-medium") { +"Název kurzu" } }
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.seriesTitleLabel } }
                                 text(value = titleOverride, className = "input input-bordered w-full") {
                                     onInput { titleOverride = value ?: "" }
                                 }
                             }
 
                             div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") { span(className = "label-text font-medium") { +"Popis" } }
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.descriptionLabel } }
                                 textArea(value = descriptionOverride, className = "textarea textarea-bordered h-24 w-full") {
                                     onInput { descriptionOverride = value ?: "" }
                                 }
                             }
 
                             div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +"Cena (celý kurz)" } }
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.fullCoursePriceLabel } }
                                 div(className = "relative flex items-center") {
                                     numeric(value = priceOverride, min = 0, className = "input input-bordered w-full pr-12") {
                                         onInput { priceOverride = value }
                                     }
-                                    span(className = "absolute right-4 text-base-content/50 font-medium") { +"Kč" }
+                                    span(className = "absolute right-4 text-base-content/50 font-medium") { +currentStrings.currency }
                                 }
                             }
 
                             div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +"Kapacita osob" } }
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.capacityPersonLabel } }
                                 div(className = "relative flex items-center") {
                                     numeric(value = capacityOverride, min = 1, decimals = 0, className = "input input-bordered w-full pr-12") {
                                         attribute("step", "1")
@@ -237,19 +239,19 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                             }
 
                             div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +"Povolené platby" } }
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.allowedPaymentsLabel } }
                                 div(className = "flex gap-4 mt-2") {
                                     label(className = "cursor-pointer label justify-start gap-2") {
                                         checkBox(value = allowBankTransfer, className = "checkbox checkbox-primary") {
                                             onChange { allowBankTransfer = value }
                                         }
-                                        span(className = "label-text") { +"Převodem" }
+                                        span(className = "label-text") { +currentStrings.bankTransfer }
                                     }
                                     label(className = "cursor-pointer label justify-start gap-2") {
                                         checkBox(value = allowOnSite, className = "checkbox checkbox-primary") {
                                             onChange { allowOnSite = value }
                                         }
-                                        span(className = "label-text") { +"Na místě" }
+                                        span(className = "label-text") { +currentStrings.paymentOnSite }
                                     }
                                 }
                             }
@@ -261,29 +263,29 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                 div(className = "flex justify-end gap-2 mt-4") {
                     button(className = "btn") {
                         onClick { js("window.history.back()") }
-                        +"Zrušit"
+                        +currentStrings.cancel
                     }
                     button(className = "btn btn-secondary") {
                         onClick {
                             if (startDate.isBlank() || endDate.isBlank()) {
-                                toastData = ToastData("Musíte vyplnit datum začátku a konce.", ToastType.Error)
+                                toastData = ToastData(currentStrings.validationDatesRequired, ToastType.Error)
                                 return@onClick
                             }
                             if (titleOverride.isBlank()) {
-                                toastData = ToastData("Název kurzu je povinný.", ToastType.Error)
+                                toastData = ToastData(currentStrings.validationSeriesTitleRequired, ToastType.Error)
                                 return@onClick
                             }
 
                             val parsedStartDate = try { LocalDate.parse(startDate) } catch (e: Exception) {
-                                toastData = ToastData("Neplatný formát data začátku.", ToastType.Error)
+                                toastData = ToastData(currentStrings.validationStartDateFormat, ToastType.Error)
                                 return@onClick
                             }
                             val parsedEndDate = try { LocalDate.parse(endDate) } catch (e: Exception) {
-                                toastData = ToastData("Neplatný formát data konce.", ToastType.Error)
+                                toastData = ToastData(currentStrings.validationEndDateFormat, ToastType.Error)
                                 return@onClick
                             }
                             if (parsedEndDate < parsedStartDate) {
-                                toastData = ToastData("Datum konce musí být po datu začátku.", ToastType.Error)
+                                toastData = ToastData(currentStrings.validationEndBeforeStart, ToastType.Error)
                                 return@onClick
                             }
 
@@ -306,17 +308,17 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                             scope.launch {
                                 adminService.createEventSeries(request)
                                     .onRight {
-                                        toastData = ToastData("Kurz byl úspěšně vytvořen!", ToastType.Success)
+                                        toastData = ToastData(currentStrings.toastSeriesCreated, ToastType.Success)
                                         delay(500)
                                         router.navigate("/admin/events")
                                     }
                                     .onLeft { error ->
-                                        toastData = ToastData("Chyba: $error", ToastType.Error)
+                                        toastData = ToastData(currentStrings.errorToast(error.toString()), ToastType.Error)
                                     }
                             }
                         }
                         span(className = "icon-[heroicons--check] size-5")
-                        +"Vytvořit kurz"
+                        +currentStrings.createSeriesButton
                     }
                 }
             }

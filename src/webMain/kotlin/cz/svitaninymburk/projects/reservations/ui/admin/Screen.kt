@@ -35,7 +35,7 @@ fun IComponent.AdminLayout(
                     }
                 }
                 div(className = "flex-1 px-2 mx-2 font-bold text-lg text-primary") {
-                    +"Administrace"
+                    +currentStrings.adminNavTitle
                 }
             }
 
@@ -54,7 +54,7 @@ fun IComponent.AdminLayout(
                 // Hlavička sidebaru
                 div(className = "flex items-center gap-3 px-4 py-6 mb-4") {
                     span(className = "icon-[heroicons--shield-check] size-8 text-primary")
-                    div(className = "font-bold text-xl tracking-wide") { +"Admin Panel" }
+                    div(className = "font-bold text-xl tracking-wide") { +currentStrings.adminPanel }
                 }
 
                 // Navigační linky
@@ -63,28 +63,28 @@ fun IComponent.AdminLayout(
                         a(className = "rounded-lg hover:bg-base-200 transition-colors") {
                             onClick { router.navigate("/admin") }
                             span(className = "icon-[heroicons--home] size-5 text-primary")
-                            +"Přehled"
+                            +currentStrings.dashboard
                         }
                     }
                     li {
                         a(className = "rounded-lg hover:bg-base-200 transition-colors") {
                             onClick { router.navigate("/admin/events") }
                             span(className = "icon-[heroicons--calendar-days] size-5 text-info")
-                            +"Události a Kurzy"
+                            +currentStrings.navEvents
                         }
                     }
                     li {
                         a(className = "rounded-lg hover:bg-base-200 transition-colors") {
                             onClick { router.navigate("/admin/reservations") }
                             span(className = "icon-[heroicons--ticket] size-5 text-success")
-                            +"Rezervace"
+                            +currentStrings.navReservations
                         }
                     }
                     li {
                         a(className = "rounded-lg hover:bg-base-200 transition-colors") {
                             onClick { router.navigate("/admin/users") }
                             span(className = "icon-[heroicons--users] size-5 text-warning")
-                            +"Uživatelé"
+                            +currentStrings.navUsers
                         }
                     }
                 }
@@ -105,7 +105,7 @@ fun IComponent.AdminLayout(
                     button(className = "btn btn-outline btn-error btn-sm w-full gap-2") {
                         onClick { onLogout() }
                         span(className = "icon-[heroicons--arrow-right-on-rectangle] size-4")
-                        +"Odhlásit se"
+                        +currentStrings.logOut
                     }
                 }
             }

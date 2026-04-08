@@ -20,6 +20,7 @@ import dev.kilua.form.text.textArea
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import cz.svitaninymburk.projects.reservations.event.generateRecurrenceDates
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -40,6 +41,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
     val authEventService = getService<AuthenticatedEventServiceInterface>(RpcSerializersModules)
 
     val scope = rememberCoroutineScope()
+    val currentStrings by strings
     var toastData by remember { mutableStateOf<ToastData?>(null) }
 
     var definitions by remember { mutableStateOf<List<EventDefinition>>(emptyList()) }
@@ -98,7 +100,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                 }
             }
             .onLeft { error ->
-                toastData = ToastData("Chyba při načítání šablon: $error", ToastType.Error)
+                toastData = ToastData(currentStrings.toastTemplatesLoadError(error.toString()), ToastType.Error)
                 isLoadingDefinitions = false
             }
     }
@@ -112,8 +114,8 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                 onClick { js("window.history.back()") }
             }
             div {
-                h1(className = "text-3xl font-bold text-base-content") { +"Vypsat nový termín" }
-                p(className = "text-base-content/60") { +"Vyberte šablonu, nastavte datum a čas. Údaje můžete pro tento termín libovolně upravit." }
+                h1(className = "text-3xl font-bold text-base-content") { +currentStrings.newInstanceTitle }
+                p(className = "text-base-content/60") { +currentStrings.newInstanceSubtitle }
             }
         }
 
@@ -125,12 +127,12 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
             div(className = "alert alert-warning shadow-sm") {
                 span(className = "icon-[heroicons--exclamation-triangle] size-6")
                 div {
-                    h3(className = "font-bold") { +"Žádné šablony" }
-                    div(className = "text-sm") { +"Než vypíšete termín, musíte vytvořit alespoň jednu šablonu události." }
+                    h3(className = "font-bold") { +currentStrings.noTemplatesHeading }
+                    div(className = "text-sm") { +currentStrings.noTemplatesInstanceMessage }
                 }
                 button(className = "btn btn-sm btn-primary") {
                     onClick { router.navigate("/admin/events/new-definition") }
-                    +"Vytvořit šablonu"
+                    +currentStrings.createTemplateButton
                 }
             }
         } else {
@@ -142,10 +144,10 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                         // Výběr šablony
                         if (preselectedDefinitionId == null) {
                             div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") { span(className = "label-text font-bold") { +"Ze které šablony vycházíme?" } }
+                                label(className = "label") { span(className = "label-text font-bold") { +currentStrings.templateSelectionLabel } }
                                 select(className = "select select-bordered w-full text-base") {
                                     // Výchozí prázdná volba
-                                    option(value = "", label = "-- Vyberte šablonu --") {
+                                    option(value = "", label = currentStrings.templatePlaceholder) {
                                         if (selectedDefinitionId == null) attribute("selected", "true")
                                         attribute("disabled", "true")
                                     }
@@ -164,7 +166,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
 
                         // Datum
                         div(className = "form-control w-full") {
-                            label(className = "label") { span(className = "label-text font-bold") { +"Datum konání" } }
+                            label(className = "label") { span(className = "label-text font-bold") { +currentStrings.dateLabelField } }
                             text(value = startDate, type = InputType.Date, className = "input input-bordered w-full") {
                                 onInput { startDate = value ?: "" }
                             }
@@ -172,7 +174,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
 
                         // Čas
                         div(className = "form-control w-full") {
-                            label(className = "label") { span(className = "label-text font-bold") { +"Čas začátku" } }
+                            label(className = "label") { span(className = "label-text font-bold") { +currentStrings.timeLabelField } }
                             text(value = startTime, type = InputType.Time, className = "input input-bordered w-full") {
                                 onInput { startTime = value ?: "" }
                             }
@@ -185,15 +187,15 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
             if (selectedDefinitionId != null) {
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body") {
-                        h2(className = "card-title text-lg mb-2") { +"Úpravy pro tento konkrétní termín" }
+                        h2(className = "card-title text-lg mb-2") { +currentStrings.overrideHeading }
                         p(className = "text-sm text-base-content/60 mb-4") {
-                            +"Tato pole jsou předvyplněná podle šablony. Pokud je změníte, změna se projeví pouze u tohoto jednoho termínu."
+                            +currentStrings.overrideDescription
                         }
 
                         div(className = "grid grid-cols-1 md:grid-cols-2 gap-4") {
                             // Název
                             div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") { span(className = "label-text font-medium") { +"Název termínu" } }
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.instanceTitleLabel } }
                                 text(value = titleOverride, className = "input input-bordered w-full") {
                                     onInput { titleOverride = value ?: "" }
                                 }
@@ -201,7 +203,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
 
                             // Popis
                             div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") { span(className = "label-text font-medium") { +"Popis" } }
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.descriptionLabel } }
                                 textArea(value = descriptionOverride, className = "textarea textarea-bordered h-24 w-full") {
                                     onInput { descriptionOverride = value ?: "" }
                                 }
@@ -209,17 +211,17 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
 
                             // Cena a Kapacita (Stejný vzhled jako u Definice)
                             div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +"Cena" } }
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.priceLabel } }
                                 div(className = "relative flex items-center") {
                                     numeric(value = priceOverride, min = 0, className = "input input-bordered w-full pr-12") {
                                         onInput { priceOverride = value }
                                     }
-                                    span(className = "absolute right-4 text-base-content/50 font-medium") { +"Kč" }
+                                    span(className = "absolute right-4 text-base-content/50 font-medium") { +currentStrings.currency }
                                 }
                             }
 
                             div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +"Kapacita osob" } }
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.capacityPersonLabel } }
                                 div(className = "relative flex items-center") {
                                     numeric(value = capacityOverride, min = 1, decimals = 0, className = "input input-bordered w-full pr-12") {
                                         attribute("step", "1")
@@ -233,40 +235,40 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
 
                             // Délka
                             div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +"Délka" } }
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.durationLabel } }
                                 div(className = "flex gap-2") {
                                     div(className = "relative flex-1 items-center flex") {
                                         numeric(value = durationHours, min = 0, decimals = 0, className = "input input-bordered w-full pr-8") {
                                             attribute("step", "1")
                                             onInput { durationHours = value?.toInt() ?: 0 }
                                         }
-                                        span(className = "absolute right-3 text-base-content/50 text-sm") { +"h" }
+                                        span(className = "absolute right-3 text-base-content/50 text-sm") { +currentStrings.hours }
                                     }
                                     div(className = "relative flex-1 items-center flex") {
                                         numeric(value = durationMinutes, min = 0, max = 59, decimals = 0, className = "input input-bordered w-full pr-12") {
                                             attribute("step", "1")
                                             onInput { durationMinutes = value?.toInt() ?: 0 }
                                         }
-                                        span(className = "absolute right-3 text-base-content/50 text-sm") { +"min" }
+                                        span(className = "absolute right-3 text-base-content/50 text-sm") { +currentStrings.minutes }
                                     }
                                 }
                             }
 
                             // Platby
                             div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +"Povolené platby" } }
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.allowedPaymentsLabel } }
                                 div(className = "flex gap-4 mt-2") {
                                     label(className = "cursor-pointer label justify-start gap-2") {
                                         checkBox(value = allowBankTransfer, className = "checkbox checkbox-primary") {
                                             onChange { allowBankTransfer = value }
                                         }
-                                        span(className = "label-text") { +"Převodem" }
+                                        span(className = "label-text") { +currentStrings.bankTransfer }
                                     }
                                     label(className = "cursor-pointer label justify-start gap-2") {
                                         checkBox(value = allowOnSite, className = "checkbox checkbox-primary") {
                                             onChange { allowOnSite = value }
                                         }
-                                        span(className = "label-text") { +"Na místě" }
+                                        span(className = "label-text") { +currentStrings.paymentOnSite }
                                     }
                                 }
                             }
@@ -281,11 +283,11 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                             div(className = "flex items-center gap-2 mb-3") {
                                 span(className = "icon-[heroicons--calendar-days] size-5 text-primary")
                                 h2(className = "card-title text-base") {
-                                    +"Náhled termínů (${previewDates.size})"
+                                    +currentStrings.recurrencePreviewHeading(previewDates.size)
                                 }
                             }
                             if (previewDates.isEmpty()) {
-                                p(className = "text-warning text-sm") { +"Datum konce je před datem začátku. Žádné termíny nevzniknou." }
+                                p(className = "text-warning text-sm") { +currentStrings.recurrencePreviewError }
                             } else {
                                 div(className = "flex flex-wrap gap-2") {
                                     previewDates.forEach { dt ->
@@ -304,12 +306,12 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                 div(className = "flex justify-end gap-2 mt-4") {
                     button(className = "btn") {
                         onClick { js("window.history.back()") }
-                        +"Zrušit"
+                        +currentStrings.cancel
                     }
                     button(className = "btn btn-primary") {
                         onClick {
                             if (startDate.isBlank() || startTime.isBlank()) {
-                                toastData = ToastData("Musíte vybrat datum a čas konání.", ToastType.Error)
+                                toastData = ToastData(currentStrings.validationDateTimeRequired, ToastType.Error)
                                 return@onClick
                             }
 
@@ -318,7 +320,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                             val parsedDateTime = try {
                                 LocalDateTime.parse(isoDateTimeString)
                             } catch (e: Exception) {
-                                toastData = ToastData("Neplatný formát data nebo času.", ToastType.Error)
+                                toastData = ToastData(currentStrings.validationDateTimeFormat, ToastType.Error)
                                 return@onClick
                             }
 
@@ -342,7 +344,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                             val dateTimes = if (isRecurring && previewDates.isNotEmpty()) previewDates else listOf(parsedDateTime)
 
                             if (dateTimes.isEmpty()) {
-                                toastData = ToastData("Žádné termíny ke vytvoření.", ToastType.Error)
+                                toastData = ToastData(currentStrings.validationNoDates, ToastType.Error)
                                 return@onClick
                             }
 
@@ -351,14 +353,14 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                 for (dt in dateTimes) {
                                     authEventService.createEventInstance(baseRequest.copy(startDateTime = dt))
                                         .onLeft { error ->
-                                            toastData = ToastData("Chyba při vytváření termínu $dt: $error", ToastType.Error)
+                                            toastData = ToastData(currentStrings.toastInstanceCreateError(dt.toString(), error.toString()), ToastType.Error)
                                             failed = true
                                         }
                                     if (failed) break
                                 }
                                 if (!failed) {
                                     toastData = ToastData(
-                                        if (dateTimes.size > 1) "Vytvořeno ${dateTimes.size} termínů!" else "Termín byl úspěšně vypsán!",
+                                        if (dateTimes.size > 1) currentStrings.toastInstancesCreated(dateTimes.size) else currentStrings.toastInstanceCreated,
                                         ToastType.Success
                                     )
                                     delay(500)
@@ -367,7 +369,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                             }
                         }
                         span(className = "icon-[heroicons--check] size-5")
-                        +(if (isRecurring && previewDates.size > 1) "Vypsat ${previewDates.size} termínů" else "Vypsat termín")
+                        +(if (isRecurring && previewDates.size > 1) currentStrings.createInstancesButton(previewDates.size) else currentStrings.createInstanceButton)
                     }
                 }
             }
