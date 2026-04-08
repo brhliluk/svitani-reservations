@@ -11,6 +11,7 @@ import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
@@ -43,6 +44,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
     val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
     val reservationService = getService<ReservationServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
+    val currentStrings by strings
 
     var refreshTrigger by remember { mutableStateOf(0) }
     var toastData by remember { mutableStateOf<ToastData?>(null) }
@@ -56,7 +58,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                 .onRight { value = AdminEventDetailUiState.Success(it) }
                 .onLeft { value = AdminEventDetailUiState.Error(it.localizedMessage) }
         } catch (e: IllegalArgumentException) {
-            value = AdminEventDetailUiState.Error("Neplatné ID události.")
+            value = AdminEventDetailUiState.Error(currentStrings.invalidEventId)
         }
     }
 
@@ -68,7 +70,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                 span { +state.message }
                 button(className = "btn btn-sm") {
                     onClick { router.navigate("/admin") }
-                    +"Zpět na přehled"
+                    +currentStrings.backToDashboard
                 }
             }
         }
@@ -97,19 +99,19 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                 // --- 2. STATISTIKY ---
                 div(className = "stats shadow-sm bg-base-100 w-full") {
                     div(className = "stat") {
-                        div(className = "stat-title") { +"Obsazenost" }
+                        div(className = "stat-title") { +currentStrings.occupancyStatTitle }
                         val isFull = data.occupiedSpots >= data.capacity
                         div(className = "stat-value ${if (isFull) "text-error" else "text-primary"}") {
                             +"${data.occupiedSpots} / ${data.capacity}"
                         }
                         div(className = "stat-desc") {
-                            if (isFull) +"Kapacita naplněna" else +"Zbývá ${data.capacity - data.occupiedSpots} míst"
+                            if (isFull) +currentStrings.capacityFilled else +currentStrings.spotsRemaining(data.capacity - data.occupiedSpots)
                         }
                     }
                     div(className = "stat") {
-                        div(className = "stat-title") { +"Vybráno (Potvrzené)" }
-                        div(className = "stat-value text-success") { +"${data.totalCollected} Kč" }
-                        div(className = "stat-desc") { +"Celkem od zaplacených" }
+                        div(className = "stat-title") { +currentStrings.revenueStatTitle }
+                        div(className = "stat-value text-success") { +"${data.totalCollected} ${currentStrings.currency}" }
+                        div(className = "stat-desc") { +currentStrings.revenueStatDesc }
                     }
                 }
 
@@ -120,11 +122,11 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                             table(className = "table table-zebra w-full") {
                                 thead {
                                     tr {
-                                        th { +"Účastník" }
-                                        th { +"Místa" }
-                                        th { +"Cena" }
-                                        th { +"Stav platby" }
-                                        th(className = "text-right") { +"Akce" }
+                                        th { +currentStrings.tableHeaderParticipant }
+                                        th { +currentStrings.tableHeaderSeats }
+                                        th { +currentStrings.priceLabel }
+                                        th { +currentStrings.tableHeaderPaymentStatus }
+                                        th(className = "text-right") { +currentStrings.tableHeaderActions }
                                     }
                                 }
                                 tbody {
@@ -133,7 +135,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                             td {
                                                 attribute("colspan", "5")
                                                 div(className = "text-center text-base-content/50 py-4 italic") {
-                                                    +"Zatím žádní přihlášení účastníci."
+                                                    +currentStrings.noParticipants
                                                 }
                                             }
                                         }
@@ -153,29 +155,29 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                                 }
                                                 td { +"${participant.seatCount}" }
                                                 td(className = if (!isPaid && isCash) "font-bold text-info" else "") {
-                                                    +"${participant.totalPrice} Kč"
+                                                    +"${participant.totalPrice} ${currentStrings.currency}"
                                                 }
                                                 td {
                                                     div(className = "flex flex-col gap-1 items-start") {
                                                         if (isPaid) {
                                                             div(className = "badge badge-success gap-1") {
                                                                 span(className = "icon-[heroicons--check] size-3")
-                                                                +"Zaplaceno"
+                                                                +currentStrings.paid
                                                             }
                                                         } else if (isCash) {
                                                             div(className = "badge badge-info badge-outline gap-1") {
                                                                 span(className = "icon-[heroicons--banknotes] size-3")
-                                                                +"Na místě"
+                                                                +currentStrings.statusOnSiteBadge
                                                             }
                                                         } else {
                                                             div(className = "badge badge-warning gap-1") {
                                                                 span(className = "icon-[heroicons--clock] size-3")
-                                                                +"Čeká"
+                                                                +currentStrings.statusWaiting
                                                             }
                                                         }
 
                                                         span(className = "text-xs text-base-content/60 font-medium") {
-                                                            if (isCash) +"Hotově" else +"Převodem"
+                                                            if (isCash) +currentStrings.paymentMethodCash else +currentStrings.bankTransfer
                                                         }
                                                     }
                                                 }
@@ -184,7 +186,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
 
                                                         if (!isPaid) {
                                                             button(className = "btn btn-xs tooltip tooltip-left ${if (isCash) "btn-outline btn-info" else "btn-ghost text-success"}") {
-                                                                attribute("data-tip", if (isCash) "Přijmout hotovost" else "Označit jako zaplacené")
+                                                                attribute("data-tip", if (isCash) currentStrings.tooltipAcceptCash else currentStrings.tooltipMarkPaid)
 
                                                                 onClick {
                                                                     pendingAction = PendingAction(
@@ -195,12 +197,12 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                                                 }
 
                                                                 span(className = "icon-[heroicons--check-circle] size-5")
-                                                                if (isCash) +"Vybrat"
+                                                                if (isCash) +currentStrings.buttonCollect
                                                             }
                                                         }
 
                                                         button(className = "btn btn-ghost btn-xs text-error tooltip tooltip-left") {
-                                                            attribute("data-tip", "Zrušit rezervaci")
+                                                            attribute("data-tip", currentStrings.tooltipCancelReservation)
 
                                                             onClick {
                                                                 pendingAction = PendingAction(
@@ -233,19 +235,19 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             div(className = "modal-box") {
 
                 h3(className = "font-bold text-lg") {
-                    if (action.type == AdminActionType.CONFIRM_PAYMENT) +"Potvrdit platbu"
-                    else +"Zrušit rezervaci"
+                    if (action.type == AdminActionType.CONFIRM_PAYMENT) +currentStrings.modalConfirmPaymentTitle
+                    else +currentStrings.modalCancelReservationTitle
                 }
 
                 p(className = "py-4") {
                     if (action.type == AdminActionType.CONFIRM_PAYMENT) {
-                        +"Opravdu chcete označit rezervaci pro účastníka "
+                        +currentStrings.modalConfirmPaymentMsgPre
                         strong { +action.participantName }
-                        +" jako zaplacenou?"
+                        +currentStrings.modalConfirmPaymentMsgPost
                     } else {
-                        +"Opravdu chcete zrušit rezervaci pro účastníka "
+                        +currentStrings.modalCancelMsgPre
                         strong { +action.participantName }
-                        +"? Tato akce je nevratná."
+                        +currentStrings.modalCancelMsgPost
                     }
                 }
 
@@ -253,7 +255,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                     // Tlačítko Zrušit (zavře dialog)
                     button(className = "btn") {
                         onClick { pendingAction = null }
-                        +"Zpět"
+                        +currentStrings.modalBack
                     }
 
                     button(className = "btn ${if (action.type == AdminActionType.CONFIRM_PAYMENT) "btn-success" else "btn-error"}") {
@@ -263,26 +265,26 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                     AdminActionType.CONFIRM_PAYMENT -> {
                                         adminService.markReservationAsPaid(action.reservationId)
                                             .onRight {
-                                                toastData = ToastData("Platba od ${action.participantName} potvrzena!", ToastType.Success)
+                                                toastData = ToastData(currentStrings.toastPaymentConfirmed(action.participantName), ToastType.Success)
                                                 refreshTrigger++
                                             }
                                             .onLeft { error ->
-                                                toastData = ToastData("Chyba: $error", ToastType.Error)
+                                                toastData = ToastData(currentStrings.errorToast(error.toString()), ToastType.Error)
                                             }
                                     }
                                     AdminActionType.CANCEL_RESERVATION -> {
                                         reservationService.cancelReservation(action.reservationId)
                                             .onRight {
-                                                toastData = ToastData("Rezervace od ${action.participantName} byla zrušena!", ToastType.Success)
+                                                toastData = ToastData(currentStrings.toastReservationCancelled(action.participantName), ToastType.Success)
                                                 refreshTrigger++
                                             }
-                                            .onLeft { error -> toastData = ToastData("Chyba: $error", ToastType.Error) }
+                                            .onLeft { error -> toastData = ToastData(currentStrings.errorToast(error.toString()), ToastType.Error) }
                                     }
                                 }
                                 pendingAction = null
                             }
                         }
-                        if (action.type == AdminActionType.CONFIRM_PAYMENT) +"Ano, potvrdit" else +"Ano, zrušit"
+                        if (action.type == AdminActionType.CONFIRM_PAYMENT) +currentStrings.modalConfirmAction else +currentStrings.modalConfirmCancelAction
                     }
                 }
             }
@@ -290,7 +292,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             form(className = "modal-backdrop") {
                 button {
                     onClick { pendingAction = null }
-                    +"zavřít"
+                    +currentStrings.close
                 }
             }
         }

@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
@@ -15,6 +16,7 @@ import kotlin.js.js
 fun IComponent.AdminEventCreateChooseScreen(definitionId: String) {
     val router = Router.current
     val eventService = getService<EventServiceInterface>(RpcSerializersModules)
+    val currentStrings by strings
 
     val definitionTitle by produceState<String?>(initialValue = null) {
         eventService.getAllDefinitions()
@@ -30,9 +32,9 @@ fun IComponent.AdminEventCreateChooseScreen(definitionId: String) {
                 onClick { js("window.history.back()") }
             }
             div {
-                h1(className = "text-3xl font-bold text-base-content") { +"Jak chcete vypsat šablonu?" }
+                h1(className = "text-3xl font-bold text-base-content") { +currentStrings.chooseTypeTitle }
                 p(className = "text-base-content/60 mt-1") {
-                    +(definitionTitle?.let { "Šablona: $it" } ?: "Vyberte typ termínu")
+                    +(definitionTitle?.let { currentStrings.chooseTypeSubtitleWith(it) } ?: currentStrings.chooseTypeSubtitle)
                 }
             }
         }
@@ -46,8 +48,8 @@ fun IComponent.AdminEventCreateChooseScreen(definitionId: String) {
                 div(className = "card-body items-center text-center gap-4 py-10") {
                     span(className = "icon-[heroicons--calendar] size-16 text-primary")
                     div {
-                        h2(className = "card-title justify-center text-xl") { +"Jednorázový termín" }
-                        p(className = "text-base-content/60 text-sm mt-1") { +"Jednorázová akce s konkrétním datem a časem." }
+                        h2(className = "card-title justify-center text-xl") { +currentStrings.instanceCardTitle }
+                        p(className = "text-base-content/60 text-sm mt-1") { +currentStrings.instanceCardDescription }
                     }
                 }
             }
@@ -58,8 +60,8 @@ fun IComponent.AdminEventCreateChooseScreen(definitionId: String) {
                 div(className = "card-body items-center text-center gap-4 py-10") {
                     span(className = "icon-[heroicons--academic-cap] size-16 text-secondary")
                     div {
-                        h2(className = "card-title justify-center text-xl") { +"Kurz / více lekcí" }
-                        p(className = "text-base-content/60 text-sm mt-1") { +"Opakující se kurz s více lekcemi v daném období." }
+                        h2(className = "card-title justify-center text-xl") { +currentStrings.seriesCardTitle }
+                        p(className = "text-base-content/60 text-sm mt-1") { +currentStrings.seriesCardDescription }
                     }
                 }
             }

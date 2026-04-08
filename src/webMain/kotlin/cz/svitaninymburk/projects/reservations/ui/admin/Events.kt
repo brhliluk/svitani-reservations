@@ -9,6 +9,7 @@ import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import dev.kilua.core.IComponent
@@ -26,6 +27,7 @@ private sealed interface AdminEventsUiState {
 fun IComponent.AdminEventsScreen() {
     val router = Router.current
     val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
+    val currentStrings by strings
 
     val expandedGroups = remember { mutableStateMapOf<Uuid, Boolean>() }
 
@@ -40,14 +42,14 @@ fun IComponent.AdminEventsScreen() {
         // --- 1. HLAVIČKA A TLAČÍTKA ---
         div(className = "flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4") {
             div {
-                h1(className = "text-3xl font-bold text-base-content") { +"Události a Kurzy" }
-                p(className = "text-base-content/60 mt-1") { +"Správa katalogu a otevírání nových termínů" }
+                h1(className = "text-3xl font-bold text-base-content") { +currentStrings.navEvents }
+                p(className = "text-base-content/60 mt-1") { +currentStrings.adminEventsSubtitle }
             }
 
             // Magické tlačítko, které nás později hodí na formulář
             button(className = "btn btn-primary") {
                 span(className = "icon-[heroicons--plus] size-5")
-                +"Vytvořit novou"
+                +currentStrings.createNew
                  onClick { router.navigate("/admin/events/create/definition") } // Přidáme později
             }
         }
@@ -56,7 +58,7 @@ fun IComponent.AdminEventsScreen() {
         when (val state = uiState) {
             is AdminEventsUiState.Loading -> Loading()
             is AdminEventsUiState.Error -> {
-                div(className = "alert alert-error") { +"Chyba načítání: ${state.message}" }
+                div(className = "alert alert-error") { +currentStrings.loadingError(state.message) }
             }
             is AdminEventsUiState.Success -> {
                 val data = state.data
@@ -68,7 +70,7 @@ fun IComponent.AdminEventsScreen() {
                 if (definitions.isEmpty()) {
                     div(className = "card bg-base-100 shadow-sm") {
                         div(className = "card-body") {
-                            div(className = "text-center text-base-content/50 py-8") { +"Zatím tu nic není. Vytvořte první šablonu!" }
+                            div(className = "text-center text-base-content/50 py-8") { +currentStrings.emptyTemplates }
                         }
                     }
                 } else {
@@ -83,21 +85,21 @@ fun IComponent.AdminEventsScreen() {
                                         span(className = "icon-[heroicons--document-text] size-5 text-base-content/50 shrink-0")
                                         span(className = "font-bold text-base-content truncate") { +def.title }
                                         if (children.isEmpty()) {
-                                            div(className = "badge badge-ghost badge-sm shrink-0") { +"Bez termínů" }
+                                            div(className = "badge badge-ghost badge-sm shrink-0") { +currentStrings.noDates }
                                         } else {
-                                            div(className = "badge badge-neutral badge-sm shrink-0") { +"${children.size} termínů" }
+                                            div(className = "badge badge-neutral badge-sm shrink-0") { +currentStrings.datesCount(children.size) }
                                         }
                                     }
                                     div(className = "flex items-center gap-2 shrink-0") {
                                         button(className = "btn btn-xs btn-outline btn-primary") {
                                             onClick { router.navigate("/admin/events/create/instance/${def.id}") }
                                             span(className = "icon-[heroicons--plus] size-3")
-                                            +"Termín"
+                                            +currentStrings.addDate
                                         }
                                         button(className = "btn btn-xs btn-outline btn-secondary") {
                                             onClick { router.navigate("/admin/events/create/series/${def.id}") }
                                             span(className = "icon-[heroicons--plus] size-3")
-                                            +"Kurz"
+                                            +currentStrings.adminCourse
                                         }
                                     }
                                 }
@@ -105,7 +107,7 @@ fun IComponent.AdminEventsScreen() {
                                 // Children table
                                 if (children.isEmpty()) {
                                     div(className = "px-4 py-6 text-center text-sm text-base-content/40 italic") {
-                                        +"Žádné termíny. Vytvořte první kliknutím na + Termín nebo + Kurz."
+                                        +currentStrings.noInstancesMessage
                                     }
                                 } else {
                                     val isExpanded = expandedGroups[def.id] ?: false
@@ -126,12 +128,12 @@ fun IComponent.AdminEventsScreen() {
                                                             if (item.isSeries) {
                                                                 div(className = "badge badge-secondary badge-outline badge-sm gap-1") {
                                                                     span(className = "icon-[heroicons--academic-cap] size-3")
-                                                                    +"Kurz"
+                                                                    +currentStrings.adminCourse
                                                                 }
                                                             } else {
                                                                 div(className = "badge badge-primary badge-outline badge-sm gap-1") {
                                                                     span(className = "icon-[heroicons--calendar] size-3")
-                                                                    +"Jednorázovka"
+                                                                    +currentStrings.badgeOneTime
                                                                 }
                                                             }
                                                         }
@@ -143,7 +145,7 @@ fun IComponent.AdminEventsScreen() {
                                                                     +"${item.occupiedSpots} / ${item.capacity}"
                                                                 }
                                                                 if (isFull) {
-                                                                    div(className = "badge badge-error badge-xs") { +"PLNO" }
+                                                                    div(className = "badge badge-error badge-xs") { +currentStrings.capacityFull }
                                                                 }
                                                             }
                                                         }
@@ -165,10 +167,10 @@ fun IComponent.AdminEventsScreen() {
                                                                     onClick { expandedGroups[def.id] = !isExpanded }
                                                                     if (isExpanded) {
                                                                         span(className = "icon-[heroicons--chevron-up] size-3")
-                                                                        +"Zobrazit méně"
+                                                                        +currentStrings.showLess
                                                                     } else {
                                                                         span(className = "icon-[heroicons--chevron-down] size-3")
-                                                                        +"Zobrazit dalších $hiddenCount"
+                                                                        +currentStrings.showMore(hiddenCount)
                                                                     }
                                                                 }
                                                             }

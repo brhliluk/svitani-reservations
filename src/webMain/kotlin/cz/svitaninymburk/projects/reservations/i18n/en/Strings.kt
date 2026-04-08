@@ -101,6 +101,179 @@ object EnStrings : AppStrings {
     // Calendar
     override val more: (Int) -> String = { "+$it more" }
 
+    // Admin Dashboard
+    override val dashboardWelcome = "Welcome back! Here's how your reservations look right now."
+    override val dashboardTodayParticipants = "Today's participants"
+    override val dashboardPendingPayment = "Awaiting payment"
+    override val dashboardPendingPaymentsDesc: (Int) -> String = { "Total $it reservations" }
+    override val dashboardFreeSpots = "Free spots"
+    override val dashboardFreeSpotsDesc = "In events this week"
+    override val dashboardUpcomingEvents = "Upcoming events"
+    override val dashboardNoUpcomingEvents = "No upcoming events."
+    override val dashboardPendingReservations = "Recent unpaid reservations"
+    override val dashboardAllPaid = "All reservations are paid!"
+
+    // Admin Reservations Screen
+    override val allReservations = "All reservations"
+    override val reservationsSubtitle = "Overview and management of all registrations"
+    override val search = "Search"
+    override val searchPlaceholder = "Search name, email or variable symbol..."
+    override val clearSearch = "Clear search"
+    override val tableHeaderEvent = "Event / Course"
+    override val noReservationsForSearch: (String) -> String = { "No reservations found for '$it'." }
+    override val noReservations = "No reservations yet."
+
+    // Admin Layout / Sidebar
+    override val adminPanel = "Admin Panel"
+    override val adminNavTitle = "Administration"
+    override val navEvents = "Events & Courses"
+    override val navReservations = "Reservations"
+    override val navUsers = "Users"
+    override val logOut = "Log out"
+
+    // Admin Events Screen
+    override val adminEventsSubtitle = "Manage catalog and open new dates"
+    override val createNew = "Create new"
+    override val emptyTemplates = "Nothing here yet. Create your first template!"
+    override val noDates = "No dates"
+    override val datesCount: (Int) -> String = { "$it dates" }
+    override val addDate = "Date"
+    override val adminCourse = "Course"
+    override val noInstancesMessage = "No dates yet. Create the first by clicking + Date or + Course."
+    override val badgeOneTime = "One-time"
+    override val capacityFull = "FULL"
+    override val showLess = "Show less"
+    override val showMore: (Int) -> String = { "Show $it more" }
+    override val loadingError: (String) -> String = { "Loading error: $it" }
+
+    // Shared Admin Form Elements
+    override val descriptionLabel = "Description"
+    override val basicInfoHeading = "Basic info"
+    override val defaultPriceLabel = "Default price"
+    override val capacityPersonLabel = "Person capacity"
+    override val defaultDurationLabel = "Default duration"
+    override val durationLabel = "Duration"
+    override val hours = "h"
+    override val minutes = "min"
+    override val allowedPaymentsLabel = "Allowed payments"
+    override val paymentOnSite = "On-site"
+    override val templateSelectionLabel = "Which template are we basing this on?"
+    override val templatePlaceholder = "-- Select a template --"
+    override val noTemplatesHeading = "No templates"
+    override val createTemplateButton = "Create template"
+    override val errorToast: (String) -> String = { "Error: $it" }
+    override val toastTemplatesLoadError: (String) -> String = { "Error loading templates: $it" }
+
+    // Event Definition Form
+    override val eventNameLabel = "Name (e.g. Yoga for Beginners)"
+    override val newTemplateTitle = "New event template"
+    override val newTemplateSubtitle = "Create a base definition to schedule dates from."
+    override val recurrenceHeading = "Recurrence"
+    override val recurrenceTypeLabel = "Recurrence type"
+    override val recurrenceNone = "None"
+    override val recurrenceDaily = "Daily"
+    override val recurrenceWeekly = "Weekly"
+    override val recurrenceMonthly = "Monthly"
+    override val recurrenceEndLabel = "Repeat until"
+    override val customFieldsHeading = "Custom reservation form fields"
+    override val addFieldButton = "Add field"
+    override val addTextField = "Text field"
+    override val addNumberField = "Number field"
+    override val addBooleanField = "Checkbox (Yes/No)"
+    override val addTimeRangeField = "Time range"
+    override val noCustomFieldsMessage = "No custom fields yet. People will only fill in Name, Email, and Phone."
+    override val fieldKeyLabel = "Key (system)"
+    override val fieldLabelLabel = "Display text (Label)"
+    override val fieldRequired = "Required field"
+    override val fieldTypeText = "Type: Text"
+    override val fieldTypeNumber = "Type: Number"
+    override val fieldTypeBoolean = "Type: Yes/No"
+    override val fieldTypeTimeRange = "Type: Time range"
+    override val validationNameRequired = "Name is required"
+    override val validationRecurrenceEndRequired = "Enter the recurrence end date."
+    override val validationRecurrenceDateFormat = "Invalid recurrence end date format."
+    override val templateSavedToast = "Template saved successfully!"
+
+    // Event Instance Form
+    override val newInstanceTitle = "Schedule new date"
+    override val newInstanceSubtitle = "Select a template, set date and time. You can adjust the details for this date."
+    override val noTemplatesInstanceMessage = "Before scheduling a date, create at least one event template."
+    override val dateLabelField = "Event date"
+    override val timeLabelField = "Start time"
+    override val overrideHeading = "Edits for this specific date"
+    override val overrideDescription = "These fields are prefilled from the template. Changes apply only to this one date."
+    override val instanceTitleLabel = "Date title"
+    override val recurrencePreviewHeading: (Int) -> String = { "Date preview ($it)" }
+    override val recurrencePreviewError = "End date is before start date. No dates will be created."
+    override val createInstanceButton = "Schedule date"
+    override val createInstancesButton: (Int) -> String = { "Schedule $it dates" }
+    override val validationDateTimeRequired = "You must select a date and time."
+    override val validationDateTimeFormat = "Invalid date or time format."
+    override val validationNoDates = "No dates to create."
+    override val toastInstanceCreateError: (String, String) -> String = { dt, err -> "Error creating date $dt: $err" }
+    override val toastInstancesCreated: (Int) -> String = { "Created $it dates!" }
+    override val toastInstanceCreated = "Date was successfully scheduled!"
+
+    // Event Series Form
+    override val newSeriesTitle = "Create course"
+    override val newSeriesSubtitle = "Set the period and number of lessons. Details are prefilled from the template."
+    override val noTemplatesSeriesMessage = "Before creating a course, create an event template first."
+    override val startDateLabel = "Start date"
+    override val endDateLabel = "End date"
+    override val lessonCountLabel = "Number of lessons"
+    override val autoFillAlert = "End date and lesson count were prefilled from the template. You can edit them."
+    override val seriesOverrideHeading = "Edits for this course"
+    override val seriesOverrideDescription = "Prefilled from template. Changes apply only to this course."
+    override val seriesTitleLabel = "Course name"
+    override val fullCoursePriceLabel = "Price (full course)"
+    override val createSeriesButton = "Create course"
+    override val validationDatesRequired = "You must fill in start and end date."
+    override val validationSeriesTitleRequired = "Course name is required."
+    override val validationStartDateFormat = "Invalid start date format."
+    override val validationEndDateFormat = "Invalid end date format."
+    override val validationEndBeforeStart = "End date must be after start date."
+    override val toastSeriesCreated = "Course was successfully created!"
+
+    // Event Create Choose
+    override val chooseTypeTitle = "How do you want to schedule this template?"
+    override val chooseTypeSubtitle = "Select date type"
+    override val chooseTypeSubtitleWith: (String) -> String = { "Template: $it" }
+    override val instanceCardTitle = "One-time date"
+    override val instanceCardDescription = "One-time event with a specific date and time."
+    override val seriesCardTitle = "Course / multiple lessons"
+    override val seriesCardDescription = "Recurring course with multiple lessons in a given period."
+
+    // Event Detail
+    override val occupancyStatTitle = "Occupancy"
+    override val capacityFilled = "Capacity filled"
+    override val spotsRemaining: (Int) -> String = { "$it spots remaining" }
+    override val revenueStatTitle = "Collected (Confirmed)"
+    override val revenueStatDesc = "Total from paid"
+    override val tableHeaderParticipant = "Participant"
+    override val tableHeaderSeats = "Seats"
+    override val tableHeaderPaymentStatus = "Payment status"
+    override val tableHeaderActions = "Actions"
+    override val noParticipants = "No registered participants yet."
+    override val statusOnSiteBadge = "On-site"
+    override val statusWaiting = "Waiting"
+    override val paymentMethodCash = "Cash"
+    override val tooltipAcceptCash = "Accept cash"
+    override val tooltipMarkPaid = "Mark as paid"
+    override val buttonCollect = "Collect"
+    override val tooltipCancelReservation = "Cancel reservation"
+    override val modalConfirmPaymentTitle = "Confirm payment"
+    override val modalCancelReservationTitle = "Cancel reservation"
+    override val modalConfirmPaymentMsgPre = "Do you really want to mark the reservation for participant "
+    override val modalConfirmPaymentMsgPost = " as paid?"
+    override val modalCancelMsgPre = "Do you really want to cancel the reservation for participant "
+    override val modalCancelMsgPost = "? This action is irreversible."
+    override val modalBack = "Back"
+    override val modalConfirmAction = "Yes, confirm"
+    override val modalConfirmCancelAction = "Yes, cancel"
+    override val toastPaymentConfirmed: (String) -> String = { "Payment from $it confirmed!" }
+    override val toastReservationCancelled: (String) -> String = { "Reservation from $it was cancelled!" }
+    override val invalidEventId = "Invalid event ID."
+
     // Lists for helper functions
     private val months = listOf(
         "January", "February", "March", "April", "May", "June",

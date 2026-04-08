@@ -101,6 +101,179 @@ object CsStrings : AppStrings {
     // Calendar
     override val more: (Int) -> String = { "+$it další" }
 
+    // Admin Dashboard
+    override val dashboardWelcome = "Vítejte zpět! Takhle to aktuálně vypadá s vašimi rezervacemi."
+    override val dashboardTodayParticipants = "Dnešní účastníci"
+    override val dashboardPendingPayment = "Čeká na platbu"
+    override val dashboardPendingPaymentsDesc: (Int) -> String = { "Celkem $it rezervací" }
+    override val dashboardFreeSpots = "Volná místa"
+    override val dashboardFreeSpotsDesc = "Na akcích v tomto týdnu"
+    override val dashboardUpcomingEvents = "Nejbližší události"
+    override val dashboardNoUpcomingEvents = "Žádné nadcházející události."
+    override val dashboardPendingReservations = "Poslední neuhrazené rezervace"
+    override val dashboardAllPaid = "Všechny rezervace jsou uhrazené!"
+
+    // Admin Reservations Screen
+    override val allReservations = "Všechny rezervace"
+    override val reservationsSubtitle = "Přehled a správa všech přihlášek"
+    override val search = "Hledat"
+    override val searchPlaceholder = "Hledat jméno, e-mail nebo VS..."
+    override val clearSearch = "Zrušit vyhledávání"
+    override val tableHeaderEvent = "Událost / Kurz"
+    override val noReservationsForSearch: (String) -> String = { "Nebyly nalezeny žádné rezervace pro '$it'." }
+    override val noReservations = "Zatím neexistují žádné rezervace."
+
+    // Admin Layout / Sidebar
+    override val adminPanel = "Admin Panel"
+    override val adminNavTitle = "Administrace"
+    override val navEvents = "Události a Kurzy"
+    override val navReservations = "Rezervace"
+    override val navUsers = "Uživatelé"
+    override val logOut = "Odhlásit se"
+
+    // Admin Events Screen
+    override val adminEventsSubtitle = "Správa katalogu a otevírání nových termínů"
+    override val createNew = "Vytvořit novou"
+    override val emptyTemplates = "Zatím tu nic není. Vytvořte první šablonu!"
+    override val noDates = "Bez termínů"
+    override val datesCount: (Int) -> String = { "$it termínů" }
+    override val addDate = "Termín"
+    override val adminCourse = "Kurz"
+    override val noInstancesMessage = "Žádné termíny. Vytvořte první kliknutím na + Termín nebo + Kurz."
+    override val badgeOneTime = "Jednorázovka"
+    override val capacityFull = "PLNO"
+    override val showLess = "Zobrazit méně"
+    override val showMore: (Int) -> String = { "Zobrazit dalších $it" }
+    override val loadingError: (String) -> String = { "Chyba načítání: $it" }
+
+    // Shared Admin Form Elements
+    override val descriptionLabel = "Popis"
+    override val basicInfoHeading = "Základní údaje"
+    override val defaultPriceLabel = "Výchozí cena"
+    override val capacityPersonLabel = "Kapacita osob"
+    override val defaultDurationLabel = "Výchozí délka"
+    override val durationLabel = "Délka"
+    override val hours = "h"
+    override val minutes = "min"
+    override val allowedPaymentsLabel = "Povolené platby"
+    override val paymentOnSite = "Na místě"
+    override val templateSelectionLabel = "Ze které šablony vycházíme?"
+    override val templatePlaceholder = "-- Vyberte šablonu --"
+    override val noTemplatesHeading = "Žádné šablony"
+    override val createTemplateButton = "Vytvořit šablonu"
+    override val errorToast: (String) -> String = { "Chyba: $it" }
+    override val toastTemplatesLoadError: (String) -> String = { "Chyba při načítání šablon: $it" }
+
+    // Event Definition Form
+    override val eventNameLabel = "Název (např. Jóga pro začátečníky)"
+    override val newTemplateTitle = "Nová šablona události"
+    override val newTemplateSubtitle = "Vytvořte základní definici, ze které pak budete vypisovat termíny."
+    override val recurrenceHeading = "Opakování"
+    override val recurrenceTypeLabel = "Typ opakování"
+    override val recurrenceNone = "Žádné"
+    override val recurrenceDaily = "Denně"
+    override val recurrenceWeekly = "Týdně"
+    override val recurrenceMonthly = "Měsíčně"
+    override val recurrenceEndLabel = "Opakovat do"
+    override val customFieldsHeading = "Vlastní pole rezervačního formuláře"
+    override val addFieldButton = "Přidat pole"
+    override val addTextField = "Textové pole"
+    override val addNumberField = "Číselné pole"
+    override val addBooleanField = "Zaškrtávátko (Ano/Ne)"
+    override val addTimeRangeField = "Časový úsek"
+    override val noCustomFieldsMessage = "Zatím žádná vlastní pole. Lidé vyplní jen Jméno, E-mail a Telefon."
+    override val fieldKeyLabel = "Klíč (pro systém)"
+    override val fieldLabelLabel = "Zobrazený text (Label)"
+    override val fieldRequired = "Povinné pole"
+    override val fieldTypeText = "Typ: Text"
+    override val fieldTypeNumber = "Typ: Číslo"
+    override val fieldTypeBoolean = "Typ: Ano/Ne"
+    override val fieldTypeTimeRange = "Typ: Časový úsek"
+    override val validationNameRequired = "Název je povinný"
+    override val validationRecurrenceEndRequired = "Zadejte datum konce opakování."
+    override val validationRecurrenceDateFormat = "Neplatný formát data konce opakování."
+    override val templateSavedToast = "Šablona úspěšně uložena!"
+
+    // Event Instance Form
+    override val newInstanceTitle = "Vypsat nový termín"
+    override val newInstanceSubtitle = "Vyberte šablonu, nastavte datum a čas. Údaje můžete pro tento termín libovolně upravit."
+    override val noTemplatesInstanceMessage = "Než vypíšete termín, musíte vytvořit alespoň jednu šablonu události."
+    override val dateLabelField = "Datum konání"
+    override val timeLabelField = "Čas začátku"
+    override val overrideHeading = "Úpravy pro tento konkrétní termín"
+    override val overrideDescription = "Tato pole jsou předvyplněná podle šablony. Pokud je změníte, změna se projeví pouze u tohoto jednoho termínu."
+    override val instanceTitleLabel = "Název termínu"
+    override val recurrencePreviewHeading: (Int) -> String = { "Náhled termínů ($it)" }
+    override val recurrencePreviewError = "Datum konce je před datem začátku. Žádné termíny nevzniknou."
+    override val createInstanceButton = "Vypsat termín"
+    override val createInstancesButton: (Int) -> String = { "Vypsat $it termínů" }
+    override val validationDateTimeRequired = "Musíte vybrat datum a čas konání."
+    override val validationDateTimeFormat = "Neplatný formát data nebo času."
+    override val validationNoDates = "Žádné termíny ke vytvoření."
+    override val toastInstanceCreateError: (String, String) -> String = { dt, err -> "Chyba při vytváření termínu $dt: $err" }
+    override val toastInstancesCreated: (Int) -> String = { "Vytvořeno $it termínů!" }
+    override val toastInstanceCreated = "Termín byl úspěšně vypsán!"
+
+    // Event Series Form
+    override val newSeriesTitle = "Vytvořit kurz"
+    override val newSeriesSubtitle = "Nastavte období a počet lekcí. Detaily jsou předvyplněné ze šablony."
+    override val noTemplatesSeriesMessage = "Než vytvoříte kurz, musíte nejprve vytvořit šablonu události."
+    override val startDateLabel = "Datum začátku"
+    override val endDateLabel = "Datum konce"
+    override val lessonCountLabel = "Počet lekcí"
+    override val autoFillAlert = "Datum konce a počet lekcí byly předvyplněny ze šablony. Můžete je upravit."
+    override val seriesOverrideHeading = "Úpravy pro tento kurz"
+    override val seriesOverrideDescription = "Předvyplněno ze šablony. Změny se projeví pouze u tohoto kurzu."
+    override val seriesTitleLabel = "Název kurzu"
+    override val fullCoursePriceLabel = "Cena (celý kurz)"
+    override val createSeriesButton = "Vytvořit kurz"
+    override val validationDatesRequired = "Musíte vyplnit datum začátku a konce."
+    override val validationSeriesTitleRequired = "Název kurzu je povinný."
+    override val validationStartDateFormat = "Neplatný formát data začátku."
+    override val validationEndDateFormat = "Neplatný formát data konce."
+    override val validationEndBeforeStart = "Datum konce musí být po datu začátku."
+    override val toastSeriesCreated = "Kurz byl úspěšně vytvořen!"
+
+    // Event Create Choose
+    override val chooseTypeTitle = "Jak chcete vypsat šablonu?"
+    override val chooseTypeSubtitle = "Vyberte typ termínu"
+    override val chooseTypeSubtitleWith: (String) -> String = { "Šablona: $it" }
+    override val instanceCardTitle = "Jednorázový termín"
+    override val instanceCardDescription = "Jednorázová akce s konkrétním datem a časem."
+    override val seriesCardTitle = "Kurz / více lekcí"
+    override val seriesCardDescription = "Opakující se kurz s více lekcemi v daném období."
+
+    // Event Detail
+    override val occupancyStatTitle = "Obsazenost"
+    override val capacityFilled = "Kapacita naplněna"
+    override val spotsRemaining: (Int) -> String = { "Zbývá $it míst" }
+    override val revenueStatTitle = "Vybráno (Potvrzené)"
+    override val revenueStatDesc = "Celkem od zaplacených"
+    override val tableHeaderParticipant = "Účastník"
+    override val tableHeaderSeats = "Místa"
+    override val tableHeaderPaymentStatus = "Stav platby"
+    override val tableHeaderActions = "Akce"
+    override val noParticipants = "Zatím žádní přihlášení účastníci."
+    override val statusOnSiteBadge = "Na místě"
+    override val statusWaiting = "Čeká"
+    override val paymentMethodCash = "Hotově"
+    override val tooltipAcceptCash = "Přijmout hotovost"
+    override val tooltipMarkPaid = "Označit jako zaplacené"
+    override val buttonCollect = "Vybrat"
+    override val tooltipCancelReservation = "Zrušit rezervaci"
+    override val modalConfirmPaymentTitle = "Potvrdit platbu"
+    override val modalCancelReservationTitle = "Zrušit rezervaci"
+    override val modalConfirmPaymentMsgPre = "Opravdu chcete označit rezervaci pro účastníka "
+    override val modalConfirmPaymentMsgPost = " jako zaplacenou?"
+    override val modalCancelMsgPre = "Opravdu chcete zrušit rezervaci pro účastníka "
+    override val modalCancelMsgPost = "? Tato akce je nevratná."
+    override val modalBack = "Zpět"
+    override val modalConfirmAction = "Ano, potvrdit"
+    override val modalConfirmCancelAction = "Ano, zrušit"
+    override val toastPaymentConfirmed: (String) -> String = { "Platba od $it potvrzena!" }
+    override val toastReservationCancelled: (String) -> String = { "Rezervace od $it byla zrušena!" }
+    override val invalidEventId = "Neplatné ID události."
+
     private val months = listOf(
         "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
         "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"
