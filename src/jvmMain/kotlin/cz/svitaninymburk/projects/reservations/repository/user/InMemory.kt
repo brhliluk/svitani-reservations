@@ -9,6 +9,10 @@ class InMemoryUserRepository : UserRepository {
 
     private val users = ConcurrentHashMap<Uuid, User>()
 
+    override suspend fun findAll(): List<User> {
+        return users.values.toList()
+    }
+
     override suspend fun findByEmail(email: String): User? {
         return users.values.find { it.email == email }
     }

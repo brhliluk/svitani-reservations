@@ -293,6 +293,30 @@ interface AppStrings {
     // On-site payment detail
     val onSitePaymentInfo: String
 
+    // Admin Users Screen
+    val allUsers: String
+    val usersSubtitle: String
+    val usersSearchPlaceholder: String
+    val tableHeaderAuthType: String
+    val tableHeaderReservations: String
+    val noUsers: String
+    val noUsersForSearch: (String) -> String
+    val authTypeEmail: String
+    val authTypeGoogle: String
+    val tooltipChangeRole: String
+    val tooltipDeleteUser: String
+    val modalChangeRoleTitle: String
+    val modalChangeRoleMsgPre: String
+    val modalChangeRoleMsgMid: String
+    val modalChangeRoleMsgPost: String
+    val modalDeleteUserTitle: String
+    val modalDeleteUserMsgPre: String
+    val modalDeleteUserMsgPost: String
+    val toastRoleChanged: (String) -> String
+    val toastUserDeleted: (String) -> String
+    val roleAdmin: String
+    val roleUser: String
+
     // Attendance Screen
     val attendanceButton: String
     val attendancePrintHeader: (String) -> String

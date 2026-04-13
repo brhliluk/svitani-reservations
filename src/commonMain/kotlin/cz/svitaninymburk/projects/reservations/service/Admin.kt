@@ -6,8 +6,10 @@ import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
+import cz.svitaninymburk.projects.reservations.admin.AdminUserListItem
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventSeriesRequest
+import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.rpc.annotations.RpcService
 import kotlin.uuid.Uuid
 
@@ -20,4 +22,7 @@ interface AdminServiceInterface {
     suspend fun getAllEvents(): Either<AdminError.GetEvents, List<AdminEventListItem>>
     suspend fun createEventDefinition(request: CreateEventDefinitionRequest): Either<AdminError.CreateEvent, Uuid>
     suspend fun createEventSeries(request: CreateEventSeriesRequest): Either<AdminError.CreateSeries, Uuid>
+    suspend fun getAllUsers(): Either<AdminError.GetUsers, List<AdminUserListItem>>
+    suspend fun updateUserRole(userId: Uuid, newRole: User.Role): Either<AdminError.UpdateUserRole, Unit>
+    suspend fun deleteUser(userId: Uuid): Either<AdminError.DeleteUser, Unit>
 }

@@ -277,6 +277,30 @@ object EnStrings : AppStrings {
     // On-site payment detail
     override val onSitePaymentInfo = "Please pay cash on site."
 
+    // Admin Users Screen
+    override val allUsers = "Users"
+    override val usersSubtitle = "Overview and management of user accounts"
+    override val usersSearchPlaceholder = "Search by name or email..."
+    override val tableHeaderAuthType = "Auth type"
+    override val tableHeaderReservations = "Reservations"
+    override val noUsers = "No users yet."
+    override val noUsersForSearch: (String) -> String = { "No users found for '$it'." }
+    override val authTypeEmail = "Email"
+    override val authTypeGoogle = "Google"
+    override val tooltipChangeRole = "Change role"
+    override val tooltipDeleteUser = "Delete user"
+    override val modalChangeRoleTitle = "Change role"
+    override val modalChangeRoleMsgPre = "Do you really want to change the role of "
+    override val modalChangeRoleMsgMid = " to "
+    override val modalChangeRoleMsgPost = "?"
+    override val modalDeleteUserTitle = "Delete user"
+    override val modalDeleteUserMsgPre = "Do you really want to delete the account of "
+    override val modalDeleteUserMsgPost = "? This action is irreversible."
+    override val toastRoleChanged: (String) -> String = { "Role of $it was changed." }
+    override val toastUserDeleted: (String) -> String = { "Account of $it was deleted." }
+    override val roleAdmin = "Administrator"
+    override val roleUser = "User"
+
     // Attendance Screen
     override val attendanceButton = "Attendance"
     override val attendancePrintHeader: (String) -> String = { "Attendance: $it" }
