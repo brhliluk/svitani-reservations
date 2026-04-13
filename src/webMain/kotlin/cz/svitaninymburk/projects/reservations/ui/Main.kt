@@ -16,6 +16,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventInstance
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventSeriesScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminDashboardScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventCreateChooseScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminAttendanceScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventDetailScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminLayout
@@ -85,11 +86,25 @@ fun IComponent.MainLayout() {
                                 AdminEventDetailScreen(eventId = eventId.value, isSeries = false)
                             }
                         }
+                        route("/attendance") {
+                            view {
+                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                    AdminAttendanceScreen(eventId = eventId.value, isSeries = false)
+                                }
+                            }
+                        }
                     } }
                     route("/series") { string { seriesId ->
                         view {
                             AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                                 AdminEventDetailScreen(eventId = seriesId.value, isSeries = true)
+                            }
+                        }
+                        route("/attendance") {
+                            view {
+                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                    AdminAttendanceScreen(eventId = seriesId.value, isSeries = true)
+                                }
                             }
                         }
                     } }

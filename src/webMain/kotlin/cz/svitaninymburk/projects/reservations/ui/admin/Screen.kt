@@ -28,7 +28,7 @@ fun IComponent.AdminLayout(
         div(className = "drawer-content flex flex-col") {
 
             // Horní lišta (Navbar) - Viditelná hlavně na mobilu, na desktopu spíš pro profil
-            div(className = "w-full navbar bg-base-100 shadow-sm lg:hidden") {
+            div(className = "w-full navbar bg-base-100 shadow-sm lg:hidden print:hidden") {
                 div(className = "flex-none") {
                     label(htmlFor = "admin-drawer", className = "btn btn-square btn-ghost") {
                         span(className = "icon-[heroicons--bars-3] size-6")
@@ -46,7 +46,7 @@ fun IComponent.AdminLayout(
         }
 
         // --- BOČNÍ PANEL (SIDEBAR) ---
-        div(className = "drawer-side z-50") {
+        div(className = "drawer-side z-50 print:hidden") {
             label(htmlFor = "admin-drawer", className = "drawer-overlay")
 
             div(className = "menu p-4 w-72 min-h-full bg-base-100 text-base-content border-r border-base-200 flex flex-col") {

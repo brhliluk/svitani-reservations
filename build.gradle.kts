@@ -95,6 +95,7 @@ kotlin {
                 implementation(libs.arrow.serialization)
                 implementation(libs.arrow.fx.coroutines)
                 implementation(libs.google.api.client)
+                implementation(libs.guava)
                 implementation(libs.jwt)
 
                 implementation(project.dependencies.platform(libs.koin.bom))

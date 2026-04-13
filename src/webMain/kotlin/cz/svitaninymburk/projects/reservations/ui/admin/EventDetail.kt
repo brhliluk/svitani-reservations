@@ -85,7 +85,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                         span(className = "icon-[heroicons--arrow-left] size-5")
                         onClick { js("window.history.back()") }
                     }
-                    div {
+                    div(className = "flex-1") {
                         h1(className = "text-2xl font-bold text-base-content flex items-center gap-2") {
                             if (isSeries) span(className = "icon-[heroicons--academic-cap] text-secondary size-6")
                             else span(className = "icon-[heroicons--calendar] text-primary size-6")
@@ -93,6 +93,12 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                             +data.title
                         }
                         p(className = "text-base-content/60 text-sm") { +data.subtitle }
+                    }
+                    val navPrefix = if (isSeries) "/admin/events/series" else "/admin/events/instance"
+                    button(className = "btn btn-outline btn-sm gap-2") {
+                        span(className = "icon-[heroicons--clipboard-document-check] size-4")
+                        +currentStrings.attendanceButton
+                        onClick { router.navigate("$navPrefix/$eventId/attendance") }
                     }
                 }
 
