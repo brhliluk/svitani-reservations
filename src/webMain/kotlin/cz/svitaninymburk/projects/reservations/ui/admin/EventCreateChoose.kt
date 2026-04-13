@@ -10,7 +10,7 @@ import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
-import kotlin.js.js
+import web.history.history
 
 @Composable
 fun IComponent.AdminEventCreateChooseScreen(definitionId: String) {
@@ -29,7 +29,7 @@ fun IComponent.AdminEventCreateChooseScreen(definitionId: String) {
         div(className = "flex items-center gap-4") {
             button(className = "btn btn-circle btn-ghost btn-sm") {
                 span(className = "icon-[heroicons--arrow-left] size-5")
-                onClick { js("window.history.back()") }
+                onClick { history.back() }
             }
             div {
                 h1(className = "text-3xl font-bold text-base-content") { +currentStrings.chooseTypeTitle }
