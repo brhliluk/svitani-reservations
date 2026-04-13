@@ -13,6 +13,9 @@ import kotlin.uuid.Uuid
     @Serializable @SerialName("events") sealed interface GetEvents : AdminError
     @Serializable @SerialName("create_event") sealed interface CreateEvent : AdminError
     @Serializable @SerialName("create_series") sealed interface CreateSeries : AdminError
+    @Serializable @SerialName("get_users") sealed interface GetUsers : AdminError
+    @Serializable @SerialName("update_user_role") sealed interface UpdateUserRole : AdminError
+    @Serializable @SerialName("delete_user") sealed interface DeleteUser : AdminError
 
     @Serializable data class FailedToGetSummary(val message: String) : GetSummary
     @Serializable data class FailedToMarkReservationPaid(val message: String) : MarkReservationPaid
@@ -24,6 +27,10 @@ import kotlin.uuid.Uuid
     @Serializable data class WrongReservationState(val state: Reservation.Status): MarkReservationPaid
     @Serializable data class EventInstanceNotFound(val id: Uuid): GetEventDetail
     @Serializable data class EventSeriesNotFound(val id: Uuid): GetEventDetail
+    @Serializable data class FailedToGetUsers(val message: String) : GetUsers
+    @Serializable data class FailedToUpdateUserRole(val message: String) : UpdateUserRole
+    @Serializable data class FailedToDeleteUser(val message: String) : DeleteUser
+    @Serializable data class UserNotFound(val id: Uuid) : UpdateUserRole, DeleteUser
 }
 
 val AdminError.localizedMessage: String get() = when (this) {
@@ -37,4 +44,8 @@ val AdminError.localizedMessage: String get() = when (this) {
     is AdminError.WrongReservationState -> "Stav rezervace není k zaplacení, ale: ${state.name}"
     is AdminError.EventInstanceNotFound -> "Událost nenalezena"
     is AdminError.EventSeriesNotFound -> "Kroužek nenalezen"
+    is AdminError.FailedToGetUsers -> message
+    is AdminError.FailedToUpdateUserRole -> message
+    is AdminError.FailedToDeleteUser -> message
+    is AdminError.UserNotFound -> "Uživatel nenalezen"
 }

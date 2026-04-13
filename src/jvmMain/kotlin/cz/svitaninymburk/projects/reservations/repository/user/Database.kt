@@ -32,6 +32,10 @@ object UsersTable : Table("users") {
 
 class ExposedUserRepository : UserRepository {
 
+    override suspend fun findAll(): List<User> = dbQuery {
+        UsersTable.selectAll().map { it.toUser() }
+    }
+
     override suspend fun findByEmail(email: String): User? = dbQuery {
         UsersTable.selectAll()
             .where { UsersTable.email eq email }

@@ -2,6 +2,7 @@ package cz.svitaninymburk.projects.reservations.admin
 
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.user.User
 import kotlinx.serialization.Serializable
 import kotlinx.datetime.LocalDateTime
 import kotlin.time.Instant
@@ -62,3 +63,17 @@ data class AdminEventListItem(
     val priceString: String,
     val isDefinitionOnly: Boolean = false,
 )
+
+@Serializable
+data class AdminUserListItem(
+    val id: Uuid,
+    val name: String,
+    val surname: String,
+    val email: String,
+    val role: User.Role,
+    val authType: AuthType,
+    val reservationCount: Int,
+) {
+    @Serializable
+    enum class AuthType { EMAIL, GOOGLE }
+}

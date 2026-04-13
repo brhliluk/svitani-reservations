@@ -277,6 +277,30 @@ object CsStrings : AppStrings {
     // On-site payment detail
     override val onSitePaymentInfo = "Platbu prosím uhraďte hotově na místě."
 
+    // Admin Users Screen
+    override val allUsers = "Uživatelé"
+    override val usersSubtitle = "Přehled a správa uživatelských účtů"
+    override val usersSearchPlaceholder = "Hledat jméno nebo e-mail..."
+    override val tableHeaderAuthType = "Přihlášení"
+    override val tableHeaderReservations = "Rezervace"
+    override val noUsers = "Zatím žádní uživatelé."
+    override val noUsersForSearch: (String) -> String = { "Nebyli nalezeni žádní uživatelé pro '$it'." }
+    override val authTypeEmail = "E-mail"
+    override val authTypeGoogle = "Google"
+    override val tooltipChangeRole = "Změnit roli"
+    override val tooltipDeleteUser = "Smazat uživatele"
+    override val modalChangeRoleTitle = "Změnit roli"
+    override val modalChangeRoleMsgPre = "Opravdu chcete změnit roli uživatele "
+    override val modalChangeRoleMsgMid = " na "
+    override val modalChangeRoleMsgPost = "?"
+    override val modalDeleteUserTitle = "Smazat uživatele"
+    override val modalDeleteUserMsgPre = "Opravdu chcete smazat účet uživatele "
+    override val modalDeleteUserMsgPost = "? Tato akce je nevratná."
+    override val toastRoleChanged: (String) -> String = { "Role uživatele $it byla změněna." }
+    override val toastUserDeleted: (String) -> String = { "Účet uživatele $it byl smazán." }
+    override val roleAdmin = "Administrátor"
+    override val roleUser = "Uživatel"
+
     // Attendance Screen
     override val attendanceButton = "Prezenční listina"
     override val attendancePrintHeader: (String) -> String = { "Prezence: $it" }

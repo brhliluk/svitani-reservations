@@ -4,6 +4,7 @@ import cz.svitaninymburk.projects.reservations.user.User
 import kotlin.uuid.Uuid
 
 interface UserRepository {
+    suspend fun findAll(): List<User>
     suspend fun findByEmail(email: String): User?
     suspend fun findById(id: Uuid): User?
     suspend fun findByResetToken(token: String): User.Email?

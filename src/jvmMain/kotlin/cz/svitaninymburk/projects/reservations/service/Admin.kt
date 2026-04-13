@@ -7,6 +7,7 @@ import arrow.core.raise.ensure
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
+import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.error.AdminError
 import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
@@ -15,6 +16,7 @@ import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
 import cz.svitaninymburk.projects.reservations.admin.AdminPendingReservation
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminUpcomingEvent
+import cz.svitaninymburk.projects.reservations.admin.AdminUserListItem
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventSeriesRequest
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
@@ -22,6 +24,7 @@ import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.user.User
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -37,6 +40,7 @@ class AdminDashboardService(
     private val eventSeriesRepository: EventSeriesRepository,
     private val eventInstanceRepository: EventInstanceRepository,
     private val reservationRepository: ReservationRepository,
+    private val userRepository: UserRepository,
 ): AdminServiceInterface {
 
     override suspend fun getDashboardSummary(): Either<AdminError.GetSummary, AdminDashboardData> = either {
@@ -333,5 +337,49 @@ class AdminDashboardService(
             e.printStackTrace()
             raise(AdminError.FailedToCreateSeries("Nepodařilo se vytvořit kurz: ${e.message}"))
         }
+    }
+
+    override suspend fun getAllUsers(): Either<AdminError.GetUsers, List<AdminUserListItem>> = either {
+        try {
+            val users = userRepository.findAll()
+            val allReservations = reservationRepository.findAll()
+
+            val reservationCountByUser = allReservations
+                .filter { it.registeredUserId != null }
+                .groupBy { it.registeredUserId!! }
+                .mapValues { (_, reservations) -> reservations.size }
+
+            users.map { user ->
+                AdminUserListItem(
+                    id = user.id,
+                    name = user.name,
+                    surname = user.surname,
+                    email = user.email,
+                    role = user.role,
+                    authType = when (user) {
+                        is User.Google -> AdminUserListItem.AuthType.GOOGLE
+                        is User.Email -> AdminUserListItem.AuthType.EMAIL
+                    },
+                    reservationCount = reservationCountByUser[user.id] ?: 0
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            raise(AdminError.FailedToGetUsers("Nepodařilo se načíst seznam uživatelů: ${e.message}"))
+        }
+    }
+
+    override suspend fun updateUserRole(userId: Uuid, newRole: User.Role): Either<AdminError.UpdateUserRole, Unit> = either {
+        val user = ensureNotNull(userRepository.findById(userId)) { AdminError.UserNotFound(userId) }
+        val updatedUser = when (user) {
+            is User.Email -> user.copy(role = newRole)
+            is User.Google -> user.copy(role = newRole)
+        }
+        userRepository.update(userId, updatedUser)
+    }
+
+    override suspend fun deleteUser(userId: Uuid): Either<AdminError.DeleteUser, Unit> = either {
+        val success = userRepository.delete(userId)
+        if (!success) raise(AdminError.UserNotFound(userId))
     }
 }
