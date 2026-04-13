@@ -26,8 +26,8 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
+import web.history.history
 import web.html.HTMLSelectElement
-import kotlin.js.js
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.Uuid
@@ -111,7 +111,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
         div(className = "flex items-center gap-4") {
             button(className = "btn btn-circle btn-ghost btn-sm") {
                 span(className = "icon-[heroicons--arrow-left] size-5")
-                onClick { js("window.history.back()") }
+                onClick { history.back() }
             }
             div {
                 h1(className = "text-3xl font-bold text-base-content") { +currentStrings.newInstanceTitle }
@@ -305,7 +305,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                 // --- ULOŽIT ---
                 div(className = "flex justify-end gap-2 mt-4") {
                     button(className = "btn") {
-                        onClick { js("window.history.back()") }
+                        onClick { history.back() }
                         +currentStrings.cancel
                     }
                     button(className = "btn btn-primary") {

@@ -17,6 +17,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
+import web.history.history
 import kotlin.js.js
 import kotlin.uuid.Uuid
 
@@ -67,7 +68,7 @@ fun IComponent.AdminAttendanceScreen(eventId: String, isSeries: Boolean) {
                 div(className = "flex items-center gap-4 print:hidden") {
                     button(className = "btn btn-circle btn-ghost btn-sm") {
                         span(className = "icon-[heroicons--arrow-left] size-5")
-                        onClick { js("window.history.back()") }
+                        onClick { history.back() }
                     }
                     div(className = "flex-1") {
                         h1(className = "text-2xl font-bold text-base-content flex items-center gap-2") {
