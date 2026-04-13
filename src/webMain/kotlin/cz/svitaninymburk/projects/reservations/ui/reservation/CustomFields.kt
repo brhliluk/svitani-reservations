@@ -83,7 +83,7 @@ fun IComponent.renderCustomField(
         is BooleanFieldDefinition -> {
             label(className = "label cursor-pointer justify-start gap-4 mt-2") {
                 checkBox(value = (stateMap[field.key] as? BooleanValue)?.value ?: false, className = "checkbox checkbox-primary") {
-                    require(field.isRequired)
+                    required(field.isRequired)
                     onChange { stateMap[field.key] = BooleanValue(field.key, this.value) }
                 }
                 span(className = "label-text font-medium") { +field.label }

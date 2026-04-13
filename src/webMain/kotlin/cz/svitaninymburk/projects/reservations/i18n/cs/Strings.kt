@@ -274,6 +274,13 @@ object CsStrings : AppStrings {
     override val toastReservationCancelled: (String) -> String = { "Rezervace od $it byla zrušena!" }
     override val invalidEventId = "Neplatné ID události."
 
+    // Attendance Screen
+    override val attendanceButton = "Prezenční listina"
+    override val attendancePrintHeader: (String) -> String = { "Prezence: $it" }
+    override val printList = "Tisknout"
+    override val emptyRowsLabel = "Prázdné řádky pro dopsání:"
+    override val tableHeaderPresence = "Přítomnost / Podpis"
+
     private val months = listOf(
         "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
         "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"

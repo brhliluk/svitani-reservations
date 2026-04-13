@@ -290,6 +290,13 @@ interface AppStrings {
     val toastReservationCancelled: (String) -> String
     val invalidEventId: String
 
+    // Attendance Screen
+    val attendanceButton: String
+    val attendancePrintHeader: (String) -> String
+    val printList: String
+    val emptyRowsLabel: String
+    val tableHeaderPresence: String
+
     // Helper functions for Calendar
     fun monthName(index: Int): String
     fun dayName(index: Int): String

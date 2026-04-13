@@ -274,6 +274,13 @@ object EnStrings : AppStrings {
     override val toastReservationCancelled: (String) -> String = { "Reservation from $it was cancelled!" }
     override val invalidEventId = "Invalid event ID."
 
+    // Attendance Screen
+    override val attendanceButton = "Attendance"
+    override val attendancePrintHeader: (String) -> String = { "Attendance: $it" }
+    override val printList = "Print"
+    override val emptyRowsLabel = "Extra blank rows:"
+    override val tableHeaderPresence = "Presence / Signature"
+
     // Lists for helper functions
     private val months = listOf(
         "January", "February", "March", "April", "May", "June",
