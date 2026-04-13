@@ -8,6 +8,7 @@ import cz.svitaninymburk.projects.reservations.copyToClipboard
 import cz.svitaninymburk.projects.reservations.i18n.AppStrings
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.qr.QrCodeService
+import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.shareSvgAsPng
@@ -89,7 +90,7 @@ fun IComponent.ReservationDetailLayout(
                     div(className = "p-8 lg:p-12 flex flex-col items-center text-center justify-center") {
 
                         if (uiState.showPaymentInfo) {
-                            // === ZOBRAZIT QR KÓD (Čeká se na platbu) ===
+                            // === ZOBRAZIT QR KÓD (Čeká se na platbu převodem) ===
                             h2(className = "text-lg font-bold mb-8 flex items-center gap-3 text-base-content") {
                                 span(className = "icon-[heroicons--qr-code] size-6 text-primary")
                                 +currentStrings.qrPayment
@@ -110,6 +111,16 @@ fun IComponent.ReservationDetailLayout(
                             div(className = "w-full max-w-sm flex flex-col gap-4") {
                                 CopyToClipboardButton(currentStrings.accountNumber, qrCodeService.accountNumber)
                                 CopyToClipboardButton(currentStrings.variableSymbol, reservation.variableSymbol ?: "---")
+                            }
+
+                        } else if (uiState.showOnSiteInfo) {
+                            // === PLATBA NA MÍSTĚ ===
+                            div(className = "flex flex-col items-center gap-4 text-center") {
+                                div(className = "rounded-full bg-info/10 p-6") {
+                                    span(className = "icon-[heroicons--banknotes] size-16 text-info")
+                                }
+                                p(className = "text-xl font-semibold text-base-content") { +currentStrings.onSite }
+                                p(className = "text-base-content/60") { +currentStrings.onSitePaymentInfo }
                             }
 
                         } else {
@@ -148,23 +159,28 @@ private data class ReservationUiState(
     val iconClass: String,     // Samotná ikona (CSS třída)
     val textColorClass: String,// Barva textu v hlavičce
     val showPaymentInfo: Boolean,
+    val showOnSiteInfo: Boolean = false,
     val canBeCancelled: Boolean
 )
 
 private fun getReservationUiState(reservation: Reservation, reservationTarget: ReservationTarget, strings: AppStrings): ReservationUiState {
     return when (reservation.status) {
         // 1. NOVÁ / ČEKÁ NA PLATBU
-        Reservation.Status.PENDING_PAYMENT -> ReservationUiState(
-            title = strings.reservationCreated,
-            subtitle = strings.waitingForPayment,
-            statusLabel = strings.unpaid,
-            headerBgClass = "bg-warning/10", // Žlutá/Oranžová pro "Attention"
-            iconBgClass = "bg-warning/20 text-warning",
-            iconClass = "icon-[heroicons--clock] text-warning",
-            textColorClass = "text-warning",
-            showPaymentInfo = true,
-            canBeCancelled = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) < reservationTarget.startDateTime
-        )
+        Reservation.Status.PENDING_PAYMENT -> {
+            val isOnSite = reservation.paymentType == PaymentInfo.Type.ON_SITE
+            ReservationUiState(
+                title = strings.reservationCreated,
+                subtitle = if (isOnSite) strings.onSite else strings.waitingForPayment,
+                statusLabel = strings.unpaid,
+                headerBgClass = if (isOnSite) "bg-info/10" else "bg-warning/10",
+                iconBgClass = if (isOnSite) "bg-info/20 text-info" else "bg-warning/20 text-warning",
+                iconClass = if (isOnSite) "icon-[heroicons--banknotes] text-info" else "icon-[heroicons--clock] text-warning",
+                textColorClass = if (isOnSite) "text-info" else "text-warning",
+                showPaymentInfo = !isOnSite,
+                showOnSiteInfo = isOnSite,
+                canBeCancelled = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) < reservationTarget.startDateTime
+            )
+        }
         // 2. POTVRZENÁ / ZAPLACENÁ
         Reservation.Status.CONFIRMED -> ReservationUiState(
             title = strings.reservationConfirmed,

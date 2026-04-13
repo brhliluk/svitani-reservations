@@ -290,6 +290,9 @@ interface AppStrings {
     val toastReservationCancelled: (String) -> String
     val invalidEventId: String
 
+    // On-site payment detail
+    val onSitePaymentInfo: String
+
     // Attendance Screen
     val attendanceButton: String
     val attendancePrintHeader: (String) -> String

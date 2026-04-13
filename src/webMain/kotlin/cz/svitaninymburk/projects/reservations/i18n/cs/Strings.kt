@@ -274,6 +274,9 @@ object CsStrings : AppStrings {
     override val toastReservationCancelled: (String) -> String = { "Rezervace od $it byla zrušena!" }
     override val invalidEventId = "Neplatné ID události."
 
+    // On-site payment detail
+    override val onSitePaymentInfo = "Platbu prosím uhraďte hotově na místě."
+
     // Attendance Screen
     override val attendanceButton = "Prezenční listina"
     override val attendancePrintHeader: (String) -> String = { "Prezence: $it" }
