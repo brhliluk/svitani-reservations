@@ -117,11 +117,6 @@ class ReservationService(
 
         reservationRepository.save(reservation)
 
-        when (reference) {
-            is Reference.Instance -> eventInstanceRepository.incrementOccupiedSpots(reference.id, reservation.seatCount)
-            is Reference.Series -> eventSeriesRepository.incrementOccupiedSpots(reference.id, reservation.seatCount)
-        }
-
         val qrImage = qrCodeService.generateQrPng(reservation)
 
         emailService.sendReservationConfirmation(
