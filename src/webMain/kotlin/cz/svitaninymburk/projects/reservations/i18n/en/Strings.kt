@@ -274,6 +274,9 @@ object EnStrings : AppStrings {
     override val toastReservationCancelled: (String) -> String = { "Reservation from $it was cancelled!" }
     override val invalidEventId = "Invalid event ID."
 
+    // On-site payment detail
+    override val onSitePaymentInfo = "Please pay cash on site."
+
     // Attendance Screen
     override val attendanceButton = "Attendance"
     override val attendancePrintHeader: (String) -> String = { "Attendance: $it" }
