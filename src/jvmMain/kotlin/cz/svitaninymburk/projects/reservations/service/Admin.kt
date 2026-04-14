@@ -28,11 +28,11 @@ import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionR
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.user.User
+import cz.svitaninymburk.projects.reservations.util.humanReadable
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
-import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
@@ -141,8 +141,7 @@ class AdminDashboardService(
         } else {
             val instance = ensureNotNull(eventInstanceRepository.get(eventId)) { AdminError.EventInstanceNotFound(eventId) }
             title = instance.title
-            val time = "${instance.startDateTime.date.day}.${instance.startDateTime.date.month.number}. ${instance.startDateTime.hour}:${instance.startDateTime.minute.toString().padStart(2, '0')}"
-            subtitle = "Jednorázová událost • $time"
+            subtitle = "Jednorázová událost • ${instance.startDateTime.humanReadable}"
             capacity = instance.capacity
             occupiedSpots = instance.occupiedSpots
         }
@@ -206,7 +205,7 @@ class AdminDashboardService(
                         val instance = eventInstanceRepository.get(ref.id)
                         if (instance != null) {
                             eventTitle = instance.title
-                            eventDate = "${instance.startDateTime.date.day}.${instance.startDateTime.date.month.number}. ${instance.startDateTime.hour}:${instance.startDateTime.minute.toString().padStart(2, '0')}"
+                            eventDate = instance.startDateTime.humanReadable
                         }
                     }
                     is Reference.Series -> {
@@ -250,7 +249,7 @@ class AdminDashboardService(
                     definitionId = s.definitionId,
                     title = s.title,
                     isSeries = true,
-                    dateInfo = "Od ${s.startDate} (${s.lessonCount} lekcí)",
+                    dateInfo = "Od ${s.startDate.humanReadable} (${s.lessonCount} lekcí)",
                     capacity = s.capacity,
                     occupiedSpots = s.occupiedSpots,
                     priceString = "${s.price} Kč",
@@ -259,13 +258,12 @@ class AdminDashboardService(
 
             val instances = allInstances.filter { it.seriesId == null }
             val instanceDtos = instances.map { i ->
-                val time = "${i.startDateTime.date.day}.${i.startDateTime.date.month.number}. ${i.startDateTime.hour}:${i.startDateTime.minute.toString().padStart(2, '0')}"
                 AdminEventListItem(
                     id = i.id,
                     definitionId = i.definitionId,
                     title = i.title,
                     isSeries = false,
-                    dateInfo = time,
+                    dateInfo = i.startDateTime.humanReadable,
                     capacity = i.capacity,
                     occupiedSpots = i.occupiedSpots,
                     priceString = "${i.price} Kč"

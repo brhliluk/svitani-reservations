@@ -17,6 +17,8 @@ import dev.kilua.form.number.numeric
 import dev.kilua.form.select.select
 import dev.kilua.form.text.text
 import dev.kilua.form.text.textArea
+import cz.svitaninymburk.projects.reservations.util.humanReadable
+import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import dev.kilua.html.*
@@ -51,7 +53,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
 
     var selectedDefinitionId by remember { mutableStateOf(preselectedDefinitionId) }
 
-    var startDate by remember { mutableStateOf("") } // Formát: YYYY-MM-DD
+    var startDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()) } // Formát: YYYY-MM-DD
     var startTime by remember { mutableStateOf("") } // Formát: HH:mm
 
     var titleOverride by remember { mutableStateOf("") }
@@ -322,9 +324,8 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                             } else {
                                 div(className = "flex flex-wrap gap-2") {
                                     previewDates.forEach { dt ->
-                                        val min = dt.minute.toString().padStart(2, '0')
                                         span(className = "badge badge-outline badge-primary") {
-                                            +"${dt.date.dayOfMonth}.${dt.date.monthNumber}.${dt.date.year} ${dt.hour}:$min"
+                                            +dt.humanReadable
                                         }
                                     }
                                 }

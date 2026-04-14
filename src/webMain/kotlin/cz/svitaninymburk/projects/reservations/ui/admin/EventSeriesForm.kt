@@ -22,7 +22,9 @@ import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import web.history.history
 import web.html.HTMLSelectElement
 import kotlin.uuid.Uuid
@@ -42,7 +44,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
 
     var selectedDefinitionId by remember { mutableStateOf(preselectedDefinitionId) }
 
-    var startDate by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()) }
     var endDate by remember { mutableStateOf("") }
     var lessonCount by remember { mutableIntStateOf(1) }
 
