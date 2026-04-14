@@ -3,6 +3,7 @@ package cz.svitaninymburk.projects.reservations.ui.auth
 import androidx.compose.runtime.*
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import dev.kilua.core.IComponent
 import dev.kilua.form.Autocomplete
@@ -25,6 +26,7 @@ fun IComponent.ResetPasswordScreen(
     var passwordConfirm by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val currentStrings by strings
 
     val isFormValid = password.length >= 6 && password == passwordConfirm
 
@@ -34,7 +36,7 @@ fun IComponent.ResetPasswordScreen(
         scope.launch {
             authService.resetPassword(token, password)
                 .onRight { onSuccess() }
-                .onLeft { errorMessage = it.localizedMessage }
+                .onLeft { errorMessage = it.localizedMessage(currentStrings) }
             isLoading = false
         }
     }

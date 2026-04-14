@@ -60,7 +60,7 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
         value = AdminUsersUiState.Loading
         adminService.getAllUsers()
             .onRight { value = AdminUsersUiState.Success(it) }
-            .onLeft { value = AdminUsersUiState.Error(it.localizedMessage) }
+            .onLeft { value = AdminUsersUiState.Error(it.localizedMessage(currentStrings)) }
     }
 
     div(className = "flex flex-col gap-6 animate-fade-in") {
@@ -281,7 +281,7 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
                                             refreshTrigger++
                                         }
                                         .onLeft { error ->
-                                            toastData = ToastData(currentStrings.errorToast(error.localizedMessage), ToastType.Error)
+                                            toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
                                         }
                                 } else {
                                     adminService.deleteUser(action.userId)
@@ -290,7 +290,7 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
                                             refreshTrigger++
                                         }
                                         .onLeft { error ->
-                                            toastData = ToastData(currentStrings.errorToast(error.localizedMessage), ToastType.Error)
+                                            toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
                                         }
                                 }
                                 pendingAction = null

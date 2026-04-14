@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.error
 
+import cz.svitaninymburk.projects.reservations.i18n.ErrorStrings
 import cz.svitaninymburk.projects.reservations.user.User
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -27,14 +28,14 @@ import kotlin.reflect.KClass
     @Serializable data object NoIdInPrincipal: GetCurrentUser
 }
 
-val AuthError.localizedMessage: String get() = when (this) {
-    is AuthError.InvalidCredentials -> "Neplatné přihlašovací údaje"
-    is AuthError.LoggedInWithAnotherProvider -> "Přihlášení jinou metodou: ${userClass.simpleName}"
-    is AuthError.UserAlreadyExists -> "Účet již existuje"
-    is AuthError.InvalidGoogleToken -> "Neplatný Google Token"
-    is AuthError.InvalidToken -> "Neplatný token"
-    is AuthError.TokenExpired -> "Token vypršel"
-    is AuthError.UserNotFound -> "Uživatel nenalezen"
-    is AuthError.ApplicationCallLost -> "Chyba při zpracování požadavku"
-    is AuthError.NoJwtPrincipal, is AuthError.NoIdInPrincipal -> "Uživatel není přihlášen"
+fun AuthError.localizedMessage(strings: ErrorStrings): String = when (this) {
+    is AuthError.InvalidCredentials -> strings.errorInvalidCredentials
+    is AuthError.LoggedInWithAnotherProvider -> strings.errorLoggedInWithAnotherProvider(userClass.simpleName)
+    is AuthError.UserAlreadyExists -> strings.errorUserAlreadyExists
+    is AuthError.InvalidGoogleToken -> strings.errorInvalidGoogleToken
+    is AuthError.InvalidToken -> strings.errorInvalidToken
+    is AuthError.TokenExpired -> strings.errorTokenExpired
+    is AuthError.UserNotFound -> strings.errorUserNotFound
+    is AuthError.ApplicationCallLost -> strings.errorProcessingRequest
+    is AuthError.NoJwtPrincipal, is AuthError.NoIdInPrincipal -> strings.errorNotLoggedIn
 }

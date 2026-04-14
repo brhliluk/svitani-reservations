@@ -4,6 +4,7 @@ import cz.svitaninymburk.projects.reservations.i18n.AppStrings
 
 
 object EnStrings : AppStrings {
+    override val locale = "en"
     override val appName = "Reservations"
     override val logIn = "Log in"
     override val reserve = "Reserve"
@@ -339,4 +340,37 @@ object EnStrings : AppStrings {
     override fun monthName(index: Int) = months.getOrElse(index) { "" }
     override fun dayName(index: Int) = days.getOrElse(index) { "" }
     override fun shortDayName(index: Int) = shortDays.getOrElse(index) { "" }
+
+    // ErrorStrings
+    override val errorInvalidCredentials = "Invalid credentials"
+    override val errorUserAlreadyExists = "Account already exists"
+    override val errorInvalidGoogleToken = "Invalid Google token"
+    override val errorInvalidToken = "Invalid token"
+    override val errorTokenExpired = "Token expired"
+    override val errorUserNotFound = "User not found"
+    override val errorProcessingRequest = "Error processing request"
+    override val errorNotLoggedIn = "User not logged in"
+    override fun errorLoggedInWithAnotherProvider(providerName: String?) = "Logged in with another method: $providerName"
+
+    override val errorReservationNotFound = "Reservation not found"
+    override val errorEventInstanceNotFound = "Event not found"
+    override val errorEventSeriesNotFound = "Course not found"
+    override val errorCapacityExceeded = "Event capacity exceeded"
+    override val errorEventAlreadyFinished = "Event has already ended"
+    override val errorEventAlreadyStarted = "Event has already started"
+    override val errorEventCancelled = "Event was cancelled"
+    override val errorFailedToGetReservations = "Failed to get reservations"
+    override fun errorFailedToSendCancellationEmail(cause: String) = "Failed to send cancellation email: $cause"
+
+    override fun errorEventInstanceNotFoundId(id: String) = "Event with id $id not found"
+    override fun errorEventDefinitionNotFoundId(id: String) = "Event template with id $id not found"
+    override val errorFailedToGetDefinitions = "Failed to get definitions"
+    override val errorFailedToGetInstances = "Failed to get events"
+    override val errorFailedToGetSeries = "Failed to get courses"
+
+    override val errorAdminReservationNotFound = "Reservation not found"
+    override fun errorWrongReservationState(stateName: String) = "Reservation state is not for payment, but: $stateName"
+    override val errorAdminEventNotFound = "Event not found"
+    override val errorAdminCourseNotFound = "Course not found"
+    override val errorAdminUserNotFound = "User not found"
 }

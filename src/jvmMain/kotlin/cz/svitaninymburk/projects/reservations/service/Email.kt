@@ -6,6 +6,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.error.EmailError
+import cz.svitaninymburk.projects.reservations.i18n.emailStringsFor
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.coroutines.Dispatchers
@@ -53,8 +54,9 @@ class GmailEmailService(
         val email = setupEmail()
         email.setAuthenticator(DefaultAuthenticator(username, appPassword))
 
+        val s = emailStringsFor(reservation.locale)
         email.addTo(toEmail)
-        email.subject = "Potvrzení rezervace: ${reservation.id}"
+        email.subject = s.reservationConfirmationSubject(reservation.id.toString())
 
         val dataSource = ByteArrayDataSource(qrCodeImage, "image/png")
         val cid = email.embed(dataSource, "qr-code-platba")
@@ -62,26 +64,26 @@ class GmailEmailService(
         // TODO: differentiate between services and instances
         val event = eventRepository.get(reservation.reference.id)
         val htmlMessage = buildString { appendHTML().html { body {
-            h1 { +"Děkujeme za rezervaci!" }
-            p { +"Vaše místa na akci: ${event?.title ?: reservation.reference.id} jsou zarezervována." }
-            p { +"Pokud jste ještě neplatili, platební údaje:" }
+            h1 { +s.reservationConfirmationHeading }
+            p { +s.reservationConfirmationBody(event?.title ?: reservation.reference.id.toString()) }
+            p { +s.reservationPaymentDetails }
             p {
-                strong { +"Cena:" }
+                strong { +s.reservationPrice }
                 +"${reservation.totalPrice} Kč"
             }
-            p { +"Pro dokončení prosím uhraďte částku pomocí QR kódu níže:" }
+            p { +s.reservationPaymentQrPrompt }
             img {
                 src = "cid:$cid"
-                alt = "QR Platba"
+                alt = s.reservationQrAlt
                 width = "200"
                 height = "200"
             }
             br
-            p { +"Nebo převodem na účet: $bankAccount, VS: ${reservation.variableSymbol}" }
+            p { +s.reservationBankTransfer(bankAccount, reservation.variableSymbol) }
         } } }
 
         email.setHtmlMsg(htmlMessage)
-        email.setTextMsg("Váš klient nepodporuje HTML emaily.")
+        email.setTextMsg(s.reservationHtmlFallback)
 
         catch({ email.send() }) { e: EmailException ->
             EmailError.SendReservationConfirmationFailed(e.message ?: "Unknown error")
@@ -89,12 +91,13 @@ class GmailEmailService(
     } }
 
     override suspend fun sendCancellationNotice(toEmail: String, reservationId: Uuid): Either<EmailError.SendCancellation, Unit> = either { withContext(Dispatchers.IO) {
+        val s = emailStringsFor("cs") // TODO: pass locale when interface supports it
         val email = setupEmail()
         email.addTo(toEmail)
         val event = eventRepository.get(reservationId)
 
-        email.subject = "Zrušení rezervace: ${event?.title}"
-        email.setTextMsg("Vaše rezervace na akci: ${event?.title} byla zrušena.")
+        email.subject = s.cancellationSubject(event?.title)
+        email.setTextMsg(s.cancellationBody(event?.title))
 
         catch({ email.send() }) { e: EmailException ->
             EmailError.SendCancellationFailed(e.message ?: "Unknown error")
@@ -102,13 +105,14 @@ class GmailEmailService(
     } }
 
     override suspend fun sendPaymentReceivedConfirmation(reservation: Reservation): Either<EmailError.SendReservationConfirmation, Unit> = either { withContext(Dispatchers.IO) {
+        val s = emailStringsFor(reservation.locale)
         val email = setupEmail()
         email.addTo(reservation.contactEmail)
-        email.subject = "Potvrzení platby"
+        email.subject = s.paymentReceivedSubject
 
         val event = eventRepository.get(reservation.reference.id)
 
-        email.setTextMsg("Vaše rezervace na akci: ${event?.title} byla zaplacena, děkujeme!")
+        email.setTextMsg(s.paymentReceivedBody(event?.title))
 
         catch({ email.send() }) { e: EmailException ->
             EmailError.SendPaymentConfirmationFailed(e.message ?: "Unknown error")
@@ -121,9 +125,10 @@ class GmailEmailService(
         bankAccount: String,
         qrCodeImage: String,
     ): Either<EmailError.SendReservationConfirmation, Unit> = either { withContext(Dispatchers.IO) {
+        val s = emailStringsFor(reservation.locale)
         val email = setupEmail()
         email.addTo(reservation.contactEmail)
-        email.subject = "Částečně zaplaceno"
+        email.subject = s.partialPaymentSubject
 
         val event = eventRepository.get(reservation.reference.id)
 
@@ -132,18 +137,18 @@ class GmailEmailService(
         val cid = email.embed(dataSource, "qr-code-platba")
 
         email.setHtmlMsg(buildString { appendHTML().html { body {
-            p { +"Vaše rezervace na akci: ${event?.title} byla zaplacena pouze částečně!" }
-            p { +"Zaznamenali jsme platbu v hodnotě: ${paymentInfo.amount}" }
-            p { +"Zbývá doplatit: ${reservation.totalPrice - paymentInfo.amount}" }
-            p { +"Platební údaje k doplacení platby: "}
+            p { +s.partialPaymentBody(event?.title) }
+            p { +s.partialPaymentAmount(paymentInfo.amount) }
+            p { +s.partialPaymentRemaining(reservation.totalPrice - paymentInfo.amount) }
+            p { +s.partialPaymentDetails }
             img {
                 src = "cid:$cid"
-                alt = "QR Platba"
+                alt = s.reservationQrAlt
                 width = "200"
                 height = "200"
             }
             br
-            p { +"Nebo převodem na účet: $bankAccount, VS: ${reservation.variableSymbol}" }
+            p { +s.reservationBankTransfer(bankAccount, reservation.variableSymbol) }
         } } })
 
         catch({ email.send() }) { e: EmailException ->
@@ -152,16 +157,17 @@ class GmailEmailService(
     } }
 
     override suspend fun sendPasswordResetEmail(toEmail: String, resetToken: String): Either<EmailError.SendPasswordReset, Unit> = either {
+        val s = emailStringsFor("cs") // TODO: pass locale when interface supports it
         val email = setupEmail()
         email.addTo(toEmail)
-        email.subject = "Změna hesla"
+        email.subject = s.passwordResetSubject
 
         email.setHtmlMsg(buildString { appendHTML().html { body {
-            h1 { +"Změna hesla" }
+            h1 { +s.passwordResetHeading }
 
-            p { +"Pro změnu hesla klikněte na následující odkaz:" }
+            p { +s.passwordResetBody }
             a {
-                + "rezervace.svitaninymburk.cz/reset"
+                +s.passwordResetLinkText
                 href = "https://moje-appka.cz/reset-password/$resetToken" // TODO: store and reference url
             }
         } } })

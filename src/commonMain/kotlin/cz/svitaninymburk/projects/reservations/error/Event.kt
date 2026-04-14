@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.error
 
+import cz.svitaninymburk.projects.reservations.i18n.ErrorStrings
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -25,10 +26,10 @@ import kotlinx.serialization.Serializable
     @Serializable data object FailedToGetDefinitions: GetDefinitions
 }
 
-val EventError.localizedMessage: String get() = when (this) {
-    is EventError.EventInstanceNotFound -> "Událost s id $id nenalezena"
-    is EventError.EventDefinitionNotFound -> "Šablona události s id $id nenalezena"
-    is EventError.FailedToGetDefinitions -> "Nepodařilo se získat definice"
-    is EventError.FailedToGetInstances -> "Nepodařilo se získat události"
-    is EventError.FailedToGetSeries -> "Nepodařilo se získat kurzy"
+fun EventError.localizedMessage(strings: ErrorStrings): String = when (this) {
+    is EventError.EventInstanceNotFound -> strings.errorEventInstanceNotFoundId(id)
+    is EventError.EventDefinitionNotFound -> strings.errorEventDefinitionNotFoundId(id)
+    is EventError.FailedToGetDefinitions -> strings.errorFailedToGetDefinitions
+    is EventError.FailedToGetInstances -> strings.errorFailedToGetInstances
+    is EventError.FailedToGetSeries -> strings.errorFailedToGetSeries
 }

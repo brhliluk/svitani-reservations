@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
@@ -34,6 +35,7 @@ fun IComponent.DashboardScreen(
 ) {
     var retryTrigger by remember { mutableStateOf(0) }
     var isSubmitting by remember { mutableStateOf(false) }
+    val currentStrings by strings
 
     val router = Router.current
     val scope = rememberCoroutineScope()
@@ -46,7 +48,7 @@ fun IComponent.DashboardScreen(
         try {
             eventService.getDashboardData()
                 .onRight { data -> value = DashboardUiState.Success(data.instances, data.series, data.definitions) }
-                .onLeft { error -> value = DashboardUiState.Error(error.localizedMessage) }
+                .onLeft { error -> value = DashboardUiState.Error(error.localizedMessage(currentStrings)) }
         } catch (e: Exception) {
             value = DashboardUiState.Error("Chyba komunikace se serverem: ${e.message}")
             e.printStackTrace()
@@ -74,7 +76,7 @@ fun IComponent.DashboardScreen(
             }
             .onLeft { error ->
                 isSubmitting = false
-                alert("Rezervace se nezdařila: ${error.localizedMessage}")
+                alert("Rezervace se nezdařila: ${error.localizedMessage(currentStrings)}")
             }
     }
 

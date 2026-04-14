@@ -9,6 +9,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
@@ -31,6 +32,7 @@ fun IComponent.ReservationDetailScreen(
 ) {
     val scope = rememberCoroutineScope()
     var refreshTrigger by remember { mutableStateOf(0) }
+    val currentStrings by strings
 
     val reservationService = getService<ReservationServiceInterface>(RpcSerializersModules)
 
@@ -39,7 +41,7 @@ fun IComponent.ReservationDetailScreen(
 
         reservationService.getDetail(reservationId).fold(
             ifRight = { foundReservation -> value = ReservationLoadingUiState.Success(foundReservation) },
-            ifLeft = { error -> value = ReservationLoadingUiState.Error(error.localizedMessage) }
+            ifLeft = { error -> value = ReservationLoadingUiState.Error(error.localizedMessage(currentStrings)) }
         )
     }
 
@@ -65,7 +67,7 @@ fun IComponent.ReservationDetailScreen(
                         scope.launch {
                             reservationService.cancelReservation(reservationId)
                                 .onRight { refreshTrigger++ }
-                                .onLeft { error -> web.prompts.alert("Chyba storna: ${error.localizedMessage}") }
+                                .onLeft { error -> web.prompts.alert("Chyba storna: ${error.localizedMessage(currentStrings)}") }
                         }
                     }
                     +"Ano, zrušit rezervaci"

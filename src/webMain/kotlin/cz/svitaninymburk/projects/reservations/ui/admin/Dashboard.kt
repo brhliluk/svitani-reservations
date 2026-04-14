@@ -119,7 +119,7 @@ fun IComponent.AdminDashboardScreen() {
                                                         refreshTrigger++
                                                     }
                                                     .onLeft { error ->
-                                                        toastData = ToastData(error.localizedMessage, ToastType.Error)
+                                                        toastData = ToastData(error.localizedMessage(currentStrings), ToastType.Error)
                                                     }
                                             }
                                         }

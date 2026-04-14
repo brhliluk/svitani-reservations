@@ -40,7 +40,7 @@ fun IComponent.AdminAttendanceScreen(eventId: String, isSeries: Boolean) {
             val uuid = Uuid.parse(eventId)
             adminService.getEventDetail(uuid, isSeries)
                 .onRight { value = AttendanceUiState.Success(it) }
-                .onLeft { value = AttendanceUiState.Error(it.localizedMessage) }
+                .onLeft { value = AttendanceUiState.Error(it.localizedMessage(currentStrings)) }
         } catch (e: IllegalArgumentException) {
             value = AttendanceUiState.Error(currentStrings.invalidEventId)
         }

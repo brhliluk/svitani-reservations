@@ -34,7 +34,8 @@ data class Reservation(
 
     val paymentType: PaymentInfo.Type,
     val variableSymbol: String? = null, // VS pro párování platby
-    val paymentPairingToken: String? = null // Interní ID pro bankovní API
+    val paymentPairingToken: String? = null, // Interní ID pro bankovní API
+    val locale: String = "cs",
 ) {
     val unpaidAmount: Double get() = totalPrice - paidAmount
     @Serializable
@@ -100,6 +101,7 @@ interface ReservationRequestData {
     val contactPhone: String
     val paymentType: PaymentInfo.Type
     val customValues: Map<String, CustomFieldValue>
+    val locale: String
 }
 
 @Serializable
@@ -111,6 +113,7 @@ data class CreateInstanceReservationRequest(
     override val contactPhone: String,
     override val paymentType: PaymentInfo.Type,
     override val customValues: Map<String, CustomFieldValue>,
+    override val locale: String = "cs",
 ) : ReservationRequestData
 
 @Serializable
@@ -122,6 +125,7 @@ data class CreateSeriesReservationRequest(
     override val contactPhone: String,
     override val paymentType: PaymentInfo.Type,
     override val customValues: Map<String, CustomFieldValue>,
+    override val locale: String = "cs",
 ) : ReservationRequestData
 
 @Serializable

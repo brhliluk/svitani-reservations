@@ -113,6 +113,7 @@ class ReservationService(
             status = Reservation.Status.PENDING_PAYMENT,
             createdAt = Clock.System.now(),
             variableSymbol = variableSymbol,
+            locale = requestData.locale,
         )
 
         reservationRepository.save(reservation)

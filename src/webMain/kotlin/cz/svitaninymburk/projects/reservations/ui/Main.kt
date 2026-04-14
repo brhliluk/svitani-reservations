@@ -55,7 +55,7 @@ fun IComponent.MainLayout() {
         authService.getCurrentUser()
             .onRight { currentUser = it }
             .onLeft { error ->
-                console.log(error.localizedMessage)
+                console.log(error.localizedMessage(strings.value))
                 currentUser = null
             }
     }

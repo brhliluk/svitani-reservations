@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.error
 
+import cz.svitaninymburk.projects.reservations.i18n.ErrorStrings
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -33,19 +34,19 @@ import kotlin.uuid.Uuid
     @Serializable data class UserNotFound(val id: Uuid) : UpdateUserRole, DeleteUser
 }
 
-val AdminError.localizedMessage: String get() = when (this) {
+fun AdminError.localizedMessage(strings: ErrorStrings): String = when (this) {
     is AdminError.FailedToGetSummary -> message
     is AdminError.FailedToMarkReservationPaid -> message
     is AdminError.FailedToGetReservations -> message
     is AdminError.FailedToGetEvents -> message
     is AdminError.FailedToCreateEvent -> message
     is AdminError.FailedToCreateSeries -> message
-    is AdminError.ReservationNotFound -> "Rezervace nenalezena"
-    is AdminError.WrongReservationState -> "Stav rezervace není k zaplacení, ale: ${state.name}"
-    is AdminError.EventInstanceNotFound -> "Událost nenalezena"
-    is AdminError.EventSeriesNotFound -> "Kroužek nenalezen"
+    is AdminError.ReservationNotFound -> strings.errorAdminReservationNotFound
+    is AdminError.WrongReservationState -> strings.errorWrongReservationState(state.name)
+    is AdminError.EventInstanceNotFound -> strings.errorAdminEventNotFound
+    is AdminError.EventSeriesNotFound -> strings.errorAdminCourseNotFound
     is AdminError.FailedToGetUsers -> message
     is AdminError.FailedToUpdateUserRole -> message
     is AdminError.FailedToDeleteUser -> message
-    is AdminError.UserNotFound -> "Uživatel nenalezen"
+    is AdminError.UserNotFound -> strings.errorAdminUserNotFound
 }

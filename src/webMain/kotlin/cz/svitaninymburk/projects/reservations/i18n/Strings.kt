@@ -19,7 +19,8 @@ private fun resolveStrings(): AppStrings {
 
 val strings = mutableStateOf(resolveStrings())
 
-interface AppStrings {
+interface AppStrings : ErrorStrings {
+    val locale: String
     val appName: String
     val logIn: String
     val reserve: String
