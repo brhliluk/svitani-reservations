@@ -21,6 +21,8 @@ import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import cz.svitaninymburk.projects.reservations.util.humanReadable
+import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -55,7 +57,7 @@ fun IComponent.AdminCreateEventScreen() {
     var allowOnSite by remember { mutableStateOf(true) }
 
     // Single / Recurring fields
-    var startDate by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()) }
     var startTime by remember { mutableStateOf("") }
 
     // Recurring-only fields
@@ -63,7 +65,7 @@ fun IComponent.AdminCreateEventScreen() {
     var recurrenceEndDateStr by remember { mutableStateOf("") }
 
     // Course fields
-    var courseStartDate by remember { mutableStateOf("") }
+    var courseStartDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()) }
     var courseEndDate by remember { mutableStateOf("") }
     var lessonCount by remember { mutableIntStateOf(1) }
 
@@ -298,9 +300,8 @@ fun IComponent.AdminCreateEventScreen() {
                                 } else {
                                     div(className = "flex flex-wrap gap-2") {
                                         previewDates.forEach { dt ->
-                                            val min = dt.minute.toString().padStart(2, '0')
                                             span(className = "badge badge-outline badge-primary badge-sm") {
-                                                +"${dt.date.dayOfMonth}.${dt.date.monthNumber}.${dt.date.year} ${dt.hour}:$min"
+                                                +dt.humanReadable
                                             }
                                         }
                                     }

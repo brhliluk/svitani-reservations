@@ -17,6 +17,7 @@ import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import cz.svitaninymburk.projects.reservations.util.humanReadable
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -64,7 +65,7 @@ fun IComponent.ReservationDetailLayout(
                             h3(className = "text-3xl font-bold text-primary mb-2") { +target.title }
                             div(className = "flex items-center gap-2 text-base-content/70 font-medium") {
                                 span(className = "icon-[heroicons--calendar] size-5")
-                                span { +"${target.startDateTime}" }
+                                span { +target.startDateTime.humanReadable }
                             }
                         }
 

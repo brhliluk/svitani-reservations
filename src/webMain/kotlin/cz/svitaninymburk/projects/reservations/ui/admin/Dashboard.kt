@@ -20,8 +20,8 @@ import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
+import cz.svitaninymburk.projects.reservations.util.humanReadable
 import kotlinx.coroutines.launch
-import kotlinx.datetime.number
 
 private sealed interface AdminDashboardUiState {
     data object Loading : AdminDashboardUiState
@@ -93,9 +93,7 @@ fun IComponent.AdminDashboardScreen() {
                                     p(className = "text-sm text-base-content/50 italic") { +currentStrings.dashboardNoUpcomingEvents }
                                 } else {
                                     data.upcomingEvents.forEach { event ->
-                                        // Formátování data: "DD.MM.YYYY HH:mm"
-                                        val timeString = "${event.startDateTime.date.day}.${event.startDateTime.date.month.number}. ${event.startDateTime.hour}:${event.startDateTime.minute.toString().padStart(2, '0')}"
-                                        AdminUpcomingEventRow(event.title, timeString, event.occupiedSpots, event.capacity) {
+                                        AdminUpcomingEventRow(event.title, event.startDateTime.humanReadable, event.occupiedSpots, event.capacity) {
                                             router.navigate("/admin/events/instance/${event.id}")
                                         }
                                     }
