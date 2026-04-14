@@ -19,8 +19,6 @@ data class EventDefinition(
     val defaultCapacity: Int,
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
-    val recurrenceType: RecurrenceType = RecurrenceType.NONE,
-    val recurrenceEndDate: Instant? = null,
     val customFields: List<CustomFieldDefinition> = emptyList(),
 )
 
@@ -77,10 +75,34 @@ data class CreateEventDefinitionRequest(
     val defaultPrice: Double,
     val defaultCapacity: Int,
     val defaultDuration: Duration,
-    val recurrenceType: RecurrenceType = RecurrenceType.NONE,
-    val recurrenceEndDate: Instant? = null,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
+)
+
+@Serializable
+data class CreateEventAndInstancesRequest(
+    val title: String,
+    val description: String,
+    val defaultPrice: Double,
+    val defaultCapacity: Int,
+    val defaultDuration: Duration,
+    val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
+    val customFields: List<CustomFieldDefinition> = emptyList(),
+    val dateTimes: List<LocalDateTime>,
+)
+
+@Serializable
+data class CreateEventAndSeriesRequest(
+    val title: String,
+    val description: String,
+    val defaultPrice: Double,
+    val defaultCapacity: Int,
+    val defaultDuration: Duration,
+    val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
+    val customFields: List<CustomFieldDefinition> = emptyList(),
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val lessonCount: Int,
 )
 
 @Serializable

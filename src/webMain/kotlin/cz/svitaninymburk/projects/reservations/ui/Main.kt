@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventDefinitionScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventInstanceScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventSeriesScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminDashboardScreen
@@ -109,6 +110,13 @@ fun IComponent.MainLayout() {
                             }
                         }
                     } }
+                    route("/new") {
+                        view {
+                            AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                AdminCreateEventScreen()
+                            }
+                        }
+                    }
                     route("/create") {
                         route("/definition") {
                             view {

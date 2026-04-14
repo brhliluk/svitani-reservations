@@ -11,20 +11,14 @@ import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import dev.kilua.core.IComponent
-import dev.kilua.form.InputType
 import dev.kilua.form.check.checkBox
 import dev.kilua.form.number.numeric
-import dev.kilua.form.select.select
 import dev.kilua.form.text.text
 import dev.kilua.form.text.textArea
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
 import web.history.history
-import web.html.HTMLSelectElement
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
@@ -49,10 +43,6 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
     // Platby
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
-
-    // --- OPAKOVÁNÍ ---
-    var recurrenceType by remember { mutableStateOf(RecurrenceType.NONE) }
-    var recurrenceEndDateStr by remember { mutableStateOf("") } // "YYYY-MM-DD"
 
     // --- STAVY PRO CUSTOM FIELDS BUILDER ---
     var customFields by remember { mutableStateOf(listOf<CustomFieldDefinition>()) }
@@ -161,38 +151,6 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                                     onChange { allowOnSite = value }
                                 }
                                 span(className = "label-text") { +currentStrings.paymentOnSite }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // --- OPAKOVÁNÍ ---
-        div(className = "card bg-base-100 shadow-sm") {
-            div(className = "card-body") {
-                h2(className = "card-title text-lg mb-4") { +currentStrings.recurrenceHeading }
-                div(className = "grid grid-cols-1 md:grid-cols-2 gap-4") {
-                    div(className = "form-control w-full") {
-                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.recurrenceTypeLabel } }
-                        select(className = "select select-bordered w-full") {
-                            option(value = "NONE", label = currentStrings.recurrenceNone) { if (recurrenceType == RecurrenceType.NONE) selected(true) }
-                            option(value = "DAILY", label = currentStrings.recurrenceDaily) { if (recurrenceType == RecurrenceType.DAILY) selected(true) }
-                            option(value = "WEEKLY", label = currentStrings.recurrenceWeekly) { if (recurrenceType == RecurrenceType.WEEKLY) selected(true) }
-                            option(value = "MONTHLY", label = currentStrings.recurrenceMonthly) { if (recurrenceType == RecurrenceType.MONTHLY) selected(true) }
-                            onChange { event ->
-                                val v = (event.target as? HTMLSelectElement)?.value ?: "NONE"
-                                recurrenceType = RecurrenceType.valueOf(v)
-                                if (recurrenceType == RecurrenceType.NONE) recurrenceEndDateStr = ""
-                            }
-                        }
-                    }
-
-                    if (recurrenceType != RecurrenceType.NONE) {
-                        div(className = "form-control w-full") {
-                            label(className = "label") { span(className = "label-text font-medium") { +currentStrings.recurrenceEndLabel } }
-                            text(value = recurrenceEndDateStr, type = InputType.Date, className = "input input-bordered w-full") {
-                                onInput { recurrenceEndDateStr = value ?: "" }
                             }
                         }
                     }
@@ -311,25 +269,11 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                         toastData = ToastData(currentStrings.validationNameRequired, ToastType.Error)
                         return@onClick
                     }
-                    if (recurrenceType != RecurrenceType.NONE && recurrenceEndDateStr.isBlank()) {
-                        toastData = ToastData(currentStrings.validationRecurrenceEndRequired, ToastType.Error)
-                        return@onClick
-                    }
-
                     val allowedPayments = mutableListOf<PaymentInfo.Type>()
                     if (allowBankTransfer) allowedPayments.add(PaymentInfo.Type.BANK_TRANSFER)
                     if (allowOnSite) allowedPayments.add(PaymentInfo.Type.ON_SITE)
 
                     val finalDuration = durationHours.hours + durationMinutes.minutes
-
-                    val recurrenceEndInstant = if (recurrenceType != RecurrenceType.NONE && recurrenceEndDateStr.isNotBlank()) {
-                        try {
-                            LocalDate.parse(recurrenceEndDateStr).atStartOfDayIn(TimeZone.currentSystemDefault())
-                        } catch (e: Exception) {
-                            toastData = ToastData(currentStrings.validationRecurrenceDateFormat, ToastType.Error)
-                            return@onClick
-                        }
-                    } else null
 
                     val request = CreateEventDefinitionRequest(
                         title = title,
@@ -339,8 +283,6 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                         defaultDuration = finalDuration,
                         allowedPaymentTypes = allowedPayments,
                         customFields = customFields,
-                        recurrenceType = recurrenceType,
-                        recurrenceEndDate = recurrenceEndInstant
                     )
 
                     scope.launch {

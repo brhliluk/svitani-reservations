@@ -34,8 +34,6 @@ class AuthenticatedEventService(
                 defaultPrice = request.defaultPrice,
                 defaultCapacity = request.defaultCapacity,
                 defaultDuration = request.defaultDuration,
-                recurrenceType = request.recurrenceType,
-                recurrenceEndDate = request.recurrenceEndDate,
             )
         )
     }

@@ -8,7 +8,6 @@ import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.datetime.date
 import org.jetbrains.exposed.v1.datetime.datetime
-import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -29,9 +28,6 @@ object EventDefinitionsTable : Table("event_definitions") {
     val allowedPaymentTypes = json<List<PaymentInfo.Type>>("allowed_payment_types", Json)
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
 
-    val recurrenceType = enumerationByName("recurrence_type", 20, RecurrenceType::class)
-    val recurrenceEndDate = timestamp("recurrence_end_date").nullable()
-
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -43,8 +39,6 @@ fun ResultRow.toEventDefinition(): EventDefinition = EventDefinition(
     defaultCapacity = this[EventDefinitionsTable.defaultCapacity],
     defaultDuration = this[EventDefinitionsTable.defaultDurationMs].milliseconds,
     allowedPaymentTypes = this[EventDefinitionsTable.allowedPaymentTypes],
-    recurrenceType = this[EventDefinitionsTable.recurrenceType],
-    recurrenceEndDate = this[EventDefinitionsTable.recurrenceEndDate],
     customFields = this[EventDefinitionsTable.customFields]
 )
 
@@ -159,8 +153,6 @@ class ExposedEventDefinitionRepository : EventDefinitionRepository {
             row[defaultDurationMs] = event.defaultDuration.inWholeMilliseconds // Převod Duration na Long
             row[allowedPaymentTypes] = event.allowedPaymentTypes
             row[customFields] = event.customFields
-            row[recurrenceType] = event.recurrenceType
-            row[recurrenceEndDate] = event.recurrenceEndDate
         }
         event
     }
@@ -174,8 +166,6 @@ class ExposedEventDefinitionRepository : EventDefinitionRepository {
             row[defaultDurationMs] = event.defaultDuration.inWholeMilliseconds
             row[allowedPaymentTypes] = event.allowedPaymentTypes
             row[customFields] = event.customFields
-            row[recurrenceType] = event.recurrenceType
-            row[recurrenceEndDate] = event.recurrenceEndDate
         }
         event
     }
