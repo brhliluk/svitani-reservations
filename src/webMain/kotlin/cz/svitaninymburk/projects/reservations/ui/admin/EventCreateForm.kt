@@ -163,7 +163,7 @@ fun IComponent.AdminCreateEventScreen() {
                     }
 
                     div(className = "form-control w-full") {
-                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.defaultPriceLabel } }
+                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.priceLabel } }
                         div(className = "relative flex items-center") {
                             numeric(value = price, min = 0, className = "input input-bordered w-full pr-12") {
                                 onInput { price = value }
@@ -186,7 +186,7 @@ fun IComponent.AdminCreateEventScreen() {
                     }
 
                     div(className = "form-control w-full") {
-                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.defaultDurationLabel } }
+                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.durationLabel } }
                         div(className = "flex gap-2") {
                             div(className = "relative flex-1 items-center flex") {
                                 numeric(value = durationHours, min = 0, decimals = 0, className = "input input-bordered w-full pr-8") {
