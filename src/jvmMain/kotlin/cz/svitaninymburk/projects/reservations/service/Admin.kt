@@ -45,6 +45,7 @@ class AdminDashboardService(
     private val eventInstanceRepository: EventInstanceRepository,
     private val reservationRepository: ReservationRepository,
     private val userRepository: UserRepository,
+    private val emailService: EmailService,
 ): AdminServiceInterface {
 
     override suspend fun getDashboardSummary(): Either<AdminError.GetSummary, AdminDashboardData> = either {
@@ -123,7 +124,7 @@ class AdminDashboardService(
             raise(AdminError.FailedToMarkReservationPaid("Chyba při aktualizaci stavu v databázi."))
         }
 
-        // 💡 TIP DO BUDOUCNA: Tady můžeš zavolat emailService a poslat mamince "Platba přijata, těšíme se na vás!"
+        emailService.sendPaymentReceivedConfirmation(reservation)
     }
 
     override suspend fun getEventDetail(eventId: Uuid, isSeries: Boolean): Either<AdminError.GetEventDetail, AdminEventDetailData> = either {
