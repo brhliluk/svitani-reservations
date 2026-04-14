@@ -17,6 +17,8 @@ import dev.kilua.form.number.numeric
 import dev.kilua.form.select.select
 import dev.kilua.form.text.text
 import dev.kilua.form.text.textArea
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import cz.svitaninymburk.projects.reservations.event.generateRecurrenceDates
@@ -61,17 +63,21 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
 
-    val selectedDefinition = definitions.find { it.id.toString() == selectedDefinitionId }
-    val isRecurring = selectedDefinition?.recurrenceType != null
-        && selectedDefinition.recurrenceType != RecurrenceType.NONE
-        && selectedDefinition.recurrenceEndDate != null
+    // Inline recurrence (no longer read from definition)
+    var recurrenceType by remember { mutableStateOf(RecurrenceType.NONE) }
+    var recurrenceEndDateStr by remember { mutableStateOf("") }
 
-    val previewDates: List<LocalDateTime> = remember(startDate, startTime, selectedDefinition) {
-        val def = selectedDefinition ?: return@remember emptyList()
+    val selectedDefinition = definitions.find { it.id.toString() == selectedDefinitionId }
+    val isRecurring = recurrenceType != RecurrenceType.NONE && recurrenceEndDateStr.isNotBlank()
+
+    val previewDates: List<LocalDateTime> = remember(startDate, startTime, recurrenceType, recurrenceEndDateStr) {
         if (!isRecurring || startDate.isBlank() || startTime.isBlank()) return@remember emptyList()
-        val d = try { LocalDate.parse(startDate) } catch (e: Exception) { return@remember emptyList() }
-        val t = try { LocalTime.parse(startTime) } catch (e: Exception) { return@remember emptyList() }
-        generateRecurrenceDates(d, t, def.recurrenceType, def.recurrenceEndDate!!)
+        val d = try { LocalDate.parse(startDate) } catch (_: Exception) { return@remember emptyList() }
+        val t = try { LocalTime.parse(startTime) } catch (_: Exception) { return@remember emptyList() }
+        val endInstant = try {
+            LocalDate.parse(recurrenceEndDateStr).atStartOfDayIn(TimeZone.currentSystemDefault())
+        } catch (_: Exception) { return@remember emptyList() }
+        generateRecurrenceDates(d, t, recurrenceType, endInstant)
     }
 
     // Funkce pro předvyplnění formuláře při změně šablony
@@ -131,7 +137,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                     div(className = "text-sm") { +currentStrings.noTemplatesInstanceMessage }
                 }
                 button(className = "btn btn-sm btn-primary") {
-                    onClick { router.navigate("/admin/events/new-definition") }
+                    onClick { router.navigate("/admin/events/new") }
                     +currentStrings.createTemplateButton
                 }
             }
@@ -177,6 +183,31 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                             label(className = "label") { span(className = "label-text font-bold") { +currentStrings.timeLabelField } }
                             text(value = startTime, type = InputType.Time, className = "input input-bordered w-full") {
                                 onInput { startTime = value ?: "" }
+                            }
+                        }
+
+                        // Opakování
+                        div(className = "form-control w-full") {
+                            label(className = "label") { span(className = "label-text font-medium") { +currentStrings.recurrenceTypeLabel } }
+                            select(className = "select select-bordered w-full") {
+                                option(value = "NONE", label = currentStrings.recurrenceNone) { if (recurrenceType == RecurrenceType.NONE) selected(true) }
+                                option(value = "DAILY", label = currentStrings.recurrenceDaily) { if (recurrenceType == RecurrenceType.DAILY) selected(true) }
+                                option(value = "WEEKLY", label = currentStrings.recurrenceWeekly) { if (recurrenceType == RecurrenceType.WEEKLY) selected(true) }
+                                option(value = "MONTHLY", label = currentStrings.recurrenceMonthly) { if (recurrenceType == RecurrenceType.MONTHLY) selected(true) }
+                                onChange { event ->
+                                    val v = (event.target as? HTMLSelectElement)?.value ?: "NONE"
+                                    recurrenceType = RecurrenceType.valueOf(v)
+                                    if (recurrenceType == RecurrenceType.NONE) recurrenceEndDateStr = ""
+                                }
+                            }
+                        }
+
+                        if (recurrenceType != RecurrenceType.NONE) {
+                            div(className = "form-control w-full") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.recurrenceEndLabel } }
+                                text(value = recurrenceEndDateStr, type = InputType.Date, className = "input input-bordered w-full") {
+                                    onInput { recurrenceEndDateStr = value ?: "" }
+                                }
                             }
                         }
                     }

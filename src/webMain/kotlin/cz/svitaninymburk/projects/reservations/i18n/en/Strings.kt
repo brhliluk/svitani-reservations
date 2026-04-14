@@ -234,6 +234,22 @@ object EnStrings : AppStrings {
     override val validationEndBeforeStart = "End date must be after start date."
     override val toastSeriesCreated = "Course was successfully created!"
 
+    // Unified Event Create Form
+    override val newEventTitle = "New event"
+    override val newEventSubtitle = "Create a one-time, recurring event or a course"
+    override val eventTypeHeading = "Event type"
+    override val eventTypeSingle = "One-time"
+    override val eventTypeRecurring = "Recurring"
+    override val eventTypeCourse = "Course"
+    override val createEventButton = "Create"
+    override val toastEventCreated = "Event was successfully created!"
+    override val toastEventsCreated: (Int) -> String = { "Created $it events!" }
+    override val toastCourseCreated = "Course was successfully created!"
+    override val validationTitleRequired = "Event name is required."
+    override val validationDateRequired = "You must select an event date."
+    override val validationDatesOrTimeRequired = "You must fill in date and time."
+    override val validationCourseDatesRequired = "You must fill in start date, end date and lesson count."
+
     // Event Create Choose
     override val chooseTypeTitle = "How do you want to schedule this template?"
     override val chooseTypeSubtitle = "Select date type"

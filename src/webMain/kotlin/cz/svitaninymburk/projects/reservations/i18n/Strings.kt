@@ -250,6 +250,22 @@ interface AppStrings {
     val validationEndBeforeStart: String
     val toastSeriesCreated: String
 
+    // Unified Event Create Form (/admin/events/new)
+    val newEventTitle: String
+    val newEventSubtitle: String
+    val eventTypeHeading: String
+    val eventTypeSingle: String
+    val eventTypeRecurring: String
+    val eventTypeCourse: String
+    val createEventButton: String
+    val toastEventCreated: String
+    val toastEventsCreated: (Int) -> String
+    val toastCourseCreated: String
+    val validationTitleRequired: String
+    val validationDateRequired: String
+    val validationDatesOrTimeRequired: String
+    val validationCourseDatesRequired: String
+
     // Event Create Choose
     val chooseTypeTitle: String
     val chooseTypeSubtitle: String

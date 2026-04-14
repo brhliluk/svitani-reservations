@@ -50,7 +50,7 @@ fun IComponent.AdminEventsScreen() {
             button(className = "btn btn-primary") {
                 span(className = "icon-[heroicons--plus] size-5")
                 +currentStrings.createNew
-                 onClick { router.navigate("/admin/events/create/definition") } // Přidáme později
+                    onClick { router.navigate("/admin/events/new") }
             }
         }
 

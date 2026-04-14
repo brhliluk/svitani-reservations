@@ -234,6 +234,22 @@ object CsStrings : AppStrings {
     override val validationEndBeforeStart = "Datum konce musí být po datu začátku."
     override val toastSeriesCreated = "Kurz byl úspěšně vytvořen!"
 
+    // Unified Event Create Form
+    override val newEventTitle = "Nová událost"
+    override val newEventSubtitle = "Vytvořte jednorázovou, opakovanou událost nebo kurz"
+    override val eventTypeHeading = "Typ události"
+    override val eventTypeSingle = "Jednorázová"
+    override val eventTypeRecurring = "Opakovaná"
+    override val eventTypeCourse = "Kurz"
+    override val createEventButton = "Vytvořit"
+    override val toastEventCreated = "Událost byla úspěšně vytvořena!"
+    override val toastEventsCreated: (Int) -> String = { "Vytvořeno $it termínů!" }
+    override val toastCourseCreated = "Kurz byl úspěšně vytvořen!"
+    override val validationTitleRequired = "Název události je povinný."
+    override val validationDateRequired = "Musíte vybrat datum konání."
+    override val validationDatesOrTimeRequired = "Musíte vyplnit datum a čas."
+    override val validationCourseDatesRequired = "Musíte vyplnit datum začátku, konce a počet lekcí."
+
     // Event Create Choose
     override val chooseTypeTitle = "Jak chcete vypsat šablonu?"
     override val chooseTypeSubtitle = "Vyberte typ termínu"

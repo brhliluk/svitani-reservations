@@ -62,11 +62,6 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
         allowOnSite = definition.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
     }
 
-    val selectedDefinition = definitions.find { it.id.toString() == selectedDefinitionId }
-    val isRecurring = selectedDefinition?.recurrenceType != null
-        && selectedDefinition.recurrenceType != RecurrenceType.NONE
-        && selectedDefinition.recurrenceEndDate != null
-
     LaunchedEffect(Unit) {
         eventService.getAllDefinitions()
             .onRight { defs ->
@@ -80,16 +75,6 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                 toastData = ToastData(currentStrings.toastTemplatesLoadError(error.toString()), ToastType.Error)
                 isLoadingDefinitions = false
             }
-    }
-
-    LaunchedEffect(selectedDefinitionId, startDate) {
-        val def = selectedDefinition ?: return@LaunchedEffect
-        if (!isRecurring || startDate.isBlank()) return@LaunchedEffect
-        val parsedStart = try { LocalDate.parse(startDate) } catch (_: Exception) { return@LaunchedEffect }
-        val autoFill = computeSeriesAutoFill(parsedStart, def.recurrenceType, def.recurrenceEndDate!!)
-            ?: return@LaunchedEffect
-        endDate = autoFill.endDate.toString()
-        lessonCount = autoFill.lessonCount
     }
 
     div(className = "flex flex-col gap-6 animate-fade-in max-w-4xl mx-auto pb-20") {
@@ -118,7 +103,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                     div(className = "text-sm") { +currentStrings.noTemplatesSeriesMessage }
                 }
                 button(className = "btn btn-sm btn-primary") {
-                    onClick { router.navigate("/admin/events/create/definition") }
+                    onClick { router.navigate("/admin/events/new") }
                     +currentStrings.createTemplateButton
                 }
             }
@@ -178,14 +163,6 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                             }
                         }
 
-                        if (isRecurring && startDate.isNotBlank()) {
-                            div(className = "md:col-span-2") {
-                                div(className = "alert alert-info py-2 text-sm") {
-                                    span(className = "icon-[heroicons--information-circle] size-4")
-                                    +currentStrings.autoFillAlert
-                                }
-                            }
-                        }
                     }
                 }
             }

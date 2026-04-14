@@ -17,9 +17,12 @@ import cz.svitaninymburk.projects.reservations.admin.AdminPendingReservation
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminUpcomingEvent
 import cz.svitaninymburk.projects.reservations.admin.AdminUserListItem
+import cz.svitaninymburk.projects.reservations.event.CreateEventAndInstancesRequest
+import cz.svitaninymburk.projects.reservations.event.CreateEventAndSeriesRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventSeriesRequest
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
+import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.reservation.Reference
@@ -31,6 +34,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.number
 import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
@@ -300,9 +304,7 @@ class AdminDashboardService(
                 defaultCapacity = request.defaultCapacity,
                 defaultDuration = request.defaultDuration,
                 allowedPaymentTypes = request.allowedPaymentTypes,
-                recurrenceType = request.recurrenceType,
-                recurrenceEndDate = request.recurrenceEndDate,
-                customFields = request.customFields
+                customFields = request.customFields,
             )
 
             eventDefinitionRepository.create(newDefinition)
@@ -333,6 +335,80 @@ class AdminDashboardService(
             eventSeriesRepository.create(newSeries)
 
             newSeries.id
+        } catch (e: Exception) {
+            e.printStackTrace()
+            raise(AdminError.FailedToCreateSeries("Nepodařilo se vytvořit kurz: ${e.message}"))
+        }
+    }
+
+    override suspend fun createEventAndInstances(request: CreateEventAndInstancesRequest): Either<AdminError.CreateEvent, Uuid> = either {
+        try {
+            val newDefinition = EventDefinition(
+                id = Uuid.random(),
+                title = request.title,
+                description = request.description,
+                defaultPrice = request.defaultPrice,
+                defaultCapacity = request.defaultCapacity,
+                defaultDuration = request.defaultDuration,
+                allowedPaymentTypes = request.allowedPaymentTypes,
+                customFields = request.customFields,
+            )
+            eventDefinitionRepository.create(newDefinition)
+
+            val tz = TimeZone.currentSystemDefault()
+            request.dateTimes.forEach { startDateTime ->
+                eventInstanceRepository.create(
+                    EventInstance(
+                        id = Uuid.random(),
+                        definitionId = newDefinition.id,
+                        title = newDefinition.title,
+                        description = newDefinition.description,
+                        startDateTime = startDateTime,
+                        endDateTime = (startDateTime.toInstant(tz) + newDefinition.defaultDuration).toLocalDateTime(tz),
+                        price = newDefinition.defaultPrice,
+                        capacity = newDefinition.defaultCapacity,
+                        allowedPaymentTypes = newDefinition.allowedPaymentTypes,
+                        customFields = newDefinition.customFields,
+                    )
+                )
+            }
+            newDefinition.id
+        } catch (e: Exception) {
+            e.printStackTrace()
+            raise(AdminError.FailedToCreateEvent("Nepodařilo se vytvořit událost: ${e.message}"))
+        }
+    }
+
+    override suspend fun createEventAndSeries(request: CreateEventAndSeriesRequest): Either<AdminError.CreateSeries, Uuid> = either {
+        try {
+            val newDefinition = EventDefinition(
+                id = Uuid.random(),
+                title = request.title,
+                description = request.description,
+                defaultPrice = request.defaultPrice,
+                defaultCapacity = request.defaultCapacity,
+                defaultDuration = request.defaultDuration,
+                allowedPaymentTypes = request.allowedPaymentTypes,
+                customFields = request.customFields,
+            )
+            eventDefinitionRepository.create(newDefinition)
+
+            eventSeriesRepository.create(
+                EventSeries(
+                    id = Uuid.random(),
+                    definitionId = newDefinition.id,
+                    title = newDefinition.title,
+                    description = newDefinition.description,
+                    price = newDefinition.defaultPrice,
+                    capacity = newDefinition.defaultCapacity,
+                    startDate = request.startDate,
+                    endDate = request.endDate,
+                    lessonCount = request.lessonCount,
+                    allowedPaymentTypes = newDefinition.allowedPaymentTypes,
+                    customFields = newDefinition.customFields,
+                )
+            )
+            newDefinition.id
         } catch (e: Exception) {
             e.printStackTrace()
             raise(AdminError.FailedToCreateSeries("Nepodařilo se vytvořit kurz: ${e.message}"))
