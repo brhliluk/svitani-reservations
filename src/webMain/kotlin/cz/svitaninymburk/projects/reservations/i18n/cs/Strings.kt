@@ -4,6 +4,7 @@ import cz.svitaninymburk.projects.reservations.i18n.AppStrings
 
 
 object CsStrings : AppStrings {
+    override val locale = "cs"
     override val appName = "Rezervace"
     override val logIn = "Přihlásit se"
     override val reserve = "Rezervovat"
@@ -338,4 +339,37 @@ object CsStrings : AppStrings {
     override fun monthName(index: Int) = months.getOrElse(index) { "" }
     override fun dayName(index: Int) = days.getOrElse(index) { "" }
     override fun shortDayName(index: Int) = shortDays.getOrElse(index) { "" }
+
+    // ErrorStrings
+    override val errorInvalidCredentials = "Neplatné přihlašovací údaje"
+    override val errorUserAlreadyExists = "Účet již existuje"
+    override val errorInvalidGoogleToken = "Neplatný Google Token"
+    override val errorInvalidToken = "Neplatný token"
+    override val errorTokenExpired = "Token vypršel"
+    override val errorUserNotFound = "Uživatel nenalezen"
+    override val errorProcessingRequest = "Chyba při zpracování požadavku"
+    override val errorNotLoggedIn = "Uživatel není přihlášen"
+    override fun errorLoggedInWithAnotherProvider(providerName: String?) = "Přihlášení jinou metodou: $providerName"
+
+    override val errorReservationNotFound = "Rezervace nebyla nalezena"
+    override val errorEventInstanceNotFound = "Událost nebyla nalezena"
+    override val errorEventSeriesNotFound = "Kroužek nebyl nalezen"
+    override val errorCapacityExceeded = "Kapacita události překročena"
+    override val errorEventAlreadyFinished = "Událost již skončila"
+    override val errorEventAlreadyStarted = "Událost již začala"
+    override val errorEventCancelled = "Událost byla zrušena"
+    override val errorFailedToGetReservations = "Nelze získat seznam rezervací"
+    override fun errorFailedToSendCancellationEmail(cause: String) = "Nepodařilo se odeslat email o zrušení rezervace: $cause"
+
+    override fun errorEventInstanceNotFoundId(id: String) = "Událost s id $id nenalezena"
+    override fun errorEventDefinitionNotFoundId(id: String) = "Šablona události s id $id nenalezena"
+    override val errorFailedToGetDefinitions = "Nepodařilo se získat definice"
+    override val errorFailedToGetInstances = "Nepodařilo se získat události"
+    override val errorFailedToGetSeries = "Nepodařilo se získat kurzy"
+
+    override val errorAdminReservationNotFound = "Rezervace nenalezena"
+    override fun errorWrongReservationState(stateName: String) = "Stav rezervace není k zaplacení, ale: $stateName"
+    override val errorAdminEventNotFound = "Událost nenalezena"
+    override val errorAdminCourseNotFound = "Kroužek nenalezen"
+    override val errorAdminUserNotFound = "Uživatel nenalezen"
 }

@@ -56,7 +56,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             val uuid = Uuid.parse(eventId)
             adminService.getEventDetail(uuid, isSeries)
                 .onRight { value = AdminEventDetailUiState.Success(it) }
-                .onLeft { value = AdminEventDetailUiState.Error(it.localizedMessage) }
+                .onLeft { value = AdminEventDetailUiState.Error(it.localizedMessage(currentStrings)) }
         } catch (e: IllegalArgumentException) {
             value = AdminEventDetailUiState.Error(currentStrings.invalidEventId)
         }

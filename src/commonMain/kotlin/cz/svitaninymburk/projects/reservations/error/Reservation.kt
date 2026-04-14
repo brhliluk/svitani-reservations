@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.error
 
+import cz.svitaninymburk.projects.reservations.i18n.ErrorStrings
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -23,15 +24,15 @@ import kotlinx.serialization.Serializable
     @Serializable data class SystemError(val message: String) : CreateReservation
 }
 
-val ReservationError.localizedMessage: String get() = when (this) {
-    is ReservationError.ReservationNotFound -> "Rezervace nebyla nalezena"
-    is ReservationError.EventInstanceNotFound -> "Událost nebyla nalezena"
-    is ReservationError.EventSeriesNotFound -> "Kroužek nebyl nalezen"
-    is ReservationError.CapacityExceeded -> "Kapacita události překročena"
-    is ReservationError.EventAlreadyFinished -> "Událost již skončila"
-    is ReservationError.EventAlreadyStarted -> "Událost již začala"
-    is ReservationError.EventCancelled -> "Událost byla zrušena"
-    is ReservationError.FailedToGetAllReservations -> "Nelze získat seznam rezervací"
-    is ReservationError.FailedToSendCancellationEmail -> "Nepodařilo se odeslat email o zrušení rezervace: ${cause.localizedMessage}"
+fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (this) {
+    is ReservationError.ReservationNotFound -> strings.errorReservationNotFound
+    is ReservationError.EventInstanceNotFound -> strings.errorEventInstanceNotFound
+    is ReservationError.EventSeriesNotFound -> strings.errorEventSeriesNotFound
+    is ReservationError.CapacityExceeded -> strings.errorCapacityExceeded
+    is ReservationError.EventAlreadyFinished -> strings.errorEventAlreadyFinished
+    is ReservationError.EventAlreadyStarted -> strings.errorEventAlreadyStarted
+    is ReservationError.EventCancelled -> strings.errorEventCancelled
+    is ReservationError.FailedToGetAllReservations -> strings.errorFailedToGetReservations
+    is ReservationError.FailedToSendCancellationEmail -> strings.errorFailedToSendCancellationEmail(cause.localizedMessage)
     is ReservationError.SystemError -> message
 }

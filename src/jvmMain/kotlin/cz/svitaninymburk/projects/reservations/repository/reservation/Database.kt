@@ -50,6 +50,7 @@ object ReservationsTable : Table("reservations") {
     val paymentType = enumerationByName("payment_type", 30, PaymentInfo.Type::class)
     val variableSymbol = varchar("variable_symbol", 50).nullable()
     val paymentPairingToken = varchar("payment_pairing_token", 255).nullable()
+    val locale = varchar("locale", 10).default("cs")
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -102,6 +103,7 @@ class ExposedReservationRepository : ReservationRepository {
                 row[paymentType] = reservation.paymentType
                 row[variableSymbol] = reservation.variableSymbol
                 row[paymentPairingToken] = reservation.paymentPairingToken
+                row[locale] = reservation.locale
             }
         }
         reservation
@@ -202,6 +204,7 @@ fun ResultRow.toReservation(): Reservation {
 
         paymentType = this[ReservationsTable.paymentType],
         variableSymbol = this[ReservationsTable.variableSymbol],
-        paymentPairingToken = this[ReservationsTable.paymentPairingToken]
+        paymentPairingToken = this[ReservationsTable.paymentPairingToken],
+        locale = this[ReservationsTable.locale],
     )
 }

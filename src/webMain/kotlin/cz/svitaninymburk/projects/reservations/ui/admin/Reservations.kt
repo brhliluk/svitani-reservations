@@ -56,7 +56,7 @@ fun IComponent.AdminReservationsScreen() {
         value = AdminReservationsUiState.Loading
         adminService.getAllReservations(activeSearchQuery)
             .onRight { value = AdminReservationsUiState.Success(it) }
-            .onLeft { value = AdminReservationsUiState.Error(it.localizedMessage) }
+            .onLeft { value = AdminReservationsUiState.Error(it.localizedMessage(currentStrings)) }
     }
 
     div(className = "flex flex-col gap-6 animate-fade-in") {

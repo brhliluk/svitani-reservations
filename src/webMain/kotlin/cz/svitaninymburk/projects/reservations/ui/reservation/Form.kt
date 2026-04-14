@@ -183,7 +183,7 @@ fun IComponent.ReservationModal(
                         onClick {
                             onSubmit(
                                 target,
-                                ReservationFormData(firstName, lastName, email, phone, seats, paymentType, customValuesState)
+                                ReservationFormData(firstName, lastName, email, phone, seats, paymentType, customValuesState, currentStrings.locale)
                             )
                         }
                         if (isValid) {

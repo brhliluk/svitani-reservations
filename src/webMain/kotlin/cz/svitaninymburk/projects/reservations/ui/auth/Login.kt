@@ -4,6 +4,7 @@ import androidx.compose.runtime.*
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.auth.LoginRequest
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import dev.kilua.core.IComponent
 import dev.kilua.form.Autocomplete
@@ -31,6 +32,7 @@ fun IComponent.LoginDialog(
 
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val currentStrings by strings
 
     val isFormValid = email.isNotBlank() && password.isNotBlank()
 
@@ -48,7 +50,7 @@ fun IComponent.LoginDialog(
                 }
                 .onLeft {
                     isLoading = false
-                    errorMessage = it.localizedMessage
+                    errorMessage = it.localizedMessage(currentStrings)
                 }
         }
     }

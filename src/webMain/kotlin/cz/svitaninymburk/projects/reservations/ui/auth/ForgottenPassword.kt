@@ -3,6 +3,7 @@ package cz.svitaninymburk.projects.reservations.ui.auth
 import androidx.compose.runtime.*
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import dev.kilua.core.IComponent
 import dev.kilua.form.Autocomplete
@@ -24,6 +25,7 @@ fun IComponent.ForgotPasswordDialog(
 
     val authService = getService<AuthServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
+    val currentStrings by strings
     var email by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
 
@@ -60,7 +62,7 @@ fun IComponent.ForgotPasswordDialog(
                             authService.requestPasswordReset(email)
                                 .onLeft {
                                     isLoading = false
-                                    onFailure(it.localizedMessage)
+                                    onFailure(it.localizedMessage(currentStrings))
                                 }
                                 .onRight {
                                     isLoading = false

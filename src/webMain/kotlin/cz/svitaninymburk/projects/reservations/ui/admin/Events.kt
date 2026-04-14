@@ -34,7 +34,7 @@ fun IComponent.AdminEventsScreen() {
     val uiState by produceState<AdminEventsUiState>(initialValue = AdminEventsUiState.Loading) {
         adminService.getAllEvents()
             .onRight { value = AdminEventsUiState.Success(it) }
-            .onLeft { value = AdminEventsUiState.Error(it.localizedMessage) }
+            .onLeft { value = AdminEventsUiState.Error(it.localizedMessage(currentStrings)) }
     }
 
     div(className = "flex flex-col gap-6 animate-fade-in") {
