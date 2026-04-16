@@ -86,6 +86,13 @@ object CsStrings : AppStrings {
     override val rejected = "Zamítnuto"
     override val copyright = "© 2024 Reservation System"
 
+    // Reservation errors
+    override val reservationFailed: (String) -> String = { "Rezervace se nezdařila: $it" }
+
+    // Auth messages
+    override val registrationSuccess = "Registrace úspěšná! Potvrzení jsme poslali na váš email."
+    override val forgotPasswordEmailSent = "Email s instrukcemi ke změně hesla byl odeslán."
+
     // Reservation Modal
     override val reservationFor: (String) -> String = { "Rezervace: $it" }
     override val formTotalPrice = "Celková cena"

@@ -12,7 +12,6 @@ import cz.svitaninymburk.projects.reservations.ui.auth.RegisterDialog
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
-import dev.kilua.html.a
 import dev.kilua.html.button
 import dev.kilua.html.div
 import dev.kilua.html.header
@@ -48,7 +47,7 @@ fun IComponent.AppHeader(
         onRegisterSuccess = {
             modalState = AuthModalState.Closed
             onLogin()
-            onShowMessage("Registrace úspěšná! Potvrzení jsme poslali na váš email.", ToastType.Success)
+            onShowMessage(currentStrings.registrationSuccess, ToastType.Success)
         }
     )
 
@@ -58,7 +57,7 @@ fun IComponent.AppHeader(
         onSwitchToLogin = { modalState = AuthModalState.Login },
         onSuccess = {
             modalState = AuthModalState.Closed
-            onShowMessage("Email s instrukcemi ke změně hesla byl odeslán.", ToastType.Success)
+            onShowMessage(currentStrings.forgotPasswordEmailSent, ToastType.Success)
         },
         onFailure = {
             modalState = AuthModalState.Closed
@@ -78,13 +77,6 @@ fun IComponent.AppHeader(
         }
 
         div(className = "navbar-end gap-4") {
-            if (user != null) {
-                a(className = "btn btn-ghost btn-sm hidden sm:inline-flex") {
-                    href("#")
-                    +currentStrings.myReservations
-                }
-            }
-
             div(className = "flex items-center gap-3 pl-4 border-l border-base-200") {
                 div(className = "avatar placeholder") {
                     div(className = "bg-primary/10 text-primary w-10 rounded-full grid place-items-center") {
@@ -99,7 +91,7 @@ fun IComponent.AppHeader(
                         }
                         button(className = "text-xs text-base-content/60 hover:text-primary text-left") {
                             onClick { onLogout() }
-                            +"Odhlásit se"
+                            +currentStrings.logOut
                         }
                     } else {
                         button(className = "btn btn-sm btn-ghost") {

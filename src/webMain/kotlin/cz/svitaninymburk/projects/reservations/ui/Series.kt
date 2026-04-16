@@ -48,9 +48,9 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
 
                 div(className = "card-actions items-center justify-between mt-4 pt-4 border-t border-base-200") {
                     div(className = "flex flex-col") {
-                        span(className = "text-xs text-base-content/60 font-medium uppercase tracking-wider") { "Price" }
+                        span(className = "text-xs text-base-content/60 font-medium uppercase tracking-wider") { +currentStrings.priceLabel }
                         span(className = "text-xl font-bold text-primary") {
-                            "${series.price} Kč"
+                            +"${series.price} ${currentStrings.currency}"
                         }
                     }
 

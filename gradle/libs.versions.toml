@@ -72,12 +72,13 @@ exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "e
 exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
 exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "exposed" }
 exposed-json = { module = "org.jetbrains.exposed:exposed-json", version.ref = "exposed" }
+exposed-migration-jdbc = { module = "org.jetbrains.exposed:exposed-migration-jdbc", version.ref = "exposed" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite-jdbc" }
 hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 
 
 [bundles]
-database = ["exposed-core", "exposed-jdbc", "exposed-kotlin-datetime", "exposed-json", "sqlite-jdbc", "hikaricp"]
+database = ["exposed-core", "exposed-jdbc", "exposed-kotlin-datetime", "exposed-json", "exposed-migration-jdbc", "sqlite-jdbc", "hikaricp"]
 
 [plugins]
 compose = { id = "org.jetbrains.compose", version.ref = "compose" }

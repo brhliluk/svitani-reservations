@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventDefinitionScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventScreen
@@ -43,6 +44,7 @@ import kotlin.uuid.Uuid
 fun IComponent.MainLayout() {
     val authService = getService<AuthServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
+    val currentStrings by strings
 
     var currentUser by remember { mutableStateOf<User?>(null) }
     var toastState by remember { mutableStateOf<ToastData?>(null) }
@@ -55,7 +57,7 @@ fun IComponent.MainLayout() {
         authService.getCurrentUser()
             .onRight { currentUser = it }
             .onLeft { error ->
-                console.log(error.localizedMessage(strings.value))
+                console.log(error.localizedMessage(currentStrings))
                 currentUser = null
             }
     }
