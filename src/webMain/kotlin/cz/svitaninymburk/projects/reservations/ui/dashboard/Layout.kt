@@ -116,25 +116,36 @@ fun IComponent.DashboardLayout(
                 if (viewMode == ViewMode.LIST) {
                     div(className = "flex flex-col gap-6 animate-fade-in") {
 
-                        if (filteredSeries.isNotEmpty()) {
-                            div(className = "grid grid-cols-1 md:grid-cols-2 gap-6") {
-                                filteredSeries.forEach { seriesItem ->
-                                    SeriesCard(seriesItem) { reservationTarget = ReservationTarget.Series(seriesItem) }
-                                }
-                            }
-                            if (filteredEvents.isNotEmpty()) {
-                                div(className = "divider text-base-content/50 text-sm") { +currentStrings.showDates }
-                            }
-                        }
-
                         if (filteredEvents.isEmpty() && filteredSeries.isEmpty()) {
                             div(className = "alert bg-base-100 shadow-sm") {
                                 span(className = "icon-[heroicons--information-circle] size-6 text-info")
                                 +currentStrings.noEventsFoundForFilter
                             }
                         } else {
-                            filteredEvents.forEach { eventItem ->
-                                Event(eventItem) { reservationTarget = ReservationTarget.Instance(eventItem) }
+                            if (filteredSeries.isNotEmpty()) {
+                                div(className = "flex flex-col gap-4") {
+                                    div(className = "text-sm font-semibold text-base-content/50 uppercase tracking-wider") {
+                                        +currentStrings.openCourses
+                                    }
+                                    div(className = "grid grid-cols-1 md:grid-cols-2 gap-6") {
+                                        filteredSeries.forEach { seriesItem ->
+                                            SeriesCard(seriesItem) { reservationTarget = ReservationTarget.Series(seriesItem) }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (filteredEvents.isNotEmpty()) {
+                                div(className = "flex flex-col gap-4") {
+                                    if (filteredSeries.isNotEmpty()) {
+                                        div(className = "text-sm font-semibold text-base-content/50 uppercase tracking-wider") {
+                                            +currentStrings.individualEvents
+                                        }
+                                    }
+                                    filteredEvents.forEach { eventItem ->
+                                        Event(eventItem) { reservationTarget = ReservationTarget.Instance(eventItem) }
+                                    }
+                                }
                             }
                         }
                     }
