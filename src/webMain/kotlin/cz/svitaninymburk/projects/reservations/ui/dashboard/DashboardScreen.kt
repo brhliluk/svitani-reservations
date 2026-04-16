@@ -19,6 +19,9 @@ import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormData
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
+import cz.svitaninymburk.projects.reservations.ui.util.Toast
+import cz.svitaninymburk.projects.reservations.ui.util.ToastData
+import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.html.button
@@ -26,7 +29,6 @@ import dev.kilua.html.div
 import dev.kilua.html.span
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
-import web.prompts.alert
 
 @Composable
 fun IComponent.DashboardScreen(
@@ -35,6 +37,7 @@ fun IComponent.DashboardScreen(
 ) {
     var retryTrigger by remember { mutableStateOf(0) }
     var isSubmitting by remember { mutableStateOf(false) }
+    var toastData by remember { mutableStateOf<ToastData?>(null) }
     val currentStrings by strings
 
     val router = Router.current
@@ -50,7 +53,7 @@ fun IComponent.DashboardScreen(
                 .onRight { data -> value = DashboardUiState.Success(data.instances, data.series, data.definitions) }
                 .onLeft { error -> value = DashboardUiState.Error(error.localizedMessage(currentStrings)) }
         } catch (e: Exception) {
-            value = DashboardUiState.Error("Chyba komunikace se serverem: ${e.message}")
+            value = DashboardUiState.Error(currentStrings.loadingError(e.message ?: "unknown"))
             e.printStackTrace()
         }
     }
@@ -76,7 +79,7 @@ fun IComponent.DashboardScreen(
             }
             .onLeft { error ->
                 isSubmitting = false
-                alert("Rezervace se nezdařila: ${error.localizedMessage(currentStrings)}")
+                toastData = ToastData(currentStrings.reservationFailed(error.localizedMessage(currentStrings)), ToastType.Error)
             }
     }
 
@@ -103,12 +106,18 @@ fun IComponent.DashboardScreen(
                     span { +state.message }
                     button(className = "btn btn-sm") {
                         onClick { retryTrigger++ }
-                        +"Zkusit znovu"
+                        +currentStrings.close
                     }
                 }
             }
         }
     }
+
+    Toast(
+        message = toastData?.message,
+        type = toastData?.type ?: ToastType.Error,
+        onDismiss = { toastData = null }
+    )
 }
 
 private sealed interface DashboardUiState {

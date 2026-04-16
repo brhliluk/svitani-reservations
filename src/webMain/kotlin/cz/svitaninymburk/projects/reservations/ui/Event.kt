@@ -11,18 +11,25 @@ import dev.kilua.html.div
 import dev.kilua.html.h3
 import dev.kilua.html.p
 import dev.kilua.html.span
+import dev.kilua.html.progress
 
 @Composable
 fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
     val currentStrings by strings
+    val progressClass = if (event.isFull) "progress-error"
+        else if (event.occupiedSpots.toDouble() / event.capacity > 0.8) "progress-warning"
+        else "progress-success"
 
     div(className = "card card-bordered bg-base-100 shadow-sm w-full transition-all hover:shadow-md") {
         div(className = "card-body p-6") {
 
             // Header
             div {
-                h3(className = "card-title text-lg font-bold") {
-                    +event.title
+                div(className = "flex items-start justify-between gap-2") {
+                    h3(className = "card-title text-lg font-bold") { +event.title }
+                    if (event.isCancelled) {
+                        div(className = "badge badge-error badge-sm shrink-0") { +currentStrings.cancelled }
+                    }
                 }
                 div(className = "flex items-center gap-2 text-sm text-base-content/60 mt-1") {
                     span(className = "icon-[heroicons--clock] size-4")
@@ -38,10 +45,31 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
                 +event.description
             }
 
-            div(className = "card-actions justify-end mt-2") {
-                button(className = "btn btn-neutral btn-sm rounded-full px-6") {
+            // Capacity progress bar
+            progress(className = "progress $progressClass w-full h-2") {
+                attribute("value", event.occupiedSpots.toString())
+                attribute("max", event.capacity.toString())
+            }
+
+            div(className = "card-actions items-center justify-between mt-3 pt-3 border-t border-base-200") {
+                // Left: price + capacity
+                div(className = "flex flex-col gap-1") {
+                    val priceText = if (event.price == 0.0) currentStrings.free
+                        else "${event.price} ${currentStrings.currency}"
+                    span(className = "text-lg font-bold text-primary") { +priceText }
+                    if (event.isFull) {
+                        div(className = "badge badge-error badge-sm font-bold") { +currentStrings.capacityFull }
+                    } else {
+                        span(className = "text-xs font-bold text-base-content/60") {
+                            +"${event.occupiedSpots} / ${event.capacity}"
+                        }
+                    }
+                }
+                // Right: reserve button
+                val isDisabled = event.isCancelled || event.isFull
+                button(className = "btn btn-neutral btn-sm rounded-full px-6${if (isDisabled) " btn-disabled" else ""}") {
                     +currentStrings.reserve
-                    onClick { onClick() }
+                    if (!isDisabled) onClick { onClick() }
                 }
             }
         }

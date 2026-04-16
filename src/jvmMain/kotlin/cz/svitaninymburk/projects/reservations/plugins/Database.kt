@@ -12,6 +12,7 @@ import io.ktor.server.application.*
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
 
 fun Application.configureDatabases() {
     val config = HikariConfig().apply {
@@ -34,5 +35,14 @@ fun Application.configureDatabases() {
             EventInstancesTable,
             ReservationsTable
         )
+        MigrationUtils.statementsRequiredForDatabaseMigration(
+            UsersTable,
+            RefreshTokensTable,
+            EventDefinitionsTable,
+            EventSeriesTable,
+            EventInstancesTable,
+            ReservationsTable,
+            withLogs = false
+        ).forEach { exec(it) }
     }
 }

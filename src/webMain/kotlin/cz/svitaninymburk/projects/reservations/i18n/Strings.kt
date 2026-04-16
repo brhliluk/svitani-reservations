@@ -102,6 +102,13 @@ interface AppStrings : ErrorStrings {
     val rejected: String
     val copyright: String
 
+    // Reservation errors
+    val reservationFailed: (String) -> String
+
+    // Auth messages
+    val registrationSuccess: String
+    val forgotPasswordEmailSent: String
+
     // Reservation Modal
     val reservationFor: (String) -> String
     val formTotalPrice: String

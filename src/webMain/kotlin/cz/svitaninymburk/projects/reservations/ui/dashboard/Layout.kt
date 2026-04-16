@@ -34,7 +34,7 @@ fun IComponent.DashboardLayout(
     val currentStrings by strings
 
     var reservationTarget by remember { mutableStateOf<ReservationTarget?>(null) }
-    var activeTab by remember { mutableStateOf(if (initialFilterId != null) DashboardTab.SCHEDULE else DashboardTab.SCHEDULE) }
+    var activeTab by remember { mutableStateOf(DashboardTab.SCHEDULE) }
     var selectedDefinitionId by remember { mutableStateOf(initialFilterId?.let { Uuid.parse(it) }) }
     var viewMode by remember { mutableStateOf(ViewMode.LIST) }
 

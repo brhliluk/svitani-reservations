@@ -86,6 +86,13 @@ object EnStrings : AppStrings {
     override val rejected = "Rejected"
     override val copyright = "© 2024 Reservation System"
 
+    // Reservation errors
+    override val reservationFailed: (String) -> String = { "Reservation failed: $it" }
+
+    // Auth messages
+    override val registrationSuccess = "Registration successful! We sent a confirmation to your email."
+    override val forgotPasswordEmailSent = "Password reset instructions were sent to your email."
+
     // Reservation Modal
     override val reservationFor: (String) -> String = { "Reservation for: $it" }
     override val formTotalPrice = "Total price"
