@@ -1,7 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.dashboard
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,7 +21,7 @@ import dev.kilua.core.IComponent
 import dev.kilua.html.*
 import kotlin.uuid.Uuid
 
-enum class DashboardTab { SCHEDULE, CATALOG, MY_RESERVATIONS }
+enum class DashboardTab { SCHEDULE, CATALOG }
 enum class ViewMode { LIST, CALENDAR }
 
 @Composable
@@ -40,12 +39,6 @@ fun IComponent.DashboardLayout(
     var activeTab by remember { mutableStateOf(DashboardTab.SCHEDULE) }
     var selectedDefinitionId by remember { mutableStateOf(initialFilterId?.let { Uuid.parse(it) }) }
     var viewMode by remember { mutableStateOf(ViewMode.LIST) }
-
-    LaunchedEffect(user) {
-        if (user == null && activeTab == DashboardTab.MY_RESERVATIONS) {
-            activeTab = DashboardTab.SCHEDULE
-        }
-    }
 
     val filteredEvents = remember(events, selectedDefinitionId) {
         if (selectedDefinitionId == null) events
@@ -81,20 +74,10 @@ fun IComponent.DashboardLayout(
                         span(className = "icon-[heroicons--swatch] size-5 mr-2")
                         +currentStrings.catalog
                     }
-
-                    if (user != null) {
-                        a(className = "tab rounded-full min-h-11 px-4 text-sm sm:text-base flex-1 sm:flex-none transition-all duration-300 ${if (activeTab == DashboardTab.MY_RESERVATIONS) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
-                            onClick { activeTab = DashboardTab.MY_RESERVATIONS }
-                            span(className = "icon-[heroicons--ticket] size-5 mr-2")
-                            +currentStrings.myReservations
-                        }
-                    }
                 }
             }
 
-            if (activeTab == DashboardTab.MY_RESERVATIONS && user != null) {
-                MyReservationsList(user.id)
-            } else if (activeTab == DashboardTab.CATALOG) {
+            if (activeTab == DashboardTab.CATALOG) {
                 div(className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 animate-fade-in") {
                     definitions.forEach { def ->
                         DefinitionCard(def) {

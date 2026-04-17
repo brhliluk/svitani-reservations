@@ -18,7 +18,7 @@ import dev.kilua.core.IComponent
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import web.history.history
-import kotlin.js.js
+import web.window.window
 import kotlin.uuid.Uuid
 
 private sealed interface AttendanceUiState {
@@ -101,7 +101,7 @@ fun IComponent.AdminAttendanceScreen(eventId: String, isSeries: Boolean) {
                     button(className = "btn btn-primary btn-sm gap-2") {
                         span(className = "icon-[heroicons--printer] size-4")
                         +currentStrings.printList
-                        onClick { js("window.print()") }
+                        onClick { window.print() }
                     }
                 }
 

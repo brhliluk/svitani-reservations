@@ -32,11 +32,6 @@ object ReservationsTable : Table("reservations") {
     val contactName = varchar("contact_name", 255)
     val contactEmail = varchar("contact_email", 255)
     val contactPhone = varchar("contact_phone", 50).nullable()
-    val userId = optReference(
-        name = "user_id",
-        refColumn = UsersTable.id,
-        onDelete = ReferenceOption.CASCADE,
-    )
 
     val seatCount = integer("seat_count").default(1)
     val totalPrice = double("total_price")
@@ -62,7 +57,6 @@ class ExposedReservationRepository : ReservationRepository {
             row[contactName] = reservation.contactName
             row[contactEmail] = reservation.contactEmail
             row[contactPhone] = reservation.contactPhone
-            row[userId] = reservation.userId
             row[seatCount] = reservation.seatCount
             row[totalPrice] = reservation.totalPrice
             row[paidAmount] = reservation.paidAmount
@@ -93,7 +87,6 @@ class ExposedReservationRepository : ReservationRepository {
                 row[contactName] = reservation.contactName
                 row[contactEmail] = reservation.contactEmail
                 row[contactPhone] = reservation.contactPhone
-                row[userId] = reservation.userId
                 row[seatCount] = reservation.seatCount
                 row[totalPrice] = reservation.totalPrice
                 row[paidAmount] = reservation.paidAmount
@@ -158,7 +151,7 @@ class ExposedReservationRepository : ReservationRepository {
 
     override suspend fun getAll(userId: Uuid): List<Reservation> = dbQuery {
         ReservationsTable.selectAll()
-            .where { ReservationsTable.userId eq userId }
+            .where { ReservationsTable.registeredUserId eq userId }
             .map { it.toReservation() }
     }
 
@@ -193,7 +186,6 @@ fun ResultRow.toReservation(): Reservation {
         contactName = this[ReservationsTable.contactName],
         contactEmail = this[ReservationsTable.contactEmail],
         contactPhone = this[ReservationsTable.contactPhone],
-        userId = this[ReservationsTable.userId],
         seatCount = this[ReservationsTable.seatCount],
         totalPrice = this[ReservationsTable.totalPrice],
         paidAmount = this[ReservationsTable.paidAmount],
