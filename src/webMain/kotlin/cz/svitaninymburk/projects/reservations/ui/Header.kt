@@ -65,27 +65,26 @@ fun IComponent.AppHeader(
         }
     )
 
-    header(className = "navbar bg-base-100 border-b border-base-200 px-4 sm:px-8") {
+    header(className = "navbar min-h-14 bg-base-100 border-b border-base-200 px-3 sm:px-8") {
 
-        div(className = "navbar-start gap-4") {
+        div(className = "navbar-start gap-3 sm:gap-4") {
             div(className = "logo placeholder") {
-                div(className = "bg-neutral text-neutral-content rounded-lg w-10 grid place-items-center") {
+                div(className = "bg-neutral text-neutral-content rounded-lg w-9 sm:w-10 grid place-items-center") {
                     span(className = "text-xl font-bold") { +"B" }
                 }
             }
-            span(className = "text-lg font-medium text-base-content") { +currentStrings.dashboard }
+            span(className = "hidden sm:inline text-lg font-medium text-base-content") { +currentStrings.dashboard }
         }
 
-        div(className = "navbar-end gap-4") {
-            div(className = "flex items-center gap-3 pl-4 border-l border-base-200") {
-                div(className = "avatar placeholder") {
-                    div(className = "bg-primary/10 text-primary w-10 rounded-full grid place-items-center") {
-                        span(className = "icon-[heroicons--user] size-6")
+        div(className = "navbar-end gap-3 sm:gap-4") {
+            div(className = "flex items-center gap-3 sm:pl-4 sm:border-l sm:border-base-200") {
+                if (user != null) {
+                    div(className = "avatar placeholder") {
+                        div(className = "bg-primary/10 text-primary w-10 rounded-full grid place-items-center") {
+                            span(className = "icon-[heroicons--user] size-6")
+                        }
                     }
-                }
-
-                div(className = "flex flex-col text-sm") {
-                    if (user != null) {
+                    div(className = "hidden sm:flex flex-col text-sm") {
                         span(className = "font-semibold text-base-content") {
                             +"${user.name} ${user.surname}"
                         }
@@ -93,11 +92,15 @@ fun IComponent.AppHeader(
                             onClick { onLogout() }
                             +currentStrings.logOut
                         }
-                    } else {
-                        button(className = "btn btn-sm btn-ghost") {
-                            onClick { modalState = AuthModalState.Login }
-                            +currentStrings.logIn
-                        }
+                    }
+                    button(className = "sm:hidden btn btn-ghost btn-sm min-h-11") {
+                        onClick { onLogout() }
+                        +currentStrings.logOut
+                    }
+                } else {
+                    button(className = "btn btn-ghost btn-sm min-h-11") {
+                        onClick { modalState = AuthModalState.Login }
+                        +currentStrings.logIn
                     }
                 }
             }

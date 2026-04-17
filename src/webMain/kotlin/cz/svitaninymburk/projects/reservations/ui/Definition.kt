@@ -26,12 +26,12 @@ fun IComponent.DefinitionCard(definition: EventDefinition, onClick: () -> Unit) 
     div(className = "card card-bordered bg-base-100 shadow-sm hover:shadow-md hover:border-primary transition-all cursor-pointer group") {
         onClick { onClick() }
 
-        div(className = "card-body") {
-            div(className = "w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:bg-primary group-hover:text-white transition-colors") {
-                span(className = "icon-[heroicons--sparkles] size-7")
+        div(className = "card-body p-4 sm:p-6") {
+            div(className = "w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:bg-primary group-hover:text-white transition-colors") {
+                span(className = "icon-[heroicons--sparkles] size-6 sm:size-7")
             }
 
-            h3(className = "card-title text-lg") { +definition.title }
+            h3(className = "card-title text-base sm:text-lg") { +definition.title }
 
             p(className = "text-base-content/70 text-sm line-clamp-3") {
                 +definition.description
@@ -42,7 +42,7 @@ fun IComponent.DefinitionCard(definition: EventDefinition, onClick: () -> Unit) 
                     +durationText
                 }
 
-                button(className = "btn btn-sm btn-ghost gap-1 group-hover:text-primary") {
+                button(className = "btn btn-sm btn-ghost gap-1 min-h-11 group-hover:text-primary") {
                     +currentStrings.showDates
                     span(className = "icon-[heroicons--arrow-right] size-4")
                 }

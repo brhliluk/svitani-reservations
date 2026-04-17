@@ -17,7 +17,9 @@ import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.ui.util.label
 import dev.kilua.core.IComponent
+import dev.kilua.form.Autocomplete
 import dev.kilua.form.InputType
+import dev.kilua.form.form
 import dev.kilua.form.select.select
 import dev.kilua.form.text.text
 import dev.kilua.html.button
@@ -26,6 +28,7 @@ import dev.kilua.html.h3
 import dev.kilua.html.label
 import dev.kilua.html.option
 import dev.kilua.html.span
+import web.events.Event
 import web.html.HTMLSelectElement
 
 @Composable
@@ -70,7 +73,7 @@ fun IComponent.ReservationModal(
 
     if (target != null) {
         div(className = "modal modal-open modal-bottom sm:modal-middle bg-base-300/50 backdrop-blur-sm z-50") {
-            div(className = "modal-box bg-base-100 shadow-xl border border-base-200") {
+            div(className = "modal-box bg-base-100 shadow-xl border border-base-200 max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl p-4 sm:p-6") {
 
                 // --- HLAVIČKA ---
                 h3(className = "font-bold text-lg flex items-center gap-2") {
@@ -83,7 +86,7 @@ fun IComponent.ReservationModal(
                     div(className = "stats shadow w-full bg-base-200/50") {
                         div(className = "stat py-2") {
                             div(className = "stat-title") { +currentStrings.formTotalPrice }
-                            div(className = "stat-value text-primary text-2xl") {
+                            div(className = "stat-value text-primary text-xl sm:text-2xl") {
                                 // Dynamický výpočet ceny
                                 val total = target.price * seats
                                 if (total == 0.0) +currentStrings.free else +"$total ${currentStrings.currency}"
@@ -96,20 +99,25 @@ fun IComponent.ReservationModal(
                 }
 
                 // --- FORMULÁŘ ---
-                div(className = "flex flex-col gap-3") {
+                form(className = "flex flex-col gap-3") {
+                    onEvent<Event>("submit") { it.preventDefault() }
 
                     // 1. Jméno a Příjmení (Vedle sebe)
-                    div(className = "flex gap-3") {
+                    div(className = "flex flex-col sm:flex-row gap-3") {
                         label(className = "form-control w-full") {
                             div(className = "label") { span(className = "label-text") { +currentStrings.nameLabel } }
-                            text(value = firstName, className = "input input-bordered w-full") {
+                            text(value = firstName, className = "input input-bordered input-lg sm:input-md w-full", name = "given-name") {
+                                id("reservation-name")
+                                autocomplete(Autocomplete.GivenName)
                                 placeholder(currentStrings.nameHint)
                                 onInput { firstName = value ?: "" }
                             }
                         }
                         label(className = "form-control w-full") {
                             div(className = "label") { span(className = "label-text") { +currentStrings.surnameLabel } }
-                            text(value = lastName, className = "input input-bordered w-full") {
+                            text(value = lastName, className = "input input-bordered input-lg sm:input-md w-full", name = "family-name") {
+                                id("reservation-surname")
+                                autocomplete(Autocomplete.FamilyName)
                                 placeholder(currentStrings.surnameHint)
                                 onInput { lastName = value ?: "" }
                             }
@@ -119,7 +127,9 @@ fun IComponent.ReservationModal(
                     // 2. Email
                     label(className = "form-control w-full") {
                         div(className = "label") { span(className = "label-text") { +currentStrings.emailLabel } }
-                        text(value = email, type = InputType.Email, className = "input input-bordered w-full") {
+                        text(value = email, type = InputType.Email, className = "input input-bordered input-lg sm:input-md w-full", name = "email") {
+                            id("reservation-email")
+                            autocomplete(Autocomplete.Email)
                             placeholder(currentStrings.emailHint)
                             onInput { email = value ?: "" }
                         }
@@ -128,7 +138,9 @@ fun IComponent.ReservationModal(
                     // 3. Telefon
                     label(className = "form-control w-full") {
                         div(className = "label") { span(className = "label-text") { +currentStrings.phoneLabel } }
-                        text(value = phone, type = InputType.Tel, className = "input input-bordered w-full") {
+                        text(value = phone, type = InputType.Tel, className = "input input-bordered input-lg sm:input-md w-full", name = "tel") {
+                            id("reservation-phone")
+                            autocomplete(Autocomplete.Tel)
                             placeholder(currentStrings.phoneHint)
                             onInput { phone = value ?: "" }
                         }
@@ -143,19 +155,19 @@ fun IComponent.ReservationModal(
                     }
 
                     // 4. Počet míst a Platba
-                    div(className = "flex gap-3") {
+                    div(className = "grid grid-cols-1 sm:grid-cols-3 gap-3") {
                         // Počet míst
-                        label(className = "form-control w-1/3") {
+                        label(className = "form-control w-full sm:col-span-1") {
                             div(className = "label") { span(className = "label-text") { +currentStrings.seatCountLabel } }
-                            text(value = seats.toString(), type = InputType.Number, className = "input input-bordered w-full") {
+                            text(value = seats.toString(), type = InputType.Number, className = "input input-bordered input-lg sm:input-md w-full") {
                                 onInput { seats = it.data?.toInt()?.coerceIn(1, target.maxCapacity) ?: 1 }
                             }
                         }
 
                         // Typ platby
-                        label(className = "form-control w-2/3") {
+                        label(className = "form-control w-full sm:col-span-2") {
                             div(className = "label") { span(className = "label-text") { +currentStrings.paymentType } }
-                            select(className = "select select-bordered w-full") {
+                            select(className = "select select-bordered select-lg sm:select-md w-full") {
                                 for (paymentOption in target.allowedPaymentTypes) {
                                     option(paymentOption.name, label = paymentOption.label)
                                 }
@@ -171,14 +183,14 @@ fun IComponent.ReservationModal(
                 }
 
                 // --- AKCE (Footer) ---
-                div(className = "modal-action") {
+                div(className = "modal-action flex-col-reverse sm:flex-row gap-2") {
                     // Cancel
-                    button(className = "btn btn-ghost") {
+                    button(className = "btn btn-ghost w-full sm:w-auto min-h-11") {
                         onClick { onClose() }
                         +currentStrings.cancel
                     }
                     // Submit
-                    button(className = "btn btn-primary px-8") {
+                    button(className = "btn btn-primary px-8 w-full sm:w-auto min-h-11") {
                         disabled(!isValid)
                         onClick {
                             onSubmit(

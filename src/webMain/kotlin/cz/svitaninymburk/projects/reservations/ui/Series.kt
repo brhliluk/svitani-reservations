@@ -13,14 +13,18 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
 
     div(className = "indicator w-full") {
 
-        span(className = "indicator-item badge badge-secondary font-bold shadow-md") {
+        span(className = "hidden sm:inline-flex indicator-item badge badge-secondary font-bold shadow-md") {
             +currentStrings.course
         }
 
         div(className = "card card-bordered bg-base-100 shadow-sm w-full transition-all hover:shadow-md hover:border-primary/50") {
-            div(className = "card-body p-6") {
+            div(className = "card-body p-4 sm:p-6") {
 
-                h3(className = "card-title text-xl font-bold text-base-content") {
+                div(className = "sm:hidden") {
+                    span(className = "badge badge-secondary font-bold") { +currentStrings.course }
+                }
+
+                h3(className = "card-title text-lg sm:text-xl font-bold text-base-content") {
                     +series.title
                 }
 
@@ -54,7 +58,7 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                         }
                     }
 
-                    button(className = "btn btn-primary rounded-full px-6 shadow-sm") {
+                    button(className = "btn btn-primary rounded-full px-6 min-h-11 shadow-sm") {
                         span(className = "icon-[heroicons--pencil-square] size-5")
                         +currentStrings.courseSignUp
                         onClick { onSignUpClick() }

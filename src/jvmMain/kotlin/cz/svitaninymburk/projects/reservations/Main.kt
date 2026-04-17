@@ -5,15 +5,11 @@ import cz.svitaninymburk.projects.reservations.plugins.configureDatabases
 import cz.svitaninymburk.projects.reservations.plugins.startPaymentCheck
 import cz.svitaninymburk.projects.reservations.plugins.configureRouting
 import cz.svitaninymburk.projects.reservations.plugins.configureSecurity
-import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
-import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
-import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import dev.kilua.rpc.initRpc
 import io.ktor.server.application.*
 import io.ktor.server.plugins.compression.*
 import io.ktor.server.websocket.*
 import kotlinx.coroutines.launch
-import org.koin.ktor.ext.inject
 
 
 fun Application.main() {
