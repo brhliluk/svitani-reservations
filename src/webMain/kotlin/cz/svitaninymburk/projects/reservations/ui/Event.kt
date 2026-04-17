@@ -21,12 +21,12 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
         else "progress-success"
 
     div(className = "card card-bordered bg-base-100 shadow-sm w-full transition-all hover:shadow-md") {
-        div(className = "card-body p-6") {
+        div(className = "card-body p-4 sm:p-6 gap-2") {
 
             // Header
             div {
                 div(className = "flex items-start justify-between gap-2") {
-                    h3(className = "card-title text-lg font-bold") { +event.title }
+                    h3(className = "card-title text-base sm:text-lg font-bold") { +event.title }
                     if (event.isCancelled) {
                         div(className = "badge badge-error badge-sm shrink-0") { +currentStrings.cancelled }
                     }
@@ -67,7 +67,7 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
                 }
                 // Right: reserve button
                 val isDisabled = event.isCancelled || event.isFull
-                button(className = "btn btn-neutral btn-sm rounded-full px-6${if (isDisabled) " btn-disabled" else ""}") {
+                button(className = "btn btn-neutral rounded-full px-6 min-h-11${if (isDisabled) " btn-disabled" else ""}") {
                     +currentStrings.reserve
                     if (!isDisabled) onClick { onClick() }
                 }

@@ -104,7 +104,7 @@ fun IComponent.DashboardScreen(
                 div(className = "alert alert-error max-w-md") {
                     span(className = "icon-[heroicons--exclamation-circle] size-6")
                     span { +state.message }
-                    button(className = "btn btn-sm") {
+                    button(className = "btn min-h-11") {
                         onClick { retryTrigger++ }
                         +currentStrings.close
                     }

@@ -53,18 +53,18 @@ fun IComponent.DashboardLayout(
     }
 
     div(className = "min-h-screen bg-base-200 flex flex-col font-sans") {
-        main(className = "flex-1 w-full max-w-5xl mx-auto py-8 px-4 flex flex-col gap-6") {
+        main(className = "flex-1 w-full max-w-5xl mx-auto px-3 py-4 sm:px-4 sm:py-8 flex flex-col gap-4 sm:gap-6") {
 
             div(className = "flex justify-center") {
-                div(className = "tabs tabs-boxed bg-base-100 p-1 rounded-full shadow-sm") {
+                div(className = "tabs tabs-boxed bg-base-100 p-1 rounded-full shadow-sm w-full sm:w-auto") {
 
-                    a(className = "tab rounded-full transition-all duration-300 ${if (activeTab == DashboardTab.SCHEDULE) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
+                    a(className = "tab rounded-full min-h-11 px-4 text-sm sm:text-base flex-1 sm:flex-none transition-all duration-300 ${if (activeTab == DashboardTab.SCHEDULE) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
                         onClick { activeTab = DashboardTab.SCHEDULE }
                         span(className = "icon-[heroicons--calendar-days] size-5 mr-2")
                         +currentStrings.schedule
                     }
 
-                    a(className = "tab rounded-full transition-all duration-300 ${if (activeTab == DashboardTab.CATALOG) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
+                    a(className = "tab rounded-full min-h-11 px-4 text-sm sm:text-base flex-1 sm:flex-none transition-all duration-300 ${if (activeTab == DashboardTab.CATALOG) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
                         onClick {
                             activeTab = DashboardTab.CATALOG
                             selectedDefinitionId = null
@@ -76,7 +76,7 @@ fun IComponent.DashboardLayout(
             }
 
             if (activeTab == DashboardTab.CATALOG) {
-                div(className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in") {
+                div(className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 animate-fade-in") {
                     definitions.forEach { def ->
                         DefinitionCard(def) {
                             selectedDefinitionId = def.id
@@ -85,14 +85,14 @@ fun IComponent.DashboardLayout(
                     }
                 }
             } else {
-                div(className = "flex flex-col sm:flex-row justify-between items-center gap-4 mb-2") {
+                div(className = "flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 mb-2") {
                     if (activeFilterName != null) {
-                        div(className = "badge badge-lg badge-primary gap-2 p-4 cursor-pointer hover:badge-error hover:text-white transition-colors tooltip tooltip-bottom") {
+                        div(className = "badge badge-primary gap-2 px-4 py-2 h-auto min-h-11 whitespace-normal text-left w-full sm:w-auto sm:max-w-md justify-start sm:justify-center cursor-pointer hover:badge-error hover:text-white transition-colors tooltip tooltip-bottom") {
                             attribute("data-tip", currentStrings.clearFilterTooltip)
                             onClick { selectedDefinitionId = null }
-                            span(className = "icon-[heroicons--funnel] size-4")
-                            +currentStrings.filterIsActive(activeFilterName)
-                            span(className = "icon-[heroicons--x-mark] size-4 ml-1")
+                            span(className = "icon-[heroicons--funnel] size-4 shrink-0")
+                            span(className = "flex-1") { +currentStrings.filterIsActive(activeFilterName) }
+                            span(className = "icon-[heroicons--x-mark] size-4 shrink-0 ml-1")
                         }
                     } else {
                         div(className = "text-xl font-bold text-base-content") {
@@ -100,12 +100,12 @@ fun IComponent.DashboardLayout(
                         }
                     }
 
-                    div(className = "join bg-base-100 shadow-sm border border-base-300 rounded-lg") {
-                        button(className = "join-item btn btn-sm ${if(viewMode == ViewMode.LIST) "btn-active" else "btn-ghost"}") {
+                    div(className = "join bg-base-100 shadow-sm border border-base-300 rounded-lg w-full sm:w-auto") {
+                        button(className = "join-item btn flex-1 sm:flex-none min-h-11 ${if(viewMode == ViewMode.LIST) "btn-active" else "btn-ghost"}") {
                             onClick { viewMode = ViewMode.LIST }
                             span(className = "icon-[heroicons--list-bullet] size-5")
                         }
-                        button(className = "join-item btn btn-sm ${if(viewMode == ViewMode.CALENDAR) "btn-active" else "btn-ghost"}") {
+                        button(className = "join-item btn flex-1 sm:flex-none min-h-11 ${if(viewMode == ViewMode.CALENDAR) "btn-active" else "btn-ghost"}") {
                             onClick { viewMode = ViewMode.CALENDAR }
                             span(className = "icon-[heroicons--calendar] size-5")
                         }
@@ -123,11 +123,11 @@ fun IComponent.DashboardLayout(
                             }
                         } else {
                             if (filteredSeries.isNotEmpty()) {
-                                div(className = "flex flex-col gap-4") {
-                                    div(className = "text-sm font-semibold text-base-content/50 uppercase tracking-wider") {
+                                div(className = "flex flex-col gap-3 sm:gap-4") {
+                                    div(className = "text-sm font-semibold text-base-content/50 uppercase tracking-wider px-1") {
                                         +currentStrings.openCourses
                                     }
-                                    div(className = "grid grid-cols-1 md:grid-cols-2 gap-6") {
+                                    div(className = "grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6") {
                                         filteredSeries.forEach { seriesItem ->
                                             SeriesCard(seriesItem) { reservationTarget = ReservationTarget.Series(seriesItem) }
                                         }
@@ -136,9 +136,9 @@ fun IComponent.DashboardLayout(
                             }
 
                             if (filteredEvents.isNotEmpty()) {
-                                div(className = "flex flex-col gap-4") {
+                                div(className = "flex flex-col gap-3 sm:gap-4") {
                                     if (filteredSeries.isNotEmpty()) {
-                                        div(className = "text-sm font-semibold text-base-content/50 uppercase tracking-wider") {
+                                        div(className = "text-sm font-semibold text-base-content/50 uppercase tracking-wider px-1") {
                                             +currentStrings.individualEvents
                                         }
                                     }

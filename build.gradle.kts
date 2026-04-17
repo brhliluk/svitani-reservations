@@ -171,6 +171,7 @@ vite {
         target = "es2020"
     }
     server {
+        host = "0.0.0.0"
         port = 3000
         proxy("/rpc", "http://localhost:8080")
         proxy("/rpcsse", "http://localhost:8080")
