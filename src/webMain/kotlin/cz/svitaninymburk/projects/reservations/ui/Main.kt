@@ -26,6 +26,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.AdminReservationsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminUsersScreen
 import cz.svitaninymburk.projects.reservations.ui.auth.ResetPasswordScreen
 import cz.svitaninymburk.projects.reservations.ui.dashboard.DashboardScreen
+import cz.svitaninymburk.projects.reservations.ui.dashboard.MyReservationsScreen
 import cz.svitaninymburk.projects.reservations.ui.reservation.detail.ReservationDetailScreen
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
@@ -197,42 +198,77 @@ fun IComponent.MainLayout() {
             onDismiss = { toastState = null }
         )
 
-        AppHeader(
-            user = currentUser,
-            onShowMessage = ::showToast,
-            onLogin = { refreshUser() },
-            onLogout = { doLogout() }
-        )
-
-        main(className = "flex-grow") {
-            browserRouter {
-                route("/admin") {
-                    view {
-                        val router = Router.current
-                        LaunchedEffect(Unit) { router.navigate("/") }
+        browserRouter {
+            route("/admin") {
+                view {
+                    val router = Router.current
+                    LaunchedEffect(Unit) { router.navigate("/") }
+                }
+            }
+            route("/") {
+                view {
+                    val router = Router.current
+                    UserShell(
+                        user = currentUser,
+                        onShowMessage = ::showToast,
+                        onLogin = { refreshUser() },
+                        onLogout = { doLogout() },
+                        onOpenMyReservations = { router.navigate("/my-reservations") },
+                    ) {
+                        DashboardScreen(user = currentUser, initialFilterId = null)
                     }
                 }
-                route("/") {
-                    view { DashboardScreen(user = currentUser, initialFilterId = null) }
-                }
+            }
 
-                route("/reservation") {
-                    string { reservationId ->
-                        view {
-                            val reservationUuid =
-                                try { Uuid.parse(reservationId.value) }
-                                catch (_: IllegalArgumentException) { null }
-                            val router = Router.current
+            route("/reservation") {
+                string { reservationId ->
+                    view {
+                        val reservationUuid =
+                            try { Uuid.parse(reservationId.value) }
+                            catch (_: IllegalArgumentException) { null }
+                        val router = Router.current
+                        UserShell(
+                            user = currentUser,
+                            onShowMessage = ::showToast,
+                            onLogin = { refreshUser() },
+                            onLogout = { doLogout() },
+                            onOpenMyReservations = { router.navigate("/my-reservations") },
+                        ) {
                             if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/") }
                             else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/") })
                         }
                     }
                 }
+            }
 
-                route("/reset-password") {
-                    string { token ->
-                        view {
-                            val router = Router.current
+            route("/my-reservations") {
+                view {
+                    val router = Router.current
+                    val user = currentUser
+                    UserShell(
+                        user = currentUser,
+                        onShowMessage = ::showToast,
+                        onLogin = { refreshUser() },
+                        onLogout = { doLogout() },
+                        onOpenMyReservations = { router.navigate("/my-reservations") },
+                    ) {
+                        if (user == null) LaunchedEffect(Unit) { router.navigate("/") }
+                        else MyReservationsScreen(userId = user.id, onBackClick = { router.navigate("/") })
+                    }
+                }
+            }
+
+            route("/reset-password") {
+                string { token ->
+                    view {
+                        val router = Router.current
+                        UserShell(
+                            user = currentUser,
+                            onShowMessage = ::showToast,
+                            onLogin = { refreshUser() },
+                            onLogout = { doLogout() },
+                            onOpenMyReservations = { router.navigate("/my-reservations") },
+                        ) {
                             ResetPasswordScreen(token = token.value, onSuccess = { router.navigate("/") })
                         }
                     }
@@ -240,4 +276,23 @@ fun IComponent.MainLayout() {
             }
         }
     }
+}
+
+@Composable
+private fun IComponent.UserShell(
+    user: User?,
+    onShowMessage: (String, ToastType) -> Unit,
+    onLogin: () -> Unit,
+    onLogout: () -> Unit,
+    onOpenMyReservations: () -> Unit,
+    content: @Composable IComponent.() -> Unit,
+) {
+    AppHeader(
+        user = user,
+        onShowMessage = onShowMessage,
+        onLogin = onLogin,
+        onLogout = onLogout,
+        onOpenMyReservations = onOpenMyReservations,
+    )
+    main(className = "flex-grow") { content() }
 }

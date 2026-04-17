@@ -25,6 +25,7 @@ fun IComponent.AppHeader(
     onShowMessage: (String, ToastType) -> Unit,
     onLogin: () -> Unit,
     onLogout: () -> Unit,
+    onOpenMyReservations: () -> Unit,
 ) {
     val currentStrings by strings
     var modalState by remember { mutableStateOf(AuthModalState.Closed) }
@@ -79,6 +80,11 @@ fun IComponent.AppHeader(
         div(className = "navbar-end gap-3 sm:gap-4") {
             div(className = "flex items-center gap-3 sm:pl-4 sm:border-l sm:border-base-200") {
                 if (user != null) {
+                    button(className = "btn btn-ghost btn-sm min-h-11 gap-2") {
+                        onClick { onOpenMyReservations() }
+                        span(className = "icon-[heroicons--ticket] size-5")
+                        span(className = "hidden sm:inline") { +currentStrings.myReservations }
+                    }
                     div(className = "avatar placeholder") {
                         div(className = "bg-primary/10 text-primary w-10 rounded-full grid place-items-center") {
                             span(className = "icon-[heroicons--user] size-6")

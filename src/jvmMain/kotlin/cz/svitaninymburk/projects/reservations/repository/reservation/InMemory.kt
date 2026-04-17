@@ -37,7 +37,7 @@ class InMemoryReservationRepository : ReservationRepository {
     }
 
     override suspend fun getAll(userId: Uuid): List<Reservation> {
-        return reservations.values.filter { it.userId == userId }
+        return reservations.values.filter { it.registeredUserId == userId }
     }
 
     override suspend fun findAll(): List<Reservation> {

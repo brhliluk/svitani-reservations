@@ -19,9 +19,36 @@ import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.html.button
 import dev.kilua.html.div
+import dev.kilua.html.h1
+import dev.kilua.html.main
 import dev.kilua.html.span
 import dev.kilua.rpc.getService
 import kotlin.uuid.Uuid
+
+@Composable
+fun IComponent.MyReservationsScreen(userId: Uuid, onBackClick: () -> Unit) {
+    val currentStrings by strings
+
+    div(className = "min-h-screen bg-base-200 flex flex-col font-sans") {
+        main(className = "flex-1 w-full max-w-5xl mx-auto px-3 py-4 sm:px-4 sm:py-8 flex flex-col gap-4 sm:gap-6") {
+
+            button(className = "btn btn-ghost btn-sm self-start gap-2 min-h-11") {
+                onClick { onBackClick() }
+                span(className = "icon-[heroicons--arrow-left] size-5")
+                +currentStrings.backToDashboard
+            }
+
+            div(className = "flex items-center gap-3") {
+                span(className = "icon-[heroicons--ticket] size-7 text-primary")
+                h1(className = "text-2xl sm:text-3xl font-bold text-base-content") {
+                    +currentStrings.myReservations
+                }
+            }
+
+            MyReservationsList(userId)
+        }
+    }
+}
 
 @Composable
 fun IComponent.MyReservationsList(userId: Uuid) {

@@ -35,6 +35,9 @@ fun Application.configureRouting() {
             applyRoutes(getServiceManager<RefreshTokenServiceInterface>(), RpcSerializersModules)
             applyRoutes(getServiceManager<AuthenticatedReservationServiceInterface>(), RpcSerializersModules)
             applyRoutes(getServiceManager<UserServiceInterface>(), RpcSerializersModules)
+        }
+
+        authenticate("auth-jwt") {
             adminRoutes()
         }
 

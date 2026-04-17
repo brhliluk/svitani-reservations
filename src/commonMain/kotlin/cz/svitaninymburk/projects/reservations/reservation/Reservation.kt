@@ -21,7 +21,6 @@ data class Reservation(
     val contactName: String,
     val contactEmail: String,
     val contactPhone: String? = null,
-    val userId: Uuid? = null,
 
     val seatCount: Int = 1,
     val totalPrice: Double,
