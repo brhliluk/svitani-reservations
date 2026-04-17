@@ -11,6 +11,7 @@ object CsStrings : AppStrings {
     override val dashboard = "Přehled"
     override val contact = "Kontakt"
     override val myReservations = "Moje rezervace"
+    override val noUpcomingReservations = "Zatím nemáš žádné nadcházející rezervace."
 
     // Dashboard
     override val schedule = "Program"

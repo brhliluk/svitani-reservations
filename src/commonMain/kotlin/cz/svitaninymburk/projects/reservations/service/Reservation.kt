@@ -4,6 +4,7 @@ import arrow.core.Either
 import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
+import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
 import dev.kilua.rpc.annotations.RpcService
@@ -21,5 +22,5 @@ interface ReservationServiceInterface {
 
 @RpcService
 interface AuthenticatedReservationServiceInterface {
-    suspend fun getReservations(userId: Uuid): Either<ReservationError.GetAll, List<Reservation>>
+    suspend fun getReservations(userId: Uuid): Either<ReservationError.GetAll, List<MyReservationListItem>>
 }
