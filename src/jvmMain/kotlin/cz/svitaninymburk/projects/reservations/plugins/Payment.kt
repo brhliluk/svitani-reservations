@@ -40,8 +40,8 @@ fun Application.startPaymentCheck() {
             val hasPending = reservationRepository.hasPendingReservations()
 
             val sleepDuration =
-                if (hasPending) 5.minutes
-                else 1.hours
+                if (hasPending) 20.seconds//5.minutes
+                else 20.seconds // 1.hours
 
             logger.debug("💤 Jdu spát na $sleepDuration (nebo dokud nezazvoní trigger)")
 

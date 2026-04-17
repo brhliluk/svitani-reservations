@@ -36,8 +36,8 @@ class PaymentPairingService(
         val response = try {
             httpClient.get(url {
                 protocol = URLProtocol.HTTPS
-                host = "fio.cz"
-                path("ib_api/rest/last/$fioToken/transactions.json")
+                host = "fioapi.fio.cz"
+                path("v1/rest/last/$fioToken/transactions.json")
             })
         } catch (e: Exception) {
             raise(PaymentPairingError.Upstream(e, e.message ?: "Unknown error"))
