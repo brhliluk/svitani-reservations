@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.shareSvgAsPng
+import cz.svitaninymburk.projects.reservations.ui.reservation.CustomFieldsDisplay
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
@@ -73,6 +74,15 @@ fun IComponent.ReservationDetailLayout(
                             DetailRow(currentStrings.status, uiState.statusLabel) // Zobrazíme textový stav
                             DetailRow(currentStrings.name, reservation.contactName)
                             DetailRow(currentStrings.totalPrice, "${reservation.totalPrice} Kč")
+                        }
+
+                        if (target.customFields.isNotEmpty()) {
+                            div(className = "flex flex-col gap-3 bg-base-200/50 p-6 rounded-xl") {
+                                h2(className = "text-xs font-bold uppercase tracking-widest text-base-content/50") {
+                                    +currentStrings.customFieldsHeading
+                                }
+                                CustomFieldsDisplay(target.customFields, reservation.customValues)
+                            }
                         }
 
                         // Tlačítko Zrušit (jen pokud to dává smysl)

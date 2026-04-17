@@ -11,13 +11,17 @@ import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
+import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.reservation.CustomFieldsDisplay
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.form.form
 import dev.kilua.form.text.text
@@ -25,6 +29,9 @@ import dev.kilua.html.*
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.uuid.Uuid
 
 // UI Stavy
 private sealed interface AdminReservationsUiState {
@@ -42,6 +49,7 @@ fun IComponent.AdminReservationsScreen() {
     var refreshTrigger by remember { mutableStateOf(0) }
     var toastData by remember { mutableStateOf<ToastData?>(null) }
     var pendingAction by remember { mutableStateOf<PendingAction?>(null) }
+    var expandedId by remember { mutableStateOf<Uuid?>(null) }
 
     // Stavy pro vyhledávání
     var searchInput by remember { mutableStateOf("") }
@@ -119,6 +127,7 @@ fun IComponent.AdminReservationsScreen() {
                             table(className = "table table-zebra w-full") {
                                 thead {
                                     tr {
+                                        th(className = "w-10") { }
                                         th { +currentStrings.tableHeaderParticipant }
                                         th { +currentStrings.tableHeaderEvent }
                                         th { +currentStrings.tableHeaderSeats }
@@ -131,7 +140,7 @@ fun IComponent.AdminReservationsScreen() {
                                     if (data.isEmpty()) {
                                         tr {
                                             td {
-                                                attribute("colspan", "6")
+                                                attribute("colspan", "7")
                                                 div(className = "text-center text-base-content/50 py-8") {
                                                     if (activeSearchQuery != null) +currentStrings.noReservationsForSearch(activeSearchQuery!!)
                                                     else +currentStrings.noReservations
@@ -142,8 +151,16 @@ fun IComponent.AdminReservationsScreen() {
                                         data.forEach { res ->
                                             val isPaid = res.status == Reservation.Status.CONFIRMED
                                             val isCash = res.paymentType == PaymentInfo.Type.ON_SITE
+                                            val isExpanded = expandedId == res.id
 
                                             tr(className = if (!isPaid && isCash) "bg-info/5" else "") {
+                                                td {
+                                                    button(className = "btn btn-ghost btn-xs tooltip tooltip-right") {
+                                                        attribute("data-tip", if (isExpanded) currentStrings.hideDetails else currentStrings.showDetails)
+                                                        onClick { expandedId = if (isExpanded) null else res.id }
+                                                        span(className = "size-5 " + if (isExpanded) "icon-[heroicons--chevron-down]" else "icon-[heroicons--chevron-right]")
+                                                    }
+                                                }
                                                 td {
                                                     div(className = "font-bold") { +res.contactName }
                                                     div(className = "text-xs text-base-content/50") { +res.contactEmail }
@@ -203,6 +220,22 @@ fun IComponent.AdminReservationsScreen() {
                                                                 pendingAction = PendingAction(AdminActionType.CANCEL_RESERVATION, res.id, res.contactName)
                                                             }
                                                             span(className = "icon-[heroicons--trash] size-5")
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            if (isExpanded) {
+                                                tr(className = "bg-base-200/40") {
+                                                    td {
+                                                        attribute("colspan", "7")
+                                                        div(className = "p-4") {
+                                                            ReservationExpandedDetails(
+                                                                phone = res.contactPhone,
+                                                                createdAtText = res.createdAt.toLocalDateTime(TimeZone.currentSystemDefault()).humanReadable,
+                                                                customFields = res.customFields,
+                                                                customValues = res.customValues,
+                                                            )
                                                         }
                                                     }
                                                 }
@@ -269,4 +302,38 @@ fun IComponent.AdminReservationsScreen() {
         type = toastData?.type ?: ToastType.Success,
         onDismiss = { toastData = null }
     )
+}
+
+@Composable
+internal fun IComponent.ReservationExpandedDetails(
+    phone: String?,
+    createdAtText: String,
+    customFields: List<CustomFieldDefinition>,
+    customValues: Map<String, CustomFieldValue>,
+) {
+    val currentStrings by strings
+
+    div(className = "grid grid-cols-1 md:grid-cols-2 gap-6") {
+        div(className = "flex flex-col gap-2") {
+            if (!phone.isNullOrBlank()) {
+                div(className = "flex justify-between items-baseline gap-4") {
+                    span(className = "text-xs uppercase font-bold tracking-wider text-base-content/60") { +currentStrings.phoneLabel }
+                    span(className = "font-medium text-base-content text-sm") { +phone }
+                }
+            }
+            div(className = "flex justify-between items-baseline gap-4") {
+                span(className = "text-xs uppercase font-bold tracking-wider text-base-content/60") { +currentStrings.createdAt }
+                span(className = "font-medium text-base-content text-sm") { +createdAtText }
+            }
+        }
+
+        if (customFields.isNotEmpty()) {
+            div {
+                div(className = "text-xs uppercase font-bold tracking-wider text-base-content/60 mb-2") {
+                    +currentStrings.customFieldsHeading
+                }
+                CustomFieldsDisplay(customFields, customValues)
+            }
+        }
+    }
 }

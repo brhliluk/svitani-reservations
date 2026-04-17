@@ -21,6 +21,7 @@ import cz.svitaninymburk.projects.reservations.event.CreateEventAndInstancesRequ
 import cz.svitaninymburk.projects.reservations.event.CreateEventAndSeriesRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventSeriesRequest
+import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
@@ -132,6 +133,7 @@ class AdminDashboardService(
         val subtitle: String
         val capacity: Int
         val occupiedSpots: Int
+        val customFields: List<CustomFieldDefinition>
 
         if (isSeries) {
             val series = ensureNotNull(eventSeriesRepository.get(eventId)) { AdminError.EventSeriesNotFound(eventId) }
@@ -139,12 +141,14 @@ class AdminDashboardService(
             subtitle = "Kurz (${series.lessonCount} lekcí) • Od ${series.startDate}"
             capacity = series.capacity
             occupiedSpots = series.occupiedSpots
+            customFields = series.customFields
         } else {
             val instance = ensureNotNull(eventInstanceRepository.get(eventId)) { AdminError.EventInstanceNotFound(eventId) }
             title = instance.title
             subtitle = "Jednorázová událost • ${instance.startDateTime.humanReadable}"
             capacity = instance.capacity
             occupiedSpots = instance.occupiedSpots
+            customFields = instance.customFields
         }
 
         val reference = if (isSeries) Reference.Series(eventId) else Reference.Instance(eventId)
@@ -167,7 +171,9 @@ class AdminDashboardService(
                     seatCount = res.seatCount,
                     totalPrice = res.totalPrice,
                     status = res.status,
-                    paymentType = res.paymentType
+                    paymentType = res.paymentType,
+                    createdAt = res.createdAt,
+                    customValues = res.customValues,
                 )
             }
 
@@ -178,6 +184,7 @@ class AdminDashboardService(
             capacity = capacity,
             occupiedSpots = occupiedSpots,
             totalCollected = totalCollected,
+            customFields = customFields,
             participants = participants
         )
     }
@@ -200,6 +207,7 @@ class AdminDashboardService(
             sortedReservations.map { res ->
                 var eventTitle = "Neznámá událost"
                 var eventDate = ""
+                var customFields: List<CustomFieldDefinition> = emptyList()
 
                 when (val ref = res.reference) {
                     is Reference.Instance -> {
@@ -207,6 +215,7 @@ class AdminDashboardService(
                         if (instance != null) {
                             eventTitle = instance.title
                             eventDate = instance.startDateTime.humanReadable
+                            customFields = instance.customFields
                         }
                     }
                     is Reference.Series -> {
@@ -214,6 +223,7 @@ class AdminDashboardService(
                         if (series != null) {
                             eventTitle = series.title
                             eventDate = "Kurz (od ${series.startDate})"
+                            customFields = series.customFields
                         }
                     }
                 }
@@ -222,6 +232,7 @@ class AdminDashboardService(
                     id = res.id,
                     contactName = res.contactName,
                     contactEmail = res.contactEmail,
+                    contactPhone = res.contactPhone,
                     eventTitle = eventTitle,
                     eventDate = eventDate,
                     seatCount = res.seatCount,
@@ -229,7 +240,9 @@ class AdminDashboardService(
                     variableSymbol = res.variableSymbol,
                     status = res.status,
                     paymentType = res.paymentType,
-                    createdAt = res.createdAt
+                    createdAt = res.createdAt,
+                    customFields = customFields,
+                    customValues = res.customValues,
                 )
             }
         } catch (e: Exception) {

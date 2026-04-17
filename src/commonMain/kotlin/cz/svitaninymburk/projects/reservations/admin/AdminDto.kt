@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.admin
 
+import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
+import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.user.User
@@ -41,6 +43,7 @@ data class AdminReservationListItem(
     val id: Uuid,
     val contactName: String,
     val contactEmail: String,
+    val contactPhone: String?,
     val eventTitle: String,
     val eventDate: String,
     val seatCount: Int,
@@ -49,6 +52,8 @@ data class AdminReservationListItem(
     val status: Reservation.Status,
     val paymentType: PaymentInfo.Type,
     val createdAt: Instant,
+    val customFields: List<CustomFieldDefinition>,
+    val customValues: Map<String, CustomFieldValue>,
 )
 
 @Serializable

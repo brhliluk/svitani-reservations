@@ -348,6 +348,13 @@ object CsStrings : AppStrings {
     override fun dayName(index: Int) = days.getOrElse(index) { "" }
     override fun shortDayName(index: Int) = shortDays.getOrElse(index) { "" }
 
+    // Reservation detail extras
+    override val createdAt = "Vytvořeno"
+    override val showDetails = "Zobrazit detaily"
+    override val hideDetails = "Skrýt detaily"
+    override val yes = "Ano"
+    override val no = "Ne"
+
     // ErrorStrings
     override val errorInvalidCredentials = "Neplatné přihlašovací údaje"
     override val errorUserAlreadyExists = "Účet již existuje"

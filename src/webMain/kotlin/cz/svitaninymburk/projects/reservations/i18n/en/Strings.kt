@@ -349,6 +349,13 @@ object EnStrings : AppStrings {
     override fun dayName(index: Int) = days.getOrElse(index) { "" }
     override fun shortDayName(index: Int) = shortDays.getOrElse(index) { "" }
 
+    // Reservation detail extras
+    override val createdAt = "Created"
+    override val showDetails = "Show details"
+    override val hideDetails = "Hide details"
+    override val yes = "Yes"
+    override val no = "No"
+
     // ErrorStrings
     override val errorInvalidCredentials = "Invalid credentials"
     override val errorUserAlreadyExists = "Account already exists"
