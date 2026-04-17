@@ -1,8 +1,11 @@
 package cz.svitaninymburk.projects.reservations.admin
 
+import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
+import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 @Serializable
@@ -13,6 +16,7 @@ data class AdminEventDetailData(
     val capacity: Int,
     val occupiedSpots: Int,
     val totalCollected: Double,
+    val customFields: List<CustomFieldDefinition>,
     val participants: List<AdminParticipantRow>,
 )
 
@@ -26,4 +30,6 @@ data class AdminParticipantRow(
     val totalPrice: Double,
     val status: Reservation.Status,
     val paymentType: PaymentInfo.Type,
+    val createdAt: Instant,
+    val customValues: Map<String, CustomFieldValue>,
 )

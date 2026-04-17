@@ -349,6 +349,13 @@ interface AppStrings : ErrorStrings {
     val emptyRowsLabel: String
     val tableHeaderPresence: String
 
+    // Reservation detail extras
+    val createdAt: String
+    val showDetails: String
+    val hideDetails: String
+    val yes: String
+    val no: String
+
     // Helper functions for Calendar
     fun monthName(index: Int): String
     fun dayName(index: Int): String

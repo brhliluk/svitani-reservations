@@ -20,11 +20,14 @@ import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.form.form
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import web.history.history
 import kotlin.uuid.Uuid
 
@@ -49,6 +52,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
     var refreshTrigger by remember { mutableStateOf(0) }
     var toastData by remember { mutableStateOf<ToastData?>(null) }
     var pendingAction by remember { mutableStateOf<PendingAction?>(null) }
+    var expandedId by remember { mutableStateOf<Uuid?>(null) }
 
     // Načítání dat z backendu
     val uiState by produceState<AdminEventDetailUiState>(initialValue = AdminEventDetailUiState.Loading, key1 = refreshTrigger) {
@@ -128,6 +132,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                             table(className = "table table-zebra w-full") {
                                 thead {
                                     tr {
+                                        th(className = "w-10") { }
                                         th { +currentStrings.tableHeaderParticipant }
                                         th { +currentStrings.tableHeaderSeats }
                                         th { +currentStrings.priceLabel }
@@ -139,7 +144,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                     if (data.participants.isEmpty()) {
                                         tr {
                                             td {
-                                                attribute("colspan", "5")
+                                                attribute("colspan", "6")
                                                 div(className = "text-center text-base-content/50 py-4 italic") {
                                                     +currentStrings.noParticipants
                                                 }
@@ -151,8 +156,16 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                             // Určení vzhledu řádku podle stavu a typu platby
                                             val isPaid = participant.status == Reservation.Status.CONFIRMED // Přizpůsob svému stavu
                                             val isCash = participant.paymentType == PaymentInfo.Type.ON_SITE // Přizpůsob svému enumu
+                                            val isExpanded = expandedId == participant.reservationId
 
                                             tr(className = if (!isPaid && isCash) "bg-info/5" else "") {
+                                                td {
+                                                    button(className = "btn btn-ghost btn-xs tooltip tooltip-right") {
+                                                        attribute("data-tip", if (isExpanded) currentStrings.hideDetails else currentStrings.showDetails)
+                                                        onClick { expandedId = if (isExpanded) null else participant.reservationId }
+                                                        span(className = "size-5 " + if (isExpanded) "icon-[heroicons--chevron-down]" else "icon-[heroicons--chevron-right]")
+                                                    }
+                                                }
                                                 td {
                                                     div(className = "font-bold") { +participant.contactName }
                                                     div(className = "text-xs text-base-content/50") {
@@ -219,6 +232,22 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                                             }
 
                                                             span(className = "icon-[heroicons--trash] size-5")
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            if (isExpanded) {
+                                                tr(className = "bg-base-200/40") {
+                                                    td {
+                                                        attribute("colspan", "6")
+                                                        div(className = "p-4") {
+                                                            ReservationExpandedDetails(
+                                                                phone = participant.contactPhone,
+                                                                createdAtText = participant.createdAt.toLocalDateTime(TimeZone.currentSystemDefault()).humanReadable,
+                                                                customFields = data.customFields,
+                                                                customValues = participant.customValues,
+                                                            )
                                                         }
                                                     }
                                                 }
