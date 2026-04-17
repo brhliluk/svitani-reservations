@@ -27,6 +27,7 @@ interface AppStrings : ErrorStrings {
     val dashboard: String
     val contact: String
     val myReservations: String
+    val noUpcomingReservations: String
 
     // Dashboard & Navigation
     val schedule: String

@@ -12,11 +12,14 @@ import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepos
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
+import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
 import cz.svitaninymburk.projects.reservations.reservation.ReservationRequestData
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -191,20 +194,49 @@ class AuthenticatedReservationService(
     private val eventSeriesRepository: EventSeriesRepository,
     private val reservationRepository: ReservationRepository,
 ) : AuthenticatedReservationServiceInterface {
-    override suspend fun getReservations(userId: Uuid): Either<ReservationError.GetAll, List<Reservation>> = either {
+    override suspend fun getReservations(userId: Uuid): Either<ReservationError.GetAll, List<MyReservationListItem>> = either {
         val reservations = reservationRepository.getAll(userId)
+            .filter { it.status != Reservation.Status.CANCELLED }
         if (reservations.isEmpty()) return@either emptyList()
 
-        val events = eventInstanceRepository.getAll(reservations.filter { it.reference is Reference.Instance }.map { it.id }).associateBy { it.id }
-        val series = eventSeriesRepository.getAll(reservations.filter { it.reference is Reference.Series }.map { it.id }).associateBy { it.id }
+        val instanceIds = reservations.mapNotNull { (it.reference as? Reference.Instance)?.id }
+        val seriesIds = reservations.mapNotNull { (it.reference as? Reference.Series)?.id }
+        val events = eventInstanceRepository.getAll(instanceIds).associateBy { it.id }
+        val series = eventSeriesRepository.getAll(seriesIds).associateBy { it.id }
 
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
 
-        reservations.filter { reservation ->
-            val event = events[reservation.reference.id]
-            val series = series[reservation.reference.id]
-            (event != null && event.endDateTime > now && !event.isCancelled
-                    || series != null && series.endDate > now.date)
-        }
+        reservations.mapNotNull { reservation ->
+            when (val ref = reservation.reference) {
+                is Reference.Instance -> {
+                    val event = events[ref.id] ?: return@mapNotNull null
+                    if (event.isCancelled || event.endDateTime <= now) return@mapNotNull null
+                    reservation.toListItem(
+                        title = event.title,
+                        startDateTime = event.startDateTime,
+                    )
+                }
+                is Reference.Series -> {
+                    val seriesItem = series[ref.id] ?: return@mapNotNull null
+                    if (seriesItem.endDate <= now.date) return@mapNotNull null
+                    reservation.toListItem(
+                        title = seriesItem.title,
+                        startDateTime = LocalDateTime(seriesItem.startDate, LocalTime(0, 0)),
+                    )
+                }
+            }
+        }.sortedBy { it.startDateTime }
     }
+
+    private fun Reservation.toListItem(title: String, startDateTime: LocalDateTime): MyReservationListItem =
+        MyReservationListItem(
+            id = id,
+            eventTitle = title,
+            startDateTime = startDateTime,
+            seatCount = seatCount,
+            totalPrice = totalPrice,
+            status = status,
+            paymentType = paymentType,
+            variableSymbol = variableSymbol,
+        )
 }

@@ -11,6 +11,7 @@ object EnStrings : AppStrings {
     override val dashboard = "Dashboard"
     override val contact = "Contact"
     override val myReservations = "My reservations"
+    override val noUpcomingReservations = "You have no upcoming reservations."
 
     // Dashboard
     override val schedule = "Schedule"

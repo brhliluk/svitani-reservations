@@ -93,6 +93,7 @@ fun IComponent.DashboardScreen(
     when (val state = uiState) {
         is DashboardUiState.Loading -> Loading()
         is DashboardUiState.Success -> DashboardLayout(
+            user = user,
             events = state.instances,
             series = state.series,
             definitions = state.definitions,

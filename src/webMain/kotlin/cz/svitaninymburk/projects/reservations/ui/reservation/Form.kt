@@ -16,6 +16,7 @@ import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.ui.util.label
+import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.form.Autocomplete
 import dev.kilua.form.InputType
@@ -34,15 +35,16 @@ import web.html.HTMLSelectElement
 @Composable
 fun IComponent.ReservationModal(
     target: ReservationTarget?,
+    user: User?,
     onClose: () -> Unit,
     onSubmit: (ReservationTarget, ReservationFormData) -> Unit
 ) {
     val currentStrings by strings
 
-    // Stavy formuláře
-    var firstName by remember(target) { mutableStateOf("") }
-    var lastName by remember(target) { mutableStateOf("") }
-    var email by remember(target) { mutableStateOf("") }
+    // Stavy formuláře — prefill z přihlášeného uživatele (User model nemá telefon)
+    var firstName by remember(target, user) { mutableStateOf(user?.name.orEmpty()) }
+    var lastName by remember(target, user) { mutableStateOf(user?.surname.orEmpty()) }
+    var email by remember(target, user) { mutableStateOf(user?.email.orEmpty()) }
     var phone by remember(target) { mutableStateOf("") }
     var seats by remember(target) { mutableStateOf(1) }
     var paymentType by remember(target) { mutableStateOf(PaymentInfo.Type.BANK_TRANSFER) }

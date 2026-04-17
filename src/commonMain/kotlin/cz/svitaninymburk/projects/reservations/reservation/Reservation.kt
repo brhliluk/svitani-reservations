@@ -133,3 +133,15 @@ data class ReservationDetail(
     val reservation: Reservation,
     val target: ReservationTarget,
 )
+
+@Serializable
+data class MyReservationListItem(
+    val id: Uuid,
+    val eventTitle: String,
+    val startDateTime: LocalDateTime,
+    val seatCount: Int,
+    val totalPrice: Double,
+    val status: Reservation.Status,
+    val paymentType: PaymentInfo.Type,
+    val variableSymbol: String?,
+)

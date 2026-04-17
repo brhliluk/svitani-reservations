@@ -18,6 +18,7 @@ import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepos
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 
@@ -87,13 +88,18 @@ class EventService(
     private val eventSeriesRepository: EventSeriesRepository,
 ): EventServiceInterface {
     override suspend fun getDashboardData(): Either<EventError.GetDashboardData, DashboardData> = either {
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val today = now.date
+
         parZip(
             { getAllInstances() },
             { getAllSeries() },
             { getAllDefinitions() }
         ) { instances, series, definitions ->
             val instances = instances.getOrElse { raise(EventError.FailedToGetInstances) }
+                .filter { it.endDateTime > now }
             val series = series.getOrElse { raise(EventError.FailedToGetSeries) }
+                .filter { it.endDate >= today }
             val definitions = definitions.getOrElse { raise(EventError.FailedToGetDefinitions) }
 
             DashboardData(instances, series, definitions)
