@@ -25,6 +25,11 @@ import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepos
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.service.*
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logging
+import io.ktor.serialization.kotlinx.json.json
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
@@ -39,7 +44,16 @@ val appModule = module {
         )
     }
 
-    single { HttpClient() }
+    single {
+        HttpClient(CIO) {
+            install(ContentNegotiation) {
+                json(AppJson)
+            }
+            install(Logging) {
+                level = LogLevel.INFO
+            }
+        }
+    }
 
     single { PaymentTrigger() }
 
@@ -67,11 +81,11 @@ val appModule = module {
     single { AuthenticatedEventService(get(), get()) } bind AuthenticatedEventServiceInterface::class
 //    single { GmailEmailService(System.getenv("GMAIL_USERNAME") ?: "username", System.getenv("GMAIL_APP_PASSWORD") ?: "password", get()) } bind EmailService::class
     single { ConsoleEmailService() } bind EmailService::class
-    single { QrCodeService(accountNumber = System.getenv("BANK_ACCOUNT_NUMBER") ?: "19-2000145399/0800") }
+    single { QrCodeService(accountNumber = System.getenv("BANK_ACCOUNT_NUMBER") ?: "2003487968/2010") }
     single { BackendQrCodeGenerator(get()) }
     single { ReservationService(get(), get(), get(), get(), get(), get()) } bind ReservationServiceInterface::class
     single { AuthenticatedReservationService(get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
-    single { PaymentPairingService(get(), get(), get(), get(), System.getenv("FIO_TOKEN") ?: "fio-token") }
+    single { PaymentPairingService(get(), get(), get(), get(), System.getenv("FIO_TOKEN") ?: "0eZMDyWlNRyiUI4Wd0HBHQysLs0IwgEtgGdsNWBME6CsJLwwy6QgZtSc5HzIyIuJ") }
     single { AdminService(get()) }
     single { AdminDashboardService(get(), get(), get(), get(), get(), get()) } bind AdminServiceInterface::class
     single { UserService(get()) }
