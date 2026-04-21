@@ -98,8 +98,10 @@ class EventService(
         ) { instances, series, definitions ->
             val instances = instances.getOrElse { raise(EventError.FailedToGetInstances) }
                 .filter { it.endDateTime > now }
+                .sortedBy { it.startDateTime }
             val series = series.getOrElse { raise(EventError.FailedToGetSeries) }
                 .filter { it.endDate >= today }
+                .sortedBy { it.startDate }
             val definitions = definitions.getOrElse { raise(EventError.FailedToGetDefinitions) }
 
             DashboardData(instances, series, definitions)
