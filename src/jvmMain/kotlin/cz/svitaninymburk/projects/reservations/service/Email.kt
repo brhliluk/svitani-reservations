@@ -34,6 +34,15 @@ class GmailEmailService(
     private val eventRepository: EventInstanceRepository,
 ) : EmailService {
 
+    private fun EmailException.fullMessage(): String = buildString {
+        var t: Throwable? = this@fullMessage
+        while (t != null) {
+            if (isNotEmpty()) append(" → ")
+            append(t::class.simpleName).append(": ").append(t.message)
+            t = t.cause
+        }
+    }
+
     private fun setupEmail() : HtmlEmail {
         val email = HtmlEmail()
         email.hostName = "smtp.gmail.com"
@@ -87,7 +96,7 @@ class GmailEmailService(
         email.setTextMsg(s.reservationHtmlFallback)
 
         catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendReservationConfirmationFailed(e.message ?: "Unknown error"))
+            raise(EmailError.SendReservationConfirmationFailed(e.fullMessage()))
         }
     } }
 
@@ -101,7 +110,7 @@ class GmailEmailService(
         email.setTextMsg(s.cancellationBody(event?.title))
 
         catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendCancellationFailed(e.message ?: "Unknown error"))
+            raise(EmailError.SendCancellationFailed(e.fullMessage()))
         }
     } }
 
@@ -116,7 +125,7 @@ class GmailEmailService(
         email.setTextMsg(s.paymentReceivedBody(event?.title))
 
         catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendPaymentConfirmationFailed(e.message ?: "Unknown error"))
+            raise(EmailError.SendPaymentConfirmationFailed(e.fullMessage()))
         }
     } }
 
@@ -153,7 +162,7 @@ class GmailEmailService(
         } } })
 
         catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendPaymentNotPaidInFullFailed(e.message ?: "Unknown error"))
+            raise(EmailError.SendPaymentNotPaidInFullFailed(e.fullMessage()))
         }
     } }
 
@@ -174,7 +183,7 @@ class GmailEmailService(
         } } })
 
         catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendPasswordResetFailed(e.message ?: "Unknown error"))
+            raise(EmailError.SendPasswordResetFailed(e.fullMessage()))
         }
     }
 }
