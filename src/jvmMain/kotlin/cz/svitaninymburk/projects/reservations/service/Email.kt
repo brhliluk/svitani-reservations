@@ -30,15 +30,16 @@ import kotlin.uuid.Uuid
 class GmailEmailService(
     private val username: String,
     private val appPassword: String,
+    private val appBaseUrl: String,
     private val eventRepository: EventInstanceRepository,
 ) : EmailService {
 
     private fun setupEmail() : HtmlEmail {
         val email = HtmlEmail()
         email.hostName = "smtp.gmail.com"
-        email.setSmtpPort(587)
+        email.setSslSmtpPort("465")
         email.setAuthenticator(DefaultAuthenticator(username, appPassword))
-        email.isStartTLSEnabled = true
+        email.isSSLOnConnect = true
 
         email.setFrom(username, "Rodinné centrum Svítání")
         return email
@@ -86,7 +87,7 @@ class GmailEmailService(
         email.setTextMsg(s.reservationHtmlFallback)
 
         catch({ email.send() }) { e: EmailException ->
-            EmailError.SendReservationConfirmationFailed(e.message ?: "Unknown error")
+            raise(EmailError.SendReservationConfirmationFailed(e.message ?: "Unknown error"))
         }
     } }
 
@@ -100,11 +101,11 @@ class GmailEmailService(
         email.setTextMsg(s.cancellationBody(event?.title))
 
         catch({ email.send() }) { e: EmailException ->
-            EmailError.SendCancellationFailed(e.message ?: "Unknown error")
+            raise(EmailError.SendCancellationFailed(e.message ?: "Unknown error"))
         }
     } }
 
-    override suspend fun sendPaymentReceivedConfirmation(reservation: Reservation): Either<EmailError.SendReservationConfirmation, Unit> = either { withContext(Dispatchers.IO) {
+    override suspend fun sendPaymentReceivedConfirmation(reservation: Reservation): Either<EmailError.SendPaymentConfirmation, Unit> = either { withContext(Dispatchers.IO) {
         val s = emailStringsFor(reservation.locale)
         val email = setupEmail()
         email.addTo(reservation.contactEmail)
@@ -115,7 +116,7 @@ class GmailEmailService(
         email.setTextMsg(s.paymentReceivedBody(event?.title))
 
         catch({ email.send() }) { e: EmailException ->
-            EmailError.SendPaymentConfirmationFailed(e.message ?: "Unknown error")
+            raise(EmailError.SendPaymentConfirmationFailed(e.message ?: "Unknown error"))
         }
     } }
 
@@ -124,7 +125,7 @@ class GmailEmailService(
         paymentInfo: BankTransaction,
         bankAccount: String,
         qrCodeImage: String,
-    ): Either<EmailError.SendReservationConfirmation, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendPaymentNotPaidInFull, Unit> = either { withContext(Dispatchers.IO) {
         val s = emailStringsFor(reservation.locale)
         val email = setupEmail()
         email.addTo(reservation.contactEmail)
@@ -152,7 +153,7 @@ class GmailEmailService(
         } } })
 
         catch({ email.send() }) { e: EmailException ->
-            EmailError.SendPaymentNotPaidInFullFailed(e.message ?: "Unknown error")
+            raise(EmailError.SendPaymentNotPaidInFullFailed(e.message ?: "Unknown error"))
         }
     } }
 
@@ -168,12 +169,12 @@ class GmailEmailService(
             p { +s.passwordResetBody }
             a {
                 +s.passwordResetLinkText
-                href = "https://moje-appka.cz/reset-password/$resetToken" // TODO: store and reference url
+                href = "$appBaseUrl/reset-password/$resetToken"
             }
         } } })
 
         catch({ email.send() }) { e: EmailException ->
-            EmailError.SendPasswordResetFailed(e.message ?: "Unknown error")
+            raise(EmailError.SendPasswordResetFailed(e.message ?: "Unknown error"))
         }
     }
 }
@@ -200,7 +201,7 @@ class ConsoleEmailService : EmailService {
 
     override suspend fun sendPaymentReceivedConfirmation(
         reservation: Reservation
-    ): Either<EmailError.SendReservationConfirmation, Unit> {
+    ): Either<EmailError.SendPaymentConfirmation, Unit> {
         println("📧 [MOCK EMAIL] Potvrzení platby pro: ${reservation.contactEmail}")
         return Unit.right()
     }
@@ -210,7 +211,7 @@ class ConsoleEmailService : EmailService {
         paymentInfo: BankTransaction,
         bankAccount: String,
         qrCodeImage: String
-    ): Either<EmailError.SendReservationConfirmation, Unit> {
+    ): Either<EmailError.SendPaymentNotPaidInFull, Unit> {
         println("📧 [MOCK EMAIL] Nedoplatek pro: ${reservation.contactEmail}")
         return Unit.right()
     }

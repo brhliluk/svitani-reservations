@@ -78,6 +78,7 @@ class PaymentPairingService(
         reservationRepo.save(paidReservation)
 
         emailService.sendPaymentReceivedConfirmation(paidReservation)
+            .onLeft { logger.error("⚠️ Failed to send payment-received email for reservation ${paidReservation.id} (VS $vs): $it") }
 
         logger.info("✅ Rezervace ${reservation.id} (VS $vs) úspěšně ZAPLACENA.")
     }
