@@ -28,12 +28,13 @@ import kotlin.time.Clock
 fun IComponent.ReservationDetailLayout(
     reservation: Reservation,
     target: ReservationTarget,
+    accountNumber: String,
     onCancelReservation: () -> Unit,
     onBackToDashboard: () -> Unit
 ) {
     val currentStrings by strings
     val uiState = remember(reservation.status, currentStrings) { getReservationUiState(reservation, target, currentStrings) }
-    val qrCodeService = QrCodeService("19-2000145399/0800") // TODO:
+    val qrCodeService = remember(accountNumber) { QrCodeService(accountNumber) }
 
     val qrCodeSvg = remember(reservation, uiState.showPaymentInfo) {
         if (uiState.showPaymentInfo) qrCodeService.generateReservationPaymentSvg(reservation)

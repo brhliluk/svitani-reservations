@@ -84,6 +84,7 @@ fun IComponent.ReservationDetailScreen(
             ReservationDetailLayout(
                 reservation = state.detail.reservation,
                 target = state.detail.target,
+                accountNumber = state.detail.accountNumber,
                 onCancelReservation = { confirmDialog.element.showModal() },
                 onBackToDashboard = onBackClick,
             )
