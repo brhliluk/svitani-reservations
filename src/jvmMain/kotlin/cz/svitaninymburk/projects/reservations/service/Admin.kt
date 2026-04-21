@@ -126,6 +126,7 @@ class AdminDashboardService(
         }
 
         emailService.sendPaymentReceivedConfirmation(reservation)
+            .onLeft { println("⚠️ Failed to send payment-received email for reservation ${reservation.id}: $it") }
     }
 
     override suspend fun getEventDetail(eventId: Uuid, isSeries: Boolean): Either<AdminError.GetEventDetail, AdminEventDetailData> = either {
