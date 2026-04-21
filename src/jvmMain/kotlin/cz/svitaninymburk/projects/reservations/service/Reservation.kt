@@ -52,7 +52,7 @@ class ReservationService(
             }
         }
 
-        ReservationDetail(reservation, target)
+        ReservationDetail(reservation, target, qrCodeService.accountNumber)
     }
 
 
