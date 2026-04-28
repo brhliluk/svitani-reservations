@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations
 
 import dev.kilua.Hot
+import web.blob.Blob
 
 actual fun bundlerHot(): Hot? {
     return null
@@ -95,4 +96,28 @@ private external fun shareSvgAsPngJs(svgString: String)
 
 actual fun shareSvgAsPng(svgString: String) {
     shareSvgAsPngJs(svgString)
+}
+
+@JsFun("""(blob) => {
+    var file = new File([blob], "qr_platba.png", { type: "image/png" });
+    var data = {
+        title: 'QR Platba',
+        text: 'QR kód pro platbu rezervace',
+        files: [file]
+    };
+    if (navigator.canShare && navigator.canShare(data)) {
+        navigator.share(data).catch(err => console.warn('Share cancelled', err));
+    } else {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(file);
+        a.download = 'qr_platba.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+}""")
+private external fun shareBlobJs(blob: Blob)
+
+actual fun shareBlob(blob: Blob) {
+    shareBlobJs(blob)
 }

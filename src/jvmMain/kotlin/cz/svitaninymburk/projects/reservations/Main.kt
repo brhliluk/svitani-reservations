@@ -25,12 +25,12 @@ fun Application.main() {
     configureSecurity()
     configureRouting()
 
-    val mockLoader = MockDataLoader()
-
-
-    launch {
-        mockLoader.clearAll()
-        mockLoader.load()
-        println("Mock data pro Rodinné centrum načtena ✅")
+    if (System.getenv("LOAD_MOCK_DATA").toBoolean()) {
+        val mockLoader = MockDataLoader()
+        launch {
+            mockLoader.clearAll()
+            mockLoader.load()
+            println("Mock data pro Rodinné centrum načtena ✅")
+        }
     }
 }

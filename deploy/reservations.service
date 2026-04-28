@@ -1,0 +1,24 @@
+[Unit]
+Description=Reservations Application
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/reservations
+EnvironmentFile=/opt/reservations/.env
+ExecStart=/usr/bin/java \
+    -Xmx512m \
+    -Xms128m \
+    -jar /opt/reservations/reservations.jar
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=reservations
+
+[Install]
+WantedBy=multi-user.target
