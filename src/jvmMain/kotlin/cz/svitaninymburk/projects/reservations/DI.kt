@@ -37,9 +37,9 @@ import org.koin.dsl.module
 val appModule = module {
     single {
         JwtTokenService.Companion.JwtConfig(
-            secret = System.getenv("JWT_CONFIG_SECRET") ?: "tajne-heslo-pro-vyvoj-123456", // Musí být dostatečně dlouhé pro HMAC256
-            issuer = System.getenv("JWT_CONFIG_ISSUER") ?: "http://0.0.0.0:8080/",
-            audience = System.getenv("JWT_CONFIG_AUDIENCE") ?: "moje-rezervace-app",
+            secret = System.getenv("JWT_CONFIG_SECRET") ?: error("JWT_CONFIG_SECRET required"),
+            issuer = System.getenv("JWT_CONFIG_ISSUER") ?: error("JWT_CONFIG_ISSUER required"),
+            audience = System.getenv("JWT_CONFIG_AUDIENCE") ?: error("JWT_CONFIG_AUDIENCE required"),
             realm = "Access to Reservation System"
         )
     }
@@ -57,7 +57,7 @@ val appModule = module {
 
     single { PaymentTrigger() }
 
-    single { GoogleAuthService(clientId = "vas-google-client-id") }
+//    single { GoogleAuthService(clientId = System.getenv("GOOGLE_CLIENT_ID") ?: error("GOOGLE_CLIENT_ID env var is required")) }
 
     single { JwtTokenService(get()) }
     single<HashingService> { BCryptHashingService() }

@@ -1,0 +1,21 @@
+rezervace.svitaninymburk.cz {
+    reverse_proxy localhost:8080
+
+    encode gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+
+    log {
+        output file /var/log/caddy/reservations-access.log {
+            roll_size 50mb
+            roll_keep 7
+        }
+        format json
+    }
+}

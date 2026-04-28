@@ -16,7 +16,7 @@ import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
 
 fun Application.configureDatabases() {
     val config = HikariConfig().apply {
-        jdbcUrl = "jdbc:sqlite:reservations.db?journal_mode=WAL&busy_timeout=5000"
+        jdbcUrl = "jdbc:sqlite:${System.getenv("DB_PATH") ?: "reservations.db"}?journal_mode=WAL&busy_timeout=5000"
         driverClassName = "org.sqlite.JDBC"
         maximumPoolSize = 3
         isAutoCommit = false
