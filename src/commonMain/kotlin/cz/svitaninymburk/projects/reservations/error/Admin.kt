@@ -17,6 +17,13 @@ import kotlin.uuid.Uuid
     @Serializable @SerialName("get_users") sealed interface GetUsers : AdminError
     @Serializable @SerialName("update_user_role") sealed interface UpdateUserRole : AdminError
     @Serializable @SerialName("delete_user") sealed interface DeleteUser : AdminError
+    @Serializable @SerialName("get_edit_data") sealed interface GetEditData : AdminError
+    @Serializable @SerialName("update_definition") sealed interface UpdateDefinition : AdminError
+    @Serializable @SerialName("update_event") sealed interface UpdateEvent : AdminError
+    @Serializable @SerialName("update_series") sealed interface UpdateSeries : AdminError
+    @Serializable @SerialName("delete_definition") sealed interface DeleteDefinition : AdminError
+    @Serializable @SerialName("delete_event") sealed interface DeleteEvent : AdminError
+    @Serializable @SerialName("delete_series") sealed interface DeleteSeries : AdminError
 
     @Serializable data class FailedToGetSummary(val message: String) : GetSummary
     @Serializable data class FailedToMarkReservationPaid(val message: String) : MarkReservationPaid
@@ -32,6 +39,15 @@ import kotlin.uuid.Uuid
     @Serializable data class FailedToUpdateUserRole(val message: String) : UpdateUserRole
     @Serializable data class FailedToDeleteUser(val message: String) : DeleteUser
     @Serializable data class UserNotFound(val id: Uuid) : UpdateUserRole, DeleteUser
+    @Serializable data class DefinitionNotFound(val id: Uuid) : GetEditData, UpdateDefinition, DeleteDefinition
+    @Serializable data class InstanceNotFoundForEdit(val id: Uuid) : GetEditData, UpdateEvent, DeleteEvent
+    @Serializable data class SeriesNotFoundForEdit(val id: Uuid) : GetEditData, UpdateSeries, DeleteSeries
+    @Serializable data class FailedToUpdateDefinition(val message: String) : UpdateDefinition
+    @Serializable data class FailedToUpdateEvent(val message: String) : UpdateEvent
+    @Serializable data class FailedToUpdateSeries(val message: String) : UpdateSeries
+    @Serializable data class FailedToDeleteDefinition(val message: String) : DeleteDefinition
+    @Serializable data class FailedToDeleteEvent(val message: String) : DeleteEvent
+    @Serializable data class FailedToDeleteSeries(val message: String) : DeleteSeries
 }
 
 fun AdminError.localizedMessage(strings: ErrorStrings): String = when (this) {
@@ -49,4 +65,13 @@ fun AdminError.localizedMessage(strings: ErrorStrings): String = when (this) {
     is AdminError.FailedToUpdateUserRole -> message
     is AdminError.FailedToDeleteUser -> message
     is AdminError.UserNotFound -> strings.errorAdminUserNotFound
+    is AdminError.DefinitionNotFound -> strings.errorAdminDefinitionNotFound
+    is AdminError.InstanceNotFoundForEdit -> strings.errorAdminEventNotFound
+    is AdminError.SeriesNotFoundForEdit -> strings.errorAdminCourseNotFound
+    is AdminError.FailedToUpdateDefinition -> message
+    is AdminError.FailedToUpdateEvent -> message
+    is AdminError.FailedToUpdateSeries -> message
+    is AdminError.FailedToDeleteDefinition -> message
+    is AdminError.FailedToDeleteEvent -> message
+    is AdminError.FailedToDeleteSeries -> message
 }

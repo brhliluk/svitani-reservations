@@ -356,6 +356,36 @@ object EnStrings : AppStrings {
     override val yes = "Yes"
     override val no = "No"
 
+    // Admin Edit & Delete
+    override val editTemplate = "Edit template"
+    override val editEvent = "Edit event"
+    override val editSeries = "Edit course"
+    override val deleteTemplate = "Delete template"
+    override val deleteEventLabel = "Delete event"
+    override val deleteSeriesLabel = "Delete course"
+    override val confirmDeleteTitle = "Are you sure?"
+    override val deleteDefinitionImpact: (Int, Int) -> String = { children, reservations ->
+        "This will delete $children instances/courses and cancel $reservations active reservations. This cannot be undone."
+    }
+    override val deleteEventImpact: (Int) -> String = { reservations ->
+        if (reservations > 0) "This will cancel $reservations active reservations. This cannot be undone."
+        else "This cannot be undone."
+    }
+    override val propagateToChildren = "Apply changes to all instances and courses"
+    override val propagateToChildrenNote = "Capacity will be applied to all instances and courses. If any have more reservations than the new capacity, overbooking may occur."
+    override val capacityWarningTitle = "Capacity warning"
+    override val capacityWarningBody = "New capacity is lower than the number of existing reservations. Save anyway?"
+    override val saveChanges = "Save changes"
+    override val toastEventUpdated = "Event updated successfully."
+    override val toastSeriesUpdated = "Course updated successfully."
+    override val toastDefinitionUpdated = "Template updated successfully."
+    override val toastEventDeleted = "Event deleted."
+    override val toastSeriesDeleted = "Course deleted."
+    override val toastDefinitionDeleted = "Template and all its instances deleted."
+    override val editTemplateTitle = "Edit template"
+    override val editInstanceTitle = "Edit event"
+    override val editSeriesTitle = "Edit course"
+
     // ErrorStrings
     override val errorInvalidCredentials = "Invalid credentials"
     override val errorUserAlreadyExists = "Account already exists"
@@ -388,4 +418,5 @@ object EnStrings : AppStrings {
     override val errorAdminEventNotFound = "Event not found"
     override val errorAdminCourseNotFound = "Course not found"
     override val errorAdminUserNotFound = "User not found"
+    override val errorAdminDefinitionNotFound = "Definition not found"
 }

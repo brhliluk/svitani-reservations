@@ -19,6 +19,9 @@ import cz.svitaninymburk.projects.reservations.ui.admin.AdminCreateEventSeriesSc
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminDashboardScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventCreateChooseScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminAttendanceScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminEditEventDefinitionScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminEditEventInstanceScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminEditEventSeriesScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventDetailScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminLayout
@@ -98,6 +101,13 @@ fun IComponent.MainLayout() {
                                 }
                             }
                         }
+                        route("/edit") {
+                            view {
+                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                    AdminEditEventInstanceScreen(id = eventId.value)
+                                }
+                            }
+                        }
                     } }
                     route("/series") { string { seriesId ->
                         view {
@@ -109,6 +119,13 @@ fun IComponent.MainLayout() {
                             view {
                                 AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                                     AdminAttendanceScreen(eventId = seriesId.value, isSeries = true)
+                                }
+                            }
+                        }
+                        route("/edit") {
+                            view {
+                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                    AdminEditEventSeriesScreen(id = seriesId.value)
                                 }
                             }
                         }
@@ -161,6 +178,17 @@ fun IComponent.MainLayout() {
                                 view {
                                     AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                                         AdminCreateEventSeriesScreen(preselectedDefinitionId = definitionId.value)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    route("/definition") {
+                        string { definitionId ->
+                            route("/edit") {
+                                view {
+                                    AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                        AdminEditEventDefinitionScreen(id = definitionId.value)
                                     }
                                 }
                             }
