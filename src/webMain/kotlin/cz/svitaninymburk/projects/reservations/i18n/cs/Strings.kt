@@ -355,6 +355,36 @@ object CsStrings : AppStrings {
     override val yes = "Ano"
     override val no = "Ne"
 
+    // Admin Edit & Delete
+    override val editTemplate = "Upravit šablonu"
+    override val editEvent = "Upravit termín"
+    override val editSeries = "Upravit kurz"
+    override val deleteTemplate = "Smazat šablonu"
+    override val deleteEventLabel = "Smazat termín"
+    override val deleteSeriesLabel = "Smazat kurz"
+    override val confirmDeleteTitle = "Opravdu smazat?"
+    override val deleteDefinitionImpact: (Int, Int) -> String = { children, reservations ->
+        "Tím smažete $children termínů/kurzů a zrušíte $reservations aktivních rezervací. Tuto akci nelze vrátit."
+    }
+    override val deleteEventImpact: (Int) -> String = { reservations ->
+        if (reservations > 0) "Tím zrušíte $reservations aktivních rezervací. Tuto akci nelze vrátit."
+        else "Tuto akci nelze vrátit."
+    }
+    override val propagateToChildren = "Aplikovat změny na všechny termíny a kurzy"
+    override val propagateToChildrenNote = "Kapacita bude aplikována na všechny termíny a kurzy. Pokud mají více rezervací než nová kapacita, může dojít k přeplnění."
+    override val capacityWarningTitle = "Upozornění na kapacitu"
+    override val capacityWarningBody = "Nová kapacita je nižší než počet stávajících rezervací. Chcete přesto uložit?"
+    override val saveChanges = "Uložit změny"
+    override val toastEventUpdated = "Termín byl úspěšně aktualizován."
+    override val toastSeriesUpdated = "Kurz byl úspěšně aktualizován."
+    override val toastDefinitionUpdated = "Šablona byla úspěšně aktualizována."
+    override val toastEventDeleted = "Termín byl smazán."
+    override val toastSeriesDeleted = "Kurz byl smazán."
+    override val toastDefinitionDeleted = "Šablona a všechny její termíny byly smazány."
+    override val editTemplateTitle = "Upravit šablonu"
+    override val editInstanceTitle = "Upravit termín"
+    override val editSeriesTitle = "Upravit kurz"
+
     // ErrorStrings
     override val errorInvalidCredentials = "Neplatné přihlašovací údaje"
     override val errorUserAlreadyExists = "Účet již existuje"
@@ -387,4 +417,5 @@ object CsStrings : AppStrings {
     override val errorAdminEventNotFound = "Událost nenalezena"
     override val errorAdminCourseNotFound = "Kroužek nenalezen"
     override val errorAdminUserNotFound = "Uživatel nenalezen"
+    override val errorAdminDefinitionNotFound = "Definice nenalezena"
 }

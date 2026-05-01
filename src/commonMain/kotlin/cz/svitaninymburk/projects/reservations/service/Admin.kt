@@ -11,6 +11,12 @@ import cz.svitaninymburk.projects.reservations.event.CreateEventAndInstancesRequ
 import cz.svitaninymburk.projects.reservations.event.CreateEventAndSeriesRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventSeriesRequest
+import cz.svitaninymburk.projects.reservations.event.UpdateEventDefinitionRequest
+import cz.svitaninymburk.projects.reservations.event.UpdateEventInstanceRequest
+import cz.svitaninymburk.projects.reservations.event.UpdateEventSeriesRequest
+import cz.svitaninymburk.projects.reservations.event.EventDefinition
+import cz.svitaninymburk.projects.reservations.event.EventInstance
+import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.rpc.annotations.RpcService
 import kotlin.uuid.Uuid
@@ -29,4 +35,13 @@ interface AdminServiceInterface {
     suspend fun getAllUsers(): Either<AdminError.GetUsers, List<AdminUserListItem>>
     suspend fun updateUserRole(userId: Uuid, newRole: User.Role): Either<AdminError.UpdateUserRole, Unit>
     suspend fun deleteUser(userId: Uuid): Either<AdminError.DeleteUser, Unit>
+    suspend fun getEventDefinitionForEdit(id: Uuid): Either<AdminError.GetEditData, EventDefinition>
+    suspend fun getEventInstanceForEdit(id: Uuid): Either<AdminError.GetEditData, EventInstance>
+    suspend fun getEventSeriesForEdit(id: Uuid): Either<AdminError.GetEditData, EventSeries>
+    suspend fun updateEventDefinition(id: Uuid, request: UpdateEventDefinitionRequest): Either<AdminError.UpdateDefinition, Unit>
+    suspend fun updateEventInstance(id: Uuid, request: UpdateEventInstanceRequest): Either<AdminError.UpdateEvent, Unit>
+    suspend fun updateEventSeries(id: Uuid, request: UpdateEventSeriesRequest): Either<AdminError.UpdateSeries, Unit>
+    suspend fun deleteEventDefinition(id: Uuid): Either<AdminError.DeleteDefinition, Unit>
+    suspend fun deleteEventInstance(id: Uuid): Either<AdminError.DeleteEvent, Unit>
+    suspend fun deleteEventSeries(id: Uuid): Either<AdminError.DeleteSeries, Unit>
 }

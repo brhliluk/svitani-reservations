@@ -52,6 +52,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
     var refreshTrigger by remember { mutableStateOf(0) }
     var toastData by remember { mutableStateOf<ToastData?>(null) }
     var pendingAction by remember { mutableStateOf<PendingAction?>(null) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     var expandedId by remember { mutableStateOf<Uuid?>(null) }
 
     // Načítání dat z backendu
@@ -103,6 +104,17 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                         span(className = "icon-[heroicons--clipboard-document-check] size-4")
                         +currentStrings.attendanceButton
                         onClick { router.navigate("$navPrefix/$eventId/attendance") }
+                    }
+                    val editPath = if (isSeries) "/admin/events/series/$eventId/edit" else "/admin/events/instance/$eventId/edit"
+                    button(className = "btn btn-outline btn-sm gap-2") {
+                        span(className = "icon-[heroicons--pencil] size-4")
+                        if (isSeries) +currentStrings.editSeries else +currentStrings.editEvent
+                        onClick { router.navigate(editPath) }
+                    }
+                    button(className = "btn btn-outline btn-error btn-sm gap-2") {
+                        span(className = "icon-[heroicons--trash] size-4")
+                        if (isSeries) +currentStrings.deleteSeriesLabel else +currentStrings.deleteEventLabel
+                        onClick { showDeleteConfirm = true }
                     }
                 }
 
@@ -329,6 +341,45 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                     onClick { pendingAction = null }
                     +currentStrings.close
                 }
+            }
+        }
+    }
+
+    if (showDeleteConfirm) {
+        val reservationCount = (uiState as? AdminEventDetailUiState.Success)?.data?.participants?.size ?: 0
+        div(className = "modal modal-open") {
+            div(className = "modal-box") {
+                h3(className = "font-bold text-lg text-error") { +currentStrings.confirmDeleteTitle }
+                p(className = "py-4") { +currentStrings.deleteEventImpact(reservationCount) }
+                div(className = "modal-action") {
+                    button(className = "btn") { onClick { showDeleteConfirm = false }; +currentStrings.modalBack }
+                    button(className = "btn btn-error") {
+                        onClick {
+                            showDeleteConfirm = false
+                            scope.launch {
+                                val uuid = Uuid.parse(eventId)
+                                val result = if (isSeries)
+                                    adminService.deleteEventSeries(uuid)
+                                else
+                                    adminService.deleteEventInstance(uuid)
+                                result
+                                    .onRight {
+                                        toastData = ToastData(
+                                            if (isSeries) currentStrings.toastSeriesDeleted else currentStrings.toastEventDeleted,
+                                            ToastType.Success
+                                        )
+                                        kotlinx.coroutines.delay(500)
+                                        router.navigate("/admin/events")
+                                    }
+                                    .onLeft { toastData = ToastData(currentStrings.errorToast(it.toString()), ToastType.Error) }
+                            }
+                        }
+                        if (isSeries) +currentStrings.deleteSeriesLabel else +currentStrings.deleteEventLabel
+                    }
+                }
+            }
+            form(className = "modal-backdrop") {
+                button { onClick { showDeleteConfirm = false }; +currentStrings.close }
             }
         }
     }

@@ -356,6 +356,31 @@ interface AppStrings : ErrorStrings {
     val yes: String
     val no: String
 
+    // Admin Edit & Delete
+    val editTemplate: String
+    val editEvent: String
+    val editSeries: String
+    val deleteTemplate: String
+    val deleteEventLabel: String
+    val deleteSeriesLabel: String
+    val confirmDeleteTitle: String
+    val deleteDefinitionImpact: (childCount: Int, reservationCount: Int) -> String
+    val deleteEventImpact: (reservationCount: Int) -> String
+    val propagateToChildren: String
+    val propagateToChildrenNote: String
+    val capacityWarningTitle: String
+    val capacityWarningBody: String
+    val saveChanges: String
+    val toastEventUpdated: String
+    val toastSeriesUpdated: String
+    val toastDefinitionUpdated: String
+    val toastEventDeleted: String
+    val toastSeriesDeleted: String
+    val toastDefinitionDeleted: String
+    val editTemplateTitle: String
+    val editInstanceTitle: String
+    val editSeriesTitle: String
+
     // Helper functions for Calendar
     fun monthName(index: Int): String
     fun dayName(index: Int): String
