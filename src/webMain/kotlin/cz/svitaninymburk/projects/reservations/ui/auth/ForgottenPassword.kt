@@ -59,15 +59,20 @@ fun IComponent.ForgotPasswordDialog(
                     onClick {
                         isLoading = true
                         scope.launch {
-                            authService.requestPasswordReset(email)
-                                .onLeft {
-                                    isLoading = false
-                                    onFailure(it.localizedMessage(currentStrings))
-                                }
-                                .onRight {
-                                    isLoading = false
-                                    onSuccess()
-                                }
+                            try {
+                                authService.requestPasswordReset(email)
+                                    .onLeft {
+                                        isLoading = false
+                                        onFailure(it.localizedMessage(currentStrings))
+                                    }
+                                    .onRight {
+                                        isLoading = false
+                                        onSuccess()
+                                    }
+                            } catch (e: Exception) {
+                                isLoading = false
+                                onFailure(currentStrings.errorProcessingRequest)
+                            }
                         }
                     }
                 }

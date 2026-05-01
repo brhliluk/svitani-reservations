@@ -42,16 +42,21 @@ fun IComponent.LoginDialog(
         errorMessage = null
 
         scope.launch {
-            authService.login(LoginRequest(email, password))
-                .onRight {
-                    isLoading = false
-                    onLogin()
-                    onClose()
-                }
-                .onLeft {
-                    isLoading = false
-                    errorMessage = it.localizedMessage(currentStrings)
-                }
+            try {
+                authService.login(LoginRequest(email, password))
+                    .onRight {
+                        isLoading = false
+                        onLogin()
+                        onClose()
+                    }
+                    .onLeft {
+                        isLoading = false
+                        errorMessage = it.localizedMessage(currentStrings)
+                    }
+            } catch (e: Exception) {
+                isLoading = false
+                errorMessage = currentStrings.errorProcessingRequest
+            }
         }
     }
 
