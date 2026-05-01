@@ -20,7 +20,7 @@ class InMemoryEventDefinitionRepository : EventDefinitionRepository {
 
     
     override suspend fun create(event: EventDefinition): EventDefinition {
-        val id = Uuid.random()
+        val id = event.id
         val newEvent = event.copy(id = id)
         events[id] = newEvent
         return newEvent

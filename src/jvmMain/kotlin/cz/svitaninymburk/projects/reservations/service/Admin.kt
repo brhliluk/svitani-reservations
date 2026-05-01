@@ -471,4 +471,151 @@ class AdminDashboardService(
         val success = userRepository.delete(userId)
         if (!success) raise(AdminError.UserNotFound(userId))
     }
+
+    override suspend fun getEventDefinitionForEdit(id: Uuid): Either<AdminError.GetEditData, EventDefinition> = either {
+        ensureNotNull(eventDefinitionRepository.get(id)) { AdminError.DefinitionNotFound(id) }
+    }
+
+    override suspend fun getEventInstanceForEdit(id: Uuid): Either<AdminError.GetEditData, EventInstance> = either {
+        ensureNotNull(eventInstanceRepository.get(id)) { AdminError.InstanceNotFoundForEdit(id) }
+    }
+
+    override suspend fun getEventSeriesForEdit(id: Uuid): Either<AdminError.GetEditData, EventSeries> = either {
+        ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
+    }
+
+    override suspend fun updateEventInstance(id: Uuid, request: cz.svitaninymburk.projects.reservations.event.UpdateEventInstanceRequest): Either<AdminError.UpdateEvent, Unit> = either {
+        val existing = ensureNotNull(eventInstanceRepository.get(id)) { AdminError.InstanceNotFoundForEdit(id) }
+        eventInstanceRepository.update(
+            existing.copy(
+                title = request.title,
+                description = request.description,
+                startDateTime = request.startDateTime,
+                endDateTime = request.endDateTime,
+                price = request.price,
+                capacity = request.capacity,
+                allowedPaymentTypes = request.allowedPaymentTypes,
+                customFields = request.customFields,
+            )
+        )
+    }
+
+    override suspend fun updateEventSeries(id: Uuid, request: cz.svitaninymburk.projects.reservations.event.UpdateEventSeriesRequest): Either<AdminError.UpdateSeries, Unit> = either {
+        val existing = ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
+        eventSeriesRepository.update(
+            existing.copy(
+                title = request.title,
+                description = request.description,
+                price = request.price,
+                capacity = request.capacity,
+                startDate = request.startDate,
+                endDate = request.endDate,
+                lessonCount = request.lessonCount,
+                allowedPaymentTypes = request.allowedPaymentTypes,
+                customFields = request.customFields,
+            )
+        )
+    }
+
+    override suspend fun updateEventDefinition(id: Uuid, request: cz.svitaninymburk.projects.reservations.event.UpdateEventDefinitionRequest): Either<AdminError.UpdateDefinition, Unit> = either {
+        val existing = ensureNotNull(eventDefinitionRepository.get(id)) { AdminError.DefinitionNotFound(id) }
+        val updated = existing.copy(
+            title = request.title,
+            description = request.description,
+            defaultPrice = request.defaultPrice,
+            defaultCapacity = request.defaultCapacity,
+            defaultDuration = request.defaultDuration,
+            allowedPaymentTypes = request.allowedPaymentTypes,
+            customFields = request.customFields,
+        )
+        eventDefinitionRepository.update(updated)
+
+        if (request.propagateToChildren) {
+            eventInstanceRepository.getAll(null)
+                .filter { it.definitionId == id }
+                .forEach { instance ->
+                    eventInstanceRepository.update(
+                        instance.copy(
+                            title = request.title,
+                            description = request.description,
+                            price = request.defaultPrice,
+                            capacity = request.defaultCapacity,
+                            allowedPaymentTypes = request.allowedPaymentTypes,
+                            customFields = request.customFields,
+                        )
+                    )
+                }
+
+            eventSeriesRepository.getAll(null)
+                .filter { it.definitionId == id }
+                .forEach { series ->
+                    eventSeriesRepository.update(
+                        series.copy(
+                            title = request.title,
+                            description = request.description,
+                            price = request.defaultPrice,
+                            capacity = request.defaultCapacity,
+                            allowedPaymentTypes = request.allowedPaymentTypes,
+                            customFields = request.customFields,
+                        )
+                    )
+                }
+        }
+    }
+
+    override suspend fun deleteEventInstance(id: Uuid): Either<AdminError.DeleteEvent, Unit> = either {
+        ensureNotNull(eventInstanceRepository.get(id)) { AdminError.InstanceNotFoundForEdit(id) }
+
+        reservationRepository.findByReference(Reference.Instance(id))
+            .filter { it.status != Reservation.Status.CANCELLED }
+            .forEach { res ->
+                reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
+                emailService.sendCancellationNotice(res.contactEmail, res.id)
+                    .onLeft { println("⚠️ Failed to send cancellation email for ${res.id}: $it") }
+            }
+
+        eventInstanceRepository.delete(id)
+    }
+
+    override suspend fun deleteEventSeries(id: Uuid): Either<AdminError.DeleteSeries, Unit> = either {
+        ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
+
+        reservationRepository.findByReference(Reference.Series(id))
+            .filter { it.status != Reservation.Status.CANCELLED }
+            .forEach { res ->
+                reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
+                emailService.sendCancellationNotice(res.contactEmail, res.id)
+                    .onLeft { println("⚠️ Failed to send cancellation email for ${res.id}: $it") }
+            }
+
+        eventSeriesRepository.delete(id)
+    }
+
+    override suspend fun deleteEventDefinition(id: Uuid): Either<AdminError.DeleteDefinition, Unit> = either {
+        ensureNotNull(eventDefinitionRepository.get(id)) { AdminError.DefinitionNotFound(id) }
+
+        val childInstances = eventInstanceRepository.getAll(null).filter { it.definitionId == id }
+        val childSeries = eventSeriesRepository.getAll(null).filter { it.definitionId == id }
+
+        suspend fun cancelReservations(reference: Reference) {
+            reservationRepository.findByReference(reference)
+                .filter { it.status != Reservation.Status.CANCELLED }
+                .forEach { res ->
+                    reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
+                    emailService.sendCancellationNotice(res.contactEmail, res.id)
+                        .onLeft { println("⚠️ Failed to send cancellation email for ${res.id}: $it") }
+                }
+        }
+
+        childInstances.forEach { instance ->
+            cancelReservations(Reference.Instance(instance.id))
+            eventInstanceRepository.delete(instance.id)
+        }
+        childSeries.forEach { series ->
+            cancelReservations(Reference.Series(series.id))
+            eventSeriesRepository.delete(series.id)
+        }
+
+        eventDefinitionRepository.delete(id)
+    }
 }

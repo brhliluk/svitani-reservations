@@ -2,9 +2,13 @@ package cz.svitaninymburk.projects.reservations.ui.admin
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
@@ -12,10 +16,15 @@ import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
+import cz.svitaninymburk.projects.reservations.ui.util.Toast
+import cz.svitaninymburk.projects.reservations.ui.util.ToastData
+import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import dev.kilua.core.IComponent
+import dev.kilua.form.form
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlin.uuid.Uuid
+import kotlinx.coroutines.launch
 
 private sealed interface AdminEventsUiState {
     data object Loading : AdminEventsUiState
@@ -30,8 +39,13 @@ fun IComponent.AdminEventsScreen() {
     val currentStrings by strings
 
     val expandedGroups = remember { mutableStateMapOf<Uuid, Boolean>() }
+    val scope = rememberCoroutineScope()
+    var toastData by remember { mutableStateOf<ToastData?>(null) }
+    var refreshTrigger by remember { mutableIntStateOf(0) }
+    var deleteDefinitionPending by remember { mutableStateOf<AdminEventListItem?>(null) }
+    var deleteItemPending by remember { mutableStateOf<AdminEventListItem?>(null) }
 
-    val uiState by produceState<AdminEventsUiState>(initialValue = AdminEventsUiState.Loading) {
+    val uiState by produceState<AdminEventsUiState>(initialValue = AdminEventsUiState.Loading, key1 = refreshTrigger) {
         adminService.getAllEvents()
             .onRight { value = AdminEventsUiState.Success(it) }
             .onLeft { value = AdminEventsUiState.Error(it.localizedMessage(currentStrings)) }
@@ -101,6 +115,14 @@ fun IComponent.AdminEventsScreen() {
                                             span(className = "icon-[heroicons--plus] size-3")
                                             +currentStrings.adminCourse
                                         }
+                                        button(className = "btn btn-xs btn-ghost text-primary") {
+                                            onClick { router.navigate("/admin/events/definition/${def.id}/edit") }
+                                            span(className = "icon-[heroicons--pencil] size-3")
+                                        }
+                                        button(className = "btn btn-xs btn-ghost text-error") {
+                                            onClick { deleteDefinitionPending = def }
+                                            span(className = "icon-[heroicons--trash] size-3")
+                                        }
                                     }
                                 }
 
@@ -151,8 +173,22 @@ fun IComponent.AdminEventsScreen() {
                                                         }
                                                         td(className = "font-medium text-base-content/80") { +item.priceString }
                                                         td(className = "text-right") {
-                                                            button(className = "btn btn-ghost btn-xs btn-circle") {
-                                                                span(className = "icon-[heroicons--chevron-right] size-5 text-base-content/50")
+                                                            div(className = "flex justify-end gap-1") {
+                                                                button(className = "btn btn-ghost btn-xs btn-circle") {
+                                                                    span(className = "icon-[heroicons--pencil] size-4 text-base-content/50")
+                                                                    onClick {
+                                                                        it.stopPropagation()
+                                                                        val typePath = if (item.isSeries) "series" else "instance"
+                                                                        router.navigate("/admin/events/$typePath/${item.id}/edit")
+                                                                    }
+                                                                }
+                                                                button(className = "btn btn-ghost btn-xs btn-circle text-error") {
+                                                                    span(className = "icon-[heroicons--trash] size-4")
+                                                                    onClick {
+                                                                        it.stopPropagation()
+                                                                        deleteItemPending = item
+                                                                    }
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -185,7 +221,79 @@ fun IComponent.AdminEventsScreen() {
                         }
                     }
                 }
+
+                // Definition delete modal
+                val defToDelete = deleteDefinitionPending
+                if (defToDelete != null) {
+                    val children = childrenByDef[defToDelete.id] ?: emptyList()
+                    val totalReservations = children.sumOf { it.occupiedSpots }
+                    div(className = "modal modal-open") {
+                        div(className = "modal-box") {
+                            h3(className = "font-bold text-lg text-error") { +currentStrings.confirmDeleteTitle }
+                            p(className = "py-4") { +currentStrings.deleteDefinitionImpact(children.size, totalReservations) }
+                            div(className = "modal-action") {
+                                button(className = "btn") { onClick { deleteDefinitionPending = null }; +currentStrings.modalBack }
+                                button(className = "btn btn-error") {
+                                    onClick {
+                                        deleteDefinitionPending = null
+                                        scope.launch {
+                                            adminService.deleteEventDefinition(defToDelete.id)
+                                                .onRight {
+                                                    toastData = ToastData(currentStrings.toastDefinitionDeleted, ToastType.Success)
+                                                    refreshTrigger++
+                                                }
+                                                .onLeft { toastData = ToastData(currentStrings.errorToast(it.toString()), ToastType.Error) }
+                                        }
+                                    }
+                                    +currentStrings.deleteTemplate
+                                }
+                            }
+                        }
+                        form(className = "modal-backdrop") {
+                            button { onClick { deleteDefinitionPending = null }; +currentStrings.close }
+                        }
+                    }
+                }
+
+                // Instance/Series delete modal
+                val itemToDelete = deleteItemPending
+                if (itemToDelete != null) {
+                    div(className = "modal modal-open") {
+                        div(className = "modal-box") {
+                            h3(className = "font-bold text-lg text-error") { +currentStrings.confirmDeleteTitle }
+                            p(className = "py-4") { +currentStrings.deleteEventImpact(itemToDelete.occupiedSpots) }
+                            div(className = "modal-action") {
+                                button(className = "btn") { onClick { deleteItemPending = null }; +currentStrings.modalBack }
+                                button(className = "btn btn-error") {
+                                    onClick {
+                                        val toDelete = itemToDelete
+                                        deleteItemPending = null
+                                        scope.launch {
+                                            val result = if (toDelete.isSeries)
+                                                adminService.deleteEventSeries(toDelete.id)
+                                            else
+                                                adminService.deleteEventInstance(toDelete.id)
+                                            result
+                                                .onRight {
+                                                    val msg = if (toDelete.isSeries) currentStrings.toastSeriesDeleted else currentStrings.toastEventDeleted
+                                                    toastData = ToastData(msg, ToastType.Success)
+                                                    refreshTrigger++
+                                                }
+                                                .onLeft { toastData = ToastData(currentStrings.errorToast(it.toString()), ToastType.Error) }
+                                        }
+                                    }
+                                    if (itemToDelete.isSeries) +currentStrings.deleteSeriesLabel else +currentStrings.deleteEventLabel
+                                }
+                            }
+                        }
+                        form(className = "modal-backdrop") {
+                            button { onClick { deleteItemPending = null }; +currentStrings.close }
+                        }
+                    }
+                }
             }
         }
+
+        Toast(message = toastData?.message, type = toastData?.type ?: ToastType.Success, onDismiss = { toastData = null })
     }
 }
