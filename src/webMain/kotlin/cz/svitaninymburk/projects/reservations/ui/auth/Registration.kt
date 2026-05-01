@@ -4,6 +4,8 @@ import androidx.compose.runtime.*
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.auth.LoginRequest
 import cz.svitaninymburk.projects.reservations.auth.RegisterRequest
+import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import dev.kilua.core.IComponent
 import dev.kilua.form.Autocomplete
@@ -35,6 +37,7 @@ fun IComponent.RegisterDialog(
 
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val currentStrings by strings
 
     val isFormValid = name.isNotBlank() && surname.isNotBlank() &&
             email.isNotBlank() && password.length >= 6 &&
@@ -46,23 +49,28 @@ fun IComponent.RegisterDialog(
         errorMessage = null
 
         scope.launch {
-            authService.register(RegisterRequest(email, password, name, surname))
-                .onRight {
-                    authService.login(LoginRequest(email, password))
-                        .onRight{
-                            isLoading = false
-                            onRegisterSuccess()
-                            onClose()
-                        }
-                        .onLeft {
-                            isLoading = false
-                            onSwitchToLogin()
-                        }
-                }
-                .onLeft {
-                    isLoading = false
-                    errorMessage = "Registrace se nezdařila. Email už možná existuje."
-                }
+            try {
+                authService.register(RegisterRequest(email, password, name, surname))
+                    .onRight {
+                        authService.login(LoginRequest(email, password))
+                            .onRight {
+                                isLoading = false
+                                onRegisterSuccess()
+                                onClose()
+                            }
+                            .onLeft {
+                                isLoading = false
+                                onSwitchToLogin()
+                            }
+                    }
+                    .onLeft {
+                        isLoading = false
+                        errorMessage = it.localizedMessage(currentStrings)
+                    }
+            } catch (e: Exception) {
+                isLoading = false
+                errorMessage = currentStrings.errorProcessingRequest
+            }
         }
     }
 

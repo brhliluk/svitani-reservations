@@ -57,7 +57,7 @@ val appModule = module {
 
     single { PaymentTrigger() }
 
-//    single { GoogleAuthService(clientId = System.getenv("GOOGLE_CLIENT_ID") ?: error("GOOGLE_CLIENT_ID env var is required")) }
+    single { GoogleAuthService(clientId = System.getenv("GOOGLE_CLIENT_ID") ?: "not-configured") }
 
     single { JwtTokenService(get()) }
     single<HashingService> { BCryptHashingService() }

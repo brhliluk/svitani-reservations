@@ -42,8 +42,10 @@ if (config.devServer) {
         "tom-select/dist/css/tom-select.default.min.css": false,
         "tom-select/dist/css/tom-select.min.css": false,
         "trix/dist/trix.css": false,
-        "./tailwind/tailwind.css": false
     }
+    // Extract Tailwind CSS as a separate file (referenced in index.html)
+    const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+    config.plugins.push(new MiniCssExtractPlugin({ filename: "tailwindcss.css" }));
 }
 
 // disable bundle size warning

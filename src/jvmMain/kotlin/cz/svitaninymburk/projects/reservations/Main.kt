@@ -17,7 +17,7 @@ fun Application.main() {
     install(WebSockets)
     configureDatabases()
     initRpc(
-        initStaticResources = false,
+        initStaticResources = true,
         AppJson,
         appModule
     )
