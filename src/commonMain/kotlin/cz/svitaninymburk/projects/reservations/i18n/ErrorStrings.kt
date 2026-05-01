@@ -36,4 +36,5 @@ interface ErrorStrings {
     val errorAdminEventNotFound: String
     val errorAdminCourseNotFound: String
     val errorAdminUserNotFound: String
+    val errorAdminDefinitionNotFound: String
 }

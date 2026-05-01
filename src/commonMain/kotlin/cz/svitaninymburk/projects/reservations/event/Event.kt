@@ -138,3 +138,40 @@ data class DashboardData(
     val series: List<EventSeries>,
     val definitions: List<EventDefinition>
 )
+
+@Serializable
+data class UpdateEventDefinitionRequest(
+    val title: String,
+    val description: String,
+    val defaultPrice: Double,
+    val defaultCapacity: Int,
+    val defaultDuration: Duration,
+    val allowedPaymentTypes: List<PaymentInfo.Type>,
+    val customFields: List<CustomFieldDefinition>,
+    val propagateToChildren: Boolean,
+)
+
+@Serializable
+data class UpdateEventInstanceRequest(
+    val title: String,
+    val description: String,
+    val startDateTime: LocalDateTime,
+    val endDateTime: LocalDateTime,
+    val price: Double,
+    val capacity: Int,
+    val allowedPaymentTypes: List<PaymentInfo.Type>,
+    val customFields: List<CustomFieldDefinition>,
+)
+
+@Serializable
+data class UpdateEventSeriesRequest(
+    val title: String,
+    val description: String,
+    val price: Double,
+    val capacity: Int,
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val lessonCount: Int,
+    val allowedPaymentTypes: List<PaymentInfo.Type>,
+    val customFields: List<CustomFieldDefinition>,
+)
