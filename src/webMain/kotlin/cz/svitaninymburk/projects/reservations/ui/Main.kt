@@ -36,8 +36,12 @@ import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
+import dev.kilua.html.a
+import dev.kilua.html.aside
 import dev.kilua.html.div
+import dev.kilua.html.footer
 import dev.kilua.html.main
+import dev.kilua.html.p
 import dev.kilua.routing.browserRouter
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
@@ -302,6 +306,20 @@ fun IComponent.MainLayout() {
                     }
                 }
             }
+            route("/privacy") {
+                view {
+                    val router = Router.current
+                    UserShell(
+                        user = currentUser,
+                        onShowMessage = ::showToast,
+                        onLogin = { refreshUser() },
+                        onLogout = { doLogout() },
+                        onOpenMyReservations = { router.navigate("/my-reservations") },
+                    ) {
+                        PrivacyScreen()
+                    }
+                }
+            }
         }
     }
 }
@@ -315,6 +333,7 @@ private fun IComponent.UserShell(
     onOpenMyReservations: () -> Unit,
     content: @Composable IComponent.() -> Unit,
 ) {
+    val currentStrings by strings
     AppHeader(
         user = user,
         onShowMessage = onShowMessage,
@@ -323,4 +342,11 @@ private fun IComponent.UserShell(
         onOpenMyReservations = onOpenMyReservations,
     )
     main(className = "flex-grow") { content() }
+    footer(className = "footer footer-center p-8 text-base-content/50") {
+        aside {
+            a(href = "#", className = "link link-hover") { +currentStrings.contact }
+            a(href = "/privacy", className = "link link-hover") { +currentStrings.privacyPolicyLink }
+            p { +currentStrings.copyright }
+        }
+    }
 }
