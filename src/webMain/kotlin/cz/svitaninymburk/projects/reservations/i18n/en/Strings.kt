@@ -450,7 +450,7 @@ object EnStrings : AppStrings {
     override val privacyTitle = "Privacy Policy"
     override val privacyControllerHeading = "Data Controller"
     override val privacyControllerBody = "The data controller is Spolu v Nymburce, z.s., ID No.: 70877122, registered at Komenského 1254/21, 28802 Nymburk, Czech Republic. Contact email: info@svitaninymburk.cz."
-    override val privacyDataHeading = "What data we collect"
+    override val privacyDataHeading = "What data we process"
     override val privacyDataBody = "We process the following personal data: first name, last name, email address, phone number, reservation data (date, number of seats, payment type) and payment data (amount, variable symbol)."
     override val privacyPurposeHeading = "Purpose and legal basis"
     override val privacyPurposeBody = "We process your personal data to create and manage your user account, process reservations, and send confirmation emails. The legal basis is the performance of a contract under Art. 6(1)(b) GDPR. Accounting records are retained on the basis of a legal obligation under Art. 6(1)(c) GDPR."
@@ -463,5 +463,5 @@ object EnStrings : AppStrings {
     override val privacyContactHeading = "Contact"
     override val privacyContactBody = "To exercise your rights or for questions about data processing, contact us at: info@svitaninymburk.cz."
     override val privacyPolicyLink = "Privacy Policy"
-    override val registrationPrivacyNote = "By registering you acknowledge our"
+    override val registrationPrivacyNote = "By registering, you acknowledge our"
 }
