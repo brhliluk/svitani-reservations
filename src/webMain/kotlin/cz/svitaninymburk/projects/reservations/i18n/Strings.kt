@@ -407,4 +407,23 @@ interface AppStrings : ErrorStrings {
     fun monthName(index: Int): String
     fun dayName(index: Int): String
     fun shortDayName(index: Int): String
+
+    // Privacy Policy
+    val privacyTitle: String
+    val privacyControllerHeading: String
+    val privacyControllerBody: String
+    val privacyDataHeading: String
+    val privacyDataBody: String
+    val privacyPurposeHeading: String
+    val privacyPurposeBody: String
+    val privacyRecipientsHeading: String
+    val privacyRecipientsBody: String
+    val privacyRetentionHeading: String
+    val privacyRetentionBody: String
+    val privacyRightsHeading: String
+    val privacyRightsBody: String
+    val privacyContactHeading: String
+    val privacyContactBody: String
+    val privacyPolicyLink: String
+    val registrationPrivacyNote: String
 }

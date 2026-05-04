@@ -445,4 +445,23 @@ object EnStrings : AppStrings {
     override val errorAdminGetInstancesFailed = "Failed to get lessons"
     override val errorAdminCancelLessonInstanceNotFound = "Lesson not found"
     override val errorAdminCancelLessonFailed = "Failed to cancel lesson"
+
+    // Privacy Policy
+    override val privacyTitle = "Privacy Policy"
+    override val privacyControllerHeading = "Data Controller"
+    override val privacyControllerBody = "The data controller is Spolu v Nymburce, z.s., ID No.: 70877122, registered at Komenského 1254/21, 28802 Nymburk, Czech Republic. Contact email: info@svitaninymburk.cz."
+    override val privacyDataHeading = "What data we collect"
+    override val privacyDataBody = "We process the following personal data: first name, last name, email address, phone number, reservation data (date, number of seats, payment type) and payment data (amount, variable symbol)."
+    override val privacyPurposeHeading = "Purpose and legal basis"
+    override val privacyPurposeBody = "We process your personal data to create and manage your user account, process reservations, and send confirmation emails. The legal basis is the performance of a contract under Art. 6(1)(b) GDPR. Accounting records are retained on the basis of a legal obligation under Art. 6(1)(c) GDPR."
+    override val privacyRecipientsHeading = "Data recipients"
+    override val privacyRecipientsBody = "Your data may be shared with: Google LLC (Gmail/Google Workspace) – for email delivery; FIO banka, a.s. – for pairing incoming payments with reservations."
+    override val privacyRetentionHeading = "Data retention"
+    override val privacyRetentionBody = "User account data is retained for the duration of the account or 3 years from the last activity. Reservation and payment records are retained for 5 years under Czech Accounting Act No. 563/1991 Coll."
+    override val privacyRightsHeading = "Your rights"
+    override val privacyRightsBody = "You have the right to access your personal data (Art. 15), rectification (Art. 16), erasure (Art. 17), restriction of processing (Art. 18), data portability (Art. 20), and the right to object (Art. 21). You may lodge a complaint with the Czech Data Protection Authority (ÚOOÚ), Pplk. Sochora 27, 170 00 Praha 7, www.uoou.cz."
+    override val privacyContactHeading = "Contact"
+    override val privacyContactBody = "To exercise your rights or for questions about data processing, contact us at: info@svitaninymburk.cz."
+    override val privacyPolicyLink = "Privacy Policy"
+    override val registrationPrivacyNote = "By registering you acknowledge our"
 }

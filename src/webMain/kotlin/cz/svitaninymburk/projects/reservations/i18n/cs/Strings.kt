@@ -444,4 +444,23 @@ object CsStrings : AppStrings {
     override val errorAdminGetInstancesFailed = "Nepodařilo se získat lekce"
     override val errorAdminCancelLessonInstanceNotFound = "Lekce nenalezena"
     override val errorAdminCancelLessonFailed = "Nepodařilo se zrušit lekci"
+
+    // Privacy Policy
+    override val privacyTitle = "Zásady ochrany osobních údajů"
+    override val privacyControllerHeading = "Správce osobních údajů"
+    override val privacyControllerBody = "Správcem vašich osobních údajů je spolek Spolu v Nymburce, z.s., IČO: 70877122, se sídlem Komenského 1254/21, 28802 Nymburk. Kontaktní e-mail: info@svitaninymburk.cz."
+    override val privacyDataHeading = "Jaké údaje zpracováváme"
+    override val privacyDataBody = "Zpracováváme tyto osobní údaje: jméno, příjmení, e-mailová adresa, telefonní číslo, údaje o rezervacích (termín, počet míst, typ platby) a údaje o platbách (výše platby, variabilní symbol)."
+    override val privacyPurposeHeading = "Účel a právní základ zpracování"
+    override val privacyPurposeBody = "Vaše osobní údaje zpracováváme za účelem vytvoření a správy uživatelského účtu, zpracování rezervací a zasílání potvrzovacích e-mailů. Právní základ je plnění smlouvy dle čl. 6 odst. 1 písm. b) GDPR. Účetní záznamy uchováváme na základě zákonné povinnosti dle čl. 6 odst. 1 písm. c) GDPR."
+    override val privacyRecipientsHeading = "Příjemci osobních údajů"
+    override val privacyRecipientsBody = "Vaše údaje mohou být předány: Google LLC (Gmail/Google Workspace) – doručování e-mailů; FIO banka, a.s. – párování příchozích plateb s rezervacemi."
+    override val privacyRetentionHeading = "Doba uchování osobních údajů"
+    override val privacyRetentionBody = "Údaje uživatelského účtu uchováváme po dobu trvání účtu nebo 3 roky od poslední aktivity. Záznamy o rezervacích a platbách uchováváme 5 let dle zákona č. 563/1991 Sb., o účetnictví."
+    override val privacyRightsHeading = "Vaše práva"
+    override val privacyRightsBody = "Máte právo na přístup ke svým osobním údajům (čl. 15), opravu (čl. 16), výmaz (čl. 17), omezení zpracování (čl. 18), přenositelnost (čl. 20) a právo vznést námitku (čl. 21). Stížnost můžete podat u Úřadu pro ochranu osobních údajů (ÚOOÚ), Pplk. Sochora 27, 170 00 Praha 7, www.uoou.cz."
+    override val privacyContactHeading = "Kontakt"
+    override val privacyContactBody = "Pro uplatnění svých práv nebo dotazy k ochraně osobních údajů nás kontaktujte na: info@svitaninymburk.cz."
+    override val privacyPolicyLink = "Zásady ochrany osobních údajů"
+    override val registrationPrivacyNote = "Registrací berete na vědomí naše"
 }
