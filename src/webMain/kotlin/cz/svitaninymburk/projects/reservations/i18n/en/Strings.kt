@@ -85,7 +85,7 @@ object EnStrings : AppStrings {
     override val reservationRejected = "Reservation rejected"
     override val reservationNotApproved = "The organizer did not approve the reservation"
     override val rejected = "Rejected"
-    override val copyright = "© 2024 Reservation System"
+    override val copyright = "© 2026 Spolu v Nymburce, z.s."
 
     // Reservation errors
     override val reservationFailed: (String) -> String = { "Reservation failed: $it" }
