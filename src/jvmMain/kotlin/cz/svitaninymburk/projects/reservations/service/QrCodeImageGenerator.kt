@@ -3,7 +3,7 @@ package cz.svitaninymburk.projects.reservations.service
 import cz.svitaninymburk.projects.reservations.qr.QrCodeService
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import qrcode.QRCode
-import java.io.ByteArrayOutputStream
+import qrcode.color.Colors
 
 /**
  * Služba specifická pro JVM Backend (Emailing).
@@ -20,12 +20,10 @@ class BackendQrCodeGenerator(private val qrCodeService: QrCodeService) {
             message = "Rezervace ${reservation.reference.id}"
         )
 
-        val stream = ByteArrayOutputStream()
-
-        QRCode(spaydContent)
-            .render()
-            .writeImage(stream)
-
-        return stream.toByteArray()
+        return QRCode.ofSquares()
+            .withColor(Colors.BLACK)
+            .withBackgroundColor(Colors.WHITE)
+            .build(spaydContent)
+            .renderToBytes()
     }
 }

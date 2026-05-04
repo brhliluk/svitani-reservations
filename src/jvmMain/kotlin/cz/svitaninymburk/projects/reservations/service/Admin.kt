@@ -343,6 +343,9 @@ class AdminDashboardService(
                 lessonCount = request.lessonCount,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
+                lessonDayOfWeek = request.lessonDayOfWeek,
+                lessonStartTime = request.lessonStartTime,
+                lessonEndTime = request.lessonEndTime,
             )
 
             eventSeriesRepository.create(newSeries)
@@ -513,6 +516,9 @@ class AdminDashboardService(
                 lessonCount = request.lessonCount,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
+                lessonDayOfWeek = request.lessonDayOfWeek,
+                lessonStartTime = request.lessonStartTime,
+                lessonEndTime = request.lessonEndTime,
             )
         )
     }

@@ -16,13 +16,18 @@ import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
 import dev.kilua.form.check.checkBox
 import dev.kilua.form.number.numeric
+import dev.kilua.form.select.select
 import dev.kilua.form.text.text
 import dev.kilua.form.text.textArea
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.isoDayNumber
 import web.history.history
+import web.html.HTMLSelectElement
 import kotlin.uuid.Uuid
 
 private sealed interface EditSeriesUiState {
@@ -49,6 +54,8 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
     var lessonCount by remember { mutableIntStateOf(1) }
+    var lessonDayOfWeekOrdinal by remember { mutableStateOf<Int?>(null) }
+    var lessonStartTimeStr by remember { mutableStateOf("") }
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
     var showCapacityWarning by remember { mutableStateOf(false) }
@@ -66,6 +73,8 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                 startDate = s.startDate.toString()
                 endDate = s.endDate.toString()
                 lessonCount = s.lessonCount
+                lessonDayOfWeekOrdinal = s.lessonDayOfWeek?.isoDayNumber
+                lessonStartTimeStr = s.lessonStartTime?.toString() ?: ""
                 allowBankTransfer = s.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
                 allowOnSite = s.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
                 uiState = EditSeriesUiState.Loaded(s)
@@ -86,12 +95,27 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
             if (allowBankTransfer) add(PaymentInfo.Type.BANK_TRANSFER)
             if (allowOnSite) add(PaymentInfo.Type.ON_SITE)
         }
+        val parsedDay = lessonDayOfWeekOrdinal?.let { DayOfWeek(it) }
+        val parsedStartTime = if (lessonStartTimeStr.isNotBlank()) {
+            try { LocalTime.parse(lessonStartTimeStr) } catch (_: Exception) { null }
+        } else null
+        val loadedStartTime = (uiState as? EditSeriesUiState.Loaded)?.series?.lessonStartTime
+        val loadedEndTime = (uiState as? EditSeriesUiState.Loaded)?.series?.lessonEndTime
+        val parsedEndTime = when {
+            parsedStartTime == null -> null
+            parsedStartTime == loadedStartTime -> loadedEndTime
+            else -> null
+        }
+
         val request = UpdateEventSeriesRequest(
             title = title, description = description,
             price = price?.toDouble() ?: 0.0, capacity = capacity,
             startDate = parsedStart, endDate = parsedEnd,
             lessonCount = lessonCount, allowedPaymentTypes = allowedPayments,
             customFields = emptyList(),
+            lessonDayOfWeek = parsedDay,
+            lessonStartTime = parsedStartTime,
+            lessonEndTime = parsedEndTime,
         )
         scope.launch {
             adminService.updateEventSeries(uuid, request)
@@ -142,6 +166,31 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lessonCountLabel } }
                                 numeric(value = lessonCount, min = 1, decimals = 0, className = "input input-bordered w-full") {
                                     attribute("step", "1"); onInput { lessonCount = value?.toInt() ?: 1 }
+                                }
+                            }
+                            // Den lekce
+                            div(className = "form-control w-full") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lessonDayLabel } }
+                                select(className = "select select-bordered w-full") {
+                                    option(value = "", label = currentStrings.lessonDayPlaceholder) {
+                                        if (lessonDayOfWeekOrdinal == null) attribute("selected", "true")
+                                    }
+                                    DayOfWeek.entries.forEach { day ->
+                                        option(value = day.isoDayNumber.toString(), label = currentStrings.dayName(day.isoDayNumber - 1)) {
+                                            if (lessonDayOfWeekOrdinal == day.isoDayNumber) attribute("selected", "true")
+                                        }
+                                    }
+                                    onChange { event ->
+                                        val v = (event.target as? HTMLSelectElement)?.value
+                                        lessonDayOfWeekOrdinal = v?.toIntOrNull()
+                                    }
+                                }
+                            }
+                            // Čas lekce
+                            div(className = "form-control w-full") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lessonTimeLabel } }
+                                text(value = lessonStartTimeStr, type = InputType.Time, className = "input input-bordered w-full") {
+                                    onInput { lessonStartTimeStr = value ?: "" }
                                 }
                             }
                             div(className = "form-control w-full") {

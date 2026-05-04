@@ -6,6 +6,8 @@ import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalTime
 
 @Composable
 fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
@@ -43,6 +45,22 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                     span(className = "icon-[heroicons--calendar-days] size-5 text-primary")
                     span(className = "font-medium") {
                         +"${series.startDate} — ${series.endDate}"
+                    }
+                }
+
+                val dow = series.lessonDayOfWeek
+                val startT = series.lessonStartTime
+                val endT = series.lessonEndTime
+                if (dow != null && startT != null && endT != null) {
+                    div(className = "flex items-center gap-2 text-sm text-base-content/70 mt-1 bg-base-200/50 p-2 rounded-lg") {
+                        span(className = "icon-[heroicons--clock] size-5 text-secondary")
+                        span {
+                            +currentStrings.lessonScheduleText(
+                                dayName = currentStrings.dayName(dow.ordinal),
+                                startTime = "${startT.hour}:${startT.minute.toString().padStart(2, '0')}",
+                                endTime = "${endT.hour}:${endT.minute.toString().padStart(2, '0')}",
+                            )
+                        }
                     }
                 }
 

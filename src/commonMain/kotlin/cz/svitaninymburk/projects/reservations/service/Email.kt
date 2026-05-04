@@ -4,6 +4,7 @@ import arrow.core.Either
 import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.error.EmailError
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import dev.kilua.rpc.annotations.RpcService
 import kotlin.uuid.Uuid
 
@@ -12,8 +13,10 @@ interface EmailService {
     suspend fun sendReservationConfirmation(
         toEmail: String,
         reservation: Reservation,
+        target: ReservationTarget,
         bankAccount: String,
-        qrCodeImage: ByteArray, // QR kód jako pole bytů (PNG)
+        qrCodeImage: ByteArray?,
+        icalBytes: ByteArray,
     ): Either<EmailError.SendReservationConfirmation, Unit>
 
     suspend fun sendCancellationNotice(toEmail: String, reservationId: Uuid): Either<EmailError.SendCancellation, Unit>

@@ -1,8 +1,10 @@
 package cz.svitaninymburk.projects.reservations.event
 
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.serialization.Serializable
@@ -36,6 +38,9 @@ data class EventSeries(
     val lessonCount: Int,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
+    val lessonDayOfWeek: DayOfWeek? = null,
+    val lessonStartTime: LocalTime? = null,
+    val lessonEndTime: LocalTime? = null,
 )
 
 @Serializable
@@ -117,6 +122,9 @@ data class CreateEventSeriesRequest(
     val lessonCount: Int,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
+    val lessonDayOfWeek: DayOfWeek? = null,
+    val lessonStartTime: LocalTime? = null,
+    val lessonEndTime: LocalTime? = null,
 )
 
 @Serializable
@@ -174,4 +182,7 @@ data class UpdateEventSeriesRequest(
     val lessonCount: Int,
     val allowedPaymentTypes: List<PaymentInfo.Type>,
     val customFields: List<CustomFieldDefinition>,
+    val lessonDayOfWeek: DayOfWeek? = null,
+    val lessonStartTime: LocalTime? = null,
+    val lessonEndTime: LocalTime? = null,
 )

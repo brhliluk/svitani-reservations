@@ -17,7 +17,9 @@ import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
 import cz.svitaninymburk.projects.reservations.reservation.ReservationRequestData
+import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
+import cz.svitaninymburk.projects.reservations.service.ICalGenerator
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -33,7 +35,8 @@ class ReservationService(
     private val emailService: EmailService,
     private val qrCodeService: BackendQrCodeGenerator,
     private val paymentTrigger: PaymentTrigger,
-): ReservationServiceInterface {
+    private val appBaseUrl: String,
+) : ReservationServiceInterface {
     override suspend fun get(id: Uuid): Either<ReservationError.Get, Reservation> = either {
         reservationRepository.findById(id) ?: raise(ReservationError.ReservationNotFound)
     }
@@ -68,11 +71,14 @@ class ReservationService(
 
         ensure(isReserved) { ReservationError.CapacityExceeded }
 
+        val target = ReservationTarget.Instance(instance)
+
         createReservationFlow(
             reference = Reference.Instance(instance.id),
             userId = userId,
             requestData = request,
-            pricePerSeat = instance.price
+            pricePerSeat = instance.price,
+            target = target,
         )
     }
 
@@ -86,11 +92,14 @@ class ReservationService(
         val isReserved = eventSeriesRepository.attemptToReserveSpots(series.id, request.seatCount)
         ensure(isReserved) { ReservationError.CapacityExceeded }
 
+        val seriesTarget = ReservationTarget.Series(series)
+
         createReservationFlow(
             reference = Reference.Series(series.id),
             userId = userId,
             requestData = request,
-            pricePerSeat = series.price
+            pricePerSeat = series.price,
+            target = seriesTarget,
         )
     }
 
@@ -99,6 +108,7 @@ class ReservationService(
         userId: Uuid?,
         requestData: ReservationRequestData,
         pricePerSeat: Double,
+        target: ReservationTarget,
     ): Reservation {
         val variableSymbol = generateUniqueVariableSymbol()
 
@@ -121,16 +131,23 @@ class ReservationService(
 
         reservationRepository.save(reservation)
 
-        val qrImage = qrCodeService.generateQrPng(reservation)
+        val qrImage: ByteArray? = if (reservation.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
+            qrCodeService.generateQrPng(reservation)
+        } else null
+
+        val icalBytes = when (target) {
+            is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, reservation.id, appBaseUrl)
+            is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, reservation.id, appBaseUrl)
+        }.toByteArray(Charsets.UTF_8)
 
         emailService.sendReservationConfirmation(
-            reservation.contactEmail,
-            reservation,
-            qrCodeService.accountNumber,
-            qrImage
-        ).onLeft {
-            println("⚠️ Failed to send confirmation email: $it")
-        }
+            toEmail = reservation.contactEmail,
+            reservation = reservation,
+            target = target,
+            bankAccount = qrCodeService.accountNumber,
+            qrCodeImage = qrImage,
+            icalBytes = icalBytes,
+        ).onLeft { println("⚠️ Failed to send confirmation email: $it") }
 
         paymentTrigger.notifyNewReservation()
 

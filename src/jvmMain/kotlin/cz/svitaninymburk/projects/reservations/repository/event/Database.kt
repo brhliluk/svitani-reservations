@@ -3,7 +3,10 @@ package cz.svitaninymburk.projects.reservations.repository.event
 import cz.svitaninymburk.projects.reservations.event.*
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.util.dbQuery
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.isoDayNumber
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.datetime.date
@@ -62,6 +65,9 @@ object EventSeriesTable : Table("event_series") {
 
     val allowedPaymentTypes = json<List<PaymentInfo.Type>>("allowed_payment_types", Json)
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
+    val lessonDayOfWeek = integer("lesson_day_of_week").nullable()
+    val lessonStartTime = varchar("lesson_start_time", 8).nullable()
+    val lessonEndTime = varchar("lesson_end_time", 8).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -78,7 +84,10 @@ fun ResultRow.toEventSeries(): EventSeries = EventSeries(
     endDate = this[EventSeriesTable.endDate],
     lessonCount = this[EventSeriesTable.lessonCount],
     allowedPaymentTypes = this[EventSeriesTable.allowedPaymentTypes],
-    customFields = this[EventSeriesTable.customFields]
+    customFields = this[EventSeriesTable.customFields],
+    lessonDayOfWeek = this[EventSeriesTable.lessonDayOfWeek]?.let { DayOfWeek(it) },
+    lessonStartTime = this[EventSeriesTable.lessonStartTime]?.let { LocalTime.parse(it) },
+    lessonEndTime = this[EventSeriesTable.lessonEndTime]?.let { LocalTime.parse(it) },
 )
 
 
@@ -209,18 +218,27 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[lessonCount] = series.lessonCount
             row[allowedPaymentTypes] = series.allowedPaymentTypes
             row[customFields] = series.customFields
+            row[lessonDayOfWeek] = series.lessonDayOfWeek?.isoDayNumber
+            row[lessonStartTime] = series.lessonStartTime?.toString()
+            row[lessonEndTime] = series.lessonEndTime?.toString()
         }
         series
     }
 
     override suspend fun update(series: EventSeries): EventSeries = dbQuery {
-        EventDefinitionsTable.update({ EventSeriesTable.id eq series.id }) { row ->
+        EventSeriesTable.update({ EventSeriesTable.id eq series.id }) { row ->
             row[title] = series.title
             row[description] = series.description
-            row[defaultPrice] = series.price
-            row[defaultCapacity] = series.capacity
+            row[price] = series.price
+            row[capacity] = series.capacity
+            row[startDate] = series.startDate
+            row[endDate] = series.endDate
+            row[lessonCount] = series.lessonCount
             row[allowedPaymentTypes] = series.allowedPaymentTypes
             row[customFields] = series.customFields
+            row[lessonDayOfWeek] = series.lessonDayOfWeek?.isoDayNumber
+            row[lessonStartTime] = series.lessonStartTime?.toString()
+            row[lessonEndTime] = series.lessonEndTime?.toString()
         }
         series
     }

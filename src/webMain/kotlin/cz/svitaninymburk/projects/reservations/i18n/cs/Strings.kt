@@ -230,6 +230,12 @@ object CsStrings : AppStrings {
     override val startDateLabel = "Datum začátku"
     override val endDateLabel = "Datum konce"
     override val lessonCountLabel = "Počet lekcí"
+    override val lessonDayLabel = "Den lekce (volitelné)"
+    override val lessonTimeLabel = "Čas začátku lekce"
+    override val lessonDayPlaceholder = "— Nevybráno —"
+    override val lessonSchedule = "Rozvrh"
+    override fun lessonScheduleText(dayName: String, startTime: String, endTime: String) =
+        "každou $dayName $startTime–$endTime"
     override val autoFillAlert = "Datum konce a počet lekcí byly předvyplněny ze šablony. Můžete je upravit."
     override val seriesOverrideHeading = "Úpravy pro tento kurz"
     override val seriesOverrideDescription = "Předvyplněno ze šablony. Změny se projeví pouze u tohoto kurzu."
