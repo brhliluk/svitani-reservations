@@ -7,6 +7,7 @@ import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import dev.kilua.rpc.annotations.RpcService
 import kotlin.uuid.Uuid
+import kotlinx.datetime.LocalDateTime
 
 @RpcService
 interface EmailService {
@@ -25,4 +26,19 @@ interface EmailService {
     suspend fun sendPaymentNotPaidInFull(reservation: Reservation, paymentInfo: BankTransaction, bankAccount: String, qrCodeImage: String): Either<EmailError.SendPaymentNotPaidInFull, Unit>
 
     suspend fun sendPasswordResetEmail(toEmail: String, resetToken: String) : Either<EmailError.SendPasswordReset, Unit>
+
+    suspend fun sendLessonRescheduledNotification(
+        toEmail: String,
+        contactName: String,
+        seriesTitle: String,
+        oldDateTime: LocalDateTime,
+        newDateTime: LocalDateTime,
+    ): Either<EmailError.SendLessonRescheduled, Unit>
+
+    suspend fun sendLessonCancelledNotification(
+        toEmail: String,
+        contactName: String,
+        seriesTitle: String,
+        lessonDateTime: LocalDateTime,
+    ): Either<EmailError.SendLessonCancelled, Unit>
 }

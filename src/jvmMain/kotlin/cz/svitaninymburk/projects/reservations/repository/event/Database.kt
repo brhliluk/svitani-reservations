@@ -115,6 +115,7 @@ object EventInstancesTable : Table("event_instances") {
 
     val allowedPaymentTypes = json<List<PaymentInfo.Type>>("allowed_payment_types", Json)
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
+    val isDropIn = bool("is_drop_in").default(false)
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -132,7 +133,8 @@ fun ResultRow.toEventInstance(): EventInstance = EventInstance(
     occupiedSpots = this[EventInstancesTable.occupiedSpots],
     isCancelled = this[EventInstancesTable.isCancelled],
     allowedPaymentTypes = this[EventInstancesTable.allowedPaymentTypes],
-    customFields = this[EventInstancesTable.customFields]
+    customFields = this[EventInstancesTable.customFields],
+    isDropIn = this[EventInstancesTable.isDropIn]
 )
 
 class ExposedEventDefinitionRepository : EventDefinitionRepository {
@@ -307,6 +309,7 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[isCancelled] = instance.isCancelled
             row[allowedPaymentTypes] = instance.allowedPaymentTypes
             row[customFields] = instance.customFields
+            row[isDropIn] = instance.isDropIn
         }
         instance
     }
@@ -325,6 +328,7 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[isCancelled] = instance.isCancelled
             row[allowedPaymentTypes] = instance.allowedPaymentTypes
             row[customFields] = instance.customFields
+            row[isDropIn] = instance.isDropIn
         }
         instance
     }

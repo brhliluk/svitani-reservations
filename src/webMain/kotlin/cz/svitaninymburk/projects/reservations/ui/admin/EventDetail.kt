@@ -11,6 +11,8 @@ import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.event.EventInstance
+import cz.svitaninymburk.projects.reservations.event.UpdateEventInstanceRequest
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
@@ -54,6 +56,23 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
     var pendingAction by remember { mutableStateOf<PendingAction?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var expandedId by remember { mutableStateOf<Uuid?>(null) }
+
+    var lessonsRefreshTrigger by remember { mutableStateOf(0) }
+    val lessonsState by produceState<List<EventInstance>?>(
+        initialValue = null,
+        key1 = lessonsRefreshTrigger,
+        key2 = eventId,
+    ) {
+        if (isSeries) {
+            try {
+                val uuid = Uuid.parse(eventId)
+                adminService.getSeriesInstances(uuid)
+                    .onRight { value = it }
+                    .onLeft { value = emptyList() }
+            } catch (_: Exception) { value = emptyList() }
+        }
+    }
+    var cancelLessonPending by remember { mutableStateOf<EventInstance?>(null) }
 
     // Načítání dat z backendu
     val uiState by produceState<AdminEventDetailUiState>(initialValue = AdminEventDetailUiState.Loading, key1 = refreshTrigger) {
@@ -137,7 +156,97 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                     }
                 }
 
-                // --- 3. TABULKA ÚČASTNÍKŮ ---
+                // --- 3. LEKCE KURZU ---
+                if (isSeries) {
+                    val lessons = lessonsState
+                    div(className = "card bg-base-100 shadow-sm") {
+                        div(className = "card-body") {
+                            h2(className = "card-title text-lg mb-4") {
+                                span(className = "icon-[heroicons--calendar-days] size-5 text-secondary")
+                                +currentStrings.seriesLessonsHeading
+                            }
+                            if (lessons == null) {
+                                div(className = "flex justify-center py-4") {
+                                    span(className = "loading loading-spinner loading-md")
+                                }
+                            } else if (lessons.isEmpty()) {
+                                p(className = "text-base-content/50 italic text-sm") { +currentStrings.noLessonsYet }
+                            } else {
+                                div(className = "overflow-x-auto") {
+                                    table(className = "table table-sm w-full") {
+                                        thead {
+                                            tr {
+                                                th { +currentStrings.tableHeaderDate }
+                                                th { +currentStrings.tableHeaderTime }
+                                                th { +currentStrings.status }
+                                                th { +currentStrings.lessonIndividualLabel }
+                                                th(className = "text-right") { +currentStrings.tableHeaderActions }
+                                            }
+                                        }
+                                        tbody {
+                                            lessons.forEach { lesson ->
+                                                tr {
+                                                    td(className = "font-medium") { +lesson.startDateTime.date.humanReadable }
+                                                    td { +"${lesson.startDateTime.hour}:${lesson.startDateTime.minute.toString().padStart(2, '0')} – ${lesson.endDateTime.hour}:${lesson.endDateTime.minute.toString().padStart(2, '0')}" }
+                                                    td {
+                                                        if (lesson.isCancelled) {
+                                                            div(className = "badge badge-error badge-sm") { +currentStrings.lessonCancelledBadge }
+                                                        } else {
+                                                            div(className = "badge badge-success badge-sm") { +currentStrings.lessonActiveBadge }
+                                                        }
+                                                    }
+                                                    td {
+                                                        if (!lesson.isCancelled) {
+                                                            button(className = "btn btn-xs ${if (lesson.isDropIn) "btn-secondary" else "btn-ghost"}") {
+                                                                span(className = "icon-[heroicons--globe-alt] size-3")
+                                                                if (lesson.isDropIn) +" On" else +" Off"
+                                                                onClick {
+                                                                    scope.launch {
+                                                                        adminService.updateEventInstance(
+                                                                            lesson.id,
+                                                                            UpdateEventInstanceRequest(
+                                                                                title = lesson.title,
+                                                                                description = lesson.description,
+                                                                                startDateTime = lesson.startDateTime,
+                                                                                endDateTime = lesson.endDateTime,
+                                                                                price = lesson.price,
+                                                                                capacity = lesson.capacity,
+                                                                                allowedPaymentTypes = lesson.allowedPaymentTypes,
+                                                                                customFields = lesson.customFields,
+                                                                                isDropIn = !lesson.isDropIn,
+                                                                            )
+                                                                        )
+                                                                        lessonsRefreshTrigger++
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    td(className = "text-right") {
+                                                        div(className = "flex justify-end gap-1") {
+                                                            if (!lesson.isCancelled) {
+                                                                button(className = "btn btn-ghost btn-xs") {
+                                                                    span(className = "icon-[heroicons--pencil] size-4")
+                                                                    onClick { router.navigate("/admin/events/instance/${lesson.id}/edit") }
+                                                                }
+                                                                button(className = "btn btn-ghost btn-xs text-error") {
+                                                                    span(className = "icon-[heroicons--x-circle] size-4")
+                                                                    onClick { cancelLessonPending = lesson }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // --- 4. TABULKA ÚČASTNÍKŮ ---
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body p-0") {
                         div(className = "overflow-x-auto") {
@@ -380,6 +489,42 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             }
             form(className = "modal-backdrop") {
                 button { onClick { showDeleteConfirm = false }; +currentStrings.close }
+            }
+        }
+    }
+
+    val lessonToCancel = cancelLessonPending
+    if (lessonToCancel != null) {
+        div(className = "modal modal-open") {
+            div(className = "modal-box") {
+                h3(className = "font-bold text-lg") { +currentStrings.cancelLessonModalTitle }
+                p(className = "py-4") {
+                    +currentStrings.cancelLessonModalBody(lessonToCancel.startDateTime.date.humanReadable)
+                }
+                div(className = "modal-action") {
+                    button(className = "btn") {
+                        onClick { cancelLessonPending = null }
+                        +currentStrings.cancel
+                    }
+                    button(className = "btn btn-error") {
+                        onClick {
+                            val toCancel = lessonToCancel
+                            cancelLessonPending = null
+                            scope.launch {
+                                adminService.cancelSeriesLesson(toCancel.id)
+                                    .onRight {
+                                        toastData = ToastData(currentStrings.toastLessonCancelled, ToastType.Success)
+                                        lessonsRefreshTrigger++
+                                    }
+                                    .onLeft { toastData = ToastData(currentStrings.errorToast(it.toString()), ToastType.Error) }
+                            }
+                        }
+                        +currentStrings.cancelLessonButton
+                    }
+                }
+            }
+            form(className = "modal-backdrop") {
+                button { onClick { cancelLessonPending = null }; +"close" }
             }
         }
     }

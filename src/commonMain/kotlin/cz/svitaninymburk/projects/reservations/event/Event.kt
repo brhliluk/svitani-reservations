@@ -58,6 +58,7 @@ data class EventInstance(
     val isCancelled: Boolean = false,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
+    val isDropIn: Boolean = false,
 ) {
     val currentTimeZone get() = TimeZone.currentSystemDefault()
     val isFull: Boolean
@@ -108,6 +109,14 @@ data class CreateEventAndSeriesRequest(
     val startDate: LocalDate,
     val endDate: LocalDate,
     val lessonCount: Int,
+    val customLessons: List<LessonConfig>? = null,
+)
+
+@Serializable
+data class LessonConfig(
+    val startDateTime: LocalDateTime,
+    val endDateTime: LocalDateTime,
+    val isDropIn: Boolean = false,
 )
 
 @Serializable
@@ -125,6 +134,7 @@ data class CreateEventSeriesRequest(
     val lessonDayOfWeek: DayOfWeek? = null,
     val lessonStartTime: LocalTime? = null,
     val lessonEndTime: LocalTime? = null,
+    val customLessons: List<LessonConfig>? = null,
 )
 
 @Serializable
@@ -169,6 +179,7 @@ data class UpdateEventInstanceRequest(
     val capacity: Int,
     val allowedPaymentTypes: List<PaymentInfo.Type>,
     val customFields: List<CustomFieldDefinition>,
+    val isDropIn: Boolean = false,
 )
 
 @Serializable

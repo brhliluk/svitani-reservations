@@ -97,7 +97,7 @@ class EventService(
             { getAllDefinitions() }
         ) { instances, series, definitions ->
             val instances = instances.getOrElse { raise(EventError.FailedToGetInstances) }
-                .filter { it.endDateTime > now }
+                .filter { it.endDateTime > now && (it.seriesId == null || it.isDropIn) }
                 .sortedBy { it.startDateTime }
             val series = series.getOrElse { raise(EventError.FailedToGetSeries) }
                 .filter { it.endDate >= today }
