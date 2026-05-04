@@ -22,7 +22,10 @@ import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import web.history.history
@@ -49,6 +52,8 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     var startDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()) }
     var endDate by remember { mutableStateOf("") }
     var lessonCount by remember { mutableIntStateOf(1) }
+    var lessonDayOfWeekOrdinal by remember { mutableStateOf<Int?>(null) }  // 1=Mon…7=Sun (ISO)
+    var lessonStartTimeStr by remember { mutableStateOf("") }               // "HH:MM"
 
     var titleOverride by remember { mutableStateOf("") }
     var descriptionOverride by remember { mutableStateOf("") }
@@ -167,6 +172,33 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                             }
                         }
 
+                        // Den lekce
+                        div(className = "form-control w-full") {
+                            label(className = "label") { span(className = "label-text font-bold") { +currentStrings.lessonDayLabel } }
+                            select(className = "select select-bordered w-full") {
+                                option(value = "", label = currentStrings.lessonDayPlaceholder) {
+                                    if (lessonDayOfWeekOrdinal == null) attribute("selected", "true")
+                                }
+                                DayOfWeek.entries.forEach { day ->
+                                    option(value = day.isoDayNumber.toString(), label = currentStrings.dayName(day.isoDayNumber - 1)) {
+                                        if (lessonDayOfWeekOrdinal == day.isoDayNumber) attribute("selected", "true")
+                                    }
+                                }
+                                onChange { event ->
+                                    val v = (event.target as? HTMLSelectElement)?.value
+                                    lessonDayOfWeekOrdinal = v?.toIntOrNull()
+                                }
+                            }
+                        }
+
+                        // Čas lekce
+                        div(className = "form-control w-full") {
+                            label(className = "label") { span(className = "label-text font-bold") { +currentStrings.lessonTimeLabel } }
+                            text(value = lessonStartTimeStr, type = InputType.Time, className = "input input-bordered w-full") {
+                                onInput { lessonStartTimeStr = value ?: "" }
+                            }
+                        }
+
                     }
                 }
             }
@@ -274,6 +306,18 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                             if (allowBankTransfer) allowedPayments.add(PaymentInfo.Type.BANK_TRANSFER)
                             if (allowOnSite) allowedPayments.add(PaymentInfo.Type.ON_SITE)
 
+                            val parsedDay = lessonDayOfWeekOrdinal?.let { DayOfWeek(it) }
+                            val parsedStartTime = if (lessonStartTimeStr.isNotBlank()) {
+                                try { LocalTime.parse(lessonStartTimeStr) } catch (_: Exception) { null }
+                            } else null
+                            val selectedDef = definitions.find { it.id.toString() == selectedDefinitionId }
+                            val parsedEndTime = if (parsedStartTime != null && selectedDef != null) {
+                                val startMinutes = parsedStartTime.hour * 60 + parsedStartTime.minute
+                                val durationMinutes = selectedDef.defaultDuration.inWholeMinutes.toInt()
+                                val endMinutes = (startMinutes + durationMinutes) % (24 * 60)
+                                LocalTime(endMinutes / 60, endMinutes % 60)
+                            } else null
+
                             val request = CreateEventSeriesRequest(
                                 definitionId = Uuid.parse(selectedDefinitionId!!),
                                 title = titleOverride,
@@ -284,6 +328,9 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 endDate = parsedEndDate,
                                 lessonCount = lessonCount,
                                 allowedPaymentTypes = allowedPayments,
+                                lessonDayOfWeek = parsedDay,
+                                lessonStartTime = parsedStartTime,
+                                lessonEndTime = parsedEndTime,
                             )
 
                             scope.launch {

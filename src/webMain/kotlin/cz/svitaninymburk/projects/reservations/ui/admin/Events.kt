@@ -91,6 +91,8 @@ fun IComponent.AdminEventsScreen() {
                     div(className = "flex flex-col gap-4") {
                         definitions.forEach { def ->
                             val children = childrenByDef[def.id]?.sortedBy { it.dateInfo } ?: emptyList()
+                            val hasInstances = children.any { !it.isSeries }
+                            val hasSeries = children.any { it.isSeries }
 
                             div(className = "card bg-base-100 shadow-sm") {
                                 // Definition header
@@ -105,15 +107,19 @@ fun IComponent.AdminEventsScreen() {
                                         }
                                     }
                                     div(className = "flex items-center gap-2 shrink-0") {
-                                        button(className = "btn btn-xs btn-outline btn-primary") {
-                                            onClick { router.navigate("/admin/events/create/instance/${def.id}") }
-                                            span(className = "icon-[heroicons--plus] size-3")
-                                            +currentStrings.addDate
+                                        if (!hasSeries) {
+                                            button(className = "btn btn-xs btn-outline btn-primary") {
+                                                onClick { router.navigate("/admin/events/create/instance/${def.id}") }
+                                                span(className = "icon-[heroicons--plus] size-3")
+                                                +currentStrings.addDate
+                                            }
                                         }
-                                        button(className = "btn btn-xs btn-outline btn-secondary") {
-                                            onClick { router.navigate("/admin/events/create/series/${def.id}") }
-                                            span(className = "icon-[heroicons--plus] size-3")
-                                            +currentStrings.adminCourse
+                                        if (!hasInstances) {
+                                            button(className = "btn btn-xs btn-outline btn-secondary") {
+                                                onClick { router.navigate("/admin/events/create/series/${def.id}") }
+                                                span(className = "icon-[heroicons--plus] size-3")
+                                                +currentStrings.adminCourse
+                                            }
                                         }
                                         button(className = "btn btn-xs btn-ghost text-primary") {
                                             onClick { router.navigate("/admin/events/definition/${def.id}/edit") }

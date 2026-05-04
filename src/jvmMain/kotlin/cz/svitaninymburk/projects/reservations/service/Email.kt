@@ -8,7 +8,10 @@ import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.error.EmailError
 import cz.svitaninymburk.projects.reservations.i18n.emailStringsFor
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
+import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
+import cz.svitaninymburk.projects.reservations.util.humanReadable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.html.a
@@ -49,47 +52,63 @@ class GmailEmailService(
         email.setSslSmtpPort("465")
         email.setAuthenticator(DefaultAuthenticator(username, appPassword))
         email.isSSLOnConnect = true
+        email.setCharset("UTF-8")
 
         email.setFrom(username, "Rodinné centrum Svítání")
         return email
     }
 
-    // TODO: ical
     override suspend fun sendReservationConfirmation(
         toEmail: String,
         reservation: Reservation,
+        target: ReservationTarget,
         bankAccount: String,
-        qrCodeImage: ByteArray,
+        qrCodeImage: ByteArray?,
+        icalBytes: ByteArray,
     ): Either<EmailError.SendReservationConfirmation, Unit> = either { withContext(Dispatchers.IO) {
         val email = setupEmail()
-        email.setAuthenticator(DefaultAuthenticator(username, appPassword))
-
         val s = emailStringsFor(reservation.locale)
+
         email.addTo(toEmail)
-        email.subject = s.reservationConfirmationSubject(reservation.id.toString())
 
-        val dataSource = ByteArrayDataSource(qrCodeImage, "image/png")
-        val cid = email.embed(dataSource, "qr-code-platba")
+        val eventDate = target.startDateTime.humanReadable
+        email.subject = s.reservationConfirmationSubject(target.title, eventDate)
 
-        // TODO: differentiate between services and instances
-        val event = eventRepository.get(reservation.reference.id)
+        // Embed QR only if present (bank transfer payment)
+        val cid: String? = if (qrCodeImage != null) {
+            val dataSource = ByteArrayDataSource(qrCodeImage, "image/png")
+            email.embed(dataSource, "qr-code-platba")
+        } else null
+
+        // Attach iCal so Gmail offers "Add to Calendar"
+        val icalSource = ByteArrayDataSource(icalBytes, "text/calendar; charset=UTF-8; method=REQUEST")
+        email.attach(icalSource, "rezervace.ics", "Rezervace do kalendáře")
+
         val htmlMessage = buildString { appendHTML().html { body {
             h1 { +s.reservationConfirmationHeading }
-            p { +s.reservationConfirmationBody(event?.title ?: reservation.reference.id.toString()) }
-            p { +s.reservationPaymentDetails }
-            p {
-                strong { +s.reservationPrice }
-                +"${reservation.totalPrice} Kč"
+            p { +s.reservationConfirmationBody(
+                eventTitle = target.title,
+                eventDate = eventDate,
+                contactName = reservation.contactName,
+                seatCount = reservation.seatCount,
+                totalPrice = reservation.totalPrice,
+            ) }
+            if (qrCodeImage != null && cid != null) {
+                p { +s.reservationPaymentDetails }
+                p { +s.reservationPaymentQrPrompt }
+                img {
+                    src = "cid:$cid"
+                    alt = s.reservationQrAlt
+                    width = "200"
+                    height = "200"
+                    attributes["style"] = "background:white;padding:8px;"
+                }
+                br
+                p { +s.reservationBankTransfer(bankAccount, reservation.variableSymbol) }
+            } else if (reservation.paymentType == PaymentInfo.Type.ON_SITE) {
+                p { +s.reservationOnSiteNote }
             }
-            p { +s.reservationPaymentQrPrompt }
-            img {
-                src = "cid:$cid"
-                alt = s.reservationQrAlt
-                width = "200"
-                height = "200"
-            }
-            br
-            p { +s.reservationBankTransfer(bankAccount, reservation.variableSymbol) }
+            p { +s.reservationViewLink("$appBaseUrl/reservation/${reservation.id}") }
         } } }
 
         email.setHtmlMsg(htmlMessage)
@@ -192,11 +211,12 @@ class ConsoleEmailService : EmailService {
     override suspend fun sendReservationConfirmation(
         toEmail: String,
         reservation: Reservation,
+        target: ReservationTarget,
         bankAccount: String,
-        qrCodeImage: ByteArray
+        qrCodeImage: ByteArray?,
+        icalBytes: ByteArray,
     ): Either<EmailError.SendReservationConfirmation, Unit> {
-        println("📧 [MOCK EMAIL] Odesílám potvrzení rezervace na: $toEmail")
-        println("   ID: ${reservation.id}, Cena: ${reservation.totalPrice}")
+        println("📧 [MOCK EMAIL] Rezervace na: $toEmail | Akce: ${target.title} | QR: ${qrCodeImage != null}")
         return Unit.right()
     }
 

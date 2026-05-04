@@ -89,7 +89,7 @@ val appModule = module {
     } bind EmailService::class
     single { QrCodeService(accountNumber = System.getenv("BANK_ACCOUNT_NUMBER") ?: "2003487968/2010") }
     single { BackendQrCodeGenerator(get()) }
-    single { ReservationService(get(), get(), get(), get(), get(), get()) } bind ReservationServiceInterface::class
+    single { ReservationService(get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz") } bind ReservationServiceInterface::class
     single { AuthenticatedReservationService(get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
     single { PaymentPairingService(get(), get(), get(), get(), System.getenv("FIO_TOKEN") ?: "0eZMDyWlNRyiUI4Wd0HBHQysLs0IwgEtgGdsNWBME6CsJLwwy6QgZtSc5HzIyIuJ") }
     single { AdminService(get()) }

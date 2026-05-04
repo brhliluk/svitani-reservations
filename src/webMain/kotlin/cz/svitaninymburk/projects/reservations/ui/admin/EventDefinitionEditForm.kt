@@ -249,8 +249,8 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
 
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body") {
-                        label(className = "cursor-pointer flex items-start gap-3") {
-                            checkBox(value = propagateToChildren, className = "checkbox checkbox-primary mt-1") {
+                        label(className = "cursor-pointer flex items-center gap-3") {
+                            checkBox(value = propagateToChildren, className = "checkbox checkbox-primary") {
                                 onChange { propagateToChildren = value }
                             }
                             div {

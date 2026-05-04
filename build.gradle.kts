@@ -17,7 +17,7 @@ extra["mainClassName"] = "io.ktor.server.netty.EngineMain"
 
 @OptIn(ExperimentalWasmDsl::class)
 kotlin {
-    jvmToolchain(25)
+    jvmToolchain(21)
     jvm {
         compilerOptions {
             freeCompilerArgs.add("-Xjsr305=strict")

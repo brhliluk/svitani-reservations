@@ -246,6 +246,11 @@ interface AppStrings : ErrorStrings {
     val startDateLabel: String
     val endDateLabel: String
     val lessonCountLabel: String
+    val lessonDayLabel: String
+    val lessonTimeLabel: String
+    val lessonDayPlaceholder: String
+    val lessonSchedule: String
+    fun lessonScheduleText(dayName: String, startTime: String, endTime: String): String
     val autoFillAlert: String
     val seriesOverrideHeading: String
     val seriesOverrideDescription: String

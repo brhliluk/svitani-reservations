@@ -9,11 +9,15 @@ import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.service.AdminDashboardService
 import cz.svitaninymburk.projects.reservations.service.ConsoleEmailService
+import cz.svitaninymburk.projects.reservations.service.ICalGenerator
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertContains
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -354,5 +358,62 @@ class AdminEditDeleteSpec {
         assertNull(seriesRepo.get(series.id))
         assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(instanceRes.id)?.status)
         assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(seriesRes.id)?.status)
+    }
+}
+
+class ICalGeneratorSpec {
+
+    private fun makeInstance() = EventInstance(
+        id = Uuid.parse("00000000-0000-0000-0000-000000000001"),
+        definitionId = Uuid.parse("00000000-0000-0000-0000-000000000002"),
+        title = "Hlídání dětí",
+        description = "Popis",
+        startDateTime = LocalDateTime(2026, 5, 8, 9, 0),
+        endDateTime = LocalDateTime(2026, 5, 8, 10, 0),
+        price = 120.0,
+        capacity = 10,
+    )
+
+    private fun makeSeries() = EventSeries(
+        id = Uuid.parse("00000000-0000-0000-0000-000000000003"),
+        definitionId = Uuid.parse("00000000-0000-0000-0000-000000000002"),
+        title = "Kroužek angličtiny",
+        description = "Kurz",
+        price = 500.0,
+        capacity = 8,
+        startDate = LocalDate(2026, 9, 3),
+        endDate = LocalDate(2026, 12, 17),
+        lessonCount = 15,
+        lessonDayOfWeek = DayOfWeek.WEDNESDAY,
+        lessonStartTime = LocalTime(9, 0),
+        lessonEndTime = LocalTime(10, 0),
+    )
+
+    @Test
+    fun `instance ical contains VEVENT with correct summary`() {
+        val ical = ICalGenerator.forInstance(makeInstance(), Uuid.parse("00000000-0000-0000-0000-000000000099"), "https://example.cz")
+        assertContains(ical, "BEGIN:VEVENT")
+        assertContains(ical, "SUMMARY:Hlídání dětí")
+        assertContains(ical, "END:VEVENT")
+        assertContains(ical, "METHOD:REQUEST")
+    }
+
+    @Test
+    fun `instance ical contains DTSTART with correct date`() {
+        val ical = ICalGenerator.forInstance(makeInstance(), Uuid.parse("00000000-0000-0000-0000-000000000099"), "https://example.cz")
+        assertContains(ical, "20260508T")
+    }
+
+    @Test
+    fun `series ical contains RRULE with lesson count`() {
+        val ical = ICalGenerator.forSeries(makeSeries(), Uuid.parse("00000000-0000-0000-0000-000000000099"), "https://example.cz")
+        assertContains(ical, "RRULE:FREQ=WEEKLY;COUNT=15")
+    }
+
+    @Test
+    fun `series without schedule falls back to all-day event`() {
+        val series = makeSeries().copy(lessonDayOfWeek = null, lessonStartTime = null, lessonEndTime = null)
+        val ical = ICalGenerator.forSeries(series, Uuid.parse("00000000-0000-0000-0000-000000000099"), "https://example.cz")
+        assertContains(ical, "DTSTART;VALUE=DATE:20260903")
     }
 }
