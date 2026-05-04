@@ -85,7 +85,7 @@ object CsStrings : AppStrings {
     override val reservationRejected = "Rezervace zamítnuta"
     override val reservationNotApproved = "Organizátor rezervaci neschválil"
     override val rejected = "Zamítnuto"
-    override val copyright = "© 2024 Reservation System"
+    override val copyright = "© 2026 Spolu v Nymburce, z.s."
 
     // Reservation errors
     override val reservationFailed: (String) -> String = { "Rezervace se nezdařila: $it" }
