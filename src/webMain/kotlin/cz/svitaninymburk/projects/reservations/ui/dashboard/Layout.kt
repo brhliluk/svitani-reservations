@@ -157,13 +157,6 @@ fun IComponent.DashboardLayout(
             }
         }
 
-        footer(className = "footer footer-center p-8 text-base-content/50") {
-            aside {
-                a(href="#", className = "link link-hover") { +currentStrings.contact }
-                p { +currentStrings.copyright }
-            }
-        }
-
         ReservationModal(
             target = reservationTarget,
             user = user,
