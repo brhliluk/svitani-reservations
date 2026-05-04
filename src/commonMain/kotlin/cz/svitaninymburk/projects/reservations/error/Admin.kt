@@ -48,6 +48,15 @@ import kotlin.uuid.Uuid
     @Serializable data class FailedToDeleteDefinition(val message: String) : DeleteDefinition
     @Serializable data class FailedToDeleteEvent(val message: String) : DeleteEvent
     @Serializable data class FailedToDeleteSeries(val message: String) : DeleteSeries
+
+    @Serializable @SerialName("get_instances") sealed interface GetInstances : AdminError {
+        @Serializable @SerialName("failed") object Failed : GetInstances
+    }
+
+    @Serializable @SerialName("cancel_lesson") sealed interface CancelLesson : AdminError {
+        @Serializable @SerialName("instance_not_found") object InstanceNotFound : CancelLesson
+        @Serializable @SerialName("failed") object Failed : CancelLesson
+    }
 }
 
 fun AdminError.localizedMessage(strings: ErrorStrings): String = when (this) {
@@ -74,4 +83,7 @@ fun AdminError.localizedMessage(strings: ErrorStrings): String = when (this) {
     is AdminError.FailedToDeleteDefinition -> message
     is AdminError.FailedToDeleteEvent -> message
     is AdminError.FailedToDeleteSeries -> message
+    is AdminError.GetInstances.Failed -> strings.errorAdminGetInstancesFailed
+    is AdminError.CancelLesson.InstanceNotFound -> strings.errorAdminCancelLessonInstanceNotFound
+    is AdminError.CancelLesson.Failed -> strings.errorAdminCancelLessonFailed
 }

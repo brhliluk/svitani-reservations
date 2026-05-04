@@ -289,6 +289,23 @@ interface AppStrings : ErrorStrings {
     val seriesCardTitle: String
     val seriesCardDescription: String
 
+    // Series lesson list
+    val seriesLessonsHeading: String
+    val noLessonsYet: String
+    val tableHeaderDate: String
+    val tableHeaderTime: String
+    fun lessonPreviewHeading(count: Int): String
+    val lessonDateEditHint: String
+    val lessonIndividualLabel: String
+    val lessonIndividualTooltip: String
+    val lessonIndividualBulkTooltip: String
+    val lessonActiveBadge: String
+    val lessonCancelledBadge: String
+    val cancelLessonModalTitle: String
+    fun cancelLessonModalBody(date: String): String
+    val toastLessonCancelled: String
+    val cancelLessonButton: String
+
     // Event Detail
     val occupancyStatTitle: String
     val capacityFilled: String

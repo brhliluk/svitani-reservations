@@ -23,6 +23,7 @@ import kotlinx.html.img
 import kotlinx.html.p
 import kotlinx.html.stream.appendHTML
 import kotlinx.html.strong
+import kotlinx.datetime.LocalDateTime
 import org.apache.commons.mail.DefaultAuthenticator
 import org.apache.commons.mail.EmailException
 import org.apache.commons.mail.HtmlEmail
@@ -205,6 +206,39 @@ class GmailEmailService(
             raise(EmailError.SendPasswordResetFailed(e.fullMessage()))
         }
     }
+
+    override suspend fun sendLessonRescheduledNotification(
+        toEmail: String,
+        contactName: String,
+        seriesTitle: String,
+        oldDateTime: LocalDateTime,
+        newDateTime: LocalDateTime,
+    ): Either<EmailError.SendLessonRescheduled, Unit> = either { withContext(Dispatchers.IO) {
+        val email = setupEmail()
+        val s = emailStringsFor("cs")
+        email.addTo(toEmail)
+        email.subject = s.lessonRescheduledSubject(seriesTitle)
+        email.setTextMsg(s.lessonRescheduledBody(contactName, seriesTitle, oldDateTime.humanReadable, newDateTime.humanReadable))
+        catch({ email.send() }) { e: EmailException ->
+            raise(EmailError.SendLessonRescheduledFailed(e.fullMessage()))
+        }
+    } }
+
+    override suspend fun sendLessonCancelledNotification(
+        toEmail: String,
+        contactName: String,
+        seriesTitle: String,
+        lessonDateTime: LocalDateTime,
+    ): Either<EmailError.SendLessonCancelled, Unit> = either { withContext(Dispatchers.IO) {
+        val email = setupEmail()
+        val s = emailStringsFor("cs")
+        email.addTo(toEmail)
+        email.subject = s.lessonCancelledSubject(seriesTitle)
+        email.setTextMsg(s.lessonCancelledBody(contactName, seriesTitle, lessonDateTime.humanReadable))
+        catch({ email.send() }) { e: EmailException ->
+            raise(EmailError.SendLessonCancelledFailed(e.fullMessage()))
+        }
+    } }
 }
 
 class ConsoleEmailService : EmailService {
@@ -250,6 +284,22 @@ class ConsoleEmailService : EmailService {
         resetToken: String
     ): Either<EmailError.SendPasswordReset, Unit> {
         println("📧 [MOCK EMAIL] Odesílám reset hesla na: $toEmail")
+        return Unit.right()
+    }
+
+    override suspend fun sendLessonRescheduledNotification(
+        toEmail: String, contactName: String, seriesTitle: String,
+        oldDateTime: LocalDateTime, newDateTime: LocalDateTime,
+    ): Either<EmailError.SendLessonRescheduled, Unit> {
+        println("📧 [MOCK] Lekce přeplánována: $seriesTitle | $toEmail | ${oldDateTime} → ${newDateTime}")
+        return Unit.right()
+    }
+
+    override suspend fun sendLessonCancelledNotification(
+        toEmail: String, contactName: String, seriesTitle: String,
+        lessonDateTime: LocalDateTime,
+    ): Either<EmailError.SendLessonCancelled, Unit> {
+        println("📧 [MOCK] Lekce zrušena: $seriesTitle | $toEmail | $lessonDateTime")
         return Unit.right()
     }
 }

@@ -22,12 +22,17 @@ import dev.kilua.rpc.getService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import cz.svitaninymburk.projects.reservations.util.humanReadable
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import cz.svitaninymburk.projects.reservations.event.LessonConfig
 import web.history.history
 import web.html.HTMLSelectElement
 import kotlin.time.Clock
@@ -67,8 +72,11 @@ fun IComponent.AdminCreateEventScreen() {
 
     // Course fields
     var courseStartDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()) }
-    var courseEndDate by remember { mutableStateOf("") }
     var lessonCount by remember { mutableIntStateOf(1) }
+    var courseLessonDayOrdinal by remember { mutableStateOf<Int?>(null) }
+    var courseLessonStartTimeStr by remember { mutableStateOf("") }
+    var lessonDateOverrides by remember { mutableStateOf(mapOf<Int, String>()) }
+    var lessonDropIn by remember { mutableStateOf(mapOf<Int, Boolean>()) }
 
     // Custom fields
     var customFields by remember { mutableStateOf(listOf<CustomFieldDefinition>()) }
@@ -90,17 +98,15 @@ fun IComponent.AdminCreateEventScreen() {
         generateRecurrenceDates(d, t, recurrenceType, endInstant)
     }
 
-    // Course recurrence auto-fill
-    LaunchedEffect(courseStartDate, recurrenceType, recurrenceEndDateStr, eventType) {
-        if (eventType != EventCreateType.COURSE) return@LaunchedEffect
-        if (courseStartDate.isBlank() || recurrenceEndDateStr.isBlank()) return@LaunchedEffect
-        val parsedStart = try { LocalDate.parse(courseStartDate) } catch (_: Exception) { return@LaunchedEffect }
-        val endInstant = try {
-            LocalDate.parse(recurrenceEndDateStr).atStartOfDayIn(TimeZone.currentSystemDefault())
-        } catch (_: Exception) { return@LaunchedEffect }
-        val autoFill = computeSeriesAutoFill(parsedStart, recurrenceType, endInstant) ?: return@LaunchedEffect
-        courseEndDate = autoFill.endDate.toString()
-        lessonCount = autoFill.lessonCount
+    // Compute lesson dates from startDate + dayOfWeek + count
+    val computedCourseDates: List<LocalDate> = remember(courseStartDate, courseLessonDayOrdinal, lessonCount) {
+        val dayOrdinal = courseLessonDayOrdinal ?: return@remember emptyList()
+        val startD = try { LocalDate.parse(courseStartDate) } catch (_: Exception) { return@remember emptyList() }
+        if (lessonCount <= 0) return@remember emptyList()
+        val targetDow = DayOfWeek(dayOrdinal)
+        var date = startD
+        while (date.dayOfWeek != targetDow) date = date.plus(1, DateTimeUnit.DAY)
+        (0 until lessonCount).map { i -> date.plus(i, DateTimeUnit.WEEK) }
     }
 
     div(className = "flex flex-col gap-6 animate-fade-in max-w-4xl mx-auto pb-20") {
@@ -317,58 +323,125 @@ fun IComponent.AdminCreateEventScreen() {
                 div(className = "card bg-base-100 shadow-sm border-t-4 border-secondary") {
                     div(className = "card-body") {
                         div(className = "grid grid-cols-1 md:grid-cols-2 gap-4") {
+                            // Datum začátku
                             div(className = "form-control w-full") {
                                 label(className = "label") { span(className = "label-text font-bold") { +currentStrings.startDateLabel } }
                                 text(value = courseStartDate, type = InputType.Date, className = "input input-bordered w-full") {
-                                    onInput { courseStartDate = value ?: "" }
+                                    onInput {
+                                        courseStartDate = value ?: ""
+                                        lessonDateOverrides = emptyMap()
+                                    }
                                 }
                             }
-                            div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-bold") { +currentStrings.endDateLabel } }
-                                text(value = courseEndDate, type = InputType.Date, className = "input input-bordered w-full") {
-                                    onInput { courseEndDate = value ?: "" }
-                                }
-                            }
+                            // Počet lekcí
                             div(className = "form-control w-full") {
                                 label(className = "label") { span(className = "label-text font-bold") { +currentStrings.lessonCountLabel } }
                                 div(className = "relative flex items-center") {
                                     numeric(value = lessonCount, min = 1, decimals = 0, className = "input input-bordered w-full pr-16") {
                                         attribute("step", "1")
-                                        onInput { lessonCount = value?.toInt() ?: 1 }
+                                        onInput {
+                                            lessonCount = value?.toInt() ?: 1
+                                            lessonDateOverrides = emptyMap()
+                                        }
                                     }
                                     span(className = "absolute right-4 text-base-content/50 text-sm") { +currentStrings.courseLessons }
                                 }
                             }
-
-                            // Recurrence helper for auto-fill
+                            // Den lekce
                             div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.recurrenceTypeLabel } }
+                                label(className = "label") { span(className = "label-text font-bold") { +currentStrings.lessonDayLabel } }
                                 select(className = "select select-bordered w-full") {
-                                    option(value = "NONE", label = currentStrings.recurrenceNone) { if (recurrenceType == RecurrenceType.NONE) selected(true) }
-                                    option(value = "DAILY", label = currentStrings.recurrenceDaily) { if (recurrenceType == RecurrenceType.DAILY) selected(true) }
-                                    option(value = "WEEKLY", label = currentStrings.recurrenceWeekly) { if (recurrenceType == RecurrenceType.WEEKLY) selected(true) }
-                                    option(value = "MONTHLY", label = currentStrings.recurrenceMonthly) { if (recurrenceType == RecurrenceType.MONTHLY) selected(true) }
+                                    option(value = "", label = currentStrings.lessonDayPlaceholder) {
+                                        if (courseLessonDayOrdinal == null) attribute("selected", "true")
+                                    }
+                                    DayOfWeek.entries.forEach { day ->
+                                        option(value = day.isoDayNumber.toString(), label = currentStrings.dayName(day.isoDayNumber - 1)) {
+                                            if (courseLessonDayOrdinal == day.isoDayNumber) attribute("selected", "true")
+                                        }
+                                    }
                                     onChange { event ->
-                                        val v = (event.target as? HTMLSelectElement)?.value ?: "NONE"
-                                        recurrenceType = RecurrenceType.valueOf(v)
-                                        if (recurrenceType == RecurrenceType.NONE) recurrenceEndDateStr = ""
+                                        val v = (event.target as? HTMLSelectElement)?.value
+                                        courseLessonDayOrdinal = v?.toIntOrNull()
+                                        lessonDateOverrides = emptyMap()
                                     }
                                 }
                             }
-
-                            if (recurrenceType != RecurrenceType.NONE) {
-                                div(className = "form-control w-full") {
-                                    label(className = "label") { span(className = "label-text font-medium") { +currentStrings.recurrenceEndLabel } }
-                                    text(value = recurrenceEndDateStr, type = InputType.Date, className = "input input-bordered w-full") {
-                                        onInput { recurrenceEndDateStr = value ?: "" }
-                                    }
+                            // Čas lekce
+                            div(className = "form-control w-full") {
+                                label(className = "label") { span(className = "label-text font-bold") { +currentStrings.lessonTimeLabel } }
+                                text(value = courseLessonStartTimeStr, type = InputType.Time, className = "input input-bordered w-full") {
+                                    onInput { courseLessonStartTimeStr = value ?: "" }
                                 }
+                            }
+                        }
 
-                                if (courseStartDate.isNotBlank() && recurrenceEndDateStr.isNotBlank()) {
-                                    div(className = "md:col-span-2") {
-                                        div(className = "alert alert-info py-2 text-sm") {
-                                            span(className = "icon-[heroicons--information-circle] size-4")
-                                            +currentStrings.autoFillAlert
+                        // Live lesson preview — only when day is selected
+                        if (computedCourseDates.isNotEmpty()) {
+                            val lessonStartT = if (courseLessonStartTimeStr.isNotBlank()) try { LocalTime.parse(courseLessonStartTimeStr) } catch (_: Exception) { null } else null
+                            val endTimeStr = if (lessonStartT != null) {
+                                val endMinutes = (lessonStartT.hour * 60 + lessonStartT.minute + durationHours * 60 + durationMinutes) % (24 * 60)
+                                val endT = LocalTime(endMinutes / 60, endMinutes % 60)
+                                "${endT.hour}:${endT.minute.toString().padStart(2, '0')}"
+                            } else "?"
+                            val startTimeStr = lessonStartT?.let { "${it.hour}:${it.minute.toString().padStart(2, '0')}" } ?: "?"
+
+                            div(className = "mt-4") {
+                                div(className = "flex items-center gap-2 mb-2") {
+                                    span(className = "icon-[heroicons--calendar-days] size-5 text-secondary")
+                                    span(className = "font-medium text-sm") { +currentStrings.lessonPreviewHeading(computedCourseDates.size) }
+                                    span(className = "text-xs text-base-content/50") { +currentStrings.lessonDateEditHint }
+                                }
+                                div(className = "overflow-x-auto") {
+                                    table(className = "table table-xs w-full") {
+                                        val allDropIn = computedCourseDates.indices.all { lessonDropIn[it] == true }
+                                        thead {
+                                            tr {
+                                                th(className = "w-8") { +"#" }
+                                                th { +currentStrings.tableHeaderDate }
+                                                th { +currentStrings.tableHeaderTime }
+                                                th {
+                                                    div(className = "flex items-center gap-2") {
+                                                        label(className = "cursor-pointer tooltip tooltip-left") {
+                                                            attribute("data-tip", currentStrings.lessonIndividualBulkTooltip)
+                                                            checkBox(value = allDropIn, className = "checkbox checkbox-secondary checkbox-xs") {
+                                                                onChange {
+                                                                    lessonDropIn = if (value) computedCourseDates.indices.associateWith { true } else emptyMap()
+                                                                }
+                                                            }
+                                                        }
+                                                        span(className = "tooltip tooltip-left cursor-help whitespace-nowrap") {
+                                                            attribute("data-tip", currentStrings.lessonIndividualTooltip)
+                                                            +currentStrings.lessonIndividualLabel
+                                                            span(className = "icon-[heroicons--question-mark-circle] size-3 text-base-content/40 ml-1")
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        tbody {
+                                            computedCourseDates.forEachIndexed { i, defaultDate ->
+                                                val effectiveDateStr = lessonDateOverrides[i] ?: defaultDate.toString()
+                                                tr {
+                                                    td(className = "text-base-content/50") { +"${i + 1}" }
+                                                    td {
+                                                        text(value = effectiveDateStr, type = InputType.Date, className = "input input-xs input-bordered w-36") {
+                                                            onInput {
+                                                                val v = value ?: ""
+                                                                lessonDateOverrides = if (v == defaultDate.toString()) lessonDateOverrides - i
+                                                                else lessonDateOverrides + (i to v)
+                                                            }
+                                                        }
+                                                    }
+                                                    td(className = "text-sm text-base-content/70") { +"$startTimeStr – $endTimeStr" }
+                                                    td {
+                                                        label(className = "cursor-pointer") {
+                                                            checkBox(value = lessonDropIn[i] ?: false, className = "checkbox checkbox-secondary checkbox-xs") {
+                                                                onChange { lessonDropIn = if (value) lessonDropIn + (i to true) else lessonDropIn - i }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -561,7 +634,7 @@ fun IComponent.AdminCreateEventScreen() {
                             }
 
                             EventCreateType.COURSE -> {
-                                if (courseStartDate.isBlank() || courseEndDate.isBlank()) {
+                                if (courseStartDate.isBlank()) {
                                     toastData = ToastData(currentStrings.validationCourseDatesRequired, ToastType.Error)
                                     return@launch
                                 }
@@ -569,14 +642,29 @@ fun IComponent.AdminCreateEventScreen() {
                                     toastData = ToastData(currentStrings.validationStartDateFormat, ToastType.Error)
                                     return@launch
                                 }
-                                val parsedEnd = try { LocalDate.parse(courseEndDate) } catch (_: Exception) {
-                                    toastData = ToastData(currentStrings.validationEndDateFormat, ToastType.Error)
-                                    return@launch
-                                }
-                                if (parsedEnd < parsedStart) {
-                                    toastData = ToastData(currentStrings.validationEndBeforeStart, ToastType.Error)
-                                    return@launch
-                                }
+
+                                // Build customLessons if day+time are specified
+                                val lessonStartT = if (courseLessonStartTimeStr.isNotBlank()) try { LocalTime.parse(courseLessonStartTimeStr) } catch (_: Exception) { null } else null
+                                val finalCustomLessons: List<LessonConfig>? = if (lessonStartT != null && computedCourseDates.isNotEmpty()) {
+                                    val endMinutes = (lessonStartT.hour * 60 + lessonStartT.minute + durationHours * 60 + durationMinutes) % (24 * 60)
+                                    val lessonEndT = LocalTime(endMinutes / 60, endMinutes % 60)
+                                    computedCourseDates.indices.map { i ->
+                                        val dateStr = lessonDateOverrides[i] ?: computedCourseDates[i].toString()
+                                        val date = try { LocalDate.parse(dateStr) } catch (_: Exception) { computedCourseDates[i] }
+                                        LessonConfig(
+                                            startDateTime = LocalDateTime(date, lessonStartT),
+                                            endDateTime = LocalDateTime(date, lessonEndT),
+                                            isDropIn = lessonDropIn[i] ?: false,
+                                        )
+                                    }
+                                } else null
+
+                                // Compute end date: last lesson date or fallback to startDate
+                                val computedEndDate = computedCourseDates.lastOrNull()?.let {
+                                    val overrideStr = lessonDateOverrides[computedCourseDates.size - 1]
+                                    if (overrideStr != null) try { LocalDate.parse(overrideStr) } catch (_: Exception) { it } else it
+                                } ?: parsedStart
+
                                 adminService.createEventAndSeries(
                                     CreateEventAndSeriesRequest(
                                         title = title,
@@ -587,8 +675,9 @@ fun IComponent.AdminCreateEventScreen() {
                                         allowedPaymentTypes = allowedPayments,
                                         customFields = customFields,
                                         startDate = parsedStart,
-                                        endDate = parsedEnd,
+                                        endDate = computedEndDate,
                                         lessonCount = lessonCount,
+                                        customLessons = finalCustomLessons,
                                     )
                                 ).onRight {
                                     toastData = ToastData(currentStrings.toastCourseCreated, ToastType.Success)

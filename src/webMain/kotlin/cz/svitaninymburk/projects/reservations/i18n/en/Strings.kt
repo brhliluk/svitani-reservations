@@ -274,6 +274,23 @@ object EnStrings : AppStrings {
     override val seriesCardTitle = "Course / multiple lessons"
     override val seriesCardDescription = "Recurring course with multiple lessons in a given period."
 
+    // Series lesson list
+    override val seriesLessonsHeading = "Course lessons"
+    override val noLessonsYet = "No lessons generated yet."
+    override val tableHeaderDate = "Date"
+    override val tableHeaderTime = "Time"
+    override fun lessonPreviewHeading(count: Int) = "Sessions ($count)"
+    override val lessonDateEditHint = "Click a date to edit it"
+    override val lessonIndividualLabel = "Individual booking"
+    override val lessonIndividualTooltip = "The lesson will be available for individual booking without enrolling in the full course"
+    override val lessonIndividualBulkTooltip = "Check all to enable individual booking for every lesson"
+    override val lessonActiveBadge = "Active"
+    override val lessonCancelledBadge = "Cancelled"
+    override val cancelLessonModalTitle = "Cancel lesson?"
+    override fun cancelLessonModalBody(date: String) = "Cancel the lesson on $date? Enrolled users will receive an email."
+    override val toastLessonCancelled = "Lesson cancelled."
+    override val cancelLessonButton = "Cancel lesson"
+
     // Event Detail
     override val occupancyStatTitle = "Occupancy"
     override val capacityFilled = "Capacity filled"
@@ -425,4 +442,7 @@ object EnStrings : AppStrings {
     override val errorAdminCourseNotFound = "Course not found"
     override val errorAdminUserNotFound = "User not found"
     override val errorAdminDefinitionNotFound = "Definition not found"
+    override val errorAdminGetInstancesFailed = "Failed to get lessons"
+    override val errorAdminCancelLessonInstanceNotFound = "Lesson not found"
+    override val errorAdminCancelLessonFailed = "Failed to cancel lesson"
 }

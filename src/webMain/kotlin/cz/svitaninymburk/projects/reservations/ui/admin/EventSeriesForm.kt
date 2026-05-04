@@ -23,11 +23,15 @@ import dev.kilua.rpc.getService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.plus
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import cz.svitaninymburk.projects.reservations.event.LessonConfig
 import web.history.history
 import web.html.HTMLSelectElement
 import kotlin.time.Clock
@@ -54,6 +58,8 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     var lessonCount by remember { mutableIntStateOf(1) }
     var lessonDayOfWeekOrdinal by remember { mutableStateOf<Int?>(null) }  // 1=Mon…7=Sun (ISO)
     var lessonStartTimeStr by remember { mutableStateOf("") }               // "HH:MM"
+    var lessonDateOverrides by remember { mutableStateOf(mapOf<Int, String>()) }
+    var lessonDropIn by remember { mutableStateOf(mapOf<Int, Boolean>()) }
 
     var titleOverride by remember { mutableStateOf("") }
     var descriptionOverride by remember { mutableStateOf("") }
@@ -62,6 +68,16 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
 
+    val computedSeriesDates: List<LocalDate> = remember(startDate, lessonDayOfWeekOrdinal, lessonCount) {
+        val dayOrdinal = lessonDayOfWeekOrdinal ?: return@remember emptyList()
+        val startD = try { LocalDate.parse(startDate) } catch (_: Exception) { return@remember emptyList() }
+        if (lessonCount <= 0) return@remember emptyList()
+        val targetDow = DayOfWeek(dayOrdinal)
+        var date = startD
+        while (date.dayOfWeek != targetDow) date = date.plus(1, DateTimeUnit.DAY)
+        (0 until lessonCount).map { i -> date.plus(i, DateTimeUnit.WEEK) }
+    }
+
     fun applyDefinitionDefaults(definition: EventDefinition) {
         titleOverride = definition.title
         descriptionOverride = definition.description
@@ -69,6 +85,10 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
         capacityOverride = definition.defaultCapacity
         allowBankTransfer = definition.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
         allowOnSite = definition.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
+    }
+
+    LaunchedEffect(computedSeriesDates) {
+        if (computedSeriesDates.isNotEmpty()) endDate = computedSeriesDates.last().toString()
     }
 
     LaunchedEffect(Unit) {
@@ -152,11 +172,18 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                             }
                         }
 
-                        // Datum konce
+                        // Datum konce — editable only when no day is set, otherwise auto-computed
                         div(className = "form-control w-full") {
                             label(className = "label") { span(className = "label-text font-bold") { +currentStrings.endDateLabel } }
-                            text(value = endDate, type = InputType.Date, className = "input input-bordered w-full") {
-                                onInput { endDate = value ?: "" }
+                            if (lessonDayOfWeekOrdinal != null && computedSeriesDates.isNotEmpty()) {
+                                // Auto-computed: show as read-only
+                                div(className = "input input-bordered w-full flex items-center bg-base-200/50 text-base-content/70 text-sm px-4") {
+                                    +computedSeriesDates.last().toString()
+                                }
+                            } else {
+                                text(value = endDate, type = InputType.Date, className = "input input-bordered w-full") {
+                                    onInput { endDate = value ?: "" }
+                                }
                             }
                         }
 
@@ -199,6 +226,78 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                             }
                         }
 
+                    }
+
+                    // Live lesson preview
+                    if (computedSeriesDates.isNotEmpty()) {
+                        val selectedDef = definitions.find { it.id.toString() == selectedDefinitionId }
+                        val lessonStartT = if (lessonStartTimeStr.isNotBlank()) try { LocalTime.parse(lessonStartTimeStr) } catch (_: Exception) { null } else null
+                        val endTimeStr = if (lessonStartT != null && selectedDef != null) {
+                            val endMinutes = (lessonStartT.hour * 60 + lessonStartT.minute + selectedDef.defaultDuration.inWholeMinutes.toInt()) % (24 * 60)
+                            val endT = LocalTime(endMinutes / 60, endMinutes % 60)
+                            "${endT.hour}:${endT.minute.toString().padStart(2, '0')}"
+                        } else "?"
+                        val startTimeDisplayStr = lessonStartT?.let { "${it.hour}:${it.minute.toString().padStart(2, '0')}" } ?: "?"
+
+                        div(className = "mt-4 md:col-span-2") {
+                            div(className = "flex items-center gap-2 mb-2") {
+                                span(className = "icon-[heroicons--calendar-days] size-5 text-secondary")
+                                span(className = "font-medium text-sm") { +currentStrings.lessonPreviewHeading(computedSeriesDates.size) }
+                            }
+                            div(className = "overflow-x-auto") {
+                                val allDropInSeries = computedSeriesDates.indices.all { lessonDropIn[it] == true }
+                                table(className = "table table-xs w-full") {
+                                    thead {
+                                        tr {
+                                            th { +"#" }
+                                            th { +currentStrings.tableHeaderDate }
+                                            th { +currentStrings.tableHeaderTime }
+                                            th {
+                                                div(className = "flex items-center gap-2") {
+                                                    label(className = "cursor-pointer tooltip tooltip-left") {
+                                                        attribute("data-tip", currentStrings.lessonIndividualBulkTooltip)
+                                                        checkBox(value = allDropInSeries, className = "checkbox checkbox-secondary checkbox-xs") {
+                                                            onChange {
+                                                                lessonDropIn = if (value) computedSeriesDates.indices.associateWith { true } else emptyMap()
+                                                            }
+                                                        }
+                                                    }
+                                                    span(className = "tooltip tooltip-left cursor-help whitespace-nowrap") {
+                                                        attribute("data-tip", currentStrings.lessonIndividualTooltip)
+                                                        +currentStrings.lessonIndividualLabel
+                                                        span(className = "icon-[heroicons--question-mark-circle] size-3 text-base-content/40 ml-1")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    tbody {
+                                        computedSeriesDates.forEachIndexed { i, defaultDate ->
+                                            val effectiveDateStr = lessonDateOverrides[i] ?: defaultDate.toString()
+                                            tr {
+                                                td(className = "text-base-content/50") { +"${i + 1}" }
+                                                td {
+                                                    text(value = effectiveDateStr, type = InputType.Date, className = "input input-xs input-bordered w-36") {
+                                                        onInput {
+                                                            val v = value ?: ""
+                                                            lessonDateOverrides = if (v == defaultDate.toString()) lessonDateOverrides - i else lessonDateOverrides + (i to v)
+                                                        }
+                                                    }
+                                                }
+                                                td(className = "text-sm text-base-content/70") { +"$startTimeDisplayStr – $endTimeStr" }
+                                                td {
+                                                    label(className = "cursor-pointer") {
+                                                        checkBox(value = lessonDropIn[i] ?: false, className = "checkbox checkbox-secondary checkbox-xs") {
+                                                            onChange { lessonDropIn = if (value) lessonDropIn + (i to true) else lessonDropIn - i }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -318,6 +417,21 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 LocalTime(endMinutes / 60, endMinutes % 60)
                             } else null
 
+                            val lessonStartT = if (lessonStartTimeStr.isNotBlank()) try { LocalTime.parse(lessonStartTimeStr) } catch (_: Exception) { null } else null
+                            val finalCustomLessons: List<LessonConfig>? = if (lessonStartT != null && computedSeriesDates.isNotEmpty() && selectedDef != null) {
+                                val endMinutes = (lessonStartT.hour * 60 + lessonStartT.minute + selectedDef.defaultDuration.inWholeMinutes.toInt()) % (24 * 60)
+                                val lessonEndT = LocalTime(endMinutes / 60, endMinutes % 60)
+                                computedSeriesDates.indices.map { i ->
+                                    val dateStr = lessonDateOverrides[i] ?: computedSeriesDates[i].toString()
+                                    val date = try { LocalDate.parse(dateStr) } catch (_: Exception) { computedSeriesDates[i] }
+                                    LessonConfig(
+                                        startDateTime = LocalDateTime(date, lessonStartT),
+                                        endDateTime = LocalDateTime(date, lessonEndT),
+                                        isDropIn = lessonDropIn[i] ?: false,
+                                    )
+                                }
+                            } else null
+
                             val request = CreateEventSeriesRequest(
                                 definitionId = Uuid.parse(selectedDefinitionId!!),
                                 title = titleOverride,
@@ -331,6 +445,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 lessonDayOfWeek = parsedDay,
                                 lessonStartTime = parsedStartTime,
                                 lessonEndTime = parsedEndTime,
+                                customLessons = finalCustomLessons,
                             )
 
                             scope.launch {

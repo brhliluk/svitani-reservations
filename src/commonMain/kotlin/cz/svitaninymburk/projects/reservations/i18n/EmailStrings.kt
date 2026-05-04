@@ -34,6 +34,12 @@ interface EmailStrings {
     val passwordResetHeading: String
     val passwordResetBody: String
     val passwordResetLinkText: String
+
+    // Lesson reschedule/cancel notifications
+    fun lessonRescheduledSubject(seriesTitle: String): String
+    fun lessonRescheduledBody(contactName: String, seriesTitle: String, oldDateTime: String, newDateTime: String): String
+    fun lessonCancelledSubject(seriesTitle: String): String
+    fun lessonCancelledBody(contactName: String, seriesTitle: String, lessonDateTime: String): String
 }
 
 fun emailStringsFor(locale: String): EmailStrings = when (locale) {
@@ -69,6 +75,12 @@ object CsEmailStrings : EmailStrings {
     override val passwordResetHeading = "Změna hesla"
     override val passwordResetBody = "Pro změnu hesla klikněte na následující odkaz:"
     override val passwordResetLinkText = "rezervace.svitaninymburk.cz/reset"
+    override fun lessonRescheduledSubject(seriesTitle: String) = "Přeplánování lekce: $seriesTitle"
+    override fun lessonRescheduledBody(contactName: String, seriesTitle: String, oldDateTime: String, newDateTime: String) =
+        "Dobrý den $contactName,\n\nlekce kurzu $seriesTitle byla přeplánována.\nPůvodní termín: $oldDateTime\nNový termín: $newDateTime"
+    override fun lessonCancelledSubject(seriesTitle: String) = "Zrušení lekce: $seriesTitle"
+    override fun lessonCancelledBody(contactName: String, seriesTitle: String, lessonDateTime: String) =
+        "Dobrý den $contactName,\n\nlekce kurzu $seriesTitle dne $lessonDateTime byla zrušena."
 }
 
 object EnEmailStrings : EmailStrings {
@@ -99,4 +111,10 @@ object EnEmailStrings : EmailStrings {
     override val passwordResetHeading = "Password reset"
     override val passwordResetBody = "To reset your password, click the following link:"
     override val passwordResetLinkText = "rezervace.svitaninymburk.cz/reset"
+    override fun lessonRescheduledSubject(seriesTitle: String) = "Lesson rescheduled: $seriesTitle"
+    override fun lessonRescheduledBody(contactName: String, seriesTitle: String, oldDateTime: String, newDateTime: String) =
+        "Hello $contactName,\n\na lesson of $seriesTitle has been rescheduled.\nOriginal: $oldDateTime\nNew: $newDateTime"
+    override fun lessonCancelledSubject(seriesTitle: String) = "Lesson cancelled: $seriesTitle"
+    override fun lessonCancelledBody(contactName: String, seriesTitle: String, lessonDateTime: String) =
+        "Hello $contactName,\n\nthe lesson of $seriesTitle on $lessonDateTime has been cancelled."
 }

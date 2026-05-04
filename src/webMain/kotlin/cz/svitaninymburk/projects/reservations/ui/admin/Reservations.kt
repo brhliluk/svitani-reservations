@@ -76,28 +76,26 @@ fun IComponent.AdminReservationsScreen() {
                 p(className = "text-base-content/60 mt-1") { +currentStrings.reservationsSubtitle }
             }
 
-            // Vyhledávací lišta (DaisyUI Join komponenta)
-            div(className = "join w-full md:w-auto") {
+            // Vyhledávací lišta
+            div(className = "flex items-center w-full md:w-auto gap-2") {
                 div(className = "relative w-full md:w-80") {
                     span(className = "absolute inset-y-0 left-3 flex items-center pointer-events-none text-base-content/50") {
                         span(className = "icon-[heroicons--magnifying-glass] size-5")
                     }
-                    text(value = searchInput, className = "input input-bordered join-item w-full pl-10") {
+                    text(value = searchInput, className = "input input-bordered w-full pl-10") {
                         placeholder(currentStrings.searchPlaceholder)
                         onInput { searchInput = value ?: "" }
-                        // Potvrzení Enterem
                         onKeyup { event ->
                             if (event.key == "Enter") activeSearchQuery = searchInput.takeIf { it.isNotBlank() }
                         }
                     }
                 }
-                button(className = "btn btn-primary join-item") {
+                button(className = "btn btn-primary") {
                     onClick { activeSearchQuery = searchInput.takeIf { it.isNotBlank() } }
                     +currentStrings.search
                 }
-                // Tlačítko pro vymazání filtru (zobrazí se jen když hledáme)
                 if (!activeSearchQuery.isNullOrBlank()) {
-                    button(className = "btn btn-ghost join-item tooltip") {
+                    button(className = "btn btn-ghost tooltip") {
                         attribute("data-tip", currentStrings.clearSearch)
                         onClick {
                             searchInput = ""
@@ -186,7 +184,7 @@ fun IComponent.AdminReservationsScreen() {
                                                                 +currentStrings.paid
                                                             }
                                                         } else if (isCash) {
-                                                            div(className = "badge badge-info badge-outline gap-1") {
+                                                            div(className = "badge badge-info badge-outline gap-1 whitespace-nowrap") {
                                                                 span(className = "icon-[heroicons--banknotes] size-3")
                                                                 +currentStrings.statusOnSiteBadge
                                                             }

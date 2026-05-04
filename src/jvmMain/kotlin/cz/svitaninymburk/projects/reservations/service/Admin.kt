@@ -31,7 +31,9 @@ import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.plus
@@ -350,6 +352,53 @@ class AdminDashboardService(
 
             eventSeriesRepository.create(newSeries)
 
+            // Auto-generate lesson instances if schedule is defined
+            val customLessons = request.customLessons
+            if (customLessons != null) {
+                customLessons.forEach { lesson ->
+                    eventInstanceRepository.create(
+                        EventInstance(
+                            id = Uuid.random(),
+                            definitionId = newSeries.definitionId,
+                            seriesId = newSeries.id,
+                            title = newSeries.title,
+                            description = newSeries.description,
+                            startDateTime = lesson.startDateTime,
+                            endDateTime = lesson.endDateTime,
+                            price = newSeries.price,
+                            capacity = newSeries.capacity,
+                            allowedPaymentTypes = newSeries.allowedPaymentTypes,
+                            customFields = newSeries.customFields,
+                            isDropIn = lesson.isDropIn,
+                        )
+                    )
+                }
+            } else if (newSeries.lessonDayOfWeek != null && newSeries.lessonStartTime != null && newSeries.lessonEndTime != null) {
+                var date = newSeries.startDate
+                while (date.dayOfWeek != newSeries.lessonDayOfWeek) {
+                    date = date.plus(1, DateTimeUnit.DAY)
+                }
+                repeat(newSeries.lessonCount) {
+                    eventInstanceRepository.create(
+                        EventInstance(
+                            id = Uuid.random(),
+                            definitionId = newSeries.definitionId,
+                            seriesId = newSeries.id,
+                            title = newSeries.title,
+                            description = newSeries.description,
+                            startDateTime = LocalDateTime(date, newSeries.lessonStartTime!!),
+                            endDateTime = LocalDateTime(date, newSeries.lessonEndTime!!),
+                            price = newSeries.price,
+                            capacity = newSeries.capacity,
+                            allowedPaymentTypes = newSeries.allowedPaymentTypes,
+                            customFields = newSeries.customFields,
+                            isDropIn = false,
+                        )
+                    )
+                    date = date.plus(1, DateTimeUnit.WEEK)
+                }
+            }
+
             newSeries.id
         } catch (e: Exception) {
             e.printStackTrace()
@@ -409,21 +458,68 @@ class AdminDashboardService(
             )
             eventDefinitionRepository.create(newDefinition)
 
-            eventSeriesRepository.create(
-                EventSeries(
-                    id = Uuid.random(),
-                    definitionId = newDefinition.id,
-                    title = newDefinition.title,
-                    description = newDefinition.description,
-                    price = newDefinition.defaultPrice,
-                    capacity = newDefinition.defaultCapacity,
-                    startDate = request.startDate,
-                    endDate = request.endDate,
-                    lessonCount = request.lessonCount,
-                    allowedPaymentTypes = newDefinition.allowedPaymentTypes,
-                    customFields = newDefinition.customFields,
-                )
+            val newSeries = EventSeries(
+                id = Uuid.random(),
+                definitionId = newDefinition.id,
+                title = newDefinition.title,
+                description = newDefinition.description,
+                price = newDefinition.defaultPrice,
+                capacity = newDefinition.defaultCapacity,
+                startDate = request.startDate,
+                endDate = request.endDate,
+                lessonCount = request.lessonCount,
+                allowedPaymentTypes = newDefinition.allowedPaymentTypes,
+                customFields = newDefinition.customFields,
             )
+            eventSeriesRepository.create(newSeries)
+
+            // Auto-generate lesson instances if schedule is defined
+            val customLessons = request.customLessons
+            if (customLessons != null) {
+                customLessons.forEach { lesson ->
+                    eventInstanceRepository.create(
+                        EventInstance(
+                            id = Uuid.random(),
+                            definitionId = newDefinition.id,
+                            seriesId = newSeries.id,
+                            title = newDefinition.title,
+                            description = newDefinition.description,
+                            startDateTime = lesson.startDateTime,
+                            endDateTime = lesson.endDateTime,
+                            price = newDefinition.defaultPrice,
+                            capacity = newDefinition.defaultCapacity,
+                            allowedPaymentTypes = newDefinition.allowedPaymentTypes,
+                            customFields = newDefinition.customFields,
+                            isDropIn = lesson.isDropIn,
+                        )
+                    )
+                }
+            } else if (newSeries.lessonDayOfWeek != null && newSeries.lessonStartTime != null && newSeries.lessonEndTime != null) {
+                var date = newSeries.startDate
+                while (date.dayOfWeek != newSeries.lessonDayOfWeek) {
+                    date = date.plus(1, DateTimeUnit.DAY)
+                }
+                repeat(newSeries.lessonCount) {
+                    eventInstanceRepository.create(
+                        EventInstance(
+                            id = Uuid.random(),
+                            definitionId = newSeries.definitionId,
+                            seriesId = newSeries.id,
+                            title = newSeries.title,
+                            description = newSeries.description,
+                            startDateTime = LocalDateTime(date, newSeries.lessonStartTime!!),
+                            endDateTime = LocalDateTime(date, newSeries.lessonEndTime!!),
+                            price = newSeries.price,
+                            capacity = newSeries.capacity,
+                            allowedPaymentTypes = newSeries.allowedPaymentTypes,
+                            customFields = newSeries.customFields,
+                            isDropIn = false,
+                        )
+                    )
+                    date = date.plus(1, DateTimeUnit.WEEK)
+                }
+            }
+
             newDefinition.id
         } catch (e: Exception) {
             e.printStackTrace()
@@ -489,6 +585,7 @@ class AdminDashboardService(
 
     override suspend fun updateEventInstance(id: Uuid, request: cz.svitaninymburk.projects.reservations.event.UpdateEventInstanceRequest): Either<AdminError.UpdateEvent, Unit> = either {
         val existing = ensureNotNull(eventInstanceRepository.get(id)) { AdminError.InstanceNotFoundForEdit(id) }
+        val previousStartDateTime = existing.startDateTime
         eventInstanceRepository.update(
             existing.copy(
                 title = request.title,
@@ -501,6 +598,22 @@ class AdminDashboardService(
                 customFields = request.customFields,
             )
         )
+
+        // Send reschedule notification if datetime changed and instance belongs to a series
+        if (previousStartDateTime != request.startDateTime && existing.seriesId != null) {
+            val series = eventSeriesRepository.get(existing.seriesId!!)
+            reservationRepository.findByReference(Reference.Series(existing.seriesId!!))
+                .filter { it.status != Reservation.Status.CANCELLED }
+                .forEach { res ->
+                    emailService.sendLessonRescheduledNotification(
+                        toEmail = res.contactEmail,
+                        contactName = res.contactName,
+                        seriesTitle = series?.title ?: existing.title,
+                        oldDateTime = existing.startDateTime,
+                        newDateTime = request.startDateTime,
+                    ).onLeft { println("⚠️ Failed to send reschedule email for ${res.id}: $it") }
+                }
+        }
     }
 
     override suspend fun updateEventSeries(id: Uuid, request: cz.svitaninymburk.projects.reservations.event.UpdateEventSeriesRequest): Either<AdminError.UpdateSeries, Unit> = either {
@@ -623,5 +736,42 @@ class AdminDashboardService(
         }
 
         eventDefinitionRepository.delete(id)
+    }
+
+    override suspend fun getSeriesInstances(seriesId: Uuid): Either<AdminError.GetInstances, List<EventInstance>> = either {
+        try {
+            eventInstanceRepository.getAll(null)
+                .filter { it.seriesId == seriesId }
+                .sortedBy { it.startDateTime }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            raise(AdminError.GetInstances.Failed)
+        }
+    }
+
+    override suspend fun cancelSeriesLesson(instanceId: Uuid): Either<AdminError.CancelLesson, Unit> = either {
+        val instance = ensureNotNull(eventInstanceRepository.get(instanceId)) { AdminError.CancelLesson.InstanceNotFound }
+        val seriesId = instance.seriesId ?: raise(AdminError.CancelLesson.InstanceNotFound)
+
+        try {
+            // Mark instance as cancelled
+            eventInstanceRepository.update(instance.copy(isCancelled = true))
+
+            // Notify all active series enrollees
+            val series = eventSeriesRepository.get(seriesId)
+            reservationRepository.findByReference(Reference.Series(seriesId))
+                .filter { it.status != Reservation.Status.CANCELLED }
+                .forEach { res ->
+                    emailService.sendLessonCancelledNotification(
+                        toEmail = res.contactEmail,
+                        contactName = res.contactName,
+                        seriesTitle = series?.title ?: instance.title,
+                        lessonDateTime = instance.startDateTime,
+                    ).onLeft { println("⚠️ Failed to send lesson-cancelled email for ${res.id}: $it") }
+                }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            raise(AdminError.CancelLesson.Failed)
+        }
     }
 }

@@ -40,7 +40,7 @@ object CsStrings : AppStrings {
     override val course = "Kroužek"
     override val courseLessons = "lekcí"
     override val courseSignUp = "Přihlásit se"
-    override val partOfCourse = "Součást kroužku"
+    override val partOfCourse = "Součást kurzu"
     override val showDates = "Termíny"
     override val detail = "Detail"
     override val priceLabel = "Cena"
@@ -274,6 +274,23 @@ object CsStrings : AppStrings {
     override val seriesCardTitle = "Kurz / více lekcí"
     override val seriesCardDescription = "Opakující se kurz s více lekcemi v daném období."
 
+    // Series lesson list
+    override val seriesLessonsHeading = "Termíny kurzu"
+    override val noLessonsYet = "Žádné termíny nebyly vygenerovány."
+    override val tableHeaderDate = "Datum"
+    override val tableHeaderTime = "Čas"
+    override fun lessonPreviewHeading(count: Int) = "Termíny ($count)"
+    override val lessonDateEditHint = "Datum lze upravit kliknutím"
+    override val lessonIndividualLabel = "Lze individuálně"
+    override val lessonIndividualTooltip = "Lekce bude dostupná k individuální rezervaci i bez přihlášení do celého kurzu"
+    override val lessonIndividualBulkTooltip = "Zaškrtnutím všech povolíte individuální rezervaci každé lekce"
+    override val lessonActiveBadge = "Aktivní"
+    override val lessonCancelledBadge = "Zrušeno"
+    override val cancelLessonModalTitle = "Zrušit lekci?"
+    override fun cancelLessonModalBody(date: String) = "Zrušit lekci dne $date? Přihlášení uživatelé dostanou email."
+    override val toastLessonCancelled = "Lekce zrušena."
+    override val cancelLessonButton = "Zrušit lekci"
+
     // Event Detail
     override val occupancyStatTitle = "Obsazenost"
     override val capacityFilled = "Kapacita naplněna"
@@ -424,4 +441,7 @@ object CsStrings : AppStrings {
     override val errorAdminCourseNotFound = "Kroužek nenalezen"
     override val errorAdminUserNotFound = "Uživatel nenalezen"
     override val errorAdminDefinitionNotFound = "Definice nenalezena"
+    override val errorAdminGetInstancesFailed = "Nepodařilo se získat lekce"
+    override val errorAdminCancelLessonInstanceNotFound = "Lekce nenalezena"
+    override val errorAdminCancelLessonFailed = "Nepodařilo se zrušit lekci"
 }

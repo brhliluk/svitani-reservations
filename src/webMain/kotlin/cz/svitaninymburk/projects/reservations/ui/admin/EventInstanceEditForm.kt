@@ -60,6 +60,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
     var showCapacityWarning by remember { mutableStateOf(false) }
+    var isDropIn by remember { mutableStateOf(false) }
 
     LaunchedEffect(id) {
         val uuid = try { Uuid.parse(id) } catch (_: IllegalArgumentException) { null }
@@ -78,6 +79,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                 occupiedSpots = inst.occupiedSpots
                 allowBankTransfer = inst.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
                 allowOnSite = inst.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
+                isDropIn = inst.isDropIn
                 uiState = EditInstanceUiState.Loaded(inst)
             }
             .onLeft { uiState = EditInstanceUiState.Error(it.localizedMessage(currentStrings)) }
@@ -102,6 +104,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
             startDateTime = startDt, endDateTime = endDt,
             price = price?.toDouble() ?: 0.0, capacity = capacity,
             allowedPaymentTypes = allowedPayments, customFields = emptyList(),
+            isDropIn = isDropIn,
         )
         scope.launch {
             adminService.updateEventInstance(uuid, request)
@@ -192,6 +195,21 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                                         checkBox(value = allowOnSite, className = "checkbox checkbox-primary") { onChange { allowOnSite = value } }
                                         span(className = "label-text") { +currentStrings.paymentOnSite }
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (state.instance.seriesId != null) {
+                    div(className = "card bg-base-100 shadow-sm") {
+                        div(className = "card-body") {
+                            label(className = "cursor-pointer flex items-center gap-3") {
+                                checkBox(value = isDropIn, className = "checkbox checkbox-secondary") {
+                                    onChange { isDropIn = value }
+                                }
+                                div {
+                                    span(className = "font-medium") { +"Zobrazit jako drop-in lekci v přehledu" }
+                                    p(className = "text-sm text-base-content/60 mt-1") { +"Lekce se zobrazí v přehledu akcí jako samostatně rezervovatelná s přiřazenou cenou." }
                                 }
                             }
                         }

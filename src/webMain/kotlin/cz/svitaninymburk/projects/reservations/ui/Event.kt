@@ -31,6 +31,12 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
                         div(className = "badge badge-error badge-sm shrink-0") { +currentStrings.cancelled }
                     }
                 }
+                if (event.seriesId != null) {
+                    div(className = "badge badge-secondary badge-sm gap-1 mb-1") {
+                        span(className = "icon-[heroicons--academic-cap] size-3")
+                        +currentStrings.partOfCourse
+                    }
+                }
                 div(className = "flex items-center gap-2 text-sm text-base-content/60 mt-1") {
                     span(className = "icon-[heroicons--clock] size-4")
                     span {
