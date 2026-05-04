@@ -171,6 +171,16 @@ fun IComponent.RegisterDialog(
                 }
             }
 
+            p(className = "text-xs text-center text-base-content/60 mt-1") {
+                +currentStrings.registrationPrivacyNote
+                +" "
+                a(href = "/privacy", className = "link link-primary") {
+                    target("_blank")
+                    +currentStrings.privacyPolicyLink
+                }
+                +"."
+            }
+
             div(className = "text-center mt-4 text-sm") {
                 +"Už máte účet? "
                 a(className = "link link-primary cursor-pointer") {
