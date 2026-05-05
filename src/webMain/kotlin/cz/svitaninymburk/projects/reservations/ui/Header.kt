@@ -15,6 +15,7 @@ import dev.kilua.core.IComponent
 import dev.kilua.html.button
 import dev.kilua.html.div
 import dev.kilua.html.header
+import dev.kilua.html.img
 import dev.kilua.html.span
 
 enum class AuthModalState { Closed, Login, Register, ForgotPassword }
@@ -69,11 +70,7 @@ fun IComponent.AppHeader(
     header(className = "navbar min-h-14 bg-base-100 border-b border-base-200 px-3 sm:px-8") {
 
         div(className = "navbar-start gap-3 sm:gap-4") {
-            div(className = "logo placeholder") {
-                div(className = "bg-neutral text-neutral-content rounded-lg w-9 sm:w-10 grid place-items-center") {
-                    span(className = "text-xl font-bold") { +"B" }
-                }
-            }
+            img(src = "logo.svg", alt = "Svítání", className = "h-9 sm:h-10 w-auto")
             span(className = "hidden sm:inline text-lg font-medium text-base-content") { +currentStrings.dashboard }
         }
 
