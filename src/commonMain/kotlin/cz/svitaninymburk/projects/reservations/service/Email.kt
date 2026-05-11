@@ -41,4 +41,26 @@ interface EmailService {
         seriesTitle: String,
         lessonDateTime: LocalDateTime,
     ): Either<EmailError.SendLessonCancelled, Unit>
+
+    suspend fun sendLectorReservationNotification(
+        lectorEmail: String,
+        contactName: String,
+        contactEmail: String,
+        contactPhone: String?,
+        seatCount: Int,
+        eventTitle: String,
+        occupiedSpots: Int,
+        capacity: Int,
+        locale: String,
+    ): Either<EmailError.SendLectorReservation, Unit>
+
+    suspend fun sendLectorCancellationNotification(
+        lectorEmail: String,
+        contactName: String,
+        eventTitle: String,
+        seatCount: Int,
+        occupiedSpots: Int,
+        capacity: Int,
+        locale: String,
+    ): Either<EmailError.SendLectorCancellation, Unit>
 }
