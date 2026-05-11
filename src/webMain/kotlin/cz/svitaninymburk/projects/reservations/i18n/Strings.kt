@@ -410,6 +410,25 @@ interface AppStrings : ErrorStrings {
     fun dayName(index: Int): String
     fun shortDayName(index: Int): String
 
+    // Admin Settings Screen
+    val navSettings: String
+    val settingsTitle: String
+    val settingsEmailCard: String
+    val settingsPaymentCard: String
+    val settingsBankAccount: String
+    val settingsFioToken: String
+    val settingsSenderEmail: String
+    val settingsGmailPassword: String
+    val settingsSenderDisplayName: String
+    val settingsChangeButton: String
+    val settingsTestEmailButton: String
+    val settingsTestFioButton: String
+    val settingsSaveButton: String
+    val settingsTestPassed: String
+    fun settingsTestFailed(reason: String): String
+    val settingsTestRequiredBeforeSave: String
+    val settingsSavedSuccess: String
+
     // Privacy Policy
     val privacyTitle: String
     val privacyControllerHeading: String
