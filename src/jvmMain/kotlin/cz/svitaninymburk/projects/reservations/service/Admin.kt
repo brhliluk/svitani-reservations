@@ -320,6 +320,7 @@ class AdminDashboardService(
                 defaultDuration = request.defaultDuration,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
+                lectorEmail = request.lectorEmail,
             )
 
             eventDefinitionRepository.create(newDefinition)
@@ -348,6 +349,7 @@ class AdminDashboardService(
                 lessonDayOfWeek = request.lessonDayOfWeek,
                 lessonStartTime = request.lessonStartTime,
                 lessonEndTime = request.lessonEndTime,
+                lectorEmail = request.lectorEmail,
             )
 
             eventSeriesRepository.create(newSeries)
@@ -370,6 +372,7 @@ class AdminDashboardService(
                             allowedPaymentTypes = newSeries.allowedPaymentTypes,
                             customFields = newSeries.customFields,
                             isDropIn = lesson.isDropIn,
+                            lectorEmail = newSeries.lectorEmail,
                         )
                     )
                 }
@@ -393,6 +396,7 @@ class AdminDashboardService(
                             allowedPaymentTypes = newSeries.allowedPaymentTypes,
                             customFields = newSeries.customFields,
                             isDropIn = false,
+                            lectorEmail = newSeries.lectorEmail,
                         )
                     )
                     date = date.plus(1, DateTimeUnit.WEEK)
@@ -417,6 +421,7 @@ class AdminDashboardService(
                 defaultDuration = request.defaultDuration,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
+                lectorEmail = request.lectorEmail,
             )
             eventDefinitionRepository.create(newDefinition)
 
@@ -434,6 +439,7 @@ class AdminDashboardService(
                         capacity = newDefinition.defaultCapacity,
                         allowedPaymentTypes = newDefinition.allowedPaymentTypes,
                         customFields = newDefinition.customFields,
+                        lectorEmail = newDefinition.lectorEmail,
                     )
                 )
             }
@@ -455,6 +461,7 @@ class AdminDashboardService(
                 defaultDuration = request.defaultDuration,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
+                lectorEmail = request.lectorEmail,
             )
             eventDefinitionRepository.create(newDefinition)
 
@@ -470,6 +477,7 @@ class AdminDashboardService(
                 lessonCount = request.lessonCount,
                 allowedPaymentTypes = newDefinition.allowedPaymentTypes,
                 customFields = newDefinition.customFields,
+                lectorEmail = request.lectorEmail,
             )
             eventSeriesRepository.create(newSeries)
 
@@ -491,6 +499,7 @@ class AdminDashboardService(
                             allowedPaymentTypes = newDefinition.allowedPaymentTypes,
                             customFields = newDefinition.customFields,
                             isDropIn = lesson.isDropIn,
+                            lectorEmail = newSeries.lectorEmail,
                         )
                     )
                 }
@@ -514,6 +523,7 @@ class AdminDashboardService(
                             allowedPaymentTypes = newSeries.allowedPaymentTypes,
                             customFields = newSeries.customFields,
                             isDropIn = false,
+                            lectorEmail = newSeries.lectorEmail,
                         )
                     )
                     date = date.plus(1, DateTimeUnit.WEEK)
@@ -596,6 +606,7 @@ class AdminDashboardService(
                 capacity = request.capacity,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
+                lectorEmail = request.lectorEmail,
             )
         )
 
@@ -632,6 +643,7 @@ class AdminDashboardService(
                 lessonDayOfWeek = request.lessonDayOfWeek,
                 lessonStartTime = request.lessonStartTime,
                 lessonEndTime = request.lessonEndTime,
+                lectorEmail = request.lectorEmail,
             )
         )
     }
@@ -646,6 +658,7 @@ class AdminDashboardService(
             defaultDuration = request.defaultDuration,
             allowedPaymentTypes = request.allowedPaymentTypes,
             customFields = request.customFields,
+            lectorEmail = request.lectorEmail,
         )
         eventDefinitionRepository.update(updated)
 
