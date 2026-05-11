@@ -49,21 +49,25 @@ class AppSettingsService(
         displayName: String,
     ): Either<SettingsError, Unit> = either {
         val password = appPassword ?: provider.current.gmailAppPassword
-        withContext(Dispatchers.IO) {
-            val email = HtmlEmail()
-            email.hostName = "smtp.gmail.com"
-            email.setSslSmtpPort("465")
-            email.setAuthenticator(DefaultAuthenticator(senderEmail, password))
-            email.isSSLOnConnect = true
-            email.setCharset("UTF-8")
-            email.setFrom(senderEmail, displayName)
-            email.addTo(senderEmail)
-            email.subject = "Test nastavení e-mailu / Email settings test"
-            email.setTextMsg("Tento e-mail potvrzuje, že nastavení odesílání funguje správně.")
-            catch({ email.send() }) { e: EmailException ->
-                raise(SettingsError.EmailTestFailed(e.chainedMessage()))
+        val smtpError: EmailException? = withContext(Dispatchers.IO) {
+            try {
+                val email = HtmlEmail()
+                email.hostName = "smtp.gmail.com"
+                email.setSslSmtpPort("465")
+                email.setAuthenticator(DefaultAuthenticator(senderEmail, password))
+                email.isSSLOnConnect = true
+                email.setCharset("UTF-8")
+                email.setFrom(senderEmail, displayName)
+                email.addTo(senderEmail)
+                email.subject = "Test nastavení e-mailu / Email settings test"
+                email.setTextMsg("Tento e-mail potvrzuje, že nastavení odesílání funguje správně.")
+                email.send()
+                null
+            } catch (e: EmailException) {
+                e
             }
         }
+        if (smtpError != null) raise(SettingsError.EmailTestFailed(smtpError.chainedMessage()))
     }
 
     override suspend fun testFioSettings(fioToken: String?): Either<SettingsError, Unit> = either {
