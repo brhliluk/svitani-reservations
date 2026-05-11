@@ -26,6 +26,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventDetailScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminEventsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminLayout
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminReservationsScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminSettingsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminUsersScreen
 import cz.svitaninymburk.projects.reservations.ui.auth.ResetPasswordScreen
 import cz.svitaninymburk.projects.reservations.ui.dashboard.DashboardScreen
@@ -210,6 +211,13 @@ fun IComponent.MainLayout() {
                     view {
                         AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                             AdminUsersScreen(currentUserId = currentUser!!.id)
+                        }
+                    }
+                }
+                route("/settings") {
+                    view {
+                        AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                            AdminSettingsScreen()
                         }
                     }
                 }
