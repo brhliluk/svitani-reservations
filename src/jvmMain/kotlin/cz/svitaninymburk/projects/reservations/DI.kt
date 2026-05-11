@@ -87,6 +87,7 @@ val appModule = module {
             eventRepository = get(),
         )
     } bind EmailService::class
+    single<LectorEmailService> { get<EmailService>() as LectorEmailService }
     single { QrCodeService(accountNumber = System.getenv("BANK_ACCOUNT_NUMBER") ?: "2003487968/2010") }
     single { BackendQrCodeGenerator(get()) }
     single { ReservationService(get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz") } bind ReservationServiceInterface::class
