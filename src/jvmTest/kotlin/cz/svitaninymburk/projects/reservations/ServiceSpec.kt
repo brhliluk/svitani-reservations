@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations
 
+import cz.svitaninymburk.projects.reservations.util.SettingsEncryption
 import cz.svitaninymburk.projects.reservations.event.*
 import cz.svitaninymburk.projects.reservations.repository.event.*
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
@@ -415,5 +416,33 @@ class ICalGeneratorSpec {
         val series = makeSeries().copy(lessonDayOfWeek = null, lessonStartTime = null, lessonEndTime = null)
         val ical = ICalGenerator.forSeries(series, Uuid.parse("00000000-0000-0000-0000-000000000099"), "https://example.cz")
         assertContains(ical, "DTSTART;VALUE=DATE:20260903")
+    }
+}
+
+class SettingsEncryptionSpec {
+    private val testKey = java.util.Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() })
+
+    @Test
+    fun `encrypt then decrypt returns original`() {
+        val plaintext = "supersecret-fio-token"
+        val encrypted = SettingsEncryption.encrypt(plaintext, testKey)
+        val decrypted = SettingsEncryption.decrypt(encrypted, testKey)
+        assertEquals(plaintext, decrypted)
+    }
+
+    @Test
+    fun `two encryptions produce different ciphertexts`() {
+        val plaintext = "same-value"
+        val enc1 = SettingsEncryption.encrypt(plaintext, testKey)
+        val enc2 = SettingsEncryption.encrypt(plaintext, testKey)
+        assertTrue(enc1 != enc2, "IV must be random, producing distinct ciphertexts")
+    }
+
+    @Test
+    fun `decrypt rejects malformed stored value`() {
+        try {
+            SettingsEncryption.decrypt("not-valid-format", testKey)
+            assertTrue(false, "Expected exception")
+        } catch (_: IllegalArgumentException) { /* expected */ }
     }
 }
