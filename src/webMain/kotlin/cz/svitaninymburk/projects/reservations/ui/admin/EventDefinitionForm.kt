@@ -278,6 +278,10 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                         toastData = ToastData(currentStrings.validationNameRequired, ToastType.Error)
                         return@onClick
                     }
+                    if (lectorEmail.isBlank()) {
+                        toastData = ToastData(currentStrings.validationLectorEmailRequired, ToastType.Error)
+                        return@onClick
+                    }
                     val allowedPayments = mutableListOf<PaymentInfo.Type>()
                     if (allowBankTransfer) allowedPayments.add(PaymentInfo.Type.BANK_TRANSFER)
                     if (allowOnSite) allowedPayments.add(PaymentInfo.Type.ON_SITE)

@@ -200,6 +200,7 @@ object CsStrings : AppStrings {
     override val fieldTypeBoolean = "Typ: Ano/Ne"
     override val fieldTypeTimeRange = "Typ: Časový úsek"
     override val validationNameRequired = "Název je povinný"
+    override val validationLectorEmailRequired = "E-mail lektora je povinný"
     override val validationRecurrenceEndRequired = "Zadejte datum konce opakování."
     override val validationRecurrenceDateFormat = "Neplatný formát data konce opakování."
     override val templateSavedToast = "Šablona úspěšně uložena!"

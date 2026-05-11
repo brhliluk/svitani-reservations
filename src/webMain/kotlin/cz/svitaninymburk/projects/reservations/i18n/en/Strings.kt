@@ -200,6 +200,7 @@ object EnStrings : AppStrings {
     override val fieldTypeBoolean = "Type: Yes/No"
     override val fieldTypeTimeRange = "Type: Time range"
     override val validationNameRequired = "Name is required"
+    override val validationLectorEmailRequired = "Lector email is required"
     override val validationRecurrenceEndRequired = "Enter the recurrence end date."
     override val validationRecurrenceDateFormat = "Invalid recurrence end date format."
     override val templateSavedToast = "Template saved successfully!"
