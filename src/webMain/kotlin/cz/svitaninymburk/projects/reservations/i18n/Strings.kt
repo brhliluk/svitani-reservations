@@ -216,6 +216,7 @@ interface AppStrings : ErrorStrings {
     val fieldTypeBoolean: String
     val fieldTypeTimeRange: String
     val validationNameRequired: String
+    val validationLectorEmailRequired: String
     val validationRecurrenceEndRequired: String
     val validationRecurrenceDateFormat: String
     val templateSavedToast: String

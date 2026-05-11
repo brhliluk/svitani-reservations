@@ -395,6 +395,10 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 toastData = ToastData(currentStrings.validationSeriesTitleRequired, ToastType.Error)
                                 return@onClick
                             }
+                            if (lectorEmail.isBlank()) {
+                                toastData = ToastData(currentStrings.validationLectorEmailRequired, ToastType.Error)
+                                return@onClick
+                            }
 
                             val parsedStartDate = try { LocalDate.parse(startDate) } catch (e: Exception) {
                                 toastData = ToastData(currentStrings.validationStartDateFormat, ToastType.Error)

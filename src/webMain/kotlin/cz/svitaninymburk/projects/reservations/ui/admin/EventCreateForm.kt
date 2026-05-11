@@ -576,6 +576,10 @@ fun IComponent.AdminCreateEventScreen() {
                         toastData = ToastData(currentStrings.validationTitleRequired, ToastType.Error)
                         return@onClick
                     }
+                    if (lectorEmail.isBlank()) {
+                        toastData = ToastData(currentStrings.validationLectorEmailRequired, ToastType.Error)
+                        return@onClick
+                    }
 
                     val allowedPayments = buildList {
                         if (allowBankTransfer) add(PaymentInfo.Type.BANK_TRANSFER)

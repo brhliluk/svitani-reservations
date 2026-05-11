@@ -356,6 +356,10 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                 toastData = ToastData(currentStrings.validationDateTimeRequired, ToastType.Error)
                                 return@onClick
                             }
+                            if (lectorEmail.isBlank()) {
+                                toastData = ToastData(currentStrings.validationLectorEmailRequired, ToastType.Error)
+                                return@onClick
+                            }
 
                             // Spojíme datum a čas do ISO formátu, který schroupne LocalDateTime
                             val isoDateTimeString = "${startDate}T${startTime}"
