@@ -22,6 +22,7 @@ data class EventDefinition(
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
+    val lectorEmail: String = "",
 )
 
 @Serializable
@@ -38,6 +39,7 @@ data class EventSeries(
     val lessonCount: Int,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
+    val lectorEmail: String = "",
     val lessonDayOfWeek: DayOfWeek? = null,
     val lessonStartTime: LocalTime? = null,
     val lessonEndTime: LocalTime? = null,
@@ -58,6 +60,7 @@ data class EventInstance(
     val isCancelled: Boolean = false,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
+    val lectorEmail: String = "",
     val isDropIn: Boolean = false,
 ) {
     val currentTimeZone get() = TimeZone.currentSystemDefault()
@@ -83,6 +86,7 @@ data class CreateEventDefinitionRequest(
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
+    val lectorEmail: String = "",
 )
 
 @Serializable
@@ -94,6 +98,7 @@ data class CreateEventAndInstancesRequest(
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
+    val lectorEmail: String = "",
     val dateTimes: List<LocalDateTime>,
 )
 
@@ -106,6 +111,7 @@ data class CreateEventAndSeriesRequest(
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
+    val lectorEmail: String = "",
     val startDate: LocalDate,
     val endDate: LocalDate,
     val lessonCount: Int,
@@ -131,6 +137,7 @@ data class CreateEventSeriesRequest(
     val lessonCount: Int,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
+    val lectorEmail: String = "",
     val lessonDayOfWeek: DayOfWeek? = null,
     val lessonStartTime: LocalTime? = null,
     val lessonEndTime: LocalTime? = null,
@@ -148,6 +155,7 @@ data class CreateEventInstanceRequest(
     val capacity: Int? = null,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
+    val lectorEmail: String = "",
 )
 
 @Serializable
@@ -166,6 +174,7 @@ data class UpdateEventDefinitionRequest(
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type>,
     val customFields: List<CustomFieldDefinition>,
+    val lectorEmail: String = "",
     val propagateToChildren: Boolean,
 )
 
@@ -179,6 +188,7 @@ data class UpdateEventInstanceRequest(
     val capacity: Int,
     val allowedPaymentTypes: List<PaymentInfo.Type>,
     val customFields: List<CustomFieldDefinition>,
+    val lectorEmail: String = "",
     val isDropIn: Boolean = false,
 )
 
@@ -193,6 +203,7 @@ data class UpdateEventSeriesRequest(
     val lessonCount: Int,
     val allowedPaymentTypes: List<PaymentInfo.Type>,
     val customFields: List<CustomFieldDefinition>,
+    val lectorEmail: String = "",
     val lessonDayOfWeek: DayOfWeek? = null,
     val lessonStartTime: LocalTime? = null,
     val lessonEndTime: LocalTime? = null,
