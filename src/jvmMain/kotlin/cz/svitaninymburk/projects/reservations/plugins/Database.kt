@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import cz.svitaninymburk.projects.reservations.repository.auth.RefreshTokensTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionsTable
+import cz.svitaninymburk.projects.reservations.repository.settings.AppSettingsTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstancesTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesTable
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationsTable
@@ -33,7 +34,8 @@ fun Application.configureDatabases() {
             EventDefinitionsTable,
             EventSeriesTable,
             EventInstancesTable,
-            ReservationsTable
+            ReservationsTable,
+            AppSettingsTable
         )
         MigrationUtils.statementsRequiredForDatabaseMigration(
             UsersTable,
@@ -42,6 +44,7 @@ fun Application.configureDatabases() {
             EventSeriesTable,
             EventInstancesTable,
             ReservationsTable,
+            AppSettingsTable,
             withLogs = false
         ).forEach { exec(it) }
     }
