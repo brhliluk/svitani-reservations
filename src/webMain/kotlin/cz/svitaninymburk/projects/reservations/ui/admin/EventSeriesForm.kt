@@ -63,6 +63,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
 
     var titleOverride by remember { mutableStateOf("") }
     var descriptionOverride by remember { mutableStateOf("") }
+    var lectorEmail by remember { mutableStateOf("") }
     var priceOverride by remember { mutableStateOf<Number?>(0) }
     var capacityOverride by remember { mutableIntStateOf(10) }
     var allowBankTransfer by remember { mutableStateOf(true) }
@@ -327,6 +328,13 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 }
                             }
 
+                            div(className = "form-control w-full md:col-span-2") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lectorEmailLabel } }
+                                text(value = lectorEmail, className = "input input-bordered w-full") {
+                                    onInput { lectorEmail = value ?: "" }
+                                }
+                            }
+
                             div(className = "form-control w-full") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.fullCoursePriceLabel } }
                                 div(className = "relative flex items-center") {
@@ -436,6 +444,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 definitionId = Uuid.parse(selectedDefinitionId!!),
                                 title = titleOverride,
                                 description = descriptionOverride,
+                                lectorEmail = lectorEmail,
                                 price = priceOverride?.toDouble() ?: 0.0,
                                 capacity = capacityOverride,
                                 startDate = parsedStartDate,
