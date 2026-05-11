@@ -7,9 +7,11 @@ import arrow.core.raise.context.ensureNotNull
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import cz.svitaninymburk.projects.reservations.error.ReservationError
+import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
+import cz.svitaninymburk.projects.reservations.service.LectorEmailService
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
@@ -31,8 +33,10 @@ import kotlin.uuid.Uuid
 class ReservationService(
     private val eventInstanceRepository: EventInstanceRepository,
     private val eventSeriesRepository: EventSeriesRepository,
+    private val eventDefinitionRepository: EventDefinitionRepository,
     private val reservationRepository: ReservationRepository,
     private val emailService: EmailService,
+    private val lectorEmailService: LectorEmailService,
     private val qrCodeService: BackendQrCodeGenerator,
     private val paymentTrigger: PaymentTrigger,
     private val appBaseUrl: String,
@@ -149,6 +153,29 @@ class ReservationService(
             icalBytes = icalBytes,
         ).onLeft { println("⚠️ Failed to send confirmation email: $it") }
 
+        val lectorEmail = resolveLectorEmail(target)
+        if (lectorEmail.isNotBlank()) {
+            val newOccupiedSpots = when (target) {
+                is ReservationTarget.Instance -> target.event.occupiedSpots + reservation.seatCount
+                is ReservationTarget.Series -> target.series.occupiedSpots + reservation.seatCount
+            }
+            val capacity = when (target) {
+                is ReservationTarget.Instance -> target.event.capacity
+                is ReservationTarget.Series -> target.series.capacity
+            }
+            lectorEmailService.sendLectorReservationNotification(
+                lectorEmail = lectorEmail,
+                contactName = reservation.contactName,
+                contactEmail = reservation.contactEmail,
+                contactPhone = reservation.contactPhone,
+                seatCount = reservation.seatCount,
+                eventTitle = target.title,
+                occupiedSpots = newOccupiedSpots,
+                capacity = capacity,
+                locale = reservation.locale,
+            ).onLeft { println("⚠️ Failed to send lector reservation email: $it") }
+        }
+
         paymentTrigger.notifyNewReservation()
 
         return reservation
@@ -166,14 +193,53 @@ class ReservationService(
         val cancelledReservation = reservation.copy(status = Reservation.Status.CANCELLED)
         reservationRepository.save(cancelledReservation)
 
-        when (reservation.reference) {
+        val updatedSpots = when (reservation.reference) {
             is Reference.Instance -> eventInstanceRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
             is Reference.Series -> eventSeriesRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
+        } ?: when (target) {
+            is ReservationTarget.Instance -> (target.event.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
+            is ReservationTarget.Series -> (target.series.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
         }
 
         emailService.sendCancellationNotice(cancelledReservation.contactEmail, reservationId)
             .mapLeft { ReservationError.FailedToSendCancellationEmail(it) }
+
+        val lectorEmail = resolveLectorEmail(target)
+        if (lectorEmail.isNotBlank()) {
+            val capacity = when (target) {
+                is ReservationTarget.Instance -> target.event.capacity
+                is ReservationTarget.Series -> target.series.capacity
+            }
+            lectorEmailService.sendLectorCancellationNotification(
+                lectorEmail = lectorEmail,
+                contactName = cancelledReservation.contactName,
+                eventTitle = target.title,
+                seatCount = cancelledReservation.seatCount,
+                occupiedSpots = updatedSpots,
+                capacity = capacity,
+                locale = cancelledReservation.locale,
+            ).onLeft { println("⚠️ Failed to send lector cancellation email: $it") }
+        }
         true
+    }
+
+    private suspend fun resolveLectorEmail(target: ReservationTarget): String {
+        when (target) {
+            is ReservationTarget.Instance -> {
+                val instance = target.event
+                if (instance.lectorEmail.isNotBlank()) return instance.lectorEmail
+                if (instance.seriesId != null) {
+                    val seriesEmail = eventSeriesRepository.get(instance.seriesId)?.lectorEmail ?: ""
+                    if (seriesEmail.isNotBlank()) return seriesEmail
+                }
+                return eventDefinitionRepository.get(instance.definitionId)?.lectorEmail ?: ""
+            }
+            is ReservationTarget.Series -> {
+                val series = target.series
+                if (series.lectorEmail.isNotBlank()) return series.lectorEmail
+                return eventDefinitionRepository.get(series.definitionId)?.lectorEmail ?: ""
+            }
+        }
     }
 
     private suspend fun Raise<ReservationError.CreateReservation>.generateUniqueVariableSymbol(): String {
