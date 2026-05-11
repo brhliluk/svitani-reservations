@@ -4,10 +4,10 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import cz.svitaninymburk.projects.reservations.repository.auth.RefreshTokensTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionsTable
-import cz.svitaninymburk.projects.reservations.repository.settings.AppSettingsTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstancesTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesTable
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationsTable
+import cz.svitaninymburk.projects.reservations.repository.settings.AppSettingsTable
 import cz.svitaninymburk.projects.reservations.repository.user.UsersTable
 import io.ktor.server.application.*
 import org.jetbrains.exposed.v1.jdbc.Database
