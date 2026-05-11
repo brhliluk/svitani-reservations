@@ -57,6 +57,7 @@ object EnStrings : AppStrings {
     override val phoneHint = "+420 123 456 789"
     override val seatCountLabel = "Number of seats"
     override val seatCountHint = "1"
+    override val lectorEmailLabel = "Lector / responsible person email"
 
     // Reservation Detail
     override val reservationSummary = "Reservation summary"

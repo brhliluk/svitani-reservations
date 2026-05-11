@@ -73,6 +73,7 @@ interface AppStrings : ErrorStrings {
     val phoneHint: String
     val seatCountLabel: String
     val seatCountHint: String
+    val lectorEmailLabel: String
 
     // Reservation Detail
     val reservationSummary: String

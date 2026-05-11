@@ -57,6 +57,7 @@ object CsStrings : AppStrings {
     override val phoneHint = "+420 123 456 789"
     override val seatCountLabel = "Počet míst"
     override val seatCountHint = "1"
+    override val lectorEmailLabel = "E-mail lektora / osoby zodpovědné za akci"
 
     // Reservation Detail
     override val reservationSummary = "Souhrn rezervace"
