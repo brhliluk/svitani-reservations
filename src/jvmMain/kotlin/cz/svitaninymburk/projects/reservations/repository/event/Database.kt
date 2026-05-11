@@ -30,6 +30,7 @@ object EventDefinitionsTable : Table("event_definitions") {
 
     val allowedPaymentTypes = json<List<PaymentInfo.Type>>("allowed_payment_types", Json)
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
+    val lectorEmail = varchar("lector_email", 255).default("")
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -42,7 +43,8 @@ fun ResultRow.toEventDefinition(): EventDefinition = EventDefinition(
     defaultCapacity = this[EventDefinitionsTable.defaultCapacity],
     defaultDuration = this[EventDefinitionsTable.defaultDurationMs].milliseconds,
     allowedPaymentTypes = this[EventDefinitionsTable.allowedPaymentTypes],
-    customFields = this[EventDefinitionsTable.customFields]
+    customFields = this[EventDefinitionsTable.customFields],
+    lectorEmail = this[EventDefinitionsTable.lectorEmail],
 )
 
 
@@ -65,6 +67,7 @@ object EventSeriesTable : Table("event_series") {
 
     val allowedPaymentTypes = json<List<PaymentInfo.Type>>("allowed_payment_types", Json)
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
+    val lectorEmail = varchar("lector_email", 255).default("")
     val lessonDayOfWeek = integer("lesson_day_of_week").nullable()
     val lessonStartTime = varchar("lesson_start_time", 8).nullable()
     val lessonEndTime = varchar("lesson_end_time", 8).nullable()
@@ -85,6 +88,7 @@ fun ResultRow.toEventSeries(): EventSeries = EventSeries(
     lessonCount = this[EventSeriesTable.lessonCount],
     allowedPaymentTypes = this[EventSeriesTable.allowedPaymentTypes],
     customFields = this[EventSeriesTable.customFields],
+    lectorEmail = this[EventSeriesTable.lectorEmail],
     lessonDayOfWeek = this[EventSeriesTable.lessonDayOfWeek]?.let { DayOfWeek(it) },
     lessonStartTime = this[EventSeriesTable.lessonStartTime]?.let { LocalTime.parse(it) },
     lessonEndTime = this[EventSeriesTable.lessonEndTime]?.let { LocalTime.parse(it) },
@@ -115,6 +119,7 @@ object EventInstancesTable : Table("event_instances") {
 
     val allowedPaymentTypes = json<List<PaymentInfo.Type>>("allowed_payment_types", Json)
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
+    val lectorEmail = varchar("lector_email", 255).default("")
     val isDropIn = bool("is_drop_in").default(false)
 
     override val primaryKey = PrimaryKey(id)
@@ -134,6 +139,7 @@ fun ResultRow.toEventInstance(): EventInstance = EventInstance(
     isCancelled = this[EventInstancesTable.isCancelled],
     allowedPaymentTypes = this[EventInstancesTable.allowedPaymentTypes],
     customFields = this[EventInstancesTable.customFields],
+    lectorEmail = this[EventInstancesTable.lectorEmail],
     isDropIn = this[EventInstancesTable.isDropIn]
 )
 
@@ -164,6 +170,7 @@ class ExposedEventDefinitionRepository : EventDefinitionRepository {
             row[defaultDurationMs] = event.defaultDuration.inWholeMilliseconds // Převod Duration na Long
             row[allowedPaymentTypes] = event.allowedPaymentTypes
             row[customFields] = event.customFields
+            row[lectorEmail] = event.lectorEmail
         }
         event
     }
@@ -177,6 +184,7 @@ class ExposedEventDefinitionRepository : EventDefinitionRepository {
             row[defaultDurationMs] = event.defaultDuration.inWholeMilliseconds
             row[allowedPaymentTypes] = event.allowedPaymentTypes
             row[customFields] = event.customFields
+            row[lectorEmail] = event.lectorEmail
         }
         event
     }
@@ -220,6 +228,7 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[lessonCount] = series.lessonCount
             row[allowedPaymentTypes] = series.allowedPaymentTypes
             row[customFields] = series.customFields
+            row[lectorEmail] = series.lectorEmail
             row[lessonDayOfWeek] = series.lessonDayOfWeek?.isoDayNumber
             row[lessonStartTime] = series.lessonStartTime?.toString()
             row[lessonEndTime] = series.lessonEndTime?.toString()
@@ -238,6 +247,7 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[lessonCount] = series.lessonCount
             row[allowedPaymentTypes] = series.allowedPaymentTypes
             row[customFields] = series.customFields
+            row[lectorEmail] = series.lectorEmail
             row[lessonDayOfWeek] = series.lessonDayOfWeek?.isoDayNumber
             row[lessonStartTime] = series.lessonStartTime?.toString()
             row[lessonEndTime] = series.lessonEndTime?.toString()
@@ -309,6 +319,7 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[isCancelled] = instance.isCancelled
             row[allowedPaymentTypes] = instance.allowedPaymentTypes
             row[customFields] = instance.customFields
+            row[lectorEmail] = instance.lectorEmail
             row[isDropIn] = instance.isDropIn
         }
         instance
@@ -328,6 +339,7 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[isCancelled] = instance.isCancelled
             row[allowedPaymentTypes] = instance.allowedPaymentTypes
             row[customFields] = instance.customFields
+            row[lectorEmail] = instance.lectorEmail
             row[isDropIn] = instance.isDropIn
         }
         instance
