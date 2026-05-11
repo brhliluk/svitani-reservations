@@ -182,3 +182,27 @@ vite {
         proxy("/rpcws", "http://localhost:8080", ws = true)
     }
 }
+
+tasks.register("deploy") {
+    group = "deployment"
+    description = "Build JAR with bundled frontend and deploy to production server"
+    dependsOn("jarWithJs")
+
+    doLast {
+        val localProps = java.util.Properties().apply {
+            val f = rootDir.resolve("local.properties")
+            check(f.exists()) { "local.properties not found — add deploy.host and deploy.sshKey" }
+            f.inputStream().use(::load)
+        }
+        val host = localProps.getProperty("deploy.host")
+            ?: error("deploy.host missing from local.properties")
+        val sshKey = rootDir.resolve(
+            localProps.getProperty("deploy.sshKey") ?: error("deploy.sshKey missing from local.properties")
+        ).absolutePath
+        val jar = "${layout.buildDirectory.get()}/libs/reservations.jar"
+
+        exec { commandLine("scp", "-i", sshKey, jar, "$host:/opt/reservations/reservations.jar") }
+        exec { commandLine("ssh", "-i", sshKey, host, "sudo systemctl restart reservations") }
+        println("Deployed successfully. Service restarted.")
+    }
+}

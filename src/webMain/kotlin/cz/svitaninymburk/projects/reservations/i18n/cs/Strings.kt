@@ -484,6 +484,8 @@ object CsStrings : AppStrings {
     override fun settingsTestFailed(reason: String) = "Test selhal: $reason"
     override val settingsTestRequiredBeforeSave = "Před uložením je nutné provést úspěšný test"
     override val settingsSavedSuccess = "Nastavení bylo uloženo"
+    override val settingsGmailPasswordHint = "Google účet → Zabezpečení → Hesla aplikací"
+    override val settingsFioTokenHint = "FIO internetové bankovnictví → Nastavení → API"
     // Settings error strings
     override val errorSettingsLoadFailed = "Nepodařilo se načíst nastavení"
     override val errorSettingsSaveFailed = "Nepodařilo se uložit nastavení"

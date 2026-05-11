@@ -485,6 +485,8 @@ object EnStrings : AppStrings {
     override fun settingsTestFailed(reason: String) = "Test failed: $reason"
     override val settingsTestRequiredBeforeSave = "A successful test is required before saving"
     override val settingsSavedSuccess = "Settings saved"
+    override val settingsGmailPasswordHint = "Google Account → Security → App passwords"
+    override val settingsFioTokenHint = "FIO internet banking → Settings → API"
     // Settings error strings
     override val errorSettingsLoadFailed = "Failed to load settings"
     override val errorSettingsSaveFailed = "Failed to save settings"

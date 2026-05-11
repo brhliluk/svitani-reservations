@@ -197,6 +197,10 @@ private fun IComponent.EmailSettingsCard(
                             }
                         }
                     }
+                    p(className = "text-xs text-base-content/50 mt-1 flex items-center gap-1") {
+                        span(className = "icon-[heroicons--information-circle] size-3")
+                        +currentStrings.settingsGmailPasswordHint
+                    }
                 }
             }
 
@@ -351,6 +355,10 @@ private fun IComponent.PaymentSettingsCard(
                                 +currentStrings.settingsChangeButton
                             }
                         }
+                    }
+                    p(className = "text-xs text-base-content/50 mt-1 flex items-center gap-1") {
+                        span(className = "icon-[heroicons--information-circle] size-3")
+                        +currentStrings.settingsFioTokenHint
                     }
                 }
             }
