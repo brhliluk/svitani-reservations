@@ -40,6 +40,12 @@ interface EmailStrings {
     fun lessonRescheduledBody(contactName: String, seriesTitle: String, oldDateTime: String, newDateTime: String): String
     fun lessonCancelledSubject(seriesTitle: String): String
     fun lessonCancelledBody(contactName: String, seriesTitle: String, lessonDateTime: String): String
+
+    // Lector notifications
+    fun lectorReservationSubject(eventTitle: String): String
+    fun lectorReservationBody(contactName: String, contactEmail: String, contactPhone: String?, seatCount: Int, eventTitle: String, occupiedSpots: Int, capacity: Int): String
+    fun lectorCancellationSubject(eventTitle: String): String
+    fun lectorCancellationBody(contactName: String, eventTitle: String, seatCount: Int, occupiedSpots: Int, capacity: Int): String
 }
 
 fun emailStringsFor(locale: String): EmailStrings = when (locale) {
@@ -81,6 +87,14 @@ object CsEmailStrings : EmailStrings {
     override fun lessonCancelledSubject(seriesTitle: String) = "Zrušení lekce: $seriesTitle"
     override fun lessonCancelledBody(contactName: String, seriesTitle: String, lessonDateTime: String) =
         "Dobrý den $contactName,\n\nlekce kurzu $seriesTitle dne $lessonDateTime byla zrušena."
+    override fun lectorReservationSubject(eventTitle: String) = "Nová rezervace: $eventTitle"
+    override fun lectorReservationBody(contactName: String, contactEmail: String, contactPhone: String?, seatCount: Int, eventTitle: String, occupiedSpots: Int, capacity: Int): String {
+        val phone = if (contactPhone != null) "\nTelefon: $contactPhone" else ""
+        return "Nová rezervace na akci: $eventTitle\n\nZákazník: $contactName\nE-mail: $contactEmail$phone\nPočet míst: $seatCount\n\nObsazenost: $occupiedSpots / $capacity míst"
+    }
+    override fun lectorCancellationSubject(eventTitle: String) = "Zrušená rezervace: $eventTitle"
+    override fun lectorCancellationBody(contactName: String, eventTitle: String, seatCount: Int, occupiedSpots: Int, capacity: Int) =
+        "Rezervace na akci $eventTitle byla zrušena.\n\nZákazník: $contactName\nUvolněná místa: $seatCount\n\nObsazenost: $occupiedSpots / $capacity míst"
 }
 
 object EnEmailStrings : EmailStrings {
@@ -117,4 +131,12 @@ object EnEmailStrings : EmailStrings {
     override fun lessonCancelledSubject(seriesTitle: String) = "Lesson cancelled: $seriesTitle"
     override fun lessonCancelledBody(contactName: String, seriesTitle: String, lessonDateTime: String) =
         "Hello $contactName,\n\nthe lesson of $seriesTitle on $lessonDateTime has been cancelled."
+    override fun lectorReservationSubject(eventTitle: String) = "New booking: $eventTitle"
+    override fun lectorReservationBody(contactName: String, contactEmail: String, contactPhone: String?, seatCount: Int, eventTitle: String, occupiedSpots: Int, capacity: Int): String {
+        val phone = if (contactPhone != null) "\nPhone: $contactPhone" else ""
+        return "New booking for: $eventTitle\n\nCustomer: $contactName\nEmail: $contactEmail$phone\nSeats: $seatCount\n\nOccupancy: $occupiedSpots / $capacity spots"
+    }
+    override fun lectorCancellationSubject(eventTitle: String) = "Cancelled booking: $eventTitle"
+    override fun lectorCancellationBody(contactName: String, eventTitle: String, seatCount: Int, occupiedSpots: Int, capacity: Int) =
+        "A booking for $eventTitle has been cancelled.\n\nCustomer: $contactName\nFreed seats: $seatCount\n\nOccupancy: $occupiedSpots / $capacity spots"
 }
