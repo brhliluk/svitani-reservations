@@ -428,6 +428,8 @@ interface AppStrings : ErrorStrings {
     fun settingsTestFailed(reason: String): String
     val settingsTestRequiredBeforeSave: String
     val settingsSavedSuccess: String
+    val settingsGmailPasswordHint: String
+    val settingsFioTokenHint: String
 
     // Privacy Policy
     val privacyTitle: String
