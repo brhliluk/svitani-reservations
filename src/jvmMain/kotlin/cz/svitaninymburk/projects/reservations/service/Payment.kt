@@ -9,6 +9,7 @@ import cz.svitaninymburk.projects.reservations.bank.parseFioTransactions
 import cz.svitaninymburk.projects.reservations.error.PaymentPairingError
 import cz.svitaninymburk.projects.reservations.qr.QrCodeService
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
+import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import io.ktor.client.*
 import io.ktor.client.call.body
@@ -27,7 +28,7 @@ class PaymentPairingService(
     private val reservationRepo: ReservationRepository,
     private val emailService: EmailService,
     private val qrCodeService: QrCodeService,
-    private val fioToken: String
+    private val settings: AppSettingsProvider,
 ) {
     private val logger = KtorSimpleLogger(this::class.jvmName)
     suspend fun checkAndPairPayments(): Either<PaymentPairingError.CheckAndPairPayments, Unit> = either {
@@ -37,7 +38,7 @@ class PaymentPairingService(
             httpClient.get(url {
                 protocol = URLProtocol.HTTPS
                 host = "fioapi.fio.cz"
-                path("v1/rest/last/$fioToken/transactions.json")
+                path("v1/rest/last/${settings.current.fioToken}/transactions.json")
             })
         } catch (e: Exception) {
             raise(PaymentPairingError.Upstream(e, e.message ?: "Unknown error"))
@@ -66,7 +67,15 @@ class PaymentPairingService(
 
         if ((transaction.amount < reservation.totalPrice) || (transaction.amount != reservation.unpaidAmount)) {
             logger.warn("⚠️ Nedoplatek! VS $vs: Očekávaná čáska: ${reservation.unpaidAmount}, přišlo ${transaction.amount}.")
-            emailService.sendPaymentNotPaidInFull(reservation, transaction, fioToken, qrCodeService.generateReservationPaymentSvg(reservation.copy(totalPrice = reservation.unpaidAmount - transaction.amount)))
+            emailService.sendPaymentNotPaidInFull(
+                reservation,
+                transaction,
+                settings.current.bankAccountNumber,
+                qrCodeService.generateReservationPaymentSvg(
+                    reservation.copy(totalPrice = reservation.unpaidAmount - transaction.amount),
+                    settings.current.bankAccountNumber,
+                )
+            )
             return
         }
 

@@ -20,10 +20,14 @@ import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSer
 import cz.svitaninymburk.projects.reservations.repository.reservation.ExposedReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
+import cz.svitaninymburk.projects.reservations.repository.settings.ExposedAppSettingsRepository
 import cz.svitaninymburk.projects.reservations.repository.user.ExposedUserRepository
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.service.*
+import cz.svitaninymburk.projects.reservations.service.AppSettingsService
+import cz.svitaninymburk.projects.reservations.service.AppSettingsServiceInterface
+import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -75,6 +79,11 @@ val appModule = module {
     // Reservations
     single<ReservationRepository> { ExposedReservationRepository() }
 
+    // Settings
+    single { ExposedAppSettingsRepository() } bind cz.svitaninymburk.projects.reservations.repository.settings.AppSettingsRepository::class
+    single { AppSettingsProvider(get()) }
+    single { AppSettingsService(get(), get(), get()) } bind AppSettingsServiceInterface::class
+
     single { AuthService(get(), get(), get(), get(), get(), get()) } bind AuthServiceInterface::class
     single { AuthRefreshTokenService(get(), get(), get()) } bind RefreshTokenServiceInterface::class
     single { RefreshTokenService(get(), get()) }
@@ -82,17 +91,16 @@ val appModule = module {
     single { AuthenticatedEventService(get(), get()) } bind AuthenticatedEventServiceInterface::class
     single {
         GmailEmailService(
-            username = System.getenv("GMAIL_USERNAME") ?: error("GMAIL_USERNAME env var is required"),
-            appPassword = System.getenv("GMAIL_APP_PASSWORD") ?: error("GMAIL_APP_PASSWORD env var is required"),
+            settings = get(),
             appBaseUrl = System.getenv("APP_BASE_URL") ?: error("APP_BASE_URL env var is required"),
             eventRepository = get(),
         )
     } binds arrayOf(EmailService::class, LectorEmailService::class)
-    single { QrCodeService(accountNumber = System.getenv("BANK_ACCOUNT_NUMBER") ?: "2003487968/2010") }
-    single { BackendQrCodeGenerator(get()) }
+    single { QrCodeService() }
+    single { BackendQrCodeGenerator(get(), get()) }
     single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz") } bind ReservationServiceInterface::class
     single { AuthenticatedReservationService(get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
-    single { PaymentPairingService(get(), get(), get(), get(), System.getenv("FIO_TOKEN") ?: "0eZMDyWlNRyiUI4Wd0HBHQysLs0IwgEtgGdsNWBME6CsJLwwy6QgZtSc5HzIyIuJ") }
+    single { PaymentPairingService(get(), get(), get(), get(), get()) }
     single { AdminService(get()) }
     single { AdminDashboardService(get(), get(), get(), get(), get(), get()) } bind AdminServiceInterface::class
     single { UserService(get()) }

@@ -34,10 +34,10 @@ fun IComponent.ReservationDetailLayout(
 ) {
     val currentStrings by strings
     val uiState = remember(reservation.status, currentStrings) { getReservationUiState(reservation, target, currentStrings) }
-    val qrCodeService = remember(accountNumber) { QrCodeService(accountNumber) }
+    val qrCodeService = remember { QrCodeService() }
 
-    val qrCodeSvg = remember(reservation, uiState.showPaymentInfo) {
-        if (uiState.showPaymentInfo) qrCodeService.generateReservationPaymentSvg(reservation)
+    val qrCodeSvg = remember(reservation, accountNumber, uiState.showPaymentInfo) {
+        if (uiState.showPaymentInfo) qrCodeService.generateReservationPaymentSvg(reservation, accountNumber)
         else ""
     }
 
@@ -121,7 +121,7 @@ fun IComponent.ReservationDetailLayout(
                             }
 
                             div(className = "w-full max-w-sm flex flex-col gap-4") {
-                                CopyToClipboardButton(currentStrings.accountNumber, qrCodeService.accountNumber)
+                                CopyToClipboardButton(currentStrings.accountNumber, accountNumber)
                                 CopyToClipboardButton(currentStrings.variableSymbol, reservation.variableSymbol ?: "---")
                             }
 
