@@ -10,6 +10,7 @@ object SettingsEncryption {
     private const val ALGORITHM = "AES/GCM/NoPadding"
     private const val GCM_TAG_BITS = 128
     private const val GCM_IV_BYTES = 12
+    private val random = SecureRandom()
 
     private fun keySpec(keyBase64: String): SecretKeySpec {
         val raw = Base64.getDecoder().decode(keyBase64)
@@ -22,7 +23,7 @@ object SettingsEncryption {
             ?: error("SETTINGS_ENCRYPTION_KEY env var is required")
 
     fun encrypt(plaintext: String, keyBase64: String = envKey()): String {
-        val iv = ByteArray(GCM_IV_BYTES).also { SecureRandom().nextBytes(it) }
+        val iv = ByteArray(GCM_IV_BYTES).also { random.nextBytes(it) }
         val cipher = Cipher.getInstance(ALGORITHM)
         cipher.init(Cipher.ENCRYPT_MODE, keySpec(keyBase64), GCMParameterSpec(GCM_TAG_BITS, iv))
         val ciphertext = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))

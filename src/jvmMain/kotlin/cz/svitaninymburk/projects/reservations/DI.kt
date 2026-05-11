@@ -20,13 +20,12 @@ import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSer
 import cz.svitaninymburk.projects.reservations.repository.reservation.ExposedReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
+import cz.svitaninymburk.projects.reservations.repository.settings.AppSettingsRepository
 import cz.svitaninymburk.projects.reservations.repository.settings.ExposedAppSettingsRepository
 import cz.svitaninymburk.projects.reservations.repository.user.ExposedUserRepository
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.service.*
-import cz.svitaninymburk.projects.reservations.service.AppSettingsService
-import cz.svitaninymburk.projects.reservations.service.AppSettingsServiceInterface
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -80,7 +79,7 @@ val appModule = module {
     single<ReservationRepository> { ExposedReservationRepository() }
 
     // Settings
-    single { ExposedAppSettingsRepository() } bind cz.svitaninymburk.projects.reservations.repository.settings.AppSettingsRepository::class
+    single { ExposedAppSettingsRepository() } bind AppSettingsRepository::class
     single { AppSettingsProvider(get()) }
     single { AppSettingsService(get(), get(), get()) } bind AppSettingsServiceInterface::class
 
