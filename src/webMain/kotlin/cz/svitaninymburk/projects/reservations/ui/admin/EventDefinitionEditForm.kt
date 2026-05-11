@@ -51,6 +51,7 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
     var allowOnSite by remember { mutableStateOf(true) }
     var customFields by remember { mutableStateOf(listOf<CustomFieldDefinition>()) }
     var propagateToChildren by remember { mutableStateOf(false) }
+    var lectorEmail by remember { mutableStateOf("") }
 
     fun updateCustomField(index: Int, newField: CustomFieldDefinition) {
         customFields = customFields.toMutableList().apply { set(index, newField) }
@@ -70,6 +71,7 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
                 allowBankTransfer = def.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
                 allowOnSite = def.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
                 customFields = def.customFields
+                lectorEmail = def.lectorEmail
                 uiState = EditDefinitionUiState.Loaded(def)
             }
             .onLeft { uiState = EditDefinitionUiState.Error(it.localizedMessage(currentStrings)) }
@@ -90,6 +92,7 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
             allowedPaymentTypes = allowedPayments,
             customFields = customFields,
             propagateToChildren = propagateToChildren,
+            lectorEmail = lectorEmail,
         )
         scope.launch {
             adminService.updateEventDefinition(uuid, request)
@@ -130,6 +133,10 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
                             div(className = "form-control w-full md:col-span-2") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.descriptionLabel } }
                                 textArea(value = description, className = "textarea textarea-bordered h-24 w-full") { onInput { description = value ?: "" } }
+                            }
+                            div(className = "form-control w-full md:col-span-2") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lectorEmailLabel } }
+                                text(value = lectorEmail, className = "input input-bordered w-full") { onInput { lectorEmail = value ?: "" } }
                             }
                             div(className = "form-control w-full") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.defaultPriceLabel } }
@@ -268,6 +275,7 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
                     button(className = "btn btn-primary") {
                         onClick {
                             if (title.isBlank()) { toastData = ToastData(currentStrings.validationNameRequired, ToastType.Error); return@onClick }
+                            if (lectorEmail.isBlank()) { toastData = ToastData(currentStrings.validationLectorEmailRequired, ToastType.Error); return@onClick }
                             doSave()
                         }
                         span(className = "icon-[heroicons--check] size-5")
