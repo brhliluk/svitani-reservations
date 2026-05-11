@@ -59,6 +59,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
 
     var titleOverride by remember { mutableStateOf("") }
     var descriptionOverride by remember { mutableStateOf("") }
+    var lectorEmail by remember { mutableStateOf("") }
     var priceOverride by remember { mutableStateOf<Number?>(0) }
     var capacityOverride by remember { mutableIntStateOf(10) }
     var durationHours by remember { mutableIntStateOf(1) }
@@ -243,6 +244,14 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                 }
                             }
 
+                            // Email lektora
+                            div(className = "form-control w-full md:col-span-2") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lectorEmailLabel } }
+                                text(value = lectorEmail, className = "input input-bordered w-full") {
+                                    onInput { lectorEmail = value ?: "" }
+                                }
+                            }
+
                             // Cena a Kapacita (Stejný vzhled jako u Definice)
                             div(className = "form-control w-full") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.priceLabel } }
@@ -372,6 +381,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                 capacity = capacityOverride,
                                 allowedPaymentTypes = allowedPayments,
                                 customFields = emptyList(),
+                                lectorEmail = lectorEmail,
                             )
 
                             val dateTimes = if (isRecurring && previewDates.isNotEmpty()) previewDates else listOf(parsedDateTime)

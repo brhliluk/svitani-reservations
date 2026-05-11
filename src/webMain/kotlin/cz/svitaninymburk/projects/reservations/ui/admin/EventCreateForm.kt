@@ -55,6 +55,7 @@ fun IComponent.AdminCreateEventScreen() {
     // Definition fields
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var lectorEmail by remember { mutableStateOf("") }
     var price by remember { mutableStateOf<Number?>(0) }
     var capacity by remember { mutableIntStateOf(10) }
     var durationHours by remember { mutableIntStateOf(1) }
@@ -168,6 +169,13 @@ fun IComponent.AdminCreateEventScreen() {
                         label(className = "label") { span(className = "label-text font-medium") { +currentStrings.descriptionLabel } }
                         textArea(value = description, className = "textarea textarea-bordered h-24 w-full") {
                             onInput { description = value ?: "" }
+                        }
+                    }
+
+                    div(className = "form-control w-full md:col-span-2") {
+                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lectorEmailLabel } }
+                        text(value = lectorEmail, className = "input input-bordered w-full") {
+                            onInput { lectorEmail = value ?: "" }
                         }
                     }
 
@@ -592,6 +600,7 @@ fun IComponent.AdminCreateEventScreen() {
                                     CreateEventAndInstancesRequest(
                                         title = title,
                                         description = description,
+                                        lectorEmail = lectorEmail,
                                         defaultPrice = price?.toDouble() ?: 0.0,
                                         defaultCapacity = capacity,
                                         defaultDuration = finalDuration,
@@ -617,6 +626,7 @@ fun IComponent.AdminCreateEventScreen() {
                                     CreateEventAndInstancesRequest(
                                         title = title,
                                         description = description,
+                                        lectorEmail = lectorEmail,
                                         defaultPrice = price?.toDouble() ?: 0.0,
                                         defaultCapacity = capacity,
                                         defaultDuration = finalDuration,
@@ -669,6 +679,7 @@ fun IComponent.AdminCreateEventScreen() {
                                     CreateEventAndSeriesRequest(
                                         title = title,
                                         description = description,
+                                        lectorEmail = lectorEmail,
                                         defaultPrice = price?.toDouble() ?: 0.0,
                                         defaultCapacity = capacity,
                                         defaultDuration = finalDuration,
