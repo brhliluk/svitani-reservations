@@ -82,6 +82,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     fun applyDefinitionDefaults(definition: EventDefinition) {
         titleOverride = definition.title
         descriptionOverride = definition.description
+        lectorEmail = definition.lectorEmail
         priceOverride = definition.defaultPrice
         capacityOverride = definition.defaultCapacity
         allowBankTransfer = definition.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
