@@ -239,6 +239,46 @@ class GmailEmailService(
             raise(EmailError.SendLessonCancelledFailed(e.fullMessage()))
         }
     } }
+
+    override suspend fun sendLectorReservationNotification(
+        lectorEmail: String,
+        contactName: String,
+        contactEmail: String,
+        contactPhone: String?,
+        seatCount: Int,
+        eventTitle: String,
+        occupiedSpots: Int,
+        capacity: Int,
+        locale: String,
+    ): Either<EmailError.SendLectorReservation, Unit> = either { withContext(Dispatchers.IO) {
+        val s = emailStringsFor(locale)
+        val email = setupEmail()
+        email.addTo(lectorEmail)
+        email.subject = s.lectorReservationSubject(eventTitle)
+        email.setTextMsg(s.lectorReservationBody(contactName, contactEmail, contactPhone, seatCount, eventTitle, occupiedSpots, capacity))
+        catch({ email.send() }) { e: EmailException ->
+            raise(EmailError.SendLectorReservationFailed(e.fullMessage()))
+        }
+    } }
+
+    override suspend fun sendLectorCancellationNotification(
+        lectorEmail: String,
+        contactName: String,
+        eventTitle: String,
+        seatCount: Int,
+        occupiedSpots: Int,
+        capacity: Int,
+        locale: String,
+    ): Either<EmailError.SendLectorCancellation, Unit> = either { withContext(Dispatchers.IO) {
+        val s = emailStringsFor(locale)
+        val email = setupEmail()
+        email.addTo(lectorEmail)
+        email.subject = s.lectorCancellationSubject(eventTitle)
+        email.setTextMsg(s.lectorCancellationBody(contactName, eventTitle, seatCount, occupiedSpots, capacity))
+        catch({ email.send() }) { e: EmailException ->
+            raise(EmailError.SendLectorCancellationFailed(e.fullMessage()))
+        }
+    } }
 }
 
 class ConsoleEmailService : EmailService {
@@ -300,6 +340,22 @@ class ConsoleEmailService : EmailService {
         lessonDateTime: LocalDateTime,
     ): Either<EmailError.SendLessonCancelled, Unit> {
         println("📧 [MOCK] Lekce zrušena: $seriesTitle | $toEmail | $lessonDateTime")
+        return Unit.right()
+    }
+
+    override suspend fun sendLectorReservationNotification(
+        lectorEmail: String, contactName: String, contactEmail: String, contactPhone: String?,
+        seatCount: Int, eventTitle: String, occupiedSpots: Int, capacity: Int, locale: String,
+    ): Either<EmailError.SendLectorReservation, Unit> {
+        println("[LECTOR EMAIL] To: $lectorEmail | New booking for '$eventTitle' | Customer: $contactName ($contactEmail${if (contactPhone != null) ", $contactPhone" else ""}) | Seats: $seatCount | Occupancy: $occupiedSpots/$capacity")
+        return Unit.right()
+    }
+
+    override suspend fun sendLectorCancellationNotification(
+        lectorEmail: String, contactName: String, eventTitle: String,
+        seatCount: Int, occupiedSpots: Int, capacity: Int, locale: String,
+    ): Either<EmailError.SendLectorCancellation, Unit> {
+        println("[LECTOR EMAIL] To: $lectorEmail | Cancelled booking for '$eventTitle' | Customer: $contactName | Freed: $seatCount | Occupancy: $occupiedSpots/$capacity")
         return Unit.right()
     }
 }
