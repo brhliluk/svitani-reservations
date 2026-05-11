@@ -36,7 +36,7 @@ class GmailEmailService(
     private val appPassword: String,
     private val appBaseUrl: String,
     private val eventRepository: EventInstanceRepository,
-) : EmailService {
+) : EmailService, LectorEmailService {
 
     private fun EmailException.fullMessage(): String = buildString {
         var t: Throwable? = this@fullMessage
@@ -281,7 +281,7 @@ class GmailEmailService(
     } }
 }
 
-class ConsoleEmailService : EmailService {
+class ConsoleEmailService : EmailService, LectorEmailService {
     override suspend fun sendReservationConfirmation(
         toEmail: String,
         reservation: Reservation,
