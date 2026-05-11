@@ -2,6 +2,8 @@ package cz.svitaninymburk.projects.reservations
 
 import cz.svitaninymburk.projects.reservations.util.SettingsEncryption
 import cz.svitaninymburk.projects.reservations.settings.maskSecret
+import cz.svitaninymburk.projects.reservations.repository.settings.InMemoryAppSettingsRepository
+import cz.svitaninymburk.projects.reservations.settings.AppSettings
 import cz.svitaninymburk.projects.reservations.event.*
 import cz.svitaninymburk.projects.reservations.repository.event.*
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
@@ -465,5 +467,28 @@ class MaskSecretSpec {
     }
     @Test fun `empty string returns 3 bullets`() {
         assertEquals("•••", maskSecret(""))
+    }
+}
+
+class AppSettingsRepositorySpec {
+    private val defaultSettings = AppSettings(
+        bankAccountNumber = "2003487968/2010",
+        fioToken = "test-fio-token",
+        senderEmail = "test@example.com",
+        gmailAppPassword = "test-app-password",
+        senderDisplayName = "Test Sender",
+    )
+
+    @Test fun `load returns seeded settings`() {
+        val repo = InMemoryAppSettingsRepository(defaultSettings)
+        val loaded = repo.load()
+        assertEquals(defaultSettings, loaded)
+    }
+
+    @Test fun `save then load returns updated settings`() {
+        val repo = InMemoryAppSettingsRepository(defaultSettings)
+        val updated = defaultSettings.copy(bankAccountNumber = "NEW/9999")
+        runBlocking { repo.save(updated) }
+        assertEquals("NEW/9999", repo.load().bankAccountNumber)
     }
 }
