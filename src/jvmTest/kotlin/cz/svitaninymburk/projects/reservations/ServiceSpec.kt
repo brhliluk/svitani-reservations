@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations
 
 import cz.svitaninymburk.projects.reservations.util.SettingsEncryption
+import cz.svitaninymburk.projects.reservations.settings.maskSecret
 import cz.svitaninymburk.projects.reservations.event.*
 import cz.svitaninymburk.projects.reservations.repository.event.*
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
@@ -444,5 +445,25 @@ class SettingsEncryptionSpec {
             SettingsEncryption.decrypt("not-valid-format", testKey)
             assertTrue(false, "Expected exception")
         } catch (_: IllegalArgumentException) { /* expected */ }
+    }
+}
+
+class MaskSecretSpec {
+    @Test fun `long secret shows first3 bullets last3`() {
+        assertEquals("sup•••n23", maskSecret("supersecretn23"))
+    }
+    @Test fun `short 5-char secret pads bullets to 9 total`() {
+        val result = maskSecret("hello")
+        assertEquals(9, result.length)
+        assertTrue(result.startsWith("hel"))
+        assertTrue(result.endsWith("lo"))
+    }
+    @Test fun `very short 2-char secret pads bullets to 9 total`() {
+        val result = maskSecret("ab")
+        assertEquals(9, result.length) // "ab" + 7 bullets
+        assertTrue(result.startsWith("ab"))
+    }
+    @Test fun `empty string returns 3 bullets`() {
+        assertEquals("•••", maskSecret(""))
     }
 }
