@@ -17,6 +17,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.i18n.AppStrings
 import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
 import dev.kilua.form.text.text
@@ -33,7 +34,6 @@ private sealed interface AdminSettingsUiState {
 @Composable
 fun IComponent.AdminSettingsScreen() {
     val settingsService = getService<AppSettingsServiceInterface>(RpcSerializersModules)
-    val scope = rememberCoroutineScope()
     val currentStrings by strings
 
     var refreshTrigger by remember { mutableStateOf(0) }
@@ -77,7 +77,6 @@ fun IComponent.AdminSettingsScreen() {
                         toastData = ToastData(currentStrings.errorToast(msg), ToastType.Error)
                     },
                     settingsService = settingsService,
-                    scope = scope
                 )
 
                 // --- Payment Card ---
@@ -92,7 +91,6 @@ fun IComponent.AdminSettingsScreen() {
                         toastData = ToastData(currentStrings.errorToast(msg), ToastType.Error)
                     },
                     settingsService = settingsService,
-                    scope = scope
                 )
             }
         }
@@ -108,12 +106,12 @@ fun IComponent.AdminSettingsScreen() {
 @Composable
 private fun IComponent.EmailSettingsCard(
     dto: AppSettingsDisplayDto,
-    currentStrings: cz.svitaninymburk.projects.reservations.i18n.AppStrings,
+    currentStrings: AppStrings,
     onSaveSuccess: () -> Unit,
     onSaveError: (String) -> Unit,
     settingsService: AppSettingsServiceInterface,
-    scope: kotlinx.coroutines.CoroutineScope,
 ) {
+    val scope = rememberCoroutineScope()
     var senderDisplayName by remember { mutableStateOf(dto.senderDisplayName) }
     var senderEmail by remember { mutableStateOf(dto.senderEmail) }
     var newPassword by remember { mutableStateOf<String?>(null) }
@@ -127,7 +125,7 @@ private fun IComponent.EmailSettingsCard(
     val senderEmailChanged = senderEmail != dto.senderEmail
     val passwordChanged = passwordChanging && newPassword != null
     val credentialsChanged = senderEmailChanged || passwordChanged
-    val saveEnabled = !isSaving && (testPassed || !credentialsChanged)
+    val saveEnabled = !isSaving && !isTesting && (testPassed || !credentialsChanged)
 
     div(className = "card bg-base-100 shadow-sm border border-base-200") {
         div(className = "card-body") {
@@ -145,7 +143,11 @@ private fun IComponent.EmailSettingsCard(
                         span(className = "label-text font-medium") { +currentStrings.settingsSenderDisplayName }
                     }
                     text(value = senderDisplayName, className = "input input-bordered w-full") {
-                        onInput { senderDisplayName = value ?: "" }
+                        onInput {
+                            senderDisplayName = value ?: ""
+                            testPassed = false
+                            testResultMessage = null
+                        }
                     }
                 }
 
@@ -280,12 +282,12 @@ private fun IComponent.EmailSettingsCard(
 @Composable
 private fun IComponent.PaymentSettingsCard(
     dto: AppSettingsDisplayDto,
-    currentStrings: cz.svitaninymburk.projects.reservations.i18n.AppStrings,
+    currentStrings: AppStrings,
     onSaveSuccess: () -> Unit,
     onSaveError: (String) -> Unit,
     settingsService: AppSettingsServiceInterface,
-    scope: kotlinx.coroutines.CoroutineScope,
 ) {
+    val scope = rememberCoroutineScope()
     var bankAccount by remember { mutableStateOf(dto.bankAccountNumber) }
     var newFioToken by remember { mutableStateOf<String?>(null) }
     var fioTokenChanging by remember { mutableStateOf(false) }
@@ -296,7 +298,7 @@ private fun IComponent.PaymentSettingsCard(
     var isSaving by remember { mutableStateOf(false) }
 
     val fioTokenChanged = fioTokenChanging && newFioToken != null
-    val saveEnabled = !isSaving && (testPassed || !fioTokenChanged)
+    val saveEnabled = !isSaving && !isTesting && (testPassed || !fioTokenChanged)
 
     div(className = "card bg-base-100 shadow-sm border border-base-200") {
         div(className = "card-body") {
