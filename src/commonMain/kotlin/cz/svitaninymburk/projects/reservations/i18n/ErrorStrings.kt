@@ -40,4 +40,11 @@ interface ErrorStrings {
     val errorAdminGetInstancesFailed: String
     val errorAdminCancelLessonInstanceNotFound: String
     val errorAdminCancelLessonFailed: String
+
+    // Settings errors
+    val errorSettingsLoadFailed: String
+    val errorSettingsSaveFailed: String
+    fun errorSettingsEmailTestFailed(reason: String): String
+    fun errorSettingsFioTestFailed(reason: String): String
+    val errorSettingsEncryptionKeyMissing: String
 }
