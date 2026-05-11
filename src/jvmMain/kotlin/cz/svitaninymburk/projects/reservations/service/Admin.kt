@@ -674,6 +674,7 @@ class AdminDashboardService(
                             capacity = request.defaultCapacity,
                             allowedPaymentTypes = request.allowedPaymentTypes,
                             customFields = request.customFields,
+                            lectorEmail = request.lectorEmail,
                         )
                     )
                 }
@@ -689,6 +690,7 @@ class AdminDashboardService(
                             capacity = request.defaultCapacity,
                             allowedPaymentTypes = request.allowedPaymentTypes,
                             customFields = request.customFields,
+                            lectorEmail = request.lectorEmail,
                         )
                     )
                 }

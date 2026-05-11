@@ -31,6 +31,7 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import org.koin.dsl.bind
+import org.koin.dsl.binds
 import org.koin.dsl.module
 
 
@@ -86,8 +87,7 @@ val appModule = module {
             appBaseUrl = System.getenv("APP_BASE_URL") ?: error("APP_BASE_URL env var is required"),
             eventRepository = get(),
         )
-    } bind EmailService::class
-    single<LectorEmailService> { get<EmailService>() as LectorEmailService }
+    } binds arrayOf(EmailService::class, LectorEmailService::class)
     single { QrCodeService(accountNumber = System.getenv("BANK_ACCOUNT_NUMBER") ?: "2003487968/2010") }
     single { BackendQrCodeGenerator(get()) }
     single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz") } bind ReservationServiceInterface::class

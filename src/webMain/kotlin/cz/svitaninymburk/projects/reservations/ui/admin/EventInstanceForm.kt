@@ -88,6 +88,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
     fun applyDefinitionDefaults(definition: EventDefinition) {
         titleOverride = definition.title
         descriptionOverride = definition.description
+        lectorEmail = definition.lectorEmail
         priceOverride = definition.defaultPrice
         capacityOverride = definition.defaultCapacity
 
