@@ -3,8 +3,7 @@ package cz.svitaninymburk.projects.reservations.qr
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import qrcode.QRCode
 
-class QrCodeService(val accountNumber: String) {
-    private val iban: String by lazy { CzechIbanGenerator.toIban(accountNumber) }
+class QrCodeService {
     fun generateSpaydString(
         accountNumber: String,
         amount: Double,
@@ -15,7 +14,8 @@ class QrCodeService(val accountNumber: String) {
         return SpaydGenerator.generate(iban, amount, vs, message)
     }
 
-    fun generateReservationPaymentSvg(reservation: Reservation): String {
+    fun generateReservationPaymentSvg(reservation: Reservation, accountNumber: String): String {
+        val iban = CzechIbanGenerator.toIban(accountNumber)
         return generateQrSvg(SpaydGenerator.generate(iban, reservation.totalPrice, reservation.variableSymbol, null))
     }
 

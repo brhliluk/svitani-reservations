@@ -4,6 +4,7 @@ import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.plugins.AdminAuthorization
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.service.AdminUserServiceInterface
+import cz.svitaninymburk.projects.reservations.service.AppSettingsServiceInterface
 import cz.svitaninymburk.projects.reservations.service.AuthenticatedEventServiceInterface
 import dev.kilua.rpc.applyRoutes
 import dev.kilua.rpc.getServiceManager
@@ -15,4 +16,5 @@ fun Route.adminRoutes() {
     applyRoutes(getServiceManager<AdminUserServiceInterface>(), RpcSerializersModules)
     applyRoutes(getServiceManager<AuthenticatedEventServiceInterface>(), RpcSerializersModules)
     applyRoutes(getServiceManager<AdminServiceInterface>(), RpcSerializersModules)
+    applyRoutes(getServiceManager<AppSettingsServiceInterface>(), RpcSerializersModules)
 }

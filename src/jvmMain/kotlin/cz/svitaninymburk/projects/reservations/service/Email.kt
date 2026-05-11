@@ -8,6 +8,7 @@ import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.error.EmailError
 import cz.svitaninymburk.projects.reservations.i18n.emailStringsFor
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
+import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -32,8 +33,7 @@ import kotlin.uuid.Uuid
 
 
 class GmailEmailService(
-    private val username: String,
-    private val appPassword: String,
+    private val settings: AppSettingsProvider,
     private val appBaseUrl: String,
     private val eventRepository: EventInstanceRepository,
 ) : EmailService, LectorEmailService {
@@ -47,15 +47,15 @@ class GmailEmailService(
         }
     }
 
-    private fun setupEmail() : HtmlEmail {
+    private fun setupEmail(): HtmlEmail {
+        val s = settings.current
         val email = HtmlEmail()
         email.hostName = "smtp.gmail.com"
         email.setSslSmtpPort("465")
-        email.setAuthenticator(DefaultAuthenticator(username, appPassword))
+        email.setAuthenticator(DefaultAuthenticator(s.senderEmail, s.gmailAppPassword))
         email.isSSLOnConnect = true
         email.setCharset("UTF-8")
-
-        email.setFrom(username, "Rodinné centrum Svítání")
+        email.setFrom(s.senderEmail, s.senderDisplayName)
         return email
     }
 

@@ -2,6 +2,7 @@ package cz.svitaninymburk.projects.reservations.service
 
 import cz.svitaninymburk.projects.reservations.qr.QrCodeService
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import qrcode.QRCode
 import qrcode.color.Colors
 
@@ -9,12 +10,15 @@ import qrcode.color.Colors
  * Služba specifická pro JVM Backend (Emailing).
  * Používá AWT (Java Graphics) pro vyrenderování PNG obrázku.
  */
-class BackendQrCodeGenerator(private val qrCodeService: QrCodeService) {
-    val accountNumber get() = qrCodeService.accountNumber
+class BackendQrCodeGenerator(
+    private val qrCodeService: QrCodeService,
+    private val settings: AppSettingsProvider,
+) {
+    val accountNumber get() = settings.current.bankAccountNumber
 
     fun generateQrPng(reservation: Reservation): ByteArray {
         val spaydContent = qrCodeService.generateSpaydString(
-            accountNumber = qrCodeService.accountNumber,
+            accountNumber = accountNumber,
             amount = reservation.totalPrice,
             vs = reservation.variableSymbol?.filter { it.isDigit() }?.take(10),
             message = "Rezervace ${reservation.reference.id}"
