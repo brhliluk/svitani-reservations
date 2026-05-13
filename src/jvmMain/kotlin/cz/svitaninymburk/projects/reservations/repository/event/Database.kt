@@ -160,6 +160,18 @@ class ExposedEventDefinitionRepository : EventDefinitionRepository {
         query.map { it.toEventDefinition() }
     }
 
+    override suspend fun findAllPaged(page: Int, pageSize: Int): List<EventDefinition> = dbQuery {
+        EventDefinitionsTable.selectAll()
+            .orderBy(EventDefinitionsTable.title, SortOrder.ASC)
+            .limit(pageSize)
+            .offset(page.toLong() * pageSize)
+            .map { it.toEventDefinition() }
+    }
+
+    override suspend fun countAll(): Long = dbQuery {
+        EventDefinitionsTable.selectAll().count()
+    }
+
     override suspend fun create(event: EventDefinition): EventDefinition = dbQuery {
         EventDefinitionsTable.insert { row ->
             row[id] = event.id
@@ -212,6 +224,15 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             query.where { EventSeriesTable.id inList seriesIds }
         }
         query.map { it.toEventSeries() }
+    }
+
+    override suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventSeries> {
+        if (definitionIds.isEmpty()) return emptyList()
+        return dbQuery {
+            EventSeriesTable.selectAll()
+                .where { EventSeriesTable.definitionId inList definitionIds }
+                .map { it.toEventSeries() }
+        }
     }
 
     override suspend fun create(series: EventSeries): EventSeries = dbQuery {
@@ -302,6 +323,30 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             query.where { EventInstancesTable.id inList eventIds }
         }
         query.map { it.toEventInstance() }
+    }
+
+    override suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventInstance> {
+        if (definitionIds.isEmpty()) return emptyList()
+        return dbQuery {
+            EventInstancesTable.selectAll()
+                .where { EventInstancesTable.definitionId inList definitionIds }
+                .map { it.toEventInstance() }
+        }
+    }
+
+    override suspend fun findBySeriesPaged(seriesId: Uuid, page: Int, pageSize: Int): List<EventInstance> = dbQuery {
+        EventInstancesTable.selectAll()
+            .where { EventInstancesTable.seriesId eq seriesId }
+            .orderBy(EventInstancesTable.startDateTime, SortOrder.ASC)
+            .limit(pageSize)
+            .offset(page.toLong() * pageSize)
+            .map { it.toEventInstance() }
+    }
+
+    override suspend fun countBySeries(seriesId: Uuid): Long = dbQuery {
+        EventInstancesTable.selectAll()
+            .where { EventInstancesTable.seriesId eq seriesId }
+            .count()
     }
 
     override suspend fun create(instance: EventInstance): EventInstance = dbQuery {

@@ -11,6 +11,9 @@ import cz.svitaninymburk.projects.reservations.repository.payment.PaymentEventRe
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.error.AdminError
+import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
+import cz.svitaninymburk.projects.reservations.admin.EventsPage
+import cz.svitaninymburk.projects.reservations.admin.SeriesInstancesPage
 import cz.svitaninymburk.projects.reservations.admin.PaymentEventsPage
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
 import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
@@ -210,22 +213,14 @@ class AdminDashboardService(
         )
     }
 
-    override suspend fun getAllReservations(searchQuery: String?): Either<AdminError.GetReservations, List<AdminReservationListItem>> = either {
+    override suspend fun getAllReservations(searchQuery: String?, page: Int, pageSize: Int): Either<AdminError.GetReservations, ReservationsPage> = either {
+        ensure(page >= 0) { AdminError.FailedToGetReservations("Neplatná stránka.") }
+        ensure(pageSize in 1..200) { AdminError.FailedToGetReservations("Neplatná velikost stránky.") }
         try {
-            var reservations = reservationRepository.findAll()
+            val reservations = reservationRepository.findAllPaged(searchQuery, page, pageSize)
+            val totalCount = reservationRepository.countAll(searchQuery)
 
-            if (!searchQuery.isNullOrBlank()) {
-                val query = searchQuery.lowercase()
-                reservations = reservations.filter {
-                    it.contactName.lowercase().contains(query) ||
-                            it.contactEmail.lowercase().contains(query) ||
-                            it.variableSymbol?.lowercase()?.contains(query) == true
-                }
-            }
-
-            val sortedReservations = reservations.sortedByDescending { it.createdAt }
-
-            sortedReservations.map { res ->
+            val items = reservations.map { res ->
                 var eventTitle = "Neznámá událost"
                 var eventDate = ""
                 var customFields: List<CustomFieldDefinition> = emptyList()
@@ -266,17 +261,24 @@ class AdminDashboardService(
                     customValues = res.customValues,
                 )
             }
+
+            ReservationsPage(items = items, page = page, pageSize = pageSize, totalCount = totalCount)
         } catch (e: Exception) {
             e.printStackTrace()
             raise(AdminError.FailedToGetReservations("Nepodařilo se načíst seznam rezervací: ${e.message}"))
         }
     }
 
-    override suspend fun getAllEvents(): Either<AdminError.GetEvents, List<AdminEventListItem>> = either {
+    override suspend fun getAllEvents(page: Int, pageSize: Int): Either<AdminError.GetEvents, EventsPage> = either {
+        ensure(page >= 0) { AdminError.FailedToGetEvents("Neplatná stránka.") }
+        ensure(pageSize in 1..200) { AdminError.FailedToGetEvents("Neplatná velikost stránky.") }
         try {
-            val definitions = eventDefinitionRepository.getAll(null)
-            val series = eventSeriesRepository.getAll(null)
-            val allInstances = eventInstanceRepository.getAll(null)
+            val totalDefinitionCount = eventDefinitionRepository.countAll()
+            val definitions = eventDefinitionRepository.findAllPaged(page, pageSize)
+            val definitionIds = definitions.map { it.id }
+
+            val series = eventSeriesRepository.getAllByDefinitionIds(definitionIds)
+            val allInstances = eventInstanceRepository.getAllByDefinitionIds(definitionIds)
 
             val seriesDtos = series.map { s ->
                 AdminEventListItem(
@@ -319,8 +321,12 @@ class AdminDashboardService(
                 )
             }
 
-            (seriesDtos + instanceDtos + definitionDtos)
-
+            EventsPage(
+                items = seriesDtos + instanceDtos + definitionDtos,
+                page = page,
+                pageSize = pageSize,
+                totalDefinitionCount = totalDefinitionCount,
+            )
         } catch (e: Exception) {
             e.printStackTrace()
             raise(AdminError.FailedToGetEvents("Nepodařilo se načíst katalog událostí: ${e.message}"))
@@ -771,11 +777,13 @@ class AdminDashboardService(
         eventDefinitionRepository.delete(id)
     }
 
-    override suspend fun getSeriesInstances(seriesId: Uuid): Either<AdminError.GetInstances, List<EventInstance>> = either {
+    override suspend fun getSeriesInstances(seriesId: Uuid, page: Int, pageSize: Int): Either<AdminError.GetInstances, SeriesInstancesPage> = either {
+        ensure(page >= 0) { AdminError.GetInstances.Failed }
+        ensure(pageSize in 1..200) { AdminError.GetInstances.Failed }
         try {
-            eventInstanceRepository.getAll(null)
-                .filter { it.seriesId == seriesId }
-                .sortedBy { it.startDateTime }
+            val items = eventInstanceRepository.findBySeriesPaged(seriesId, page, pageSize)
+            val totalCount = eventInstanceRepository.countBySeries(seriesId)
+            SeriesInstancesPage(items = items, page = page, pageSize = pageSize, totalCount = totalCount)
         } catch (e: Exception) {
             e.printStackTrace()
             raise(AdminError.GetInstances.Failed)
