@@ -155,6 +155,7 @@ object CsStrings : AppStrings {
     override val paymentSourceAutoFio = "Automaticky"
     override val paymentSourceManualAdmin = "Manuálně"
     override val paymentTypeBankTransfer = "Bankovní převod"
+    override val paymentTypeCash = "Hotově"
     override val paymentTypeFree = "Zdarma"
     override val noPayments = "Zatím nebyly zaznamenány žádné platby."
     override val paginationPrevious = "Předchozí"

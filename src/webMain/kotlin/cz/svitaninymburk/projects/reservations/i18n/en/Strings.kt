@@ -155,6 +155,7 @@ object EnStrings : AppStrings {
     override val paymentSourceAutoFio = "Automatic"
     override val paymentSourceManualAdmin = "Manual"
     override val paymentTypeBankTransfer = "Bank transfer"
+    override val paymentTypeCash = "Cash"
     override val paymentTypeFree = "Free"
     override val noPayments = "No payments recorded yet."
     override val paginationPrevious = "Previous"

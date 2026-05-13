@@ -171,6 +171,7 @@ interface AppStrings : ErrorStrings {
     val paymentSourceAutoFio: String
     val paymentSourceManualAdmin: String
     val paymentTypeBankTransfer: String
+    val paymentTypeCash: String
     val paymentTypeFree: String
     val noPayments: String
     val paginationPrevious: String
