@@ -35,6 +35,7 @@ class AuthenticatedEventService(
                 defaultPrice = request.defaultPrice,
                 defaultCapacity = request.defaultCapacity,
                 defaultDuration = request.defaultDuration,
+                showAttendeeCount = request.showAttendeeCount,
             )
         )
     }
@@ -67,6 +68,7 @@ class AuthenticatedEventService(
                 price = request.price ?: eventDefinition.defaultPrice,
                 capacity = request.capacity ?: eventDefinition.defaultCapacity,
                 customFields = request.customFields.ifEmpty { eventDefinition.customFields },
+                showAttendeeCount = request.showAttendeeCount,
             )
         )
     }
