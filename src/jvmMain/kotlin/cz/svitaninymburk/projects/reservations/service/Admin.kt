@@ -6,9 +6,13 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
+import cz.svitaninymburk.projects.reservations.repository.payment.NewPaymentEvent
+import cz.svitaninymburk.projects.reservations.repository.payment.PaymentEventRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.error.AdminError
+import cz.svitaninymburk.projects.reservations.admin.PaymentEventsPage
+import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
 import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
@@ -49,6 +53,7 @@ class AdminDashboardService(
     private val reservationRepository: ReservationRepository,
     private val userRepository: UserRepository,
     private val emailService: EmailService,
+    private val paymentEventRepository: PaymentEventRepository,
 ): AdminServiceInterface {
 
     override suspend fun getDashboardSummary(): Either<AdminError.GetSummary, AdminDashboardData> = either {
@@ -125,6 +130,19 @@ class AdminDashboardService(
 
         if (!success) {
             raise(AdminError.FailedToMarkReservationPaid("Chyba při aktualizaci stavu v databázi."))
+        }
+
+        try {
+            paymentEventRepository.insert(
+                NewPaymentEvent(
+                    reservationId = reservationId,
+                    amount = reservation.totalPrice,
+                    type = reservation.paymentType,
+                    source = PaymentEvent.Source.MANUAL_ADMIN,
+                )
+            )
+        } catch (e: Exception) {
+            raise(AdminError.FailedToMarkReservationPaid("Chyba při záznamu platební události: ${e.message}"))
         }
 
         emailService.sendPaymentReceivedConfirmation(reservation)
@@ -788,5 +806,13 @@ class AdminDashboardService(
             e.printStackTrace()
             raise(AdminError.CancelLesson.Failed)
         }
+    }
+
+    override suspend fun getPaymentEvents(page: Int, pageSize: Int): Either<AdminError.GetPaymentEvents, PaymentEventsPage> = either {
+        ensure(page >= 0) { AdminError.FailedToGetPaymentEvents("Neplatná stránka.") }
+        ensure(pageSize in 1..200) { AdminError.FailedToGetPaymentEvents("Neplatná velikost stránky.") }
+        val items = paymentEventRepository.findAll(page, pageSize)
+        val total = paymentEventRepository.countAll()
+        PaymentEventsPage(items = items, page = page, pageSize = pageSize, totalCount = total)
     }
 }
