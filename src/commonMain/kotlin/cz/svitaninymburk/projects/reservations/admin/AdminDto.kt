@@ -2,6 +2,7 @@ package cz.svitaninymburk.projects.reservations.admin
 
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
+import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.user.User
@@ -82,3 +83,11 @@ data class AdminUserListItem(
     @Serializable
     enum class AuthType { EMAIL, GOOGLE }
 }
+
+@Serializable
+data class PaymentEventsPage(
+    val items: List<PaymentEvent>,
+    val page: Int,
+    val pageSize: Int,
+    val totalCount: Long,
+)
