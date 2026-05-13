@@ -52,6 +52,7 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
     var customFields by remember { mutableStateOf(listOf<CustomFieldDefinition>()) }
     var propagateToChildren by remember { mutableStateOf(false) }
     var lectorEmail by remember { mutableStateOf("") }
+    var showAttendeeCount by remember { mutableStateOf(true) }
 
     fun updateCustomField(index: Int, newField: CustomFieldDefinition) {
         customFields = customFields.toMutableList().apply { set(index, newField) }
@@ -72,6 +73,7 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
                 allowOnSite = def.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
                 customFields = def.customFields
                 lectorEmail = def.lectorEmail
+                showAttendeeCount = def.showAttendeeCount
                 uiState = EditDefinitionUiState.Loaded(def)
             }
             .onLeft { uiState = EditDefinitionUiState.Error(it.localizedMessage(currentStrings)) }
@@ -93,6 +95,7 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
             customFields = customFields,
             propagateToChildren = propagateToChildren,
             lectorEmail = lectorEmail,
+            showAttendeeCount = showAttendeeCount,
         )
         scope.launch {
             adminService.updateEventDefinition(uuid, request)
@@ -182,6 +185,18 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
                                         checkBox(value = allowOnSite, className = "checkbox checkbox-primary") { onChange { allowOnSite = value } }
                                         span(className = "label-text") { +currentStrings.paymentOnSite }
                                     }
+                                }
+                            }
+
+                            div(className = "form-control w-full md:col-span-2") {
+                                label(className = "label") {
+                                    span(className = "label-text font-medium") { +currentStrings.showAttendeeCount }
+                                }
+                                label(className = "cursor-pointer label justify-start gap-3") {
+                                    checkBox(value = showAttendeeCount, className = "checkbox checkbox-primary") {
+                                        onChange { showAttendeeCount = value }
+                                    }
+                                    span(className = "label-text text-sm text-base-content/70") { +currentStrings.showAttendeeCountHint }
                                 }
                             }
                         }
