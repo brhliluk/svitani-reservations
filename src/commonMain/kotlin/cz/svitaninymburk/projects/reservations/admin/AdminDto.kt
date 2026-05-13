@@ -2,6 +2,7 @@ package cz.svitaninymburk.projects.reservations.admin
 
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
+import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
@@ -87,6 +88,30 @@ data class AdminUserListItem(
 @Serializable
 data class PaymentEventsPage(
     val items: List<PaymentEvent>,
+    val page: Int,
+    val pageSize: Int,
+    val totalCount: Long,
+)
+
+@Serializable
+data class ReservationsPage(
+    val items: List<AdminReservationListItem>,
+    val page: Int,
+    val pageSize: Int,
+    val totalCount: Long,
+)
+
+@Serializable
+data class EventsPage(
+    val items: List<AdminEventListItem>,
+    val page: Int,
+    val pageSize: Int,
+    val totalDefinitionCount: Long,
+)
+
+@Serializable
+data class SeriesInstancesPage(
+    val items: List<EventInstance>,
     val page: Int,
     val pageSize: Int,
     val totalCount: Long,
