@@ -18,7 +18,13 @@ class InMemoryEventDefinitionRepository : EventDefinitionRepository {
         else events.filterKeys { it in definitionIds }.values.toList()
     }
 
-    
+    override suspend fun findAllPaged(page: Int, pageSize: Int): List<EventDefinition> =
+        events.values.sortedBy { it.title }
+                     .drop(page * pageSize)
+                     .take(pageSize)
+
+    override suspend fun countAll(): Long = events.size.toLong()
+
     override suspend fun create(event: EventDefinition): EventDefinition {
         val id = event.id
         val newEvent = event.copy(id = id)
@@ -52,6 +58,19 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
         return if (eventIds == null) instances.values.toList()
         else instances.filterKeys { it in eventIds }.values.toList()
     }
+
+    override suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventInstance> =
+        instances.values.filter { it.definitionId in definitionIds }.toList()
+
+    override suspend fun findBySeriesPaged(seriesId: Uuid, page: Int, pageSize: Int): List<EventInstance> =
+        instances.values
+            .filter { it.seriesId == seriesId }
+            .sortedBy { it.startDateTime }
+            .drop(page * pageSize)
+            .take(pageSize)
+
+    override suspend fun countBySeries(seriesId: Uuid): Long =
+        instances.values.count { it.seriesId == seriesId }.toLong()
 
     override suspend fun create(instance: EventInstance): EventInstance {
         val id = instance.id
@@ -119,6 +138,9 @@ class InMemoryEventSeriesRepository : EventSeriesRepository {
         return if (seriesIds == null) instances.values.toList()
         else instances.filterKeys { it in seriesIds }.values.toList()
     }
+
+    override suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventSeries> =
+        instances.values.filter { it.definitionId in definitionIds }.toList()
 
     override suspend fun create(series: EventSeries): EventSeries {
         val id = series.id
