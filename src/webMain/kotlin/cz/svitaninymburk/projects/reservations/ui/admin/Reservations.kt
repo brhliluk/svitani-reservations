@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
+import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
@@ -31,12 +32,15 @@ import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.ceil
 import kotlin.uuid.Uuid
+
+private const val PAGE_SIZE = 20
 
 // UI Stavy
 private sealed interface AdminReservationsUiState {
     data object Loading : AdminReservationsUiState
-    data class Success(val data: List<AdminReservationListItem>) : AdminReservationsUiState
+    data class Success(val data: ReservationsPage) : AdminReservationsUiState
     data class Error(val message: String) : AdminReservationsUiState
 }
 
@@ -54,15 +58,17 @@ fun IComponent.AdminReservationsScreen() {
     // Stavy pro vyhledávání
     var searchInput by remember { mutableStateOf("") }
     var activeSearchQuery by remember { mutableStateOf<String?>(null) }
+    var page by remember { mutableStateOf(0) }
 
-    // Načítání dat (reaguje na refreshTrigger i na změnu activeSearchQuery)
+    // Načítání dat (reaguje na refreshTrigger, na změnu activeSearchQuery a na page)
     val uiState by produceState<AdminReservationsUiState>(
         initialValue = AdminReservationsUiState.Loading,
         key1 = refreshTrigger,
-        key2 = activeSearchQuery
+        key2 = activeSearchQuery,
+        key3 = page,
     ) {
         value = AdminReservationsUiState.Loading
-        adminService.getAllReservations(activeSearchQuery)
+        adminService.getAllReservations(activeSearchQuery, page, PAGE_SIZE)
             .onRight { value = AdminReservationsUiState.Success(it) }
             .onLeft { value = AdminReservationsUiState.Error(it.localizedMessage(currentStrings)) }
     }
@@ -86,12 +92,18 @@ fun IComponent.AdminReservationsScreen() {
                         placeholder(currentStrings.searchPlaceholder)
                         onInput { searchInput = value ?: "" }
                         onKeyup { event ->
-                            if (event.key == "Enter") activeSearchQuery = searchInput.takeIf { it.isNotBlank() }
+                            if (event.key == "Enter") {
+                                activeSearchQuery = searchInput.takeIf { it.isNotBlank() }
+                                page = 0
+                            }
                         }
                     }
                 }
                 button(className = "btn btn-primary") {
-                    onClick { activeSearchQuery = searchInput.takeIf { it.isNotBlank() } }
+                    onClick {
+                        activeSearchQuery = searchInput.takeIf { it.isNotBlank() }
+                        page = 0
+                    }
                     +currentStrings.search
                 }
                 if (!activeSearchQuery.isNullOrBlank()) {
@@ -100,6 +112,7 @@ fun IComponent.AdminReservationsScreen() {
                         onClick {
                             searchInput = ""
                             activeSearchQuery = null
+                            page = 0
                         }
                         span(className = "icon-[heroicons--x-mark] size-5")
                     }
@@ -118,6 +131,7 @@ fun IComponent.AdminReservationsScreen() {
             }
             is AdminReservationsUiState.Success -> {
                 val data = state.data
+                val totalPages = maxOf(1, ceil(data.totalCount.toDouble() / PAGE_SIZE).toInt())
 
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body p-0") {
@@ -135,7 +149,7 @@ fun IComponent.AdminReservationsScreen() {
                                     }
                                 }
                                 tbody {
-                                    if (data.isEmpty()) {
+                                    if (data.items.isEmpty()) {
                                         tr {
                                             td {
                                                 attribute("colspan", "7")
@@ -146,7 +160,7 @@ fun IComponent.AdminReservationsScreen() {
                                             }
                                         }
                                     } else {
-                                        data.forEach { res ->
+                                        data.items.forEach { res ->
                                             val isPaid = res.status == Reservation.Status.CONFIRMED
                                             val isCash = res.paymentType == PaymentInfo.Type.ON_SITE
                                             val isExpanded = expandedId == res.id
@@ -245,6 +259,25 @@ fun IComponent.AdminReservationsScreen() {
                         }
                     }
                 }
+
+                // --- 3. PAGINATION ---
+                if (data.totalCount > PAGE_SIZE) {
+                    div(className = "flex items-center justify-center gap-4 mt-4") {
+                        button(className = "btn btn-outline btn-sm") {
+                            disabled(page == 0)
+                            onClick { if (page > 0) page-- }
+                            +currentStrings.paginationPrevious
+                        }
+                        span(className = "text-sm text-base-content/70") {
+                            +currentStrings.paginationPageOf(page + 1, totalPages)
+                        }
+                        button(className = "btn btn-outline btn-sm") {
+                            disabled(page >= totalPages - 1)
+                            onClick { if (page < totalPages - 1) page++ }
+                            +currentStrings.paginationNext
+                        }
+                    }
+                }
             }
         }
     }
@@ -277,6 +310,7 @@ fun IComponent.AdminReservationsScreen() {
                                         .onRight {
                                             toastData = ToastData(currentStrings.toastPaymentConfirmed(action.participantName), ToastType.Success)
                                             refreshTrigger++
+                                            page = 0
                                         }
                                         .onLeft { error -> toastData = ToastData(currentStrings.errorToast(error.toString()), ToastType.Error) }
                                 } else {
