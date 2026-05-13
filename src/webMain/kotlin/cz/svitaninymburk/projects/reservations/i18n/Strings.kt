@@ -210,6 +210,8 @@ interface AppStrings : ErrorStrings {
     val createTemplateButton: String
     val errorToast: (String) -> String
     val toastTemplatesLoadError: (String) -> String
+    val showAttendeeCount: String
+    val showAttendeeCountHint: String
 
     // Event Definition Form
     val eventNameLabel: String
