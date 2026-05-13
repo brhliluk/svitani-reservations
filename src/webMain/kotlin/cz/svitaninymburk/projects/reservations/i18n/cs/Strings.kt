@@ -194,6 +194,8 @@ object CsStrings : AppStrings {
     override val createTemplateButton = "Vytvořit šablonu"
     override val errorToast: (String) -> String = { "Chyba: $it" }
     override val toastTemplatesLoadError: (String) -> String = { "Chyba při načítání šablon: $it" }
+    override val showAttendeeCount = "Zobrazovat počet účastníků veřejnosti"
+    override val showAttendeeCountHint = "Pokud je vypnuto, počet přihlášených účastníků nebude veřejně zobrazen."
 
     // Event Definition Form
     override val eventNameLabel = "Název (např. Jóga pro začátečníky)"
