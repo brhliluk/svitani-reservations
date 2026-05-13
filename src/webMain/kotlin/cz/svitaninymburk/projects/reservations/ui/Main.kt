@@ -28,6 +28,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.AdminLayout
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminReservationsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminSettingsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminUsersScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminPaymentsScreen
 import cz.svitaninymburk.projects.reservations.ui.auth.ResetPasswordScreen
 import cz.svitaninymburk.projects.reservations.ui.dashboard.DashboardScreen
 import cz.svitaninymburk.projects.reservations.ui.dashboard.MyReservationsScreen
@@ -218,6 +219,13 @@ fun IComponent.MainLayout() {
                     view {
                         AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                             AdminSettingsScreen()
+                        }
+                    }
+                }
+                route("/payments") {
+                    view {
+                        AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                            AdminPaymentsScreen()
                         }
                     }
                 }
