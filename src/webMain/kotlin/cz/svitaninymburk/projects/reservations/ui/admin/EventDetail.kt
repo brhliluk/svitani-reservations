@@ -66,8 +66,8 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
         if (isSeries) {
             try {
                 val uuid = Uuid.parse(eventId)
-                adminService.getSeriesInstances(uuid)
-                    .onRight { value = it }
+                adminService.getSeriesInstances(uuid, page = 0, pageSize = 200)
+                    .onRight { value = it.items }
                     .onLeft { value = emptyList() }
             } catch (_: Exception) { value = emptyList() }
         }
