@@ -8,6 +8,8 @@ import cz.svitaninymburk.projects.reservations.qr.QrCodeService
 import cz.svitaninymburk.projects.reservations.repository.auth.ExposedRefreshTokenRepository
 import cz.svitaninymburk.projects.reservations.repository.auth.InMemoryRefreshTokenRepository
 import cz.svitaninymburk.projects.reservations.repository.auth.RefreshTokenRepository
+import cz.svitaninymburk.projects.reservations.repository.payment.ExposedPaymentEventRepository
+import cz.svitaninymburk.projects.reservations.repository.payment.PaymentEventRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
@@ -77,6 +79,7 @@ val appModule = module {
 
     // Reservations
     single<ReservationRepository> { ExposedReservationRepository() }
+    single<PaymentEventRepository> { ExposedPaymentEventRepository() }
 
     // Settings
     single { ExposedAppSettingsRepository() } bind AppSettingsRepository::class

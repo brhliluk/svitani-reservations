@@ -6,6 +6,7 @@ import cz.svitaninymburk.projects.reservations.repository.auth.RefreshTokensTabl
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionsTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstancesTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesTable
+import cz.svitaninymburk.projects.reservations.repository.payment.PaymentEventsTable
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationsTable
 import cz.svitaninymburk.projects.reservations.repository.settings.AppSettingsTable
 import cz.svitaninymburk.projects.reservations.repository.user.UsersTable
@@ -35,7 +36,8 @@ fun Application.configureDatabases() {
             EventSeriesTable,
             EventInstancesTable,
             ReservationsTable,
-            AppSettingsTable
+            AppSettingsTable,
+            PaymentEventsTable
         )
         MigrationUtils.statementsRequiredForDatabaseMigration(
             UsersTable,
@@ -45,6 +47,7 @@ fun Application.configureDatabases() {
             EventInstancesTable,
             ReservationsTable,
             AppSettingsTable,
+            PaymentEventsTable,
             withLogs = false
         ).forEach { exec(it) }
     }
