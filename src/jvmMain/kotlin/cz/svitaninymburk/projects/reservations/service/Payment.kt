@@ -91,14 +91,18 @@ class PaymentPairingService(
         )
         reservationRepo.save(paidReservation)
 
-        paymentEventRepository.insert(
-            NewPaymentEvent(
-                reservationId = reservation.id,
-                amount = transaction.amount,
-                type = PaymentInfo.Type.BANK_TRANSFER,
-                source = PaymentEvent.Source.AUTO_FIO,
+        runCatching {
+            paymentEventRepository.insert(
+                NewPaymentEvent(
+                    reservationId = reservation.id,
+                    amount = transaction.amount,
+                    type = PaymentInfo.Type.BANK_TRANSFER,
+                    source = PaymentEvent.Source.AUTO_FIO,
+                )
             )
-        )
+        }.onFailure { e ->
+            println("WARNING: Failed to record payment event for FIO transaction ${transaction.remoteId}: ${e.message}")
+        }
 
         emailService.sendPaymentReceivedConfirmation(paidReservation)
             .onLeft { logger.error("⚠️ Failed to send payment-received email for reservation ${paidReservation.id} (VS $vs): $it") }
