@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -189,10 +190,10 @@ tasks.register("deploy") {
     dependsOn("jarWithJs")
 
     doLast {
-        val localProps = java.util.Properties().apply {
+        val localProps = Properties().apply {
             val f = rootDir.resolve("local.properties")
             check(f.exists()) { "local.properties not found — add deploy.host and deploy.sshKey" }
-            f.inputStream().use(::load)
+            f.inputStream().use { load(it) }
         }
         val host = localProps.getProperty("deploy.host")
             ?: error("deploy.host missing from local.properties")
@@ -201,8 +202,13 @@ tasks.register("deploy") {
         ).absolutePath
         val jar = "${layout.buildDirectory.get()}/libs/reservations.jar"
 
-        exec { commandLine("scp", "-i", sshKey, jar, "$host:/opt/reservations/reservations.jar") }
-        exec { commandLine("ssh", "-i", sshKey, host, "sudo systemctl restart reservations") }
+        fun run(vararg cmd: String) {
+            val exit = ProcessBuilder(*cmd).inheritIO().start().waitFor()
+            check(exit == 0) { "Command failed (exit $exit): ${cmd.joinToString(" ")}" }
+        }
+
+        run("scp", "-i", sshKey, jar, "$host:/opt/reservations/reservations.jar")
+        run("ssh", "-i", sshKey, host, "sudo systemctl restart reservations")
         println("Deployed successfully. Service restarted.")
     }
 }

@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.reservation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import cz.svitaninymburk.projects.reservations.event.BooleanFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.BooleanValue
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
@@ -11,6 +12,8 @@ import cz.svitaninymburk.projects.reservations.event.TextFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TextValue
 import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
+import cz.svitaninymburk.projects.reservations.i18n.strings
+import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
 import dev.kilua.form.NumberFormControl
@@ -38,7 +41,8 @@ import kotlin.time.Instant
 @Composable
 fun IComponent.renderCustomField(
     field: CustomFieldDefinition,
-    stateMap: MutableMap<String, CustomFieldValue>
+    stateMap: MutableMap<String, CustomFieldValue>,
+    target: ReservationTarget? = null,
 ) {
     when (field) {
         // --- TEXT ---
@@ -92,16 +96,36 @@ fun IComponent.renderCustomField(
 
         // --- TIME RANGE (Od - Do) ---
         is TimeRangeFieldDefinition -> {
+            val currentStrings by strings
             var currentPair = (stateMap[field.key] as? TimeRangeValue).run { this?.from to this?.to }
+
+            val minTime = target?.startDateTime?.time
+            val maxTime = target?.endDateTime?.time
+            val hasInteracted = stateMap[field.key] != null
+            val isRangeValid = if (hasInteracted) {
+                val range = stateMap[field.key] as? TimeRangeValue
+                range != null && range.from < range.to
+                        && (minTime == null || range.from in minTime..(maxTime ?: range.from))
+                        && (maxTime == null || range.to in (minTime ?: range.to)..maxTime)
+            } else true
 
             div(className = "form-control w-full") {
                 div(className = "label") {
-                    span(className = "label-text") { +field.label }
+                    div(className = "flex flex-col gap-0.5") {
+                        span(className = "label-text") { +field.label }
+                        if (minTime != null && maxTime != null) {
+                            span(className = "label-text-alt text-base-content/60") {
+                                +currentStrings.timeRangeHint(minTime.toString(), maxTime.toString())
+                            }
+                        }
+                    }
                 }
                 div(className = "flex gap-2 items-center") {
                     // OD
-                    text(value = currentPair.first?.toString(), type = InputType.Time, className = "input input-bordered w-1/2") {
+                    text(value = currentPair.first?.toString(), type = InputType.Time, className = "input input-bordered w-1/2${if (hasInteracted && !isRangeValid) " input-error" else ""}") {
                         required(field.isRequired)
+                        minTime?.let { attribute("min", it.toString()) }
+                        maxTime?.let { attribute("max", it.toString()) }
                         onInput {
                             this.value?.let {
                                 currentPair = currentPair.copy(first = it.toLocalTime())
@@ -111,13 +135,22 @@ fun IComponent.renderCustomField(
                     }
                     span { +"-" }
                     // DO
-                    text(value = currentPair.second?.toString(), type = InputType.Time, className = "input input-bordered w-1/2") {
+                    text(value = currentPair.second?.toString(), type = InputType.Time, className = "input input-bordered w-1/2${if (hasInteracted && !isRangeValid) " input-error" else ""}") {
                         required(field.isRequired)
+                        minTime?.let { attribute("min", it.toString()) }
+                        maxTime?.let { attribute("max", it.toString()) }
                         onInput {
                             this.value?.let {
                                 currentPair = currentPair.copy(second = it.toLocalTime())
                                 stateMap[field.key] = TimeRangeValue(field.key, currentPair.first ?: it.toLocalTime(), it.toLocalTime())
                             }
+                        }
+                    }
+                }
+                if (hasInteracted && !isRangeValid) {
+                    div(className = "label pt-0") {
+                        span(className = "label-text-alt text-error") {
+                            +currentStrings.timeRangeError
                         }
                     }
                 }

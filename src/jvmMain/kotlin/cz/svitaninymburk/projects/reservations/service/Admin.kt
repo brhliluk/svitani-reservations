@@ -698,13 +698,13 @@ class AdminDashboardService(
     }
 
     override suspend fun deleteEventInstance(id: Uuid): Either<AdminError.DeleteEvent, Unit> = either {
-        ensureNotNull(eventInstanceRepository.get(id)) { AdminError.InstanceNotFoundForEdit(id) }
+        val instance = ensureNotNull(eventInstanceRepository.get(id)) { AdminError.InstanceNotFoundForEdit(id) }
 
         reservationRepository.findByReference(Reference.Instance(id))
             .filter { it.status != Reservation.Status.CANCELLED }
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                emailService.sendCancellationNotice(res.contactEmail, res.id)
+                emailService.sendCancellationNotice(res.contactEmail, instance.title)
                     .onLeft { println("⚠️ Failed to send cancellation email for ${res.id}: $it") }
             }
 
@@ -712,13 +712,13 @@ class AdminDashboardService(
     }
 
     override suspend fun deleteEventSeries(id: Uuid): Either<AdminError.DeleteSeries, Unit> = either {
-        ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
+        val series = ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
 
         reservationRepository.findByReference(Reference.Series(id))
             .filter { it.status != Reservation.Status.CANCELLED }
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                emailService.sendCancellationNotice(res.contactEmail, res.id)
+                emailService.sendCancellationNotice(res.contactEmail, series.title)
                     .onLeft { println("⚠️ Failed to send cancellation email for ${res.id}: $it") }
             }
 
@@ -731,22 +731,22 @@ class AdminDashboardService(
         val childInstances = eventInstanceRepository.getAll(null).filter { it.definitionId == id }
         val childSeries = eventSeriesRepository.getAll(null).filter { it.definitionId == id }
 
-        suspend fun cancelReservations(reference: Reference) {
+        suspend fun cancelReservations(reference: Reference, eventTitle: String) {
             reservationRepository.findByReference(reference)
                 .filter { it.status != Reservation.Status.CANCELLED }
                 .forEach { res ->
                     reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                    emailService.sendCancellationNotice(res.contactEmail, res.id)
+                    emailService.sendCancellationNotice(res.contactEmail, eventTitle)
                         .onLeft { println("⚠️ Failed to send cancellation email for ${res.id}: $it") }
                 }
         }
 
         childInstances.forEach { instance ->
-            cancelReservations(Reference.Instance(instance.id))
+            cancelReservations(Reference.Instance(instance.id), instance.title)
             eventInstanceRepository.delete(instance.id)
         }
         childSeries.forEach { series ->
-            cancelReservations(Reference.Series(series.id))
+            cancelReservations(Reference.Series(series.id), series.title)
             eventSeriesRepository.delete(series.id)
         }
 

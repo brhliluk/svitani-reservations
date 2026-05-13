@@ -107,6 +107,8 @@ object CsStrings : AppStrings {
     override val onSite = "Hotově na místě"
     override val cancel = "Zrušit"
     override val close = "zavřít"
+    override val timeRangeHint: (String, String) -> String = { from, to -> "Rozsah: $from–$to" }
+    override val timeRangeError = "Čas je mimo povolený rozsah"
 
     // Calendar
     override val more: (Int) -> String = { "+$it další" }

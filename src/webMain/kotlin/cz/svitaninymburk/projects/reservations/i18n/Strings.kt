@@ -123,6 +123,8 @@ interface AppStrings : ErrorStrings {
     val onSite: String
     val cancel: String
     val close: String
+    val timeRangeHint: (String, String) -> String
+    val timeRangeError: String
 
     // Calendar
     val more: (Int) -> String
