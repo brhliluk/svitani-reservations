@@ -143,6 +143,24 @@ object CsStrings : AppStrings {
     override val navUsers = "Uživatelé"
     override val logOut = "Odhlásit se"
 
+    // Admin Payments Screen
+    override val navPayments = "Platby"
+    override val allPayments = "Zpracované platby"
+    override val paymentsSubtitle = "Přehled všech zaznamenaných plateb"
+    override val tableHeaderProcessedAt = "Datum a čas"
+    override val tableHeaderContactName = "Rezervace"
+    override val tableHeaderAmount = "Částka"
+    override val tableHeaderPaymentType = "Typ platby"
+    override val tableHeaderPaymentSource = "Zdroj"
+    override val paymentSourceAutoFio = "Automaticky"
+    override val paymentSourceManualAdmin = "Manuálně"
+    override val paymentTypeBankTransfer = "Bankovní převod"
+    override val paymentTypeFree = "Zdarma"
+    override val noPayments = "Zatím nebyly zaznamenány žádné platby."
+    override val paginationPrevious = "Předchozí"
+    override val paginationNext = "Další"
+    override val paginationPageOf: (Int, Int) -> String = { current, total -> "Strana $current z $total" }
+
     // Admin Events Screen
     override val adminEventsSubtitle = "Správa katalogu a otevírání nových termínů"
     override val createNew = "Vytvořit novou"
