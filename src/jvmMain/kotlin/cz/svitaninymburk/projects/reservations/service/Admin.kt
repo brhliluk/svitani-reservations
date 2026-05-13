@@ -132,7 +132,7 @@ class AdminDashboardService(
             raise(AdminError.FailedToMarkReservationPaid("Chyba při aktualizaci stavu v databázi."))
         }
 
-        try {
+        runCatching {
             paymentEventRepository.insert(
                 NewPaymentEvent(
                     reservationId = reservationId,
@@ -141,8 +141,8 @@ class AdminDashboardService(
                     source = PaymentEvent.Source.MANUAL_ADMIN,
                 )
             )
-        } catch (e: Exception) {
-            raise(AdminError.FailedToMarkReservationPaid("Chyba při záznamu platební události: ${e.message}"))
+        }.onFailure { e ->
+            println("WARNING: Failed to record payment event for reservation $reservationId: ${e.message}")
         }
 
         emailService.sendPaymentReceivedConfirmation(reservation)
