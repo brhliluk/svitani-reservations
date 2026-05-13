@@ -226,10 +226,13 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
         query.map { it.toEventSeries() }
     }
 
-    override suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventSeries> = dbQuery {
-        EventSeriesTable.selectAll()
-            .where { EventSeriesTable.definitionId inList definitionIds }
-            .map { it.toEventSeries() }
+    override suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventSeries> {
+        if (definitionIds.isEmpty()) return emptyList()
+        return dbQuery {
+            EventSeriesTable.selectAll()
+                .where { EventSeriesTable.definitionId inList definitionIds }
+                .map { it.toEventSeries() }
+        }
     }
 
     override suspend fun create(series: EventSeries): EventSeries = dbQuery {
@@ -322,10 +325,13 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
         query.map { it.toEventInstance() }
     }
 
-    override suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventInstance> = dbQuery {
-        EventInstancesTable.selectAll()
-            .where { EventInstancesTable.definitionId inList definitionIds }
-            .map { it.toEventInstance() }
+    override suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventInstance> {
+        if (definitionIds.isEmpty()) return emptyList()
+        return dbQuery {
+            EventInstancesTable.selectAll()
+                .where { EventInstancesTable.definitionId inList definitionIds }
+                .map { it.toEventInstance() }
+        }
     }
 
     override suspend fun findBySeriesPaged(seriesId: Uuid, page: Int, pageSize: Int): List<EventInstance> = dbQuery {
