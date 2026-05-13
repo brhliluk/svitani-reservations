@@ -18,6 +18,10 @@ import cz.svitaninymburk.projects.reservations.repository.payment.InMemoryPaymen
 import cz.svitaninymburk.projects.reservations.repository.payment.NewPaymentEvent
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
 import cz.svitaninymburk.projects.reservations.admin.PaymentEventsPage
+import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
+import cz.svitaninymburk.projects.reservations.admin.EventsPage
+import cz.svitaninymburk.projects.reservations.admin.SeriesInstancesPage
+import arrow.core.getOrNull
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -595,5 +599,159 @@ class PaymentEventSpec {
         page0.onRight { assertEquals(3, it.items.size) }
         page1.onRight { assertEquals(2, it.items.size) }
         Unit
+    }
+}
+
+class PaginationSpec {
+
+    private fun makeService(
+        defRepo: InMemoryEventDefinitionRepository = InMemoryEventDefinitionRepository(),
+        instanceRepo: InMemoryEventInstanceRepository = InMemoryEventInstanceRepository(),
+        seriesRepo: InMemoryEventSeriesRepository = InMemoryEventSeriesRepository(),
+        reservationRepo: InMemoryReservationRepository = InMemoryReservationRepository(),
+    ) = AdminDashboardService(
+        eventDefinitionRepository = defRepo,
+        eventSeriesRepository = seriesRepo,
+        eventInstanceRepository = instanceRepo,
+        reservationRepository = reservationRepo,
+        userRepository = InMemoryUserRepository(),
+        emailService = ConsoleEmailService(),
+        paymentEventRepository = InMemoryPaymentEventRepository(),
+    )
+
+    private fun makeDefinition(title: String = "Def", id: Uuid = Uuid.random()) = EventDefinition(
+        id = id,
+        title = title,
+        description = "",
+        defaultPrice = 100.0,
+        defaultCapacity = 10,
+        defaultDuration = kotlin.time.Duration.parse("1h"),
+        allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+        customFields = emptyList(),
+        lectorEmail = "",
+    )
+
+    private fun makeReservation(
+        id: Uuid = Uuid.random(),
+        contactName: String = "Jan Novák",
+        contactEmail: String = "jan@example.com",
+        vs: String? = null,
+    ) = Reservation(
+        id = id,
+        reference = Reference.Instance(Uuid.random()),
+        registeredUserId = null,
+        contactName = contactName,
+        contactEmail = contactEmail,
+        contactPhone = null,
+        seatCount = 1,
+        totalPrice = 100.0,
+        paidAmount = 0.0,
+        status = Reservation.Status.PENDING_PAYMENT,
+        createdAt = kotlin.time.Clock.System.now(),
+        customValues = emptyMap(),
+        paymentType = PaymentInfo.Type.BANK_TRANSFER,
+        variableSymbol = vs,
+        paymentPairingToken = null,
+        locale = "cs",
+    )
+
+    @Test
+    fun `getAllReservations returns page with totalCount`() = runBlocking {
+        val reservationRepo = InMemoryReservationRepository()
+        repeat(25) { i -> reservationRepo.save(makeReservation(contactName = "User $i")) }
+        val service = makeService(reservationRepo = reservationRepo)
+
+        val result = service.getAllReservations(null, 0, 20)
+        assertTrue(result.isRight())
+        val page = result.getOrNull()!!
+        assertEquals(20, page.items.size)
+        assertEquals(25L, page.totalCount)
+        assertEquals(0, page.page)
+        assertEquals(20, page.pageSize)
+    }
+
+    @Test
+    fun `getAllReservations second page returns remaining items`() = runBlocking {
+        val reservationRepo = InMemoryReservationRepository()
+        repeat(25) { i -> reservationRepo.save(makeReservation(contactName = "User $i")) }
+        val service = makeService(reservationRepo = reservationRepo)
+
+        val result = service.getAllReservations(null, 1, 20)
+        val page = result.getOrNull()!!
+        assertEquals(5, page.items.size)
+        assertEquals(25L, page.totalCount)
+    }
+
+    @Test
+    fun `getAllReservations filters by searchQuery`() = runBlocking {
+        val reservationRepo = InMemoryReservationRepository()
+        reservationRepo.save(makeReservation(contactName = "Jana Nováková"))
+        reservationRepo.save(makeReservation(contactName = "Petr Svoboda"))
+        val service = makeService(reservationRepo = reservationRepo)
+
+        val result = service.getAllReservations("jana", 0, 20)
+        val page = result.getOrNull()!!
+        assertEquals(1, page.items.size)
+        assertEquals(1L, page.totalCount)
+    }
+
+    @Test
+    fun `getAllEvents returns page with totalDefinitionCount`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        repeat(25) { i -> defRepo.create(makeDefinition(title = "Event $i")) }
+        val service = makeService(defRepo = defRepo)
+
+        val result = service.getAllEvents(0, 20)
+        assertTrue(result.isRight())
+        val page = result.getOrNull()!!
+        assertEquals(25L, page.totalDefinitionCount)
+        assertEquals(0, page.page)
+        // items contains 20 definition rows (no children)
+        assertEquals(20, page.items.filter { it.isDefinitionOnly }.size)
+    }
+
+    @Test
+    fun `getAllEvents second page returns remaining definitions`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        repeat(25) { i -> defRepo.create(makeDefinition(title = "Event $i")) }
+        val service = makeService(defRepo = defRepo)
+
+        val result = service.getAllEvents(1, 20)
+        val page = result.getOrNull()!!
+        assertEquals(5, page.items.filter { it.isDefinitionOnly }.size)
+    }
+
+    @Test
+    fun `getSeriesInstances returns page with totalCount`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesId = Uuid.random()
+        val defId = Uuid.random()
+        defRepo.create(makeDefinition(id = defId))
+        repeat(15) { i ->
+            instanceRepo.create(
+                EventInstance(
+                    id = Uuid.random(),
+                    definitionId = defId,
+                    seriesId = seriesId,
+                    title = "Lekce $i",
+                    description = "",
+                    startDateTime = LocalDateTime(2026, 1, i + 1, 10, 0),
+                    endDateTime = LocalDateTime(2026, 1, i + 1, 11, 0),
+                    price = 100.0,
+                    capacity = 10,
+                    allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                    customFields = emptyList(),
+                    lectorEmail = "",
+                )
+            )
+        }
+        val service = makeService(defRepo = defRepo, instanceRepo = instanceRepo)
+
+        val result = service.getSeriesInstances(seriesId, 0, 10)
+        assertTrue(result.isRight())
+        val page = result.getOrNull()!!
+        assertEquals(10, page.items.size)
+        assertEquals(15L, page.totalCount)
     }
 }
