@@ -21,7 +21,6 @@ import cz.svitaninymburk.projects.reservations.admin.PaymentEventsPage
 import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
 import cz.svitaninymburk.projects.reservations.admin.EventsPage
 import cz.svitaninymburk.projects.reservations.admin.SeriesInstancesPage
-import arrow.core.getOrNull
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
