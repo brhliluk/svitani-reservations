@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
+import cz.svitaninymburk.projects.reservations.admin.EventsPage
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
@@ -23,12 +24,16 @@ import dev.kilua.core.IComponent
 import dev.kilua.form.form
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
+import kotlin.math.ceil
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.launch
 
+private const val DEFINITIONS_PAGE_SIZE = 20
+private const val CHILDREN_PAGE_SIZE = 10
+
 private sealed interface AdminEventsUiState {
     data object Loading : AdminEventsUiState
-    data class Success(val data: List<AdminEventListItem>) : AdminEventsUiState
+    data class Success(val data: EventsPage) : AdminEventsUiState
     data class Error(val message: String) : AdminEventsUiState
 }
 
@@ -38,15 +43,20 @@ fun IComponent.AdminEventsScreen() {
     val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
     val currentStrings by strings
 
-    val expandedGroups = remember { mutableStateMapOf<Uuid, Boolean>() }
+    var definitionsPage by remember { mutableStateOf(0) }
+    val childrenPageByDef = remember { mutableStateMapOf<Uuid, Int>() }
     val scope = rememberCoroutineScope()
     var toastData by remember { mutableStateOf<ToastData?>(null) }
     var refreshTrigger by remember { mutableIntStateOf(0) }
     var deleteDefinitionPending by remember { mutableStateOf<AdminEventListItem?>(null) }
     var deleteItemPending by remember { mutableStateOf<AdminEventListItem?>(null) }
 
-    val uiState by produceState<AdminEventsUiState>(initialValue = AdminEventsUiState.Loading, key1 = refreshTrigger) {
-        adminService.getAllEvents()
+    val uiState by produceState<AdminEventsUiState>(
+        initialValue = AdminEventsUiState.Loading,
+        key1 = refreshTrigger,
+        key2 = definitionsPage,
+    ) {
+        adminService.getAllEvents(definitionsPage, DEFINITIONS_PAGE_SIZE)
             .onRight { value = AdminEventsUiState.Success(it) }
             .onLeft { value = AdminEventsUiState.Error(it.localizedMessage(currentStrings)) }
     }
@@ -60,7 +70,6 @@ fun IComponent.AdminEventsScreen() {
                 p(className = "text-base-content/60 mt-1") { +currentStrings.adminEventsSubtitle }
             }
 
-            // Magické tlačítko, které nás později hodí na formulář
             button(className = "btn btn-primary") {
                 span(className = "icon-[heroicons--plus] size-5")
                 +currentStrings.createNew
@@ -77,9 +86,10 @@ fun IComponent.AdminEventsScreen() {
             is AdminEventsUiState.Success -> {
                 val data = state.data
 
-                val definitions = data.filter { it.isDefinitionOnly }.sortedBy { it.title }
-                val childrenByDef = data.filter { !it.isDefinitionOnly }
+                val definitions = data.items.filter { it.isDefinitionOnly }.sortedBy { it.title }
+                val childrenByDef = data.items.filter { !it.isDefinitionOnly }
                     .groupBy { it.definitionId }
+                val totalDefinitionPages = maxOf(1, ceil(data.totalDefinitionCount.toDouble() / DEFINITIONS_PAGE_SIZE).toInt())
 
                 if (definitions.isEmpty()) {
                     div(className = "card bg-base-100 shadow-sm") {
@@ -138,9 +148,9 @@ fun IComponent.AdminEventsScreen() {
                                         +currentStrings.noInstancesMessage
                                     }
                                 } else {
-                                    val isExpanded = expandedGroups[def.id] ?: false
-                                    val visibleChildren = if (isExpanded) children else children.take(3)
-                                    val hiddenCount = children.size - 3
+                                    val childPage = childrenPageByDef[def.id] ?: 0
+                                    val visibleChildren = children.drop(childPage * CHILDREN_PAGE_SIZE).take(CHILDREN_PAGE_SIZE)
+                                    val totalChildPages = maxOf(1, ceil(children.size.toDouble() / CHILDREN_PAGE_SIZE).toInt())
 
                                     div(className = "overflow-x-auto") {
                                         table(className = "table table-sm w-full") {
@@ -200,20 +210,23 @@ fun IComponent.AdminEventsScreen() {
                                                     }
                                                 }
 
-                                                if (hiddenCount > 0 || isExpanded) {
+                                                if (totalChildPages > 1) {
                                                     tr {
                                                         td {
                                                             attribute("colspan", "6")
-                                                            div(className = "flex justify-center py-1") {
-                                                                button(className = "btn btn-ghost btn-xs gap-1 text-base-content/50") {
-                                                                    onClick { expandedGroups[def.id] = !isExpanded }
-                                                                    if (isExpanded) {
-                                                                        span(className = "icon-[heroicons--chevron-up] size-3")
-                                                                        +currentStrings.showLess
-                                                                    } else {
-                                                                        span(className = "icon-[heroicons--chevron-down] size-3")
-                                                                        +currentStrings.showMore(hiddenCount)
-                                                                    }
+                                                            div(className = "flex items-center justify-center gap-3 py-1") {
+                                                                button(className = "btn btn-ghost btn-xs") {
+                                                                    disabled(childPage == 0)
+                                                                    onClick { if (childPage > 0) childrenPageByDef[def.id] = childPage - 1 }
+                                                                    +currentStrings.paginationPrevious
+                                                                }
+                                                                span(className = "text-xs text-base-content/50") {
+                                                                    +currentStrings.paginationPageOf(childPage + 1, totalChildPages)
+                                                                }
+                                                                button(className = "btn btn-ghost btn-xs") {
+                                                                    disabled(childPage >= totalChildPages - 1)
+                                                                    onClick { if (childPage < totalChildPages - 1) childrenPageByDef[def.id] = childPage + 1 }
+                                                                    +currentStrings.paginationNext
                                                                 }
                                                             }
                                                         }
@@ -222,6 +235,25 @@ fun IComponent.AdminEventsScreen() {
                                             }
                                         }
                                     }
+                                }
+                            }
+                        }
+
+                        // Definition-level pagination
+                        if (data.totalDefinitionCount > DEFINITIONS_PAGE_SIZE) {
+                            div(className = "flex items-center justify-center gap-4 mt-2") {
+                                button(className = "btn btn-outline btn-sm") {
+                                    disabled(definitionsPage == 0)
+                                    onClick { if (definitionsPage > 0) definitionsPage-- }
+                                    +currentStrings.paginationPrevious
+                                }
+                                span(className = "text-sm text-base-content/70") {
+                                    +currentStrings.paginationPageOf(definitionsPage + 1, totalDefinitionPages)
+                                }
+                                button(className = "btn btn-outline btn-sm") {
+                                    disabled(definitionsPage >= totalDefinitionPages - 1)
+                                    onClick { if (definitionsPage < totalDefinitionPages - 1) definitionsPage++ }
+                                    +currentStrings.paginationNext
                                 }
                             }
                         }
@@ -246,6 +278,7 @@ fun IComponent.AdminEventsScreen() {
                                             adminService.deleteEventDefinition(defToDelete.id)
                                                 .onRight {
                                                     toastData = ToastData(currentStrings.toastDefinitionDeleted, ToastType.Success)
+                                                    definitionsPage = 0
                                                     refreshTrigger++
                                                 }
                                                 .onLeft { toastData = ToastData(currentStrings.errorToast(it.toString()), ToastType.Error) }
@@ -283,6 +316,7 @@ fun IComponent.AdminEventsScreen() {
                                                 .onRight {
                                                     val msg = if (toDelete.isSeries) currentStrings.toastSeriesDeleted else currentStrings.toastEventDeleted
                                                     toastData = ToastData(msg, ToastType.Success)
+                                                    definitionsPage = 0
                                                     refreshTrigger++
                                                 }
                                                 .onLeft { toastData = ToastData(currentStrings.errorToast(it.toString()), ToastType.Error) }

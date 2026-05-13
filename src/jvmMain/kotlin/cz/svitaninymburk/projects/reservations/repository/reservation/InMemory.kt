@@ -44,6 +44,31 @@ class InMemoryReservationRepository : ReservationRepository {
         return reservations.values.toList()
     }
 
+    override suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int): List<Reservation> {
+        var result = reservations.values.toList()
+        if (!searchQuery.isNullOrBlank()) {
+            val q = searchQuery.lowercase()
+            result = result.filter {
+                it.contactName.lowercase().contains(q) ||
+                it.contactEmail.lowercase().contains(q) ||
+                it.variableSymbol?.lowercase()?.contains(q) == true
+            }
+        }
+        return result.sortedByDescending { it.createdAt }
+                     .drop(page * pageSize)
+                     .take(pageSize)
+    }
+
+    override suspend fun countAll(searchQuery: String?): Long {
+        if (searchQuery.isNullOrBlank()) return reservations.size.toLong()
+        val q = searchQuery.lowercase()
+        return reservations.values.count {
+            it.contactName.lowercase().contains(q) ||
+            it.contactEmail.lowercase().contains(q) ||
+            it.variableSymbol?.lowercase()?.contains(q) == true
+        }.toLong()
+    }
+
     override suspend fun existsByVariableSymbol(variableSymbol: String): Boolean {
         return reservations.values.any { it.variableSymbol == variableSymbol }
     }

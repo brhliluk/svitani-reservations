@@ -159,6 +159,35 @@ class ExposedReservationRepository : ReservationRepository {
         ReservationsTable.selectAll().map { it.toReservation() }
     }
 
+    override suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int): List<Reservation> = dbQuery {
+        val query = ReservationsTable.selectAll()
+        if (!searchQuery.isNullOrBlank()) {
+            val q = "%${searchQuery.lowercase()}%"
+            query.where {
+                (ReservationsTable.contactName.lowerCase() like q) or
+                (ReservationsTable.contactEmail.lowerCase() like q) or
+                (ReservationsTable.variableSymbol.lowerCase() like q)
+            }
+        }
+        query.orderBy(ReservationsTable.createdAt, SortOrder.DESC)
+             .limit(pageSize)
+             .offset(page.toLong() * pageSize)
+             .map { it.toReservation() }
+    }
+
+    override suspend fun countAll(searchQuery: String?): Long = dbQuery {
+        val query = ReservationsTable.selectAll()
+        if (!searchQuery.isNullOrBlank()) {
+            val q = "%${searchQuery.lowercase()}%"
+            query.where {
+                (ReservationsTable.contactName.lowerCase() like q) or
+                (ReservationsTable.contactEmail.lowerCase() like q) or
+                (ReservationsTable.variableSymbol.lowerCase() like q)
+            }
+        }
+        query.count()
+    }
+
     override suspend fun existsByVariableSymbol(variableSymbol: String): Boolean = dbQuery {
         !ReservationsTable.selectAll()
             .where { ReservationsTable.variableSymbol eq variableSymbol }
