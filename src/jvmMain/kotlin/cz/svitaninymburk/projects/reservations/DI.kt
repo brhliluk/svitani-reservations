@@ -102,7 +102,7 @@ val appModule = module {
     single { BackendQrCodeGenerator(get(), get()) }
     single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz") } bind ReservationServiceInterface::class
     single { AuthenticatedReservationService(get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
-    single { PaymentPairingService(get(), get(), get(), get(), get()) }
+    single { PaymentPairingService(get(), get(), get(), get(), get(), get()) }
     single { AdminService(get()) }
     single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get()) } bind AdminServiceInterface::class
     single { UserService(get()) }

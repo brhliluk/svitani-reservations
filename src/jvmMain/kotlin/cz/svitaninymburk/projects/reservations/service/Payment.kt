@@ -8,8 +8,12 @@ import cz.svitaninymburk.projects.reservations.bank.FioResponse
 import cz.svitaninymburk.projects.reservations.bank.parseFioTransactions
 import cz.svitaninymburk.projects.reservations.error.PaymentPairingError
 import cz.svitaninymburk.projects.reservations.qr.QrCodeService
+import cz.svitaninymburk.projects.reservations.repository.payment.NewPaymentEvent
+import cz.svitaninymburk.projects.reservations.repository.payment.PaymentEventRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
+import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
+import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import io.ktor.client.*
 import io.ktor.client.call.body
@@ -29,6 +33,7 @@ class PaymentPairingService(
     private val emailService: EmailService,
     private val qrCodeService: QrCodeService,
     private val settings: AppSettingsProvider,
+    private val paymentEventRepository: PaymentEventRepository,
 ) {
     private val logger = KtorSimpleLogger(this::class.jvmName)
     suspend fun checkAndPairPayments(): Either<PaymentPairingError.CheckAndPairPayments, Unit> = either {
@@ -85,6 +90,15 @@ class PaymentPairingService(
             paymentPairingToken = transaction.remoteId,
         )
         reservationRepo.save(paidReservation)
+
+        paymentEventRepository.insert(
+            NewPaymentEvent(
+                reservationId = reservation.id,
+                amount = transaction.amount,
+                type = PaymentInfo.Type.BANK_TRANSFER,
+                source = PaymentEvent.Source.AUTO_FIO,
+            )
+        )
 
         emailService.sendPaymentReceivedConfirmation(paidReservation)
             .onLeft { logger.error("⚠️ Failed to send payment-received email for reservation ${paidReservation.id} (VS $vs): $it") }
