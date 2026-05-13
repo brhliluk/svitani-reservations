@@ -8,6 +8,9 @@ import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminUserListItem
 import cz.svitaninymburk.projects.reservations.admin.PaymentEventsPage
+import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
+import cz.svitaninymburk.projects.reservations.admin.EventsPage
+import cz.svitaninymburk.projects.reservations.admin.SeriesInstancesPage
 import cz.svitaninymburk.projects.reservations.event.CreateEventAndInstancesRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventAndSeriesRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
@@ -27,8 +30,8 @@ interface AdminServiceInterface {
     suspend fun getDashboardSummary(): Either<AdminError.GetSummary, AdminDashboardData>
     suspend fun markReservationAsPaid(reservationId: Uuid): Either<AdminError.MarkReservationPaid, Unit>
     suspend fun getEventDetail(eventId: Uuid, isSeries: Boolean): Either<AdminError.GetEventDetail, AdminEventDetailData>
-    suspend fun getAllReservations(searchQuery: String? = null): Either<AdminError.GetReservations, List<AdminReservationListItem>>
-    suspend fun getAllEvents(): Either<AdminError.GetEvents, List<AdminEventListItem>>
+    suspend fun getAllReservations(searchQuery: String? = null, page: Int = 0, pageSize: Int = 20): Either<AdminError.GetReservations, ReservationsPage>
+    suspend fun getAllEvents(page: Int = 0, pageSize: Int = 20): Either<AdminError.GetEvents, EventsPage>
     suspend fun createEventDefinition(request: CreateEventDefinitionRequest): Either<AdminError.CreateEvent, Uuid>
     suspend fun createEventSeries(request: CreateEventSeriesRequest): Either<AdminError.CreateSeries, Uuid>
     suspend fun createEventAndInstances(request: CreateEventAndInstancesRequest): Either<AdminError.CreateEvent, Uuid>
@@ -45,7 +48,7 @@ interface AdminServiceInterface {
     suspend fun deleteEventDefinition(id: Uuid): Either<AdminError.DeleteDefinition, Unit>
     suspend fun deleteEventInstance(id: Uuid): Either<AdminError.DeleteEvent, Unit>
     suspend fun deleteEventSeries(id: Uuid): Either<AdminError.DeleteSeries, Unit>
-    suspend fun getSeriesInstances(seriesId: Uuid): Either<AdminError.GetInstances, List<EventInstance>>
+    suspend fun getSeriesInstances(seriesId: Uuid, page: Int = 0, pageSize: Int = 10): Either<AdminError.GetInstances, SeriesInstancesPage>
     suspend fun cancelSeriesLesson(instanceId: Uuid): Either<AdminError.CancelLesson, Unit>
     suspend fun getPaymentEvents(page: Int, pageSize: Int): Either<AdminError.GetPaymentEvents, PaymentEventsPage>
 }
