@@ -68,6 +68,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     var capacityOverride by remember { mutableIntStateOf(10) }
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
+    var showAttendeeCount by remember { mutableStateOf(true) }
 
     val computedSeriesDates: List<LocalDate> = remember(startDate, lessonDayOfWeekOrdinal, lessonCount) {
         val dayOrdinal = lessonDayOfWeekOrdinal ?: return@remember emptyList()
@@ -87,6 +88,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
         capacityOverride = definition.defaultCapacity
         allowBankTransfer = definition.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
         allowOnSite = definition.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
+        showAttendeeCount = definition.showAttendeeCount
     }
 
     LaunchedEffect(computedSeriesDates) {
@@ -376,6 +378,18 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                     }
                                 }
                             }
+
+                            div(className = "form-control w-full md:col-span-2") {
+                                label(className = "label") {
+                                    span(className = "label-text font-medium") { +currentStrings.showAttendeeCount }
+                                }
+                                label(className = "cursor-pointer label justify-start gap-3") {
+                                    checkBox(value = showAttendeeCount, className = "checkbox checkbox-primary") {
+                                        onChange { showAttendeeCount = value }
+                                    }
+                                    span(className = "label-text text-sm text-base-content/70") { +currentStrings.showAttendeeCountHint }
+                                }
+                            }
                         }
                     }
                 }
@@ -460,6 +474,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 lessonStartTime = parsedStartTime,
                                 lessonEndTime = parsedEndTime,
                                 customLessons = finalCustomLessons,
+                                showAttendeeCount = showAttendeeCount,
                             )
 
                             scope.launch {
