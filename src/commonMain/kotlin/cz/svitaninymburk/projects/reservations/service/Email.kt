@@ -6,7 +6,6 @@ import cz.svitaninymburk.projects.reservations.error.EmailError
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import dev.kilua.rpc.annotations.RpcService
-import kotlin.uuid.Uuid
 import kotlinx.datetime.LocalDateTime
 
 @RpcService
@@ -20,7 +19,7 @@ interface EmailService {
         icalBytes: ByteArray,
     ): Either<EmailError.SendReservationConfirmation, Unit>
 
-    suspend fun sendCancellationNotice(toEmail: String, reservationId: Uuid): Either<EmailError.SendCancellation, Unit>
+    suspend fun sendCancellationNotice(toEmail: String, eventTitle: String): Either<EmailError.SendCancellation, Unit>
 
     suspend fun sendPaymentReceivedConfirmation(reservation: Reservation): Either<EmailError.SendPaymentConfirmation, Unit>
     suspend fun sendPaymentNotPaidInFull(reservation: Reservation, paymentInfo: BankTransaction, bankAccount: String, qrCodeImage: String): Either<EmailError.SendPaymentNotPaidInFull, Unit>

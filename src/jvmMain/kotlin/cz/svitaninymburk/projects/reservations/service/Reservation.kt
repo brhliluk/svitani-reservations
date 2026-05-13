@@ -201,7 +201,7 @@ class ReservationService(
             is ReservationTarget.Series -> (target.series.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
         }
 
-        emailService.sendCancellationNotice(cancelledReservation.contactEmail, reservationId)
+        emailService.sendCancellationNotice(cancelledReservation.contactEmail, target.title)
             .mapLeft { ReservationError.FailedToSendCancellationEmail(it) }
 
         val lectorEmail = resolveLectorEmail(target)
