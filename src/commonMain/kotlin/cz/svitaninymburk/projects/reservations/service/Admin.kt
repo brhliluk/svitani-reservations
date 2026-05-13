@@ -7,6 +7,7 @@ import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminUserListItem
+import cz.svitaninymburk.projects.reservations.admin.PaymentEventsPage
 import cz.svitaninymburk.projects.reservations.event.CreateEventAndInstancesRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventAndSeriesRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
@@ -46,4 +47,5 @@ interface AdminServiceInterface {
     suspend fun deleteEventSeries(id: Uuid): Either<AdminError.DeleteSeries, Unit>
     suspend fun getSeriesInstances(seriesId: Uuid): Either<AdminError.GetInstances, List<EventInstance>>
     suspend fun cancelSeriesLesson(instanceId: Uuid): Either<AdminError.CancelLesson, Unit>
+    suspend fun getPaymentEvents(page: Int, pageSize: Int): Either<AdminError.GetPaymentEvents, PaymentEventsPage>
 }
