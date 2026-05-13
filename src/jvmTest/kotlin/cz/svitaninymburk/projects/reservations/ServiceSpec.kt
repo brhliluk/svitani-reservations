@@ -14,6 +14,10 @@ import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.service.AdminDashboardService
 import cz.svitaninymburk.projects.reservations.service.ConsoleEmailService
 import cz.svitaninymburk.projects.reservations.service.ICalGenerator
+import cz.svitaninymburk.projects.reservations.repository.payment.InMemoryPaymentEventRepository
+import cz.svitaninymburk.projects.reservations.repository.payment.NewPaymentEvent
+import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
+import cz.svitaninymburk.projects.reservations.admin.PaymentEventsPage
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -490,5 +494,105 @@ class AppSettingsRepositorySpec {
         val updated = defaultSettings.copy(bankAccountNumber = "NEW/9999")
         runBlocking { repo.save(updated) }
         assertEquals("NEW/9999", repo.load().bankAccountNumber)
+    }
+}
+
+class PaymentEventSpec {
+
+    private val paymentRepo = InMemoryPaymentEventRepository()
+    private val reservationRepo = InMemoryReservationRepository()
+
+    private fun makeReservation(id: Uuid = Uuid.random()) = Reservation(
+        id = id,
+        reference = Reference.Instance(Uuid.random()),
+        contactName = "Jana Testová",
+        contactEmail = "jana@test.com",
+        seatCount = 1,
+        totalPrice = 300.0,
+        status = Reservation.Status.PENDING_PAYMENT,
+        createdAt = Clock.System.now(),
+        customValues = emptyMap(),
+        paymentType = PaymentInfo.Type.ON_SITE,
+    )
+
+    @Test
+    fun `markReservationAsPaid inserts a payment event`() = runBlocking {
+        val reservation = makeReservation()
+        reservationRepo.save(reservation)
+
+        // service will be created in Task 6 — this test will fail to compile until then
+        val service = AdminDashboardService(
+            eventDefinitionRepository = InMemoryEventDefinitionRepository(),
+            eventSeriesRepository = InMemoryEventSeriesRepository(),
+            eventInstanceRepository = InMemoryEventInstanceRepository(),
+            reservationRepository = reservationRepo,
+            userRepository = InMemoryUserRepository(),
+            emailService = ConsoleEmailService(),
+            paymentEventRepository = paymentRepo,
+        )
+
+        val result = service.markReservationAsPaid(reservation.id)
+        assertTrue(result.isRight(), "Expected Right but got: $result")
+
+        val inserted = paymentRepo.insertedEvents()
+        assertEquals(1, inserted.size, "Expected exactly one payment event")
+        assertEquals(reservation.id.toString(), inserted[0].reservationId)
+        assertEquals(300.0, inserted[0].amount)
+        assertEquals(PaymentEvent.Source.MANUAL_ADMIN, inserted[0].source)
+        assertEquals(PaymentInfo.Type.ON_SITE, inserted[0].type)
+    }
+
+    @Test
+    fun `getPaymentEvents returns paginated results`() = runBlocking {
+        val now = Clock.System.now()
+        paymentRepo.seed(PaymentEvent("id1", Uuid.random().toString(), "Alice", 100.0, "CZK", PaymentInfo.Type.BANK_TRANSFER, PaymentEvent.Source.AUTO_FIO,     now))
+        paymentRepo.seed(PaymentEvent("id2", Uuid.random().toString(), "Bob",   200.0, "CZK", PaymentInfo.Type.ON_SITE,       PaymentEvent.Source.MANUAL_ADMIN, now))
+
+        val service = AdminDashboardService(
+            eventDefinitionRepository = InMemoryEventDefinitionRepository(),
+            eventSeriesRepository = InMemoryEventSeriesRepository(),
+            eventInstanceRepository = InMemoryEventInstanceRepository(),
+            reservationRepository = InMemoryReservationRepository(),
+            userRepository = InMemoryUserRepository(),
+            emailService = ConsoleEmailService(),
+            paymentEventRepository = paymentRepo,
+        )
+
+        val result = service.getPaymentEvents(page = 0, pageSize = 10)
+        assertTrue(result.isRight())
+        result.onRight { page ->
+            assertEquals(2, page.totalCount)
+            assertEquals(2, page.items.size)
+            assertEquals(0, page.page)
+            assertEquals(10, page.pageSize)
+        }
+        Unit
+    }
+
+    @Test
+    fun `getPaymentEvents respects pagination`() = runBlocking {
+        val now = Clock.System.now()
+        repeat(5) { i ->
+            paymentRepo.seed(PaymentEvent("id$i", Uuid.random().toString(), "User$i", 100.0 * i, "CZK", PaymentInfo.Type.BANK_TRANSFER, PaymentEvent.Source.AUTO_FIO, now))
+        }
+
+        val service = AdminDashboardService(
+            eventDefinitionRepository = InMemoryEventDefinitionRepository(),
+            eventSeriesRepository = InMemoryEventSeriesRepository(),
+            eventInstanceRepository = InMemoryEventInstanceRepository(),
+            reservationRepository = InMemoryReservationRepository(),
+            userRepository = InMemoryUserRepository(),
+            emailService = ConsoleEmailService(),
+            paymentEventRepository = paymentRepo,
+        )
+
+        val page0 = service.getPaymentEvents(page = 0, pageSize = 3)
+        val page1 = service.getPaymentEvents(page = 1, pageSize = 3)
+
+        assertTrue(page0.isRight())
+        assertTrue(page1.isRight())
+        page0.onRight { assertEquals(3, it.items.size) }
+        page1.onRight { assertEquals(2, it.items.size) }
+        Unit
     }
 }
