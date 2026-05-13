@@ -31,6 +31,7 @@ object EventDefinitionsTable : Table("event_definitions") {
     val allowedPaymentTypes = json<List<PaymentInfo.Type>>("allowed_payment_types", Json)
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
     val lectorEmail = varchar("lector_email", 255).default("")
+    val showAttendeeCount = bool("show_attendee_count").default(true)
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -45,6 +46,7 @@ fun ResultRow.toEventDefinition(): EventDefinition = EventDefinition(
     allowedPaymentTypes = this[EventDefinitionsTable.allowedPaymentTypes],
     customFields = this[EventDefinitionsTable.customFields],
     lectorEmail = this[EventDefinitionsTable.lectorEmail],
+    showAttendeeCount = this[EventDefinitionsTable.showAttendeeCount],
 )
 
 
@@ -71,6 +73,7 @@ object EventSeriesTable : Table("event_series") {
     val lessonDayOfWeek = integer("lesson_day_of_week").nullable()
     val lessonStartTime = varchar("lesson_start_time", 8).nullable()
     val lessonEndTime = varchar("lesson_end_time", 8).nullable()
+    val showAttendeeCount = bool("show_attendee_count").default(true)
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -92,6 +95,7 @@ fun ResultRow.toEventSeries(): EventSeries = EventSeries(
     lessonDayOfWeek = this[EventSeriesTable.lessonDayOfWeek]?.let { DayOfWeek(it) },
     lessonStartTime = this[EventSeriesTable.lessonStartTime]?.let { LocalTime.parse(it) },
     lessonEndTime = this[EventSeriesTable.lessonEndTime]?.let { LocalTime.parse(it) },
+    showAttendeeCount = this[EventSeriesTable.showAttendeeCount],
 )
 
 
@@ -121,6 +125,7 @@ object EventInstancesTable : Table("event_instances") {
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
     val lectorEmail = varchar("lector_email", 255).default("")
     val isDropIn = bool("is_drop_in").default(false)
+    val showAttendeeCount = bool("show_attendee_count").default(true)
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -140,7 +145,8 @@ fun ResultRow.toEventInstance(): EventInstance = EventInstance(
     allowedPaymentTypes = this[EventInstancesTable.allowedPaymentTypes],
     customFields = this[EventInstancesTable.customFields],
     lectorEmail = this[EventInstancesTable.lectorEmail],
-    isDropIn = this[EventInstancesTable.isDropIn]
+    isDropIn = this[EventInstancesTable.isDropIn],
+    showAttendeeCount = this[EventInstancesTable.showAttendeeCount],
 )
 
 class ExposedEventDefinitionRepository : EventDefinitionRepository {
@@ -183,6 +189,7 @@ class ExposedEventDefinitionRepository : EventDefinitionRepository {
             row[allowedPaymentTypes] = event.allowedPaymentTypes
             row[customFields] = event.customFields
             row[lectorEmail] = event.lectorEmail
+            row[showAttendeeCount] = event.showAttendeeCount
         }
         event
     }
@@ -197,6 +204,7 @@ class ExposedEventDefinitionRepository : EventDefinitionRepository {
             row[allowedPaymentTypes] = event.allowedPaymentTypes
             row[customFields] = event.customFields
             row[lectorEmail] = event.lectorEmail
+            row[showAttendeeCount] = event.showAttendeeCount
         }
         event
     }
@@ -253,6 +261,7 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[lessonDayOfWeek] = series.lessonDayOfWeek?.isoDayNumber
             row[lessonStartTime] = series.lessonStartTime?.toString()
             row[lessonEndTime] = series.lessonEndTime?.toString()
+            row[showAttendeeCount] = series.showAttendeeCount
         }
         series
     }
@@ -272,6 +281,7 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[lessonDayOfWeek] = series.lessonDayOfWeek?.isoDayNumber
             row[lessonStartTime] = series.lessonStartTime?.toString()
             row[lessonEndTime] = series.lessonEndTime?.toString()
+            row[showAttendeeCount] = series.showAttendeeCount
         }
         series
     }
@@ -366,6 +376,7 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[customFields] = instance.customFields
             row[lectorEmail] = instance.lectorEmail
             row[isDropIn] = instance.isDropIn
+            row[showAttendeeCount] = instance.showAttendeeCount
         }
         instance
     }
@@ -386,6 +397,7 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[customFields] = instance.customFields
             row[lectorEmail] = instance.lectorEmail
             row[isDropIn] = instance.isDropIn
+            row[showAttendeeCount] = instance.showAttendeeCount
         }
         instance
     }
