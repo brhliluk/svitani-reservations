@@ -104,6 +104,6 @@ val appModule = module {
     single { AuthenticatedReservationService(get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
     single { PaymentPairingService(get(), get(), get(), get(), get()) }
     single { AdminService(get()) }
-    single { AdminDashboardService(get(), get(), get(), get(), get(), get()) } bind AdminServiceInterface::class
+    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get()) } bind AdminServiceInterface::class
     single { UserService(get()) }
 }

@@ -54,6 +54,7 @@ class AdminEditDeleteSpec {
         reservationRepository = reservationRepo,
         userRepository = InMemoryUserRepository(),
         emailService = ConsoleEmailService(),
+        paymentEventRepository = InMemoryPaymentEventRepository(),
     )
 
     private fun makeDefinition(id: Uuid = Uuid.random()) = EventDefinition(
