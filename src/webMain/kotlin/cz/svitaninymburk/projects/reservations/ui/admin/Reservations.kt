@@ -265,7 +265,7 @@ fun IComponent.AdminReservationsScreen() {
                     div(className = "flex items-center justify-center gap-4 mt-4") {
                         button(className = "btn btn-outline btn-sm") {
                             disabled(page == 0)
-                            onClick { if (page > 0) page-- }
+                            onClick { if (page > 0) { expandedId = null; page-- } }
                             +currentStrings.paginationPrevious
                         }
                         span(className = "text-sm text-base-content/70") {
@@ -273,7 +273,7 @@ fun IComponent.AdminReservationsScreen() {
                         }
                         button(className = "btn btn-outline btn-sm") {
                             disabled(page >= totalPages - 1)
-                            onClick { if (page < totalPages - 1) page++ }
+                            onClick { if (page < totalPages - 1) { expandedId = null; page++ } }
                             +currentStrings.paginationNext
                         }
                     }
@@ -309,8 +309,9 @@ fun IComponent.AdminReservationsScreen() {
                                     adminService.markReservationAsPaid(action.reservationId)
                                         .onRight {
                                             toastData = ToastData(currentStrings.toastPaymentConfirmed(action.participantName), ToastType.Success)
-                                            refreshTrigger++
                                             page = 0
+                                            expandedId = null
+                                            refreshTrigger++
                                         }
                                         .onLeft { error -> toastData = ToastData(currentStrings.errorToast(error.toString()), ToastType.Error) }
                                 } else {
