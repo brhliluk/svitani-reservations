@@ -13,6 +13,8 @@ interface EventDefinitionRepository {
     suspend fun create(event: EventDefinition): EventDefinition
     suspend fun update(event: EventDefinition): EventDefinition
     suspend fun delete(id: Uuid): Boolean
+    suspend fun findAllPaged(page: Int, pageSize: Int): List<EventDefinition>
+    suspend fun countAll(): Long
 }
 
 interface EventInstanceRepository {
@@ -30,6 +32,9 @@ interface EventInstanceRepository {
     suspend fun decrementOccupiedSpots(instanceId: Uuid, amount: Int): Int?
 
     suspend fun attemptToReserveSpots(instanceId: Uuid, amount: Int): Boolean
+    suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventInstance>
+    suspend fun findBySeriesPaged(seriesId: Uuid, page: Int, pageSize: Int): List<EventInstance>
+    suspend fun countBySeries(seriesId: Uuid): Long
 }
 
 interface EventSeriesRepository {
@@ -42,4 +47,5 @@ interface EventSeriesRepository {
     suspend fun attemptToReserveSpots(seriesId: Uuid, amount: Int): Boolean
     suspend fun incrementOccupiedSpots(seriesId: Uuid, amount: Int): Int?
     suspend fun decrementOccupiedSpots(seriesId: Uuid, amount: Int): Int?
+    suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventSeries>
 }
