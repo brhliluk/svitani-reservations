@@ -159,6 +159,24 @@ interface AppStrings : ErrorStrings {
     val navUsers: String
     val logOut: String
 
+    // Admin Payments Screen
+    val navPayments: String
+    val allPayments: String
+    val paymentsSubtitle: String
+    val tableHeaderProcessedAt: String
+    val tableHeaderContactName: String
+    val tableHeaderAmount: String
+    val tableHeaderPaymentType: String
+    val tableHeaderPaymentSource: String
+    val paymentSourceAutoFio: String
+    val paymentSourceManualAdmin: String
+    val paymentTypeBankTransfer: String
+    val paymentTypeFree: String
+    val noPayments: String
+    val paginationPrevious: String
+    val paginationNext: String
+    val paginationPageOf: (Int, Int) -> String
+
     // Admin Events Screen
     val adminEventsSubtitle: String
     val createNew: String

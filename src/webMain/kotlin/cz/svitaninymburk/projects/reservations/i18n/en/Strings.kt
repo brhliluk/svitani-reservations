@@ -143,6 +143,24 @@ object EnStrings : AppStrings {
     override val navUsers = "Users"
     override val logOut = "Log out"
 
+    // Admin Payments Screen
+    override val navPayments = "Payments"
+    override val allPayments = "Processed payments"
+    override val paymentsSubtitle = "Overview of all recorded payment events"
+    override val tableHeaderProcessedAt = "Date & time"
+    override val tableHeaderContactName = "Reservation"
+    override val tableHeaderAmount = "Amount"
+    override val tableHeaderPaymentType = "Payment type"
+    override val tableHeaderPaymentSource = "Source"
+    override val paymentSourceAutoFio = "Automatic"
+    override val paymentSourceManualAdmin = "Manual"
+    override val paymentTypeBankTransfer = "Bank transfer"
+    override val paymentTypeFree = "Free"
+    override val noPayments = "No payments recorded yet."
+    override val paginationPrevious = "Previous"
+    override val paginationNext = "Next"
+    override val paginationPageOf: (Int, Int) -> String = { current, total -> "Page $current of $total" }
+
     // Admin Events Screen
     override val adminEventsSubtitle = "Manage catalog and open new dates"
     override val createNew = "Create new"
