@@ -43,7 +43,7 @@ fun IComponent.AdminEventCreateChooseScreen(definitionId: String) {
         div(className = "grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4") {
 
             // Jednorázový termín
-            div(className = "card bg-base-100 shadow-sm border-2 border-transparent hover:border-primary hover:shadow-md transition-all cursor-pointer") {
+            div(className = "card bg-base-100 shadow-sm border-2 border-transparent hover:border-primary hover:shadow-md transition cursor-pointer") {
                 onClick { router.navigate("/admin/events/create/instance/$definitionId") }
                 div(className = "card-body items-center text-center gap-4 py-10") {
                     span(className = "icon-[heroicons--calendar] size-16 text-primary")
@@ -55,7 +55,7 @@ fun IComponent.AdminEventCreateChooseScreen(definitionId: String) {
             }
 
             // Kurz / více lekcí
-            div(className = "card bg-base-100 shadow-sm border-2 border-transparent hover:border-secondary hover:shadow-md transition-all cursor-pointer") {
+            div(className = "card bg-base-100 shadow-sm border-2 border-transparent hover:border-secondary hover:shadow-md transition cursor-pointer") {
                 onClick { router.navigate("/admin/events/create/series/$definitionId") }
                 div(className = "card-body items-center text-center gap-4 py-10") {
                     span(className = "icon-[heroicons--academic-cap] size-16 text-secondary")

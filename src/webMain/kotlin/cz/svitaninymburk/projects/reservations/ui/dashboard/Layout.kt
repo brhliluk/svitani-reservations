@@ -61,13 +61,13 @@ fun IComponent.DashboardLayout(
             div(className = "flex justify-center") {
                 div(className = "tabs tabs-boxed bg-base-100 p-1 rounded-full shadow-sm w-full sm:w-auto") {
 
-                    a(className = "tab rounded-full min-h-11 px-4 text-sm sm:text-base flex-1 sm:flex-none transition-all duration-300 ${if (activeTab == DashboardTab.SCHEDULE) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
+                    a(className = "tab rounded-full min-h-11 px-4 text-sm sm:text-base flex-1 sm:flex-none transition-colors duration-200 ${if (activeTab == DashboardTab.SCHEDULE) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
                         onClick { activeTab = DashboardTab.SCHEDULE }
                         span(className = "icon-[heroicons--calendar-days] size-5 mr-2")
                         +currentStrings.schedule
                     }
 
-                    a(className = "tab rounded-full min-h-11 px-4 text-sm sm:text-base flex-1 sm:flex-none transition-all duration-300 ${if (activeTab == DashboardTab.CATALOG) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
+                    a(className = "tab rounded-full min-h-11 px-4 text-sm sm:text-base flex-1 sm:flex-none transition-colors duration-200 ${if (activeTab == DashboardTab.CATALOG) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
                         onClick {
                             activeTab = DashboardTab.CATALOG
                             selectedDefinitionId = null

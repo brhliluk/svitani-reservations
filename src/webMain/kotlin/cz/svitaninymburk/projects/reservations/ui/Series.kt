@@ -19,7 +19,7 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
             +currentStrings.course
         }
 
-        div(className = "card card-bordered bg-base-100 shadow-sm w-full transition-all hover:shadow-md hover:border-primary/50") {
+        div(className = "card card-bordered bg-base-100 shadow-sm w-full transition hover:shadow-md hover:border-primary/50") {
             div(className = "card-body p-4 sm:p-6") {
 
                 div(className = "sm:hidden") {

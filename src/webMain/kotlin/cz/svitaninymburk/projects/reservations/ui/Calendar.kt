@@ -87,7 +87,7 @@ fun IComponent.CalendarView(
                         div(className = "flex flex-col gap-2") {
                             dailyEvents.forEach { event ->
                                 div(
-                                    className = "text-sm px-3 py-2 rounded-lg min-h-11 flex items-center gap-2 cursor-pointer transition-all active:scale-[0.98] " +
+                                    className = "text-sm px-3 py-2 rounded-lg min-h-11 flex items-center gap-2 cursor-pointer transition-transform active:scale-[0.98] " +
                                             if (event.seriesId != null) "bg-secondary/10 text-secondary border border-secondary/20"
                                             else "bg-primary/10 text-primary border border-primary/20"
                                 ) {
@@ -146,7 +146,7 @@ fun IComponent.CalendarView(
                         div(className = "flex flex-col gap-1") {
                             dailyEvents.take(3).forEach { event ->
                                 div(
-                                    className = "text-[10px] sm:text-xs truncate px-1.5 py-0.5 rounded cursor-pointer transition-all hover:scale-105 " +
+                                    className = "text-[10px] sm:text-xs truncate px-1.5 py-0.5 rounded cursor-pointer transition-transform hover:scale-105 " +
                                             if (event.seriesId != null) "bg-secondary/10 text-secondary border border-secondary/20"
                                             else "bg-primary/10 text-primary border border-primary/20"
                                 ) {

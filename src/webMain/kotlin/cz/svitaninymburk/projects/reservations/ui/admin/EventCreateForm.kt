@@ -141,7 +141,7 @@ fun IComponent.AdminCreateEventScreen() {
                             EventCreateType.RECURRING -> if (isSelected) "border-primary bg-primary/5" else "border-base-300"
                             EventCreateType.COURSE -> if (isSelected) "border-secondary bg-secondary/5" else "border-base-300"
                         }
-                        div(className = "card border-2 $borderColor cursor-pointer transition-all hover:shadow-sm") {
+                        div(className = "card border-2 $borderColor cursor-pointer transition-shadow hover:shadow-sm") {
                             onClick { eventType = type }
                             div(className = "card-body items-center text-center py-5 px-3 gap-2") {
                                 span(className = icon)

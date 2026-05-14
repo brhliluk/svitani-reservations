@@ -23,7 +23,7 @@ fun IComponent.DefinitionCard(definition: EventDefinition, onClick: () -> Unit) 
         else -> "$m ${currentStrings.minutes}"
     }
 
-    div(className = "card card-bordered bg-base-100 shadow-sm hover:shadow-md hover:border-primary transition-all cursor-pointer group") {
+    div(className = "card card-bordered bg-base-100 shadow-sm hover:shadow-md hover:border-primary transition cursor-pointer group") {
         onClick { onClick() }
 
         div(className = "card-body p-4 sm:p-6") {

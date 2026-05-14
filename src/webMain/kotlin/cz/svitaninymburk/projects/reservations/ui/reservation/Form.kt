@@ -75,7 +75,7 @@ fun IComponent.ReservationModal(
         } ?: true)
 
     if (target != null) {
-        div(className = "modal modal-open modal-bottom sm:modal-middle bg-base-300/50 backdrop-blur-sm z-50") {
+        div(className = "modal modal-open modal-bottom sm:modal-middle bg-base-300/65 z-50") {
             div(className = "modal-box bg-base-100 shadow-xl border border-base-200 max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl p-4 sm:p-6") {
 
                 // --- HLAVIČKA ---

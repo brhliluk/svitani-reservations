@@ -20,7 +20,7 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
         else if (event.occupiedSpots.toDouble() / event.capacity > 0.8) "progress-warning"
         else "progress-success"
 
-    div(className = "card card-bordered bg-base-100 shadow-sm w-full transition-all hover:shadow-md") {
+    div(className = "card card-bordered bg-base-100 shadow-sm w-full transition-shadow hover:shadow-md") {
         div(className = "card-body p-4 sm:p-6 gap-2") {
 
             // Header
