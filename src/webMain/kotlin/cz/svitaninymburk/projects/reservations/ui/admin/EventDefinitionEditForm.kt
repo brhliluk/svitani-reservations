@@ -261,6 +261,44 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
                                                     }
                                                 }
                                             }
+
+                                            when (field) {
+                                                is TimeRangeFieldDefinition -> {
+                                                    div(className = "form-control md:col-span-2") {
+                                                        label(className = "cursor-pointer label justify-start gap-2 py-1") {
+                                                            checkBox(value = field.priceModifier is PriceModifier.TimeMultiplier, className = "checkbox checkbox-xs checkbox-accent") {
+                                                                onChange {
+                                                                    updateCustomField(index, field.copy(priceModifier = if (value) PriceModifier.TimeMultiplier else null))
+                                                                }
+                                                            }
+                                                            span(className = "label-text text-xs") { +currentStrings.fieldTimeMultiplierToggle }
+                                                        }
+                                                    }
+                                                }
+                                                is BooleanFieldDefinition -> {
+                                                    div(className = "form-control") {
+                                                        label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldFlatFeeLabel } }
+                                                        numeric(value = (field.priceModifier as? PriceModifier.FixedAmount)?.amount, min = 0, className = "input input-sm input-bordered w-full") {
+                                                            onInput {
+                                                                val amount = value?.toDouble() ?: 0.0
+                                                                updateCustomField(index, field.copy(priceModifier = if (amount > 0) PriceModifier.FixedAmount(amount) else null))
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                is NumberFieldDefinition -> {
+                                                    div(className = "form-control") {
+                                                        label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldPerUnitPriceLabel } }
+                                                        numeric(value = (field.priceModifier as? PriceModifier.PerUnit)?.pricePerUnit, min = 0, className = "input input-sm input-bordered w-full") {
+                                                            onInput {
+                                                                val amount = value?.toDouble() ?: 0.0
+                                                                updateCustomField(index, field.copy(priceModifier = if (amount > 0) PriceModifier.PerUnit(amount) else null))
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                else -> {}
+                                            }
                                         }
                                     }
                                 }
