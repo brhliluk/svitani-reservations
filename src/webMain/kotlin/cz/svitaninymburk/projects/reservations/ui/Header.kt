@@ -71,7 +71,7 @@ fun IComponent.AppHeader(
 
         div(className = "navbar-start gap-3 sm:gap-4") {
             img(src = "logo.svg", alt = "Svítání", className = "h-9 sm:h-10 w-auto")
-            span(className = "hidden sm:inline text-lg font-bold text-primary") { +currentStrings.dashboard }
+            span(className = "hidden sm:inline text-lg font-bold text-primary dark:text-base-content") { +currentStrings.dashboard }
         }
 
         div(className = "navbar-end gap-3 sm:gap-4") {
