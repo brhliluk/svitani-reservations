@@ -7,6 +7,7 @@ import arrow.core.raise.context.ensureNotNull
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import cz.svitaninymburk.projects.reservations.error.ReservationError
+import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
@@ -126,7 +127,12 @@ class ReservationService(
             contactPhone = requestData.contactPhone,
             paymentType = requestData.paymentType,
             customValues = requestData.customValues,
-            totalPrice = pricePerSeat * requestData.seatCount,
+            totalPrice = calculateTotalPrice(
+                basePrice = pricePerSeat,
+                seatCount = requestData.seatCount,
+                customFields = target.customFields,
+                customValues = requestData.customValues,
+            ),
             status = Reservation.Status.PENDING_PAYMENT,
             createdAt = Clock.System.now(),
             variableSymbol = variableSymbol,
