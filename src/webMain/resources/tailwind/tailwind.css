@@ -15,3 +15,11 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Svítání brand palette — overrides caramellatte defaults */
+:root {
+  --color-primary: oklch(0.65 0.21 41);
+  --color-primary-content: oklch(0.98 0.01 70);
+  --color-secondary: oklch(0.80 0.14 75);
+  --color-secondary-content: oklch(0.28 0.06 75);
+}

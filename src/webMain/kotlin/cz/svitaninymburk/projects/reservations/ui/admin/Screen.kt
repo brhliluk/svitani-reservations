@@ -63,42 +63,42 @@ fun IComponent.AdminLayout(
                     li {
                         a(className = "rounded-lg hover:bg-base-200 transition-colors") {
                             onClick { router.navigate("/admin") }
-                            span(className = "icon-[heroicons--home] size-5 text-primary")
+                            span(className = "icon-[heroicons--home] size-5 text-primary/70")
                             +currentStrings.dashboard
                         }
                     }
                     li {
                         a(className = "rounded-lg hover:bg-base-200 transition-colors") {
                             onClick { router.navigate("/admin/events") }
-                            span(className = "icon-[heroicons--calendar-days] size-5 text-info")
+                            span(className = "icon-[heroicons--calendar-days] size-5 text-primary/70")
                             +currentStrings.navEvents
                         }
                     }
                     li {
                         a(className = "rounded-lg hover:bg-base-200 transition-colors") {
                             onClick { router.navigate("/admin/reservations") }
-                            span(className = "icon-[heroicons--ticket] size-5 text-success")
+                            span(className = "icon-[heroicons--ticket] size-5 text-primary/70")
                             +currentStrings.navReservations
                         }
                     }
                     li {
                         a(className = "rounded-lg hover:bg-base-200 transition-colors") {
                             onClick { router.navigate("/admin/users") }
-                            span(className = "icon-[heroicons--users] size-5 text-warning")
+                            span(className = "icon-[heroicons--users] size-5 text-primary/70")
                             +currentStrings.navUsers
                         }
                     }
                     li {
                         a(className = "rounded-lg hover:bg-base-200 transition-colors") {
                             onClick { router.navigate("/admin/payments") }
-                            span(className = "icon-[heroicons--banknotes] size-5 text-error")
+                            span(className = "icon-[heroicons--banknotes] size-5 text-primary/70")
                             +currentStrings.navPayments
                         }
                     }
                     li {
                         a(className = "rounded-lg hover:bg-base-200 transition-colors") {
                             onClick { router.navigate("/admin/settings") }
-                            span(className = "icon-[heroicons--cog-6-tooth] size-5 text-secondary")
+                            span(className = "icon-[heroicons--cog-6-tooth] size-5 text-primary/70")
                             +currentStrings.navSettings
                         }
                     }

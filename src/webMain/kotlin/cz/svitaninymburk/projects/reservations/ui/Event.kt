@@ -77,7 +77,7 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
                 }
                 // Right: reserve button
                 val isDisabled = event.isCancelled || event.isFull
-                button(className = "btn btn-neutral rounded-full px-6 min-h-11${if (isDisabled) " btn-disabled" else ""}") {
+                button(className = "btn btn-primary rounded-full px-6 min-h-11${if (isDisabled) " btn-disabled" else ""}") {
                     +currentStrings.reserve
                     if (!isDisabled) onClick { onClick() }
                 }
