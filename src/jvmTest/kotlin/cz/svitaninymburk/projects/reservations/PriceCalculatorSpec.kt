@@ -78,4 +78,19 @@ class PriceCalculatorSpec {
         )
         assertEquals(350.0, calculateTotalPrice(100.0, 2, fields, values))
     }
+
+    @Test
+    fun twoTimeMultipliersCompoundMultiplicatively() {
+        // Two time-range fields both with TimeMultiplier: total multiplied by both hour values
+        // (100.0 × 1 seat) × 2.0h × 1.5h = 300.0
+        val fields = listOf(
+            TimeRangeFieldDefinition("time1", "Morning", priceModifier = PriceModifier.TimeMultiplier),
+            TimeRangeFieldDefinition("time2", "Afternoon", priceModifier = PriceModifier.TimeMultiplier)
+        )
+        val values = mapOf(
+            "time1" to TimeRangeValue("time1", LocalTime(9, 0), LocalTime(11, 0)),  // 2 hours
+            "time2" to TimeRangeValue("time2", LocalTime(14, 0), LocalTime(15, 30)) // 1.5 hours
+        )
+        assertEquals(300.0, calculateTotalPrice(100.0, 1, fields, values))
+    }
 }
