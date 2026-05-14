@@ -51,10 +51,12 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
                 +event.description
             }
 
-            // Capacity progress bar
-            progress(className = "progress $progressClass w-full h-2") {
-                attribute("value", event.occupiedSpots.toString())
-                attribute("max", event.capacity.toString())
+            // Capacity progress bar — only shown when attendee count is visible
+            if (event.showAttendeeCount) {
+                progress(className = "progress $progressClass w-full h-2") {
+                    attribute("value", event.occupiedSpots.toString())
+                    attribute("max", event.capacity.toString())
+                }
             }
 
             div(className = "card-actions items-center justify-between mt-3 pt-3 border-t border-base-200") {
@@ -64,8 +66,9 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
                         else "${event.price} ${currentStrings.currency}"
                     span(className = "text-lg font-bold text-primary") { +priceText }
                     if (event.isFull) {
+                        // Always show Full badge regardless of showAttendeeCount
                         div(className = "badge badge-error badge-sm font-bold") { +currentStrings.capacityFull }
-                    } else {
+                    } else if (event.showAttendeeCount) {
                         span(className = "text-xs font-bold text-base-content/60") {
                             +"${event.occupiedSpots} / ${event.capacity}"
                         }

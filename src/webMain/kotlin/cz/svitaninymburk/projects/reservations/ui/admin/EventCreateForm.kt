@@ -62,6 +62,7 @@ fun IComponent.AdminCreateEventScreen() {
     var durationMinutes by remember { mutableIntStateOf(0) }
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
+    var showAttendeeCount by remember { mutableStateOf(true) }
 
     // Single / Recurring fields
     var startDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()) }
@@ -237,6 +238,18 @@ fun IComponent.AdminCreateEventScreen() {
                                 }
                                 span(className = "label-text") { +currentStrings.paymentOnSite }
                             }
+                        }
+                    }
+
+                    div(className = "form-control w-full md:col-span-2") {
+                        label(className = "label") {
+                            span(className = "label-text font-medium") { +currentStrings.showAttendeeCount }
+                        }
+                        label(className = "cursor-pointer label justify-start gap-3") {
+                            checkBox(value = showAttendeeCount, className = "checkbox checkbox-primary") {
+                                onChange { showAttendeeCount = value }
+                            }
+                            span(className = "label-text text-sm text-base-content/70") { +currentStrings.showAttendeeCountHint }
                         }
                     }
                 }
@@ -610,6 +623,7 @@ fun IComponent.AdminCreateEventScreen() {
                                         defaultDuration = finalDuration,
                                         allowedPaymentTypes = allowedPayments,
                                         customFields = customFields,
+                                        showAttendeeCount = showAttendeeCount,
                                         dateTimes = listOf(dt),
                                     )
                                 ).onRight {
@@ -636,6 +650,7 @@ fun IComponent.AdminCreateEventScreen() {
                                         defaultDuration = finalDuration,
                                         allowedPaymentTypes = allowedPayments,
                                         customFields = customFields,
+                                        showAttendeeCount = showAttendeeCount,
                                         dateTimes = previewDates,
                                     )
                                 ).onRight {
@@ -693,6 +708,7 @@ fun IComponent.AdminCreateEventScreen() {
                                         endDate = computedEndDate,
                                         lessonCount = lessonCount,
                                         customLessons = finalCustomLessons,
+                                        showAttendeeCount = showAttendeeCount,
                                     )
                                 ).onRight {
                                     toastData = ToastData(currentStrings.toastCourseCreated, ToastType.Success)

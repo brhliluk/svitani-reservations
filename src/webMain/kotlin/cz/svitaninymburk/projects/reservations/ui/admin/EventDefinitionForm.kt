@@ -44,6 +44,7 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
     // Platby
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
+    var showAttendeeCount by remember { mutableStateOf(true) }
 
     // --- STAVY PRO CUSTOM FIELDS BUILDER ---
     var customFields by remember { mutableStateOf(listOf<CustomFieldDefinition>()) }
@@ -161,6 +162,18 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                                 }
                                 span(className = "label-text") { +currentStrings.paymentOnSite }
                             }
+                        }
+                    }
+
+                    div(className = "form-control w-full md:col-span-2") {
+                        label(className = "label") {
+                            span(className = "label-text font-medium") { +currentStrings.showAttendeeCount }
+                        }
+                        label(className = "cursor-pointer label justify-start gap-3") {
+                            checkBox(value = showAttendeeCount, className = "checkbox checkbox-primary") {
+                                onChange { showAttendeeCount = value }
+                            }
+                            span(className = "label-text text-sm text-base-content/70") { +currentStrings.showAttendeeCountHint }
                         }
                     }
                 }
@@ -297,6 +310,7 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                         defaultDuration = finalDuration,
                         allowedPaymentTypes = allowedPayments,
                         customFields = customFields,
+                        showAttendeeCount = showAttendeeCount,
                     )
 
                     scope.launch {
