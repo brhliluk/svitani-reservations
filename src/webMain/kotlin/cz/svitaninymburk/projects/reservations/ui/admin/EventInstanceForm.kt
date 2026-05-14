@@ -66,6 +66,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
     var durationMinutes by remember { mutableIntStateOf(0) }
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
+    var showAttendeeCount by remember { mutableStateOf(true) }
 
     // Inline recurrence (no longer read from definition)
     var recurrenceType by remember { mutableStateOf(RecurrenceType.NONE) }
@@ -99,6 +100,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
 
         allowBankTransfer = definition.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
         allowOnSite = definition.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
+        showAttendeeCount = definition.showAttendeeCount
     }
 
     LaunchedEffect(Unit) {
@@ -316,6 +318,18 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                     }
                                 }
                             }
+
+                            div(className = "form-control w-full md:col-span-2") {
+                                label(className = "label") {
+                                    span(className = "label-text font-medium") { +currentStrings.showAttendeeCount }
+                                }
+                                label(className = "cursor-pointer label justify-start gap-3") {
+                                    checkBox(value = showAttendeeCount, className = "checkbox checkbox-primary") {
+                                        onChange { showAttendeeCount = value }
+                                    }
+                                    span(className = "label-text text-sm text-base-content/70") { +currentStrings.showAttendeeCountHint }
+                                }
+                            }
                         }
                     }
                 }
@@ -387,6 +401,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                 allowedPaymentTypes = allowedPayments,
                                 customFields = emptyList(),
                                 lectorEmail = lectorEmail,
+                                showAttendeeCount = showAttendeeCount,
                             )
 
                             val dateTimes = if (isRecurring && previewDates.isNotEmpty()) previewDates else listOf(parsedDateTime)

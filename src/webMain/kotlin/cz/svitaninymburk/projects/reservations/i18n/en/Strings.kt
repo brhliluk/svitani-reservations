@@ -194,6 +194,8 @@ object EnStrings : AppStrings {
     override val createTemplateButton = "Create template"
     override val errorToast: (String) -> String = { "Error: $it" }
     override val toastTemplatesLoadError: (String) -> String = { "Error loading templates: $it" }
+    override val showAttendeeCount = "Show attendee count to public"
+    override val showAttendeeCountHint = "When off, the number of registered participants is hidden from the public."
 
     // Event Definition Form
     override val eventNameLabel = "Name (e.g. Yoga for Beginners)"

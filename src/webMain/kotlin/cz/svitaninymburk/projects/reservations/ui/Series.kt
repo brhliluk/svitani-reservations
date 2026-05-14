@@ -35,9 +35,11 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                         span(className = "icon-[heroicons--academic-cap] size-3")
                         +"${series.lessonCount} ${currentStrings.courseLessons}"
                     }
-                    div(className = "badge badge-ghost text-xs gap-1") {
-                        span(className = "icon-[heroicons--users] size-3")
-                        +"Max ${series.capacity}"
+                    if (series.showAttendeeCount) {
+                        div(className = "badge badge-ghost text-xs gap-1") {
+                            span(className = "icon-[heroicons--users] size-3")
+                            +"Max ${series.capacity}"
+                        }
                     }
                 }
 
