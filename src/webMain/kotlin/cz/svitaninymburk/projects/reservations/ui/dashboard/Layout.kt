@@ -98,18 +98,18 @@ fun IComponent.DashboardLayout(
                             span(className = "icon-[heroicons--x-mark] size-4 shrink-0 ml-1")
                         }
                     } else {
-                        div(className = "text-xl font-bold text-base-content") {
+                        div(className = "text-2xl font-bold text-base-content") {
                             +currentStrings.allEvents
                         }
                     }
 
                     div(className = "join bg-base-100 shadow-sm border border-base-300 rounded-lg w-full sm:w-auto") {
-                        button(className = "join-item btn flex-1 sm:flex-none min-h-11 ${if(viewMode == ViewMode.LIST) "btn-active" else "btn-ghost"}") {
+                        button(className = "join-item btn flex-1 sm:flex-none min-h-11 ${if(viewMode == ViewMode.LIST) "btn-primary" else "btn-ghost"}") {
                             attribute("aria-label", currentStrings.listView)
                             onClick { viewMode = ViewMode.LIST }
                             span(className = "icon-[heroicons--list-bullet] size-5")
                         }
-                        button(className = "join-item btn flex-1 sm:flex-none min-h-11 ${if(viewMode == ViewMode.CALENDAR) "btn-active" else "btn-ghost"}") {
+                        button(className = "join-item btn flex-1 sm:flex-none min-h-11 ${if(viewMode == ViewMode.CALENDAR) "btn-primary" else "btn-ghost"}") {
                             attribute("aria-label", currentStrings.calendarView)
                             onClick { viewMode = ViewMode.CALENDAR }
                             span(className = "icon-[heroicons--calendar] size-5")
@@ -129,7 +129,7 @@ fun IComponent.DashboardLayout(
                         } else {
                             if (filteredSeries.isNotEmpty()) {
                                 div(className = "flex flex-col gap-3 sm:gap-4") {
-                                    div(className = "text-sm font-semibold text-base-content/50 uppercase tracking-wider px-1") {
+                                    div(className = "text-xs font-bold text-primary/60 uppercase tracking-wider px-1") {
                                         +currentStrings.openCourses
                                     }
                                     div(className = "grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6") {
@@ -143,7 +143,7 @@ fun IComponent.DashboardLayout(
                             if (filteredEvents.isNotEmpty()) {
                                 div(className = "flex flex-col gap-3 sm:gap-4") {
                                     if (filteredSeries.isNotEmpty()) {
-                                        div(className = "text-sm font-semibold text-base-content/50 uppercase tracking-wider px-1") {
+                                        div(className = "text-xs font-bold text-primary/60 uppercase tracking-wider px-1") {
                                             +currentStrings.individualEvents
                                         }
                                     }

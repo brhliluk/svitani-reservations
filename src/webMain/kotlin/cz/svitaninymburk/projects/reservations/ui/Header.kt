@@ -67,11 +67,11 @@ fun IComponent.AppHeader(
         }
     )
 
-    header(className = "navbar min-h-14 bg-base-100 border-b border-base-200 px-3 sm:px-8") {
+    header(className = "navbar min-h-16 bg-base-100 border-b border-primary/20 px-3 sm:px-8") {
 
         div(className = "navbar-start gap-3 sm:gap-4") {
             img(src = "logo.svg", alt = "Svítání", className = "h-9 sm:h-10 w-auto")
-            span(className = "hidden sm:inline text-lg font-medium text-base-content") { +currentStrings.dashboard }
+            span(className = "hidden sm:inline text-lg font-bold text-primary") { +currentStrings.dashboard }
         }
 
         div(className = "navbar-end gap-3 sm:gap-4") {
@@ -102,7 +102,7 @@ fun IComponent.AppHeader(
                         +currentStrings.logOut
                     }
                 } else {
-                    button(className = "btn btn-ghost btn-sm min-h-11") {
+                    button(className = "btn btn-primary btn-sm min-h-11 px-4") {
                         onClick { modalState = AuthModalState.Login }
                         +currentStrings.logIn
                     }

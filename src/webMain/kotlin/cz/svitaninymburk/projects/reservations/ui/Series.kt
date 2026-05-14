@@ -55,7 +55,7 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                 val endT = series.lessonEndTime
                 if (dow != null && startT != null && endT != null) {
                     div(className = "flex items-center gap-2 text-sm text-base-content/70 mt-1 bg-base-200/50 p-2 rounded-lg") {
-                        span(className = "icon-[heroicons--clock] size-5 text-secondary")
+                        span(className = "icon-[heroicons--clock] size-5 text-primary/70")
                         span {
                             +currentStrings.lessonScheduleText(
                                 dayName = currentStrings.dayName(dow.ordinal),
