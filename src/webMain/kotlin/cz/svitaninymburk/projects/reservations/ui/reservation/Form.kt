@@ -10,8 +10,10 @@ import cz.svitaninymburk.projects.reservations.event.BooleanFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.event.NumberFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TextFieldDefinition
+import cz.svitaninymburk.projects.reservations.event.PriceModifier
 import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
+import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -90,12 +92,28 @@ fun IComponent.ReservationModal(
                         div(className = "stat py-2") {
                             div(className = "stat-title") { +currentStrings.formTotalPrice }
                             div(className = "stat-value text-primary text-xl sm:text-2xl") {
-                                // Dynamický výpočet ceny
-                                val total = target.price * seats
+                                val total = calculateTotalPrice(
+                                    basePrice = target.price,
+                                    seatCount = seats,
+                                    customFields = target.customFields,
+                                    customValues = customValuesState,
+                                )
                                 if (total == 0.0) +currentStrings.free else +"$total ${currentStrings.currency}"
                             }
                             div(className = "stat-desc") {
-                                +"${target.price} ${currentStrings.currency} x $seats ${currentStrings.persons}"
+                                val timeField = target.customFields
+                                    .filterIsInstance<TimeRangeFieldDefinition>()
+                                    .firstOrNull { it.priceModifier is PriceModifier.TimeMultiplier }
+                                val hours = timeField?.let { f ->
+                                    (customValuesState[f.key] as? TimeRangeValue)
+                                        ?.takeIf { it.to > it.from }
+                                        ?.let { v -> (v.to.toSecondOfDay() - v.from.toSecondOfDay()) / 3600.0 }
+                                }
+                                if (hours != null) {
+                                    +"${target.price} ${currentStrings.currency} × $seats ${currentStrings.persons} × $hours ${currentStrings.hours}"
+                                } else {
+                                    +"${target.price} ${currentStrings.currency} × $seats ${currentStrings.persons}"
+                                }
                             }
                         }
                     }
