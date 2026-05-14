@@ -7,6 +7,11 @@
 @custom-variant dark (@media (prefers-color-scheme: dark));
 @source inline("bg-neutral-500 text-white font-bold inline-block rounded-full");
 
+/* Nunito — matches brand font used on svitaninymburk.cz */
+@theme {
+    --font-sans: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -14,6 +19,32 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Base typography */
+@layer base {
+    html {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        font-feature-settings: "kern" 1, "liga" 1;
+        text-rendering: optimizeLegibility;
+    }
+
+    /* Nunito's rounded forms read well at tight heading spacing */
+    h1, h2, h3, h4, h5, h6 {
+        letter-spacing: -0.01em;
+        line-height: 1.25;
+    }
+
+    /* Keep body prose comfortable */
+    p {
+        line-height: 1.6;
+    }
+
+    /* Tabular figures for all numeric data */
+    .tabular, [class*="badge"], table td, table th {
+        font-variant-numeric: tabular-nums;
+    }
 }
 
 /* Svítání brand palette — overrides caramellatte defaults */
