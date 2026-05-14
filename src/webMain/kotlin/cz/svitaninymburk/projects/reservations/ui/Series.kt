@@ -31,7 +31,7 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                 }
 
                 div(className = "flex gap-2 my-1") {
-                    div(className = "badge badge-tertiary badge-outline text-xs gap-1") {
+                    div(className = "badge badge-secondary badge-outline text-xs gap-1") {
                         span(className = "icon-[heroicons--academic-cap] size-3")
                         +"${series.lessonCount} ${currentStrings.courseLessons}"
                     }

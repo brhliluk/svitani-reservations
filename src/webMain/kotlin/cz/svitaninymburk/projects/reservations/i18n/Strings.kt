@@ -146,6 +146,7 @@ interface AppStrings : ErrorStrings {
     val onSite: String
     val cancel: String
     val close: String
+    val retry: String
     val timeRangeHint: (String, String) -> String
     val timeRangeError: String
 

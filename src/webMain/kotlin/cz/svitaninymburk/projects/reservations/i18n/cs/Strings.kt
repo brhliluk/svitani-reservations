@@ -129,7 +129,8 @@ object CsStrings : AppStrings {
     override val bankTransfer = "Převodem"
     override val onSite = "Hotově na místě"
     override val cancel = "Zrušit"
-    override val close = "zavřít"
+    override val close = "Zavřít"
+    override val retry = "Zkusit znovu"
     override val timeRangeHint: (String, String) -> String = { from, to -> "Rozsah: $from–$to" }
     override val timeRangeError = "Čas je mimo povolený rozsah"
 

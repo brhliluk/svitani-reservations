@@ -129,7 +129,8 @@ object EnStrings : AppStrings {
     override val bankTransfer = "Bank transfer"
     override val onSite = "On-site"
     override val cancel = "Cancel"
-    override val close = "close"
+    override val close = "Close"
+    override val retry = "Try again"
     override val timeRangeHint: (String, String) -> String = { from, to -> "Range: $from–$to" }
     override val timeRangeError = "Time is outside the allowed range"
 

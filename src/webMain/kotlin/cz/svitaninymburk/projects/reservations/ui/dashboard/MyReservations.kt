@@ -81,7 +81,7 @@ fun IComponent.MyReservationsList(userId: Uuid) {
                 span { +state.message }
                 button(className = "btn btn-sm min-h-11") {
                     onClick { retryTrigger++ }
-                    +currentStrings.close
+                    +currentStrings.retry
                 }
             }
         }

@@ -102,7 +102,7 @@ fun IComponent.DashboardScreen(
                     span { +state.message }
                     button(className = "btn min-h-11") {
                         onClick { retryTrigger++ }
-                        +currentStrings.close
+                        +currentStrings.retry
                     }
                 }
             }
