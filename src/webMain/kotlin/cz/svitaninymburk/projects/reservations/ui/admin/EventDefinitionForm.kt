@@ -166,9 +166,7 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                     }
 
                     div(className = "form-control w-full md:col-span-2") {
-                        label(className = "label") {
-                            span(className = "label-text font-medium") { +currentStrings.showAttendeeCount }
-                        }
+                        p(className = "label-text font-medium mb-1") { +currentStrings.showAttendeeCount }
                         label(className = "cursor-pointer label justify-start gap-3") {
                             checkBox(value = showAttendeeCount, className = "checkbox checkbox-primary") {
                                 onChange { showAttendeeCount = value }
