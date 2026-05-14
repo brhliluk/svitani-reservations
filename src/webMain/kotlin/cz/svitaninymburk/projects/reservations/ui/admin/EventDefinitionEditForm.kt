@@ -276,24 +276,48 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
                                                     }
                                                 }
                                                 is BooleanFieldDefinition -> {
-                                                    div(className = "form-control") {
-                                                        label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldFlatFeeLabel } }
-                                                        numeric(value = (field.priceModifier as? PriceModifier.FixedAmount)?.amount, min = 0, className = "input input-sm input-bordered w-full") {
-                                                            onInput {
-                                                                val amount = value?.toDouble() ?: 0.0
-                                                                updateCustomField(index, field.copy(priceModifier = if (amount > 0) PriceModifier.FixedAmount(amount) else null))
+                                                    div(className = "form-control md:col-span-2") {
+                                                        label(className = "cursor-pointer label justify-start gap-2 py-1") {
+                                                            checkBox(value = field.priceModifier is PriceModifier.FixedAmount, className = "checkbox checkbox-xs checkbox-accent") {
+                                                                onChange {
+                                                                    updateCustomField(index, field.copy(priceModifier = if (value) PriceModifier.FixedAmount(0.0) else null))
+                                                                }
                                                             }
+                                                            span(className = "label-text text-xs") { +currentStrings.fieldPriceModifierEnabled }
+                                                        }
+                                                    }
+                                                    if (field.priceModifier is PriceModifier.FixedAmount) {
+                                                        div(className = "form-control") {
+                                                            label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldFlatFeeLabel } }
+                                                            numeric(value = (field.priceModifier as PriceModifier.FixedAmount).amount.takeIf { it > 0 }, min = 0, className = "input input-sm input-bordered w-full") {
+                                                                onInput {
+                                                                    updateCustomField(index, field.copy(priceModifier = PriceModifier.FixedAmount(value?.toDouble() ?: 0.0)))
+                                                                }
+                                                            }
+                                                            p(className = "text-xs text-base-content/50 mt-1") { +currentStrings.fieldFlatFeeFormula }
                                                         }
                                                     }
                                                 }
                                                 is NumberFieldDefinition -> {
-                                                    div(className = "form-control") {
-                                                        label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldPerUnitPriceLabel } }
-                                                        numeric(value = (field.priceModifier as? PriceModifier.PerUnit)?.pricePerUnit, min = 0, className = "input input-sm input-bordered w-full") {
-                                                            onInput {
-                                                                val amount = value?.toDouble() ?: 0.0
-                                                                updateCustomField(index, field.copy(priceModifier = if (amount > 0) PriceModifier.PerUnit(amount) else null))
+                                                    div(className = "form-control md:col-span-2") {
+                                                        label(className = "cursor-pointer label justify-start gap-2 py-1") {
+                                                            checkBox(value = field.priceModifier is PriceModifier.PerUnit, className = "checkbox checkbox-xs checkbox-accent") {
+                                                                onChange {
+                                                                    updateCustomField(index, field.copy(priceModifier = if (value) PriceModifier.PerUnit(0.0) else null))
+                                                                }
                                                             }
+                                                            span(className = "label-text text-xs") { +currentStrings.fieldPriceModifierEnabled }
+                                                        }
+                                                    }
+                                                    if (field.priceModifier is PriceModifier.PerUnit) {
+                                                        div(className = "form-control") {
+                                                            label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldPerUnitPriceLabel } }
+                                                            numeric(value = (field.priceModifier as PriceModifier.PerUnit).pricePerUnit.takeIf { it > 0 }, min = 0, className = "input input-sm input-bordered w-full") {
+                                                                onInput {
+                                                                    updateCustomField(index, field.copy(priceModifier = PriceModifier.PerUnit(value?.toDouble() ?: 0.0)))
+                                                                }
+                                                            }
+                                                            p(className = "text-xs text-base-content/50 mt-1") { +currentStrings.fieldPerUnitFormula }
                                                         }
                                                     }
                                                 }

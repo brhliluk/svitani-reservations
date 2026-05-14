@@ -263,8 +263,11 @@ interface AppStrings : ErrorStrings {
     val fieldTypeBoolean: String
     val fieldTypeTimeRange: String
     val fieldTimeMultiplierToggle: String
+    val fieldPriceModifierEnabled: String
     val fieldFlatFeeLabel: String
+    val fieldFlatFeeFormula: String
     val fieldPerUnitPriceLabel: String
+    val fieldPerUnitFormula: String
     val validationNameRequired: String
     val validationLectorEmailRequired: String
     val validationRecurrenceEndRequired: String
