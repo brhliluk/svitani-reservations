@@ -16,6 +16,7 @@ import io.ktor.http.URLProtocol
 import io.ktor.http.isSuccess
 import io.ktor.http.path
 import io.ktor.server.util.url
+import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apache.commons.mail.DefaultAuthenticator
@@ -72,11 +73,12 @@ class AppSettingsService(
 
     override suspend fun testFioSettings(fioToken: String?): Either<SettingsError, Unit> = either {
         val token = fioToken ?: provider.current.fioToken
+        val today = LocalDate.now()
         val response = try {
             httpClient.get(url {
                 protocol = URLProtocol.HTTPS
                 host = "fioapi.fio.cz"
-                path("v1/rest/last/$token/transactions.json")
+                path("v1/rest/set-last-date/$token/$today/")
             })
         } catch (e: Exception) {
             raise(SettingsError.FioTestFailed(e.message ?: "Connection failed"))
