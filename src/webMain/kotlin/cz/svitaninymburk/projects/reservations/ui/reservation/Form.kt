@@ -14,6 +14,7 @@ import cz.svitaninymburk.projects.reservations.event.PriceModifier
 import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
 import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
+import cz.svitaninymburk.projects.reservations.event.hoursFromRange
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -107,10 +108,12 @@ fun IComponent.ReservationModal(
                                 val hours = timeField?.let { f ->
                                     (customValuesState[f.key] as? TimeRangeValue)
                                         ?.takeIf { it.to > it.from }
-                                        ?.let { v -> (v.to.toSecondOfDay() - v.from.toSecondOfDay()) / 3600.0 }
+                                        ?.let { v -> hoursFromRange(v) }
                                 }
                                 if (hours != null) {
-                                    +"${target.price} ${currentStrings.currency} × $seats ${currentStrings.persons} × $hours ${currentStrings.hours}"
+                                    val rounded = kotlin.math.round(hours * 10) / 10.0
+                                    val displayHours = if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
+                                    +"${target.price} ${currentStrings.currency} × $seats ${currentStrings.persons} × $displayHours ${currentStrings.hours}"
                                 } else {
                                     +"${target.price} ${currentStrings.currency} × $seats ${currentStrings.persons}"
                                 }

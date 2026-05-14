@@ -14,7 +14,7 @@ fun calculateTotalPrice(
         val modifier = fieldMap[key]?.priceModifier ?: continue
         if (modifier is PriceModifier.TimeMultiplier) {
             val tv = value as? TimeRangeValue ?: continue
-            val hours = (tv.to.toSecondOfDay() - tv.from.toSecondOfDay()) / 3600.0
+            val hours = hoursFromRange(tv)
             if (hours > 0) total *= hours
         }
     }
@@ -36,3 +36,6 @@ fun calculateTotalPrice(
 
     return total
 }
+
+internal fun hoursFromRange(value: TimeRangeValue): Double =
+    (value.to.toSecondOfDay() - value.from.toSecondOfDay()) / 3600.0
