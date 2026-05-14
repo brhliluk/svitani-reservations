@@ -165,6 +165,7 @@ fun IComponent.AdminUpcomingEventRow(title: String, time: String, occupied: Int,
         progress(className = "progress $progressClass w-full h-2") {
             attribute("value", occupied.toString())
             attribute("max", capacity.toString())
+            attribute("aria-label", currentStrings.ariaCapacityProgress(occupied, capacity))
         }
     }
 }
@@ -183,6 +184,7 @@ fun IComponent.AdminPendingReservationRow(name: String, eventName: String, price
             // Tlačítko pro schválení platby (zatím vizuální)
             button(className = "btn btn-circle btn-ghost btn-sm text-success") {
                 title(currentStrings.tooltipMarkPaid)
+                attribute("aria-label", currentStrings.tooltipMarkPaid)
                 onClick { onMarkAsPaid() }
                 span(className = "icon-[heroicons--check] size-5")
             }

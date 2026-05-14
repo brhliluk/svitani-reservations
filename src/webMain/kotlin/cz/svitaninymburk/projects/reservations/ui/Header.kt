@@ -83,6 +83,7 @@ fun IComponent.AppHeader(
                         span(className = "hidden sm:inline") { +currentStrings.myReservations }
                     }
                     div(className = "avatar placeholder") {
+                        attribute("aria-hidden", "true")
                         div(className = "bg-primary/10 text-primary w-10 rounded-full grid place-items-center") {
                             span(className = "icon-[heroicons--user] size-6")
                         }

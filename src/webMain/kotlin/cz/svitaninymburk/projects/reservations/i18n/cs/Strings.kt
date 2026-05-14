@@ -95,6 +95,29 @@ object CsStrings : AppStrings {
     override val registrationSuccess = "Registrace úspěšná! Potvrzení jsme poslali na váš email."
     override val forgotPasswordEmailSent = "Email s instrukcemi ke změně hesla byl odeslán."
 
+    // Auth dialog labels
+    override val loginTitle = "Přihlášení"
+    override val passwordLabel = "Heslo"
+    override val forgotPasswordLink = "Zapomněli jste heslo?"
+    override val noAccountYet = "Ještě nemáte účet?"
+    override val signUpLink = "Zaregistrujte se"
+    override val registerTitle = "Nová registrace"
+    override val registerSubtitle = "Zadejte platný email, na který vám budeme posílat potvrzení a QR kódy."
+    override val passwordConfirmLabel = "Heslo znovu"
+    override val passwordMinLengthNote = "min. 6 znaků"
+    override val passwordMismatchError = "Hesla se neshodují"
+    override val createAccountButton = "Vytvořit účet"
+    override val alreadyHaveAccount = "Už máte účet?"
+    override val signInLink = "Přihlaste se"
+    override val forgotPasswordTitle = "Obnova hesla"
+    override val forgotPasswordSubtitle = "Zadejte email, se kterým jste se registrovali. Pošleme vám odkaz pro nastavení nového hesla."
+    override val sendInstructionsButton = "Odeslat instrukce"
+    override val backToLoginLink = "Zpět na přihlášení"
+
+    // Accessibility labels
+    override val ariaOpenMenu = "Otevřít navigaci"
+    override val ariaCapacityProgress: (Int, Int) -> String = { occupied, capacity -> "Obsazenost: $occupied z $capacity míst" }
+
     // Reservation Modal
     override val reservationFor: (String) -> String = { "Rezervace: $it" }
     override val formTotalPrice = "Celková cena"

@@ -95,6 +95,29 @@ object EnStrings : AppStrings {
     override val registrationSuccess = "Registration successful! We sent a confirmation to your email."
     override val forgotPasswordEmailSent = "Password reset instructions were sent to your email."
 
+    // Auth dialog labels
+    override val loginTitle = "Sign in"
+    override val passwordLabel = "Password"
+    override val forgotPasswordLink = "Forgot your password?"
+    override val noAccountYet = "Don't have an account?"
+    override val signUpLink = "Sign up"
+    override val registerTitle = "Create account"
+    override val registerSubtitle = "Enter a valid email address. We will send confirmations and QR codes to it."
+    override val passwordConfirmLabel = "Confirm password"
+    override val passwordMinLengthNote = "min. 6 characters"
+    override val passwordMismatchError = "Passwords do not match"
+    override val createAccountButton = "Create account"
+    override val alreadyHaveAccount = "Already have an account?"
+    override val signInLink = "Sign in"
+    override val forgotPasswordTitle = "Reset password"
+    override val forgotPasswordSubtitle = "Enter the email you registered with. We will send you a link to set a new password."
+    override val sendInstructionsButton = "Send instructions"
+    override val backToLoginLink = "Back to sign in"
+
+    // Accessibility labels
+    override val ariaOpenMenu = "Open navigation"
+    override val ariaCapacityProgress: (Int, Int) -> String = { occupied, capacity -> "Occupancy: $occupied of $capacity spots" }
+
     // Reservation Modal
     override val reservationFor: (String) -> String = { "Reservation for: $it" }
     override val formTotalPrice = "Total price"

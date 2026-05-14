@@ -31,6 +31,7 @@ fun IComponent.DashboardLayout(
     series: List<EventSeries>,
     definitions: List<EventDefinition>,
     initialFilterId: String? = null,
+    isSubmitting: Boolean = false,
     onSubmitReservation: (ReservationTarget, ReservationFormData) -> Unit,
 ) {
     val currentStrings by strings
@@ -104,10 +105,12 @@ fun IComponent.DashboardLayout(
 
                     div(className = "join bg-base-100 shadow-sm border border-base-300 rounded-lg w-full sm:w-auto") {
                         button(className = "join-item btn flex-1 sm:flex-none min-h-11 ${if(viewMode == ViewMode.LIST) "btn-active" else "btn-ghost"}") {
+                            attribute("aria-label", currentStrings.listView)
                             onClick { viewMode = ViewMode.LIST }
                             span(className = "icon-[heroicons--list-bullet] size-5")
                         }
                         button(className = "join-item btn flex-1 sm:flex-none min-h-11 ${if(viewMode == ViewMode.CALENDAR) "btn-active" else "btn-ghost"}") {
+                            attribute("aria-label", currentStrings.calendarView)
                             onClick { viewMode = ViewMode.CALENDAR }
                             span(className = "icon-[heroicons--calendar] size-5")
                         }
@@ -160,10 +163,10 @@ fun IComponent.DashboardLayout(
         ReservationModal(
             target = reservationTarget,
             user = user,
+            isSubmitting = isSubmitting,
             onClose = { reservationTarget = null },
             onSubmit = { target, data ->
                 onSubmitReservation(target, data)
-                reservationTarget = null
             }
         )
     }

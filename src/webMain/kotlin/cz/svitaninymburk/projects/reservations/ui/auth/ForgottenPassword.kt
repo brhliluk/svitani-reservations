@@ -32,20 +32,22 @@ fun IComponent.ForgotPasswordDialog(
     div(className = "modal modal-open modal-bottom sm:modal-middle") {
         div(className = "modal-box") {
             button(className = "btn btn-sm btn-circle btn-ghost absolute right-2 top-2") {
+                attribute("aria-label", currentStrings.close)
                 onClick { onClose() }
                 +"✕"
             }
 
-            h3(className = "font-bold text-lg mb-4") { +"Obnova hesla" }
+            h3(className = "font-bold text-lg mb-4") { +currentStrings.forgotPasswordTitle }
             p(className = "text-sm text-base-content/70 mb-4") {
-                +"Zadejte email, se kterým jste se registrovali. Pošleme vám odkaz pro nastavení nového hesla."
+                +currentStrings.forgotPasswordSubtitle
             }
 
             div(className = "form-control w-full") {
-                label(className = "label pb-1") { span(className = "label-text") { +"Email" } }
+                label(className = "label pb-1") { span(className = "label-text") { +currentStrings.emailLabel } }
                 text(value = email, type = InputType.Email, className = "input input-bordered w-full") {
                     placeholder("vas@email.cz")
                     autocomplete(Autocomplete.Email)
+                    attribute("aria-required", "true")
                     onInput { email = value ?: "" }
                 }
             }
@@ -54,7 +56,7 @@ fun IComponent.ForgotPasswordDialog(
                 button(className = "btn btn-primary w-full") {
                     disabled(isLoading || email.isBlank())
                     if (isLoading) span(className = "loading loading-spinner")
-                    +"Odeslat instrukce"
+                    +currentStrings.sendInstructionsButton
 
                     onClick {
                         isLoading = true
@@ -81,10 +83,15 @@ fun IComponent.ForgotPasswordDialog(
             div(className = "text-center mt-4 text-sm") {
                 a(className = "link link-primary cursor-pointer") {
                     onClick { onSwitchToLogin() }
-                    +"Zpět na přihlášení"
+                    +currentStrings.backToLoginLink
                 }
             }
         }
-        div(className = "modal-backdrop") { button { onClick { onClose() } } }
+        div(className = "modal-backdrop") {
+            button {
+                attribute("aria-label", currentStrings.close)
+                onClick { onClose() }
+            }
+        }
     }
 }

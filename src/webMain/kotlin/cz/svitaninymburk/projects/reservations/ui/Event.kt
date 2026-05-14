@@ -56,6 +56,7 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
                 progress(className = "progress $progressClass w-full h-2") {
                     attribute("value", event.occupiedSpots.toString())
                     attribute("max", event.capacity.toString())
+                    attribute("aria-label", currentStrings.ariaCapacityProgress(event.occupiedSpots, event.capacity))
                 }
             }
 

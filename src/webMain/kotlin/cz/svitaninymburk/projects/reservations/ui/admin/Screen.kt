@@ -31,6 +31,7 @@ fun IComponent.AdminLayout(
             div(className = "w-full navbar bg-base-100 shadow-sm lg:hidden print:hidden") {
                 div(className = "flex-none") {
                     label(htmlFor = "admin-drawer", className = "btn btn-square btn-ghost") {
+                        attribute("aria-label", currentStrings.ariaOpenMenu)
                         span(className = "icon-[heroicons--bars-3] size-6")
                     }
                 }

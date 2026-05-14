@@ -36,6 +36,7 @@ import web.html.HTMLSelectElement
 fun IComponent.ReservationModal(
     target: ReservationTarget?,
     user: User?,
+    isSubmitting: Boolean = false,
     onClose: () -> Unit,
     onSubmit: (ReservationTarget, ReservationFormData) -> Unit
 ) {
@@ -112,6 +113,7 @@ fun IComponent.ReservationModal(
                                 id("reservation-name")
                                 autocomplete(Autocomplete.GivenName)
                                 placeholder(currentStrings.nameHint)
+                                attribute("aria-required", "true")
                                 onInput { firstName = value ?: "" }
                             }
                         }
@@ -121,6 +123,7 @@ fun IComponent.ReservationModal(
                                 id("reservation-surname")
                                 autocomplete(Autocomplete.FamilyName)
                                 placeholder(currentStrings.surnameHint)
+                                attribute("aria-required", "true")
                                 onInput { lastName = value ?: "" }
                             }
                         }
@@ -133,6 +136,7 @@ fun IComponent.ReservationModal(
                             id("reservation-email")
                             autocomplete(Autocomplete.Email)
                             placeholder(currentStrings.emailHint)
+                            attribute("aria-required", "true")
                             onInput { email = value ?: "" }
                         }
                     }
@@ -144,6 +148,7 @@ fun IComponent.ReservationModal(
                             id("reservation-phone")
                             autocomplete(Autocomplete.Tel)
                             placeholder(currentStrings.phoneHint)
+                            attribute("aria-required", "true")
                             onInput { phone = value ?: "" }
                         }
                     }
@@ -186,21 +191,22 @@ fun IComponent.ReservationModal(
 
                 // --- AKCE (Footer) ---
                 div(className = "modal-action flex-col-reverse sm:flex-row gap-2") {
-                    // Cancel
                     button(className = "btn btn-ghost w-full sm:w-auto min-h-11") {
-                        onClick { onClose() }
+                        disabled(isSubmitting)
+                        onClick { if (!isSubmitting) onClose() }
                         +currentStrings.cancel
                     }
-                    // Submit
                     button(className = "btn btn-primary px-8 w-full sm:w-auto min-h-11") {
-                        disabled(!isValid)
+                        disabled(!isValid || isSubmitting)
                         onClick {
-                            onSubmit(
+                            if (!isSubmitting) onSubmit(
                                 target,
                                 ReservationFormData(firstName, lastName, email, phone, seats, paymentType, customValuesState, currentStrings.locale)
                             )
                         }
-                        if (isValid) {
+                        if (isSubmitting) {
+                            span(className = "loading loading-spinner loading-sm")
+                        } else if (isValid) {
                             span(className = "icon-[heroicons--check] size-5")
                         }
                         +currentStrings.reserve

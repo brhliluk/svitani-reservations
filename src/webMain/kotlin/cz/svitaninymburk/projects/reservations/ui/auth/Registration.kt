@@ -77,63 +77,67 @@ fun IComponent.RegisterDialog(
     div(className = "modal modal-open modal-bottom sm:modal-middle") {
         div(className = "modal-box") {
             button(className = "btn btn-sm btn-circle btn-ghost absolute right-2 top-2") {
+                attribute("aria-label", currentStrings.close)
                 onClick { onClose() }
                 +"✕"
             }
 
-            h3(className = "font-bold text-lg mb-4") { +"Nová registrace" }
+            h3(className = "font-bold text-lg mb-4") { +currentStrings.registerTitle }
 
             p(className = "text-sm text-base-content/70 mb-4") {
-                +"Zadejte platný email, na který vám budeme posílat potvrzení a QR kódy."
+                +currentStrings.registerSubtitle
             }
 
             form(className = "flex flex-col gap-2") {
                 onEvent<Event>("submit") { it.preventDefault() }
 
-                // --- Jméno a Příjmení ---
                 div(className = "flex gap-3") {
                     div(className = "form-control w-1/2") {
-                        label(className = "label pb-1") { span(className = "label-text") { +"Jméno" } }
+                        label(className = "label pb-1") { span(className = "label-text") { +currentStrings.nameLabel } }
                         text(value = name, className = "input input-bordered w-full", name = "given-name") {
                             id("reg-name")
                             autocomplete(Autocomplete.GivenName)
+                            attribute("aria-required", "true")
                             onInput { name = value ?: "" }
                         }
                     }
                     div(className = "form-control w-1/2") {
-                        label(className = "label pb-1") { span(className = "label-text") { +"Příjmení" } }
+                        label(className = "label pb-1") { span(className = "label-text") { +currentStrings.surnameLabel } }
                         text(value = surname, className = "input input-bordered w-full", name = "family-name") {
                             id("reg-surname")
                             autocomplete(Autocomplete.FamilyName)
+                            attribute("aria-required", "true")
                             onInput { surname = value ?: "" }
                         }
                     }
                 }
 
-                // --- Email ---
                 div(className = "form-control w-full") {
-                    label(className = "label pb-1") { span(className = "label-text") { +"Email" } }
+                    label(className = "label pb-1") { span(className = "label-text") { +currentStrings.emailLabel } }
                     text(value = email, className = "input input-bordered w-full", name = "email") {
                         id("reg-email")
                         autocomplete(Autocomplete.Email)
                         placeholder("vas@email.cz")
+                        attribute("aria-required", "true")
                         onInput { email = value ?: "" }
                     }
                 }
 
-                // --- Heslo (New Password) ---
                 div(className = "form-control w-full") {
-                    label(className = "label pb-1") { span(className = "label-text") { +"Heslo (min. 6 znaků)" } }
+                    label(className = "label pb-1") {
+                        span(className = "label-text") { +currentStrings.passwordLabel }
+                        span(className = "label-text-alt text-base-content/50") { +"(${currentStrings.passwordMinLengthNote})" }
+                    }
                     password(value = password, className = "input input-bordered w-full") {
                         id("reg-password")
                         autocomplete(Autocomplete.NewPassword)
+                        attribute("aria-required", "true")
                         onInput { password = value ?: "" }
                     }
                 }
 
-                // --- Heslo Znovu ---
                 div(className = "form-control w-full") {
-                    label(className = "label pb-1") { span(className = "label-text") { +"Heslo znovu" } }
+                    label(className = "label pb-1") { span(className = "label-text") { +currentStrings.passwordConfirmLabel } }
 
                     val inputClass = if (passwordConfirm.isNotEmpty() && password != passwordConfirm)
                         "input input-bordered input-error w-full"
@@ -143,30 +147,37 @@ fun IComponent.RegisterDialog(
                     password(value = passwordConfirm, className = inputClass) {
                         id("reg-password-confirm")
                         autocomplete(Autocomplete.NewPassword)
+                        attribute("aria-required", "true")
+                        if (passwordConfirm.isNotEmpty() && password != passwordConfirm) {
+                            attribute("aria-invalid", "true")
+                            attribute("aria-describedby", "reg-password-error")
+                        }
                         onInput { passwordConfirm = value ?: "" }
                         onKeydown { if (it.key == "Enter") performRegister() }
                     }
 
                     if (passwordConfirm.isNotEmpty() && password != passwordConfirm) {
                         label(className = "label pb-0 pt-1") {
-                            span(className = "label-text-alt text-error") { +"Hesla se neshodují" }
+                            span(className = "label-text-alt text-error", id = "reg-password-error") {
+                                +currentStrings.passwordMismatchError
+                            }
                         }
                     }
                 }
             }
 
-            // Error alert
             if (errorMessage != null) {
                 div(className = "alert alert-error mt-4 text-sm py-2") {
+                    span(className = "icon-[heroicons--exclamation-circle] size-5")
                     span { +errorMessage!! }
                 }
             }
 
             div(className = "modal-action") {
                 button(className = "btn btn-primary w-full") {
-                       disabled(isLoading || !isFormValid)
+                    disabled(isLoading || !isFormValid)
                     if (isLoading) span(className = "loading loading-spinner")
-                    +"Vytvořit účet"
+                    +currentStrings.createAccountButton
                     onClick { performRegister() }
                 }
             }
@@ -182,13 +193,19 @@ fun IComponent.RegisterDialog(
             }
 
             div(className = "text-center mt-4 text-sm") {
-                +"Už máte účet? "
+                +currentStrings.alreadyHaveAccount
+                +" "
                 a(className = "link link-primary cursor-pointer") {
                     onClick { onSwitchToLogin() }
-                    +"Přihlaste se"
+                    +currentStrings.signInLink
                 }
             }
         }
-        div(className = "modal-backdrop") { button { onClick { onClose() } } }
+        div(className = "modal-backdrop") {
+            button {
+                attribute("aria-label", currentStrings.close)
+                onClick { onClose() }
+            }
+        }
     }
 }

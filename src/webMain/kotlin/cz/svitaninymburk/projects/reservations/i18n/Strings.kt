@@ -111,6 +111,29 @@ interface AppStrings : ErrorStrings {
     val registrationSuccess: String
     val forgotPasswordEmailSent: String
 
+    // Auth dialog labels
+    val loginTitle: String
+    val passwordLabel: String
+    val forgotPasswordLink: String
+    val noAccountYet: String
+    val signUpLink: String
+    val registerTitle: String
+    val registerSubtitle: String
+    val passwordConfirmLabel: String
+    val passwordMinLengthNote: String
+    val passwordMismatchError: String
+    val createAccountButton: String
+    val alreadyHaveAccount: String
+    val signInLink: String
+    val forgotPasswordTitle: String
+    val forgotPasswordSubtitle: String
+    val sendInstructionsButton: String
+    val backToLoginLink: String
+
+    // Accessibility labels
+    val ariaOpenMenu: String
+    val ariaCapacityProgress: (Int, Int) -> String
+
     // Reservation Modal
     val reservationFor: (String) -> String
     val formTotalPrice: String

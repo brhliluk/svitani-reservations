@@ -63,28 +63,31 @@ fun IComponent.LoginDialog(
     div(className = "modal modal-open modal-bottom sm:modal-middle") {
         div(className = "modal-box") {
             button(className = "btn btn-sm btn-circle btn-ghost absolute right-2 top-2") {
+                attribute("aria-label", currentStrings.close)
                 onClick { onClose() }
                 +"✕"
             }
 
-            h3(className = "font-bold text-lg mb-4") { +"Přihlášení" }
+            h3(className = "font-bold text-lg mb-4") { +currentStrings.loginTitle }
 
             div(className = "form-control w-full") {
-                label(className = "label") { span(className = "label-text") { +"Email" } }
+                label(className = "label") { span(className = "label-text") { +currentStrings.emailLabel } }
 
                 text(value = email, className = "input input-bordered w-full") {
                     placeholder("vas@email.cz")
                     autocomplete(Autocomplete.Username)
+                    attribute("aria-required", "true")
                     onInput { email = value ?: "" }
                 }
             }
 
             div(className = "form-control w-full mt-4") {
-                label(className = "label pt-1") { span(className = "label-text font-medium") { +"Heslo" } }
+                label(className = "label pt-1") { span(className = "label-text font-medium") { +currentStrings.passwordLabel } }
 
                 password(value = password, className = "input input-bordered w-full") {
-                    placeholder("******")
+                    placeholder("······")
                     autocomplete(Autocomplete.CurrentPassword)
+                    attribute("aria-required", "true")
                     onInput { password = value ?: "" }
                     onKeydown { e -> if (e.key == "Enter") login() }
                 }
@@ -94,8 +97,8 @@ fun IComponent.LoginDialog(
 
                     a(className = "label-text-alt link link-hover text-primary text-sm cursor-pointer") {
                         href("#")
-                         onClick { onSwitchToForgottenPassword() }
-                        +"Zapomněli jste heslo?"
+                        onClick { onSwitchToForgottenPassword() }
+                        +currentStrings.forgotPasswordLink
                     }
                 }
             }
@@ -107,27 +110,30 @@ fun IComponent.LoginDialog(
                 }
             }
 
-            // --- AKCE ---
             div(className = "modal-action") {
                 button(className = "btn btn-primary w-full") {
                     disabled(isLoading || !isFormValid)
                     if (isLoading) span(className = "loading loading-spinner")
-                    +"Přihlásit se"
+                    +currentStrings.logIn
                     onClick { login() }
                 }
             }
 
             div(className = "text-center mt-4 text-sm") {
-                +"Ještě nemáte účet? "
+                +currentStrings.noAccountYet
+                +" "
                 a(className = "link link-primary cursor-pointer") {
                     onClick { onSwitchToRegister() }
-                    +"Zaregistrujte se"
+                    +currentStrings.signUpLink
                 }
             }
         }
 
         div(className = "modal-backdrop") {
-            button { onClick { onClose() } }
+            button {
+                attribute("aria-label", currentStrings.close)
+                onClick { onClose() }
+            }
         }
     }
 }

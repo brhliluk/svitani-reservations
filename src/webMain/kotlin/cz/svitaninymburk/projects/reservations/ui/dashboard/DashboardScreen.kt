@@ -84,12 +84,6 @@ fun IComponent.DashboardScreen(
     }
 
 
-    if (isSubmitting) {
-        div(className = "fixed inset-0 bg-black/50 z-[100] flex items-center justify-center") {
-            span(className = "loading loading-spinner loading-lg text-primary")
-        }
-    }
-
     when (val state = uiState) {
         is DashboardUiState.Loading -> Loading()
         is DashboardUiState.Success -> DashboardLayout(
@@ -98,6 +92,7 @@ fun IComponent.DashboardScreen(
             series = state.series,
             definitions = state.definitions,
             initialFilterId = initialFilterId,
+            isSubmitting = isSubmitting,
             onSubmitReservation = { target, formData -> scope.launch { submitReservation(target, formData) } }
         )
         is DashboardUiState.Error -> {
