@@ -7,3 +7,16 @@ out/
 .env.*
 .worktrees/
 local.properties
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
+# Superpowers dev planning docs (local only)
+docs/superpowers/
+
+# Extracted library sources / build artifacts at repo root
+META-INF/
+commonMain/
+jvmMain/
