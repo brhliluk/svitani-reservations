@@ -7,7 +7,7 @@ import kotlinx.serialization.json.jsonPrimitive
 
 @Serializable
 data class FioResponse(
-    val accountStatement: FioAccountStatement
+    val accountStatement: FioAccountStatement?
 )
 
 @Serializable
@@ -29,7 +29,7 @@ data class BankTransaction(
 )
 
 fun parseFioTransactions(jsonResponse: FioResponse): List<BankTransaction> {
-    val rawList = jsonResponse.accountStatement.transactionList?.transaction ?: return emptyList()
+    val rawList = jsonResponse.accountStatement?.transactionList?.transaction ?: return emptyList()
 
     return rawList.mapNotNull { rawTx ->
         try {
