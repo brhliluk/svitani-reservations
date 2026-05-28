@@ -10,6 +10,7 @@ interface EmailStrings {
     val reservationPaymentQrPrompt: String
     val reservationQrAlt: String
     fun reservationBankTransfer(bankAccount: String, variableSymbol: String?): String
+    val reservationPaymentProcessingNote: String
     val reservationHtmlFallback: String
     val reservationOnSiteNote: String
     fun reservationViewLink(url: String): String
@@ -65,6 +66,7 @@ object CsEmailStrings : EmailStrings {
     override val reservationQrAlt = "QR Platba"
     override fun reservationBankTransfer(bankAccount: String, variableSymbol: String?) =
         "Nebo převodem na účet: $bankAccount, VS: $variableSymbol"
+    override val reservationPaymentProcessingNote = "Platba bude zpracována do 10 minut od přepsání na náš účet."
     override val reservationHtmlFallback = "Váš klient nepodporuje HTML emaily."
     override val reservationOnSiteNote = "Platbu prosím uhraďte v hotovosti na místě."
     override fun reservationViewLink(url: String) = "Zobrazit rezervaci: $url"
@@ -109,6 +111,7 @@ object EnEmailStrings : EmailStrings {
     override val reservationQrAlt = "QR Payment"
     override fun reservationBankTransfer(bankAccount: String, variableSymbol: String?) =
         "Or by bank transfer to: $bankAccount, VS: $variableSymbol"
+    override val reservationPaymentProcessingNote = "Your payment will be processed within 10 minutes of being received in our account."
     override val reservationHtmlFallback = "Your email client does not support HTML emails."
     override val reservationOnSiteNote = "Please pay in cash on the day of the event."
     override fun reservationViewLink(url: String) = "View reservation: $url"

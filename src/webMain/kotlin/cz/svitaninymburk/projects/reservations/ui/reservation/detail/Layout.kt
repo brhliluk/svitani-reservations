@@ -125,6 +125,10 @@ fun IComponent.ReservationDetailLayout(
                                 CopyToClipboardButton(currentStrings.variableSymbol, reservation.variableSymbol ?: "---")
                             }
 
+                            p(className = "text-xs text-base-content/50 mt-4") {
+                                +currentStrings.paymentProcessingNote
+                            }
+
                         } else if (uiState.showOnSiteInfo) {
                             // === PLATBA NA MÍSTĚ ===
                             div(className = "flex flex-col items-center gap-4 text-center") {

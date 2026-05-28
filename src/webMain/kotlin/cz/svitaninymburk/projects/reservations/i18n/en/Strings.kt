@@ -379,6 +379,7 @@ object EnStrings : AppStrings {
 
     // On-site payment detail
     override val onSitePaymentInfo = "Please pay cash on site."
+    override val paymentProcessingNote = "Your payment will be processed within 10 minutes of being received in our account."
 
     // Admin Users Screen
     override val allUsers = "Users"

@@ -394,6 +394,7 @@ interface AppStrings : ErrorStrings {
 
     // On-site payment detail
     val onSitePaymentInfo: String
+    val paymentProcessingNote: String
 
     // Admin Users Screen
     val allUsers: String

@@ -379,6 +379,7 @@ object CsStrings : AppStrings {
 
     // On-site payment detail
     override val onSitePaymentInfo = "Platbu prosím uhraďte hotově na místě."
+    override val paymentProcessingNote = "Platba bude zpracována do 10 minut od přepsání na náš účet."
 
     // Admin Users Screen
     override val allUsers = "Uživatelé"

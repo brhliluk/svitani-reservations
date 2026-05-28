@@ -105,6 +105,7 @@ class GmailEmailService(
                 }
                 br
                 p { +s.reservationBankTransfer(bankAccount, reservation.variableSymbol) }
+                p { +s.reservationPaymentProcessingNote }
             } else if (reservation.paymentType == PaymentInfo.Type.ON_SITE) {
                 p { +s.reservationOnSiteNote }
             }
