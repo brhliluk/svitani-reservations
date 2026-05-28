@@ -93,7 +93,7 @@ fun IComponent.renderCustomField(
                     onChange { stateMap[field.key] = BooleanValue(field.key, this.value) }
                 }
                 span(className = "label-text font-medium") { +field.label }
-                if (field.isRequired) span(className = "text-error text-sm") { +"*" }
+                if (field.isRequired) span(className = "text-error") { +"*" }
             }
         }
 
