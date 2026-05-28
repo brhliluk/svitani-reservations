@@ -50,6 +50,7 @@ fun IComponent.renderCustomField(
             label(className = "form-control w-full") {
                 div(className = "label") {
                     span(className = "label-text") { +field.label }
+                    if (field.isRequired) span(className = "text-error") { +"*" }
                 }
 
                 if (field.isMultiline) {
@@ -70,6 +71,7 @@ fun IComponent.renderCustomField(
             label(className = "form-control w-full") {
                 div(className = "label") {
                     span(className = "label-text") { +field.label }
+                    if (field.isRequired) span(className = "text-error") { +"*" }
                 }
                 text(value = (stateMap[field.key] as? NumberValue)?.value?.toString(), type = InputType.Number, className = "input input-bordered w-full") {
                     imaskNumeric {
@@ -91,6 +93,7 @@ fun IComponent.renderCustomField(
                     onChange { stateMap[field.key] = BooleanValue(field.key, this.value) }
                 }
                 span(className = "label-text font-medium") { +field.label }
+                if (field.isRequired) span(className = "text-error text-sm") { +"*" }
             }
         }
 
@@ -112,7 +115,10 @@ fun IComponent.renderCustomField(
             div(className = "form-control w-full") {
                 div(className = "label") {
                     div(className = "flex flex-col gap-0.5") {
-                        span(className = "label-text") { +field.label }
+                        div(className = "flex items-center gap-0.5") {
+                            span(className = "label-text") { +field.label }
+                            if (field.isRequired) span(className = "text-error") { +"*" }
+                        }
                         if (minTime != null && maxTime != null) {
                             span(className = "label-text-alt text-base-content/60") {
                                 +currentStrings.timeRangeHint(minTime.toString(), maxTime.toString())
