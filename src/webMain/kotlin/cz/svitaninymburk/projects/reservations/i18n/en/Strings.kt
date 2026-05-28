@@ -55,6 +55,7 @@ object EnStrings : AppStrings {
     override val emailHint = "john.doe@google.com"
     override val phoneLabel = "Phone"
     override val phoneHint = "+420 123 456 789"
+    override val phoneHintAlt = "Including country code, e.g. +420"
     override val seatCountLabel = "Number of seats"
     override val seatCountHint = "1"
     override val seatCountMaxReached: (Int) -> String = { "Only $it seats available" }

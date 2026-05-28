@@ -743,7 +743,7 @@ class AdminDashboardService(
             .filter { it.status != Reservation.Status.CANCELLED }
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                emailService.sendCancellationNotice(res.contactEmail, instance.title)
+                emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
                     .onLeft { println("⚠️ Failed to send cancellation email for ${res.id}: $it") }
             }
 
@@ -757,7 +757,7 @@ class AdminDashboardService(
             .filter { it.status != Reservation.Status.CANCELLED }
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                emailService.sendCancellationNotice(res.contactEmail, series.title)
+                emailService.sendCancellationNotice(res.contactEmail, series.title, res.id, res.locale)
                     .onLeft { println("⚠️ Failed to send cancellation email for ${res.id}: $it") }
             }
 
@@ -775,7 +775,7 @@ class AdminDashboardService(
                 .filter { it.status != Reservation.Status.CANCELLED }
                 .forEach { res ->
                     reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                    emailService.sendCancellationNotice(res.contactEmail, eventTitle)
+                    emailService.sendCancellationNotice(res.contactEmail, eventTitle, res.id, res.locale)
                         .onLeft { println("⚠️ Failed to send cancellation email for ${res.id}: $it") }
                 }
         }

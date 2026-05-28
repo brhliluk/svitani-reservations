@@ -71,6 +71,7 @@ interface AppStrings : ErrorStrings {
     val emailHint: String
     val phoneLabel: String
     val phoneHint: String
+    val phoneHintAlt: String
     val seatCountLabel: String
     val seatCountHint: String
     val seatCountMaxReached: (Int) -> String

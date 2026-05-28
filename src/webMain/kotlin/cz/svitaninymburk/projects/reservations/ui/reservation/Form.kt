@@ -186,6 +186,9 @@ fun IComponent.ReservationModal(
                             attribute("aria-required", "true")
                             onInput { phone = value ?: "" }
                         }
+                        div(className = "label") {
+                            span(className = "label-text-alt text-base-content/60") { +currentStrings.phoneHintAlt }
+                        }
                     }
 
                     if (target.customFields.isNotEmpty()) {

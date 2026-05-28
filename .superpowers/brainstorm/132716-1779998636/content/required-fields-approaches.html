@@ -1,0 +1,109 @@
+<h2>Jak označit povinná pole ve formuláři?</h2>
+<p class="subtitle">Vyberte přístup, který Ti nejlépe sedí k existujícímu designu (DaisyUI + Tailwind)</p>
+
+<div class="cards">
+
+  <!-- Varianta A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family: system-ui, sans-serif; padding: 16px; background: #fdf6ee; border-radius: 8px;">
+        <div style="margin-bottom: 12px;">
+          <div style="display:flex; align-items:center; gap:4px; margin-bottom:4px;">
+            <span style="font-size:13px; color:#555;">Jméno</span>
+            <span style="color:#e53e3e; font-size:14px; font-weight:bold; line-height:1;">*</span>
+          </div>
+          <div style="border:1.5px solid #d1d5db; border-radius:6px; padding:8px 12px; background:#fff; color:#aaa; font-size:13px;">Jan</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:4px; margin-bottom:4px;">
+            <span style="font-size:13px; color:#555;">Příjmení</span>
+            <span style="color:#e53e3e; font-size:14px; font-weight:bold; line-height:1;">*</span>
+          </div>
+          <div style="border:1.5px solid #d1d5db; border-radius:6px; padding:8px 12px; background:#fff; color:#aaa; font-size:13px;">Novák</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="margin-bottom:4px; font-size:13px; color:#555;">Poznámka <span style="color:#888; font-size:11px;">(nepovinné)</span></div>
+          <div style="border:1.5px solid #d1d5db; border-radius:6px; padding:8px 12px; background:#fff; color:#aaa; font-size:13px;">Libovolný text…</div>
+        </div>
+        <p style="font-size:11px; color:#888; margin-top:4px;">* Povinné pole</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Červená hvězdička + legenda</h3>
+      <p>Klasický pattern: hvězdička u labelu, pod formulářem vysvětlení. Uživatelé ji okamžitě rozpoznají. Nepovinná pole jsou označena textem <em>(nepovinné)</em>.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pro</h4><ul><li>Universálně srozumitelné</li><li>Minimální vizuální šum</li><li>Bez nové i18n string pro každé pole</li></ul></div>
+        <div class="cons"><h4>Proti</h4><ul><li>Legenda je dole — méně viditelná</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Varianta B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family: system-ui, sans-serif; padding: 16px; background: #fdf6ee; border-radius: 8px;">
+        <div style="margin-bottom: 12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <span style="font-size:13px; color:#555;">Jméno</span>
+            <span style="font-size:10px; background:#fee2e2; color:#b91c1c; border-radius:4px; padding:1px 6px; font-weight:600;">POVINNÉ</span>
+          </div>
+          <div style="border:1.5px solid #d1d5db; border-radius:6px; padding:8px 12px; background:#fff; color:#aaa; font-size:13px;">Jan</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <span style="font-size:13px; color:#555;">Příjmení</span>
+            <span style="font-size:10px; background:#fee2e2; color:#b91c1c; border-radius:4px; padding:1px 6px; font-weight:600;">POVINNÉ</span>
+          </div>
+          <div style="border:1.5px solid #d1d5db; border-radius:6px; padding:8px 12px; background:#fff; color:#aaa; font-size:13px;">Novák</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <span style="font-size:13px; color:#555;">Poznámka</span>
+            <span style="font-size:10px; background:#f3f4f6; color:#6b7280; border-radius:4px; padding:1px 6px;">nepovinné</span>
+          </div>
+          <div style="border:1.5px solid #d1d5db; border-radius:6px; padding:8px 12px; background:#fff; color:#aaa; font-size:13px;">Libovolný text…</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Badge POVINNÉ / nepovinné</h3>
+      <p>Každé pole má badge napravo od labelu. Povinná = červená, nepovinná = šedá. Vyžaduje nové i18n stringy.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pro</h4><ul><li>Explicitní bez legendy</li><li>Jasné rozlišení obou stavů</li></ul></div>
+        <div class="cons"><h4>Proti</h4><ul><li>Vizuálně hlučnější</li><li>Nutné 2 nové i18n stringy</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Varianta C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family: system-ui, sans-serif; padding: 16px; background: #fdf6ee; border-radius: 8px;">
+        <div style="margin-bottom: 12px;">
+          <div style="margin-bottom:4px; font-size:13px; color:#555;">Jméno</div>
+          <div style="border:1.5px solid #3b82f6; border-radius:6px; padding:8px 12px; background:#fff; color:#aaa; font-size:13px; box-shadow:0 0 0 2px #bfdbfe;">Jan</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="margin-bottom:4px; font-size:13px; color:#555;">Příjmení</div>
+          <div style="border:1.5px solid #3b82f6; border-radius:6px; padding:8px 12px; background:#fff; color:#aaa; font-size:13px; box-shadow:0 0 0 2px #bfdbfe;">Novák</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="margin-bottom:4px; font-size:13px; color:#555;">Poznámka</div>
+          <div style="border:1.5px solid #d1d5db; border-radius:6px; padding:8px 12px; background:#fff; color:#aaa; font-size:13px;">Libovolný text…</div>
+        </div>
+        <p style="font-size:11px; color:#888; margin-top:4px; text-align:center;">Zvýrazněný rámeček = povinné pole</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Zvýrazněný border vstupu</h3>
+      <p>Povinná pole mají vizuálně odlišený border (barva). Čistý label bez přidaných prvků. Legenda vysvětluje.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pro</h4><ul><li>Nejčistší labely</li><li>Minimální změny kódu</li></ul></div>
+        <div class="cons"><h4>Proti</h4><ul><li>Může splývat s focus stylem</li><li>Méně intuitivní bez legendy</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="text-align:center; color:#888; margin-top:16px; font-size:13px;">Klikni na kartu pro výběr, pak odpověz v terminálu.</p>

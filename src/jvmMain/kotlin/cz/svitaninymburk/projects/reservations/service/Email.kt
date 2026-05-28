@@ -120,13 +120,18 @@ class GmailEmailService(
         }
     } }
 
-    override suspend fun sendCancellationNotice(toEmail: String, eventTitle: String): Either<EmailError.SendCancellation, Unit> = either { withContext(Dispatchers.IO) {
-        val s = emailStringsFor("cs") // TODO: pass locale when interface supports it
+    override suspend fun sendCancellationNotice(toEmail: String, eventTitle: String, reservationId: kotlin.uuid.Uuid, locale: String): Either<EmailError.SendCancellation, Unit> = either { withContext(Dispatchers.IO) {
+        val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(toEmail)
 
+        val url = "$appBaseUrl/reservation/$reservationId"
         email.subject = s.cancellationSubject(eventTitle)
-        email.setTextMsg(s.cancellationBody(eventTitle))
+        email.setHtmlMsg(buildString { appendHTML().html { body {
+            p { +s.cancellationBody(eventTitle) }
+            p { +s.reservationViewLink(url) }
+        } } })
+        email.setTextMsg(s.cancellationBody(eventTitle) + "\n" + s.reservationViewLink(url))
 
         catch({ email.send() }) { e: EmailException ->
             raise(EmailError.SendCancellationFailed(e.fullMessage()))
@@ -140,8 +145,13 @@ class GmailEmailService(
         email.subject = s.paymentReceivedSubject
 
         val event = eventRepository.get(reservation.reference.id)
+        val url = "$appBaseUrl/reservation/${reservation.id}"
 
-        email.setTextMsg(s.paymentReceivedBody(event?.title))
+        email.setHtmlMsg(buildString { appendHTML().html { body {
+            p { +s.paymentReceivedBody(event?.title) }
+            p { +s.reservationViewLink(url) }
+        } } })
+        email.setTextMsg(s.paymentReceivedBody(event?.title) + "\n" + s.reservationViewLink(url))
 
         catch({ email.send() }) { e: EmailException ->
             raise(EmailError.SendPaymentConfirmationFailed(e.fullMessage()))
@@ -178,6 +188,7 @@ class GmailEmailService(
             }
             br
             p { +s.reservationBankTransfer(bankAccount, reservation.variableSymbol) }
+            p { +s.reservationViewLink("$appBaseUrl/reservation/${reservation.id}") }
         } } })
 
         catch({ email.send() }) { e: EmailException ->
@@ -295,9 +306,11 @@ class ConsoleEmailService : EmailService, LectorEmailService {
 
     override suspend fun sendCancellationNotice(
         toEmail: String,
-        eventTitle: String
+        eventTitle: String,
+        reservationId: kotlin.uuid.Uuid,
+        locale: String,
     ): Either<EmailError.SendCancellation, Unit> {
-        println("📧 [MOCK EMAIL] Odesílám storno na: $toEmail | Akce: $eventTitle")
+        println("📧 [MOCK EMAIL] Odesílám storno na: $toEmail | Akce: $eventTitle | Rezervace: $reservationId")
         return Unit.right()
     }
 
