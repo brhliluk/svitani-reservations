@@ -31,6 +31,7 @@ import dev.kilua.html.div
 import dev.kilua.html.h3
 import dev.kilua.html.label
 import dev.kilua.html.option
+import dev.kilua.html.p
 import dev.kilua.html.span
 import web.events.Event
 import web.html.HTMLSelectElement
@@ -51,6 +52,7 @@ fun IComponent.ReservationModal(
     var email by remember(target, user) { mutableStateOf(user?.email.orEmpty()) }
     var phone by remember(target) { mutableStateOf("") }
     var seats by remember(target) { mutableStateOf(1) }
+    var seatsExceeded by remember(target) { mutableStateOf(false) }
     var paymentType by remember(target) { mutableStateOf(PaymentInfo.Type.BANK_TRANSFER) }
     val customValuesState = remember(target) { mutableStateMapOf<String, CustomFieldValue>() }
 
@@ -188,7 +190,16 @@ fun IComponent.ReservationModal(
                         label(className = "form-control w-full sm:col-span-1") {
                             div(className = "label") { span(className = "label-text") { +currentStrings.seatCountLabel } }
                             text(value = seats.toString(), type = InputType.Number, className = "input input-bordered input-lg sm:input-md w-full") {
-                                onInput { seats = it.data?.toInt()?.coerceIn(1, target.maxCapacity) ?: 1 }
+                                onInput {
+                                    val typed = it.data?.toInt() ?: 1
+                                    seats = typed.coerceIn(1, target.maxCapacity)
+                                    seatsExceeded = typed > target.maxCapacity
+                                }
+                            }
+                            if (seatsExceeded) {
+                                p(className = "text-warning text-sm mt-1") {
+                                    +currentStrings.seatCountMaxReached(target.maxCapacity)
+                                }
                             }
                         }
 
