@@ -126,6 +126,7 @@ object CsStrings : AppStrings {
     override val currency = "Kč"
     override val persons = "osob"
     override val moreDetails = "Další údaje"
+    override val requiredFieldLegend = "* Povinné pole"
     override val paymentType = "Typ platby"
     override val bankTransfer = "Převodem"
     override val onSite = "Hotově na místě"

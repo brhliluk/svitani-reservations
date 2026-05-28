@@ -142,6 +142,7 @@ interface AppStrings : ErrorStrings {
     val currency: String
     val persons: String
     val moreDetails: String
+    val requiredFieldLegend: String
     val paymentType: String
     val bankTransfer: String
     val onSite: String

@@ -126,6 +126,7 @@ object EnStrings : AppStrings {
     override val currency = "CZK"
     override val persons = "persons"
     override val moreDetails = "More details"
+    override val requiredFieldLegend = "* Required field"
     override val paymentType = "Payment type"
     override val bankTransfer = "Bank transfer"
     override val onSite = "On-site"
