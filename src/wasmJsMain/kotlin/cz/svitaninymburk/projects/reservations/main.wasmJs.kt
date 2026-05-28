@@ -21,7 +21,7 @@ actual fun copyToClipboard(text: String) {
             var file = new File([blob], "qr_platba.png", { type: "image/png" });
             var data = {
                 title: 'QR Platba',
-                text: 'QR kód pro platbu rezervace',
+                text: 'QR kód pro platbu rezervace Svítání Nymburk',
                 files: [file]
             };
             
@@ -102,7 +102,7 @@ actual fun shareSvgAsPng(svgString: String) {
     var file = new File([blob], "qr_platba.png", { type: "image/png" });
     var data = {
         title: 'QR Platba',
-        text: 'QR kód pro platbu rezervace',
+        text: 'QR kód pro platbu rezervace Svítání Nymburk',
         files: [file]
     };
     if (navigator.canShare && navigator.canShare(data)) {

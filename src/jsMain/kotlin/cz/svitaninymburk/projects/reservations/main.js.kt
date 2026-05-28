@@ -40,7 +40,7 @@ actual fun shareQrImage(imageUrl: String) {
 
         val shareData = json(
             "title" to "QR Platba",
-            "text" to "QR kód pro platbu rezervace",
+            "text" to "QR kód pro platbu rezervace Svítání Nymburk",
             "files" to arrayOf(file)
         )
 
@@ -126,7 +126,7 @@ actual fun shareBlob(blob: Blob) {
 
     val shareData = json(
         "title" to "QR Platba",
-        "text" to "QR kód pro platbu rezervace",
+        "text" to "QR kód pro platbu rezervace Svítání Nymburk",
         "files" to arrayOf(file)
     )
 
