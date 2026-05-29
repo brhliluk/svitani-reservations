@@ -188,19 +188,22 @@ tasks.register("deploy") {
     group = "deployment"
     description = "Build JAR with bundled frontend and deploy to production server"
     dependsOn("jarWithJs")
+    notCompatibleWithConfigurationCache("reads local.properties at execution time")
+
+    val localPropertiesFile = rootDir.resolve("local.properties")
+    val buildDir = layout.buildDirectory
 
     doLast {
         val localProps = Properties().apply {
-            val f = rootDir.resolve("local.properties")
-            check(f.exists()) { "local.properties not found — add deploy.host and deploy.sshKey" }
-            f.inputStream().use { load(it) }
+            check(localPropertiesFile.exists()) { "local.properties not found — add deploy.host and deploy.sshKey" }
+            localPropertiesFile.inputStream().use { load(it) }
         }
         val host = localProps.getProperty("deploy.host")
             ?: error("deploy.host missing from local.properties")
-        val sshKey = rootDir.resolve(
+        val sshKey = localPropertiesFile.parentFile.resolve(
             localProps.getProperty("deploy.sshKey") ?: error("deploy.sshKey missing from local.properties")
         ).absolutePath
-        val jar = "${layout.buildDirectory.get()}/libs/reservations.jar"
+        val jar = "${buildDir.get()}/libs/reservations.jar"
 
         fun run(vararg cmd: String) {
             val exit = ProcessBuilder(*cmd).inheritIO().start().waitFor()
