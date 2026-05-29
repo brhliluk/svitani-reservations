@@ -63,7 +63,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
 
     var titleOverride by remember { mutableStateOf("") }
     var descriptionOverride by remember { mutableStateOf("") }
-    var lectorEmail by remember { mutableStateOf("") }
+    var ownerEmails by remember { mutableStateOf(listOf("")) }
     var priceOverride by remember { mutableStateOf<Number?>(0) }
     var capacityOverride by remember { mutableIntStateOf(10) }
     var allowBankTransfer by remember { mutableStateOf(true) }
@@ -83,7 +83,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     fun applyDefinitionDefaults(definition: EventDefinition) {
         titleOverride = definition.title
         descriptionOverride = definition.description
-        lectorEmail = definition.lectorEmail
+        ownerEmails = definition.ownerEmails.ifEmpty { listOf("") }
         priceOverride = definition.defaultPrice
         capacityOverride = definition.defaultCapacity
         allowBankTransfer = definition.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
@@ -332,9 +332,33 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                             }
 
                             div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lectorEmailLabel } }
-                                text(value = lectorEmail, className = "input input-bordered w-full") {
-                                    onInput { lectorEmail = value ?: "" }
+                                label(className = "label") {
+                                    span(className = "label-text font-medium") { +currentStrings.ownerEmailsLabel }
+                                }
+                                div(className = "flex flex-col gap-2") {
+                                    ownerEmails.forEachIndexed { index, email ->
+                                        div(className = "flex gap-2 items-center") {
+                                            text(value = email, className = "input input-bordered flex-1") {
+                                                placeholder(currentStrings.ownerEmailPlaceholder)
+                                                onInput {
+                                                    ownerEmails = ownerEmails.toMutableList().apply { set(index, value ?: "") }
+                                                }
+                                            }
+                                            if (ownerEmails.size > 1) {
+                                                button(className = "btn btn-ghost btn-sm btn-circle text-error") {
+                                                    onClick {
+                                                        ownerEmails = ownerEmails.toMutableList().apply { removeAt(index) }
+                                                    }
+                                                    span(className = "icon-[heroicons--x-mark] size-4")
+                                                }
+                                            }
+                                        }
+                                    }
+                                    button(className = "btn btn-outline btn-sm gap-2 self-start mt-1") {
+                                        onClick { ownerEmails = ownerEmails + "" }
+                                        span(className = "icon-[heroicons--plus] size-4")
+                                        +currentStrings.addOwnerEmailButton
+                                    }
                                 }
                             }
 
@@ -410,8 +434,9 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 toastData = ToastData(currentStrings.validationSeriesTitleRequired, ToastType.Error)
                                 return@onClick
                             }
-                            if (lectorEmail.isBlank()) {
-                                toastData = ToastData(currentStrings.validationLectorEmailRequired, ToastType.Error)
+                            val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
+                            if (validOwnerEmails.isEmpty()) {
+                                toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error)
                                 return@onClick
                             }
 
@@ -463,7 +488,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 definitionId = Uuid.parse(selectedDefinitionId!!),
                                 title = titleOverride,
                                 description = descriptionOverride,
-                                lectorEmail = lectorEmail,
+                                ownerEmails = validOwnerEmails,
                                 price = priceOverride?.toDouble() ?: 0.0,
                                 capacity = capacityOverride,
                                 startDate = parsedStartDate,

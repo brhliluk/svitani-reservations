@@ -75,7 +75,9 @@ interface AppStrings : ErrorStrings {
     val seatCountLabel: String
     val seatCountHint: String
     val seatCountMaxReached: (Int) -> String
-    val lectorEmailLabel: String
+    val ownerEmailsLabel: String
+    val ownerEmailPlaceholder: String
+    val addOwnerEmailButton: String
 
     // Reservation Detail
     val reservationSummary: String
@@ -272,7 +274,7 @@ interface AppStrings : ErrorStrings {
     val fieldPerUnitPriceLabel: String
     val fieldPerUnitFormula: String
     val validationNameRequired: String
-    val validationLectorEmailRequired: String
+    val validationOwnerEmailRequired: String
     val validationRecurrenceEndRequired: String
     val validationRecurrenceDateFormat: String
     val templateSavedToast: String

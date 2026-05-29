@@ -11,9 +11,14 @@ import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepos
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.service.AdminDashboardService
+import cz.svitaninymburk.projects.reservations.service.QrCodeGeneratorService
 import cz.svitaninymburk.projects.reservations.service.ConsoleEmailService
 import cz.svitaninymburk.projects.reservations.service.ICalGenerator
+import cz.svitaninymburk.projects.reservations.service.LectorEmailService
+import cz.svitaninymburk.projects.reservations.service.PaymentTrigger
+import cz.svitaninymburk.projects.reservations.service.ReservationService
 import cz.svitaninymburk.projects.reservations.repository.payment.InMemoryPaymentEventRepository
 import cz.svitaninymburk.projects.reservations.repository.payment.NewPaymentEvent
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
@@ -21,6 +26,9 @@ import cz.svitaninymburk.projects.reservations.admin.PaymentEventsPage
 import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
 import cz.svitaninymburk.projects.reservations.admin.EventsPage
 import cz.svitaninymburk.projects.reservations.admin.SeriesInstancesPage
+import cz.svitaninymburk.projects.reservations.error.EmailError
+import arrow.core.Either
+import arrow.core.right
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -627,7 +635,7 @@ class PaginationSpec {
         defaultDuration = kotlin.time.Duration.parse("1h"),
         allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
         customFields = emptyList(),
-        lectorEmail = "",
+        ownerEmails = emptyList(),
     )
 
     private fun makeReservation(
@@ -741,7 +749,7 @@ class PaginationSpec {
                     capacity = 10,
                     allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
                     customFields = emptyList(),
-                    lectorEmail = "",
+                    ownerEmails = emptyList(),
                 )
             )
         }
@@ -752,5 +760,190 @@ class PaginationSpec {
         val page = result.getOrNull()!!
         assertEquals(10, page.items.size)
         assertEquals(15L, page.totalCount)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Test doubles
+// ---------------------------------------------------------------------------
+
+class CapturingLectorEmailService : LectorEmailService {
+    val sentEmails = mutableListOf<String>()
+
+    override suspend fun sendLectorReservationNotification(
+        lectorEmail: String, contactName: String, contactEmail: String, contactPhone: String?,
+        seatCount: Int, eventTitle: String, occupiedSpots: Int, capacity: Int, locale: String,
+    ): Either<EmailError.SendLectorReservation, Unit> {
+        sentEmails.add(lectorEmail)
+        return Unit.right()
+    }
+
+    override suspend fun sendLectorCancellationNotification(
+        lectorEmail: String, contactName: String, eventTitle: String,
+        seatCount: Int, occupiedSpots: Int, capacity: Int, locale: String,
+    ): Either<EmailError.SendLectorCancellation, Unit> {
+        sentEmails.add(lectorEmail)
+        return Unit.right()
+    }
+}
+
+/** Simple stub implementing QrCodeGeneratorService — no AppSettingsProvider required. */
+class StubQrCodeGenerator : QrCodeGeneratorService {
+    override val accountNumber: String = "2003487968/2010"
+    override fun generateQrPng(reservation: Reservation): ByteArray = ByteArray(0)
+}
+
+// ---------------------------------------------------------------------------
+// ResolveOwnerEmailsTest
+// ---------------------------------------------------------------------------
+
+class ResolveOwnerEmailsTest {
+
+    private fun makeReservationService(
+        instanceRepo: InMemoryEventInstanceRepository,
+        seriesRepo: InMemoryEventSeriesRepository,
+        defRepo: InMemoryEventDefinitionRepository,
+        reservationRepo: InMemoryReservationRepository,
+        capturingService: CapturingLectorEmailService,
+    ) = ReservationService(
+        eventInstanceRepository = instanceRepo,
+        eventSeriesRepository = seriesRepo,
+        eventDefinitionRepository = defRepo,
+        reservationRepository = reservationRepo,
+        emailService = ConsoleEmailService(),
+        lectorEmailService = capturingService,
+        qrCodeService = StubQrCodeGenerator(),
+        paymentTrigger = PaymentTrigger(),
+        appBaseUrl = "https://test.example.com",
+    )
+
+    @Test
+    fun `resolveOwnerEmails sends to all owners across instance, series, and definition`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val capturingService = CapturingLectorEmailService()
+
+        val def = EventDefinition(
+            id = Uuid.random(),
+            title = "Test Event",
+            description = "",
+            defaultPrice = 100.0,
+            defaultCapacity = 10,
+            defaultDuration = 1.hours,
+            allowedPaymentTypes = listOf(PaymentInfo.Type.ON_SITE),
+            customFields = emptyList(),
+            ownerEmails = listOf("definition@example.com"),
+        )
+        defRepo.create(def)
+
+        val series = EventSeries(
+            id = Uuid.random(),
+            definitionId = def.id,
+            title = "Test Series",
+            description = "",
+            price = 500.0,
+            capacity = 10,
+            startDate = LocalDate(2026, 9, 1),
+            endDate = LocalDate(2026, 12, 1),
+            lessonCount = 10,
+            ownerEmails = listOf("series@example.com"),
+        )
+        seriesRepo.create(series)
+
+        val instance = EventInstance(
+            id = Uuid.random(),
+            definitionId = def.id,
+            seriesId = series.id,
+            title = "Test Instance",
+            description = "",
+            startDateTime = LocalDateTime(2099, 6, 1, 10, 0),
+            endDateTime = LocalDateTime(2099, 6, 1, 11, 0),
+            price = 100.0,
+            capacity = 10,
+            ownerEmails = listOf("instance@example.com"),
+            allowedPaymentTypes = listOf(PaymentInfo.Type.ON_SITE),
+        )
+        instanceRepo.create(instance)
+
+        val service = makeReservationService(instanceRepo, seriesRepo, defRepo, reservationRepo, capturingService)
+
+        val request = CreateInstanceReservationRequest(
+            eventInstanceId = instance.id,
+            seatCount = 1,
+            contactName = "Jan Novak",
+            contactEmail = "jan@test.com",
+            contactPhone = "",
+            paymentType = PaymentInfo.Type.ON_SITE,
+            customValues = emptyMap(),
+            locale = "cs",
+        )
+
+        val result = service.reserveInstance(request, userId = null)
+        assertTrue(result.isRight(), "Expected Right but got: $result")
+
+        assertEquals(3, capturingService.sentEmails.size, "Expected 3 owner notification emails")
+        assertTrue(capturingService.sentEmails.contains("instance@example.com"))
+        assertTrue(capturingService.sentEmails.contains("series@example.com"))
+        assertTrue(capturingService.sentEmails.contains("definition@example.com"))
+        Unit
+    }
+
+    @Test
+    fun `resolveOwnerEmails deduplicates the same email at multiple levels`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val capturingService = CapturingLectorEmailService()
+
+        val def = EventDefinition(
+            id = Uuid.random(),
+            title = "Test Event",
+            description = "",
+            defaultPrice = 100.0,
+            defaultCapacity = 10,
+            defaultDuration = 1.hours,
+            allowedPaymentTypes = listOf(PaymentInfo.Type.ON_SITE),
+            customFields = emptyList(),
+            ownerEmails = listOf("shared@example.com"),
+        )
+        defRepo.create(def)
+
+        val instance = EventInstance(
+            id = Uuid.random(),
+            definitionId = def.id,
+            seriesId = null,
+            title = "Test Instance",
+            description = "",
+            startDateTime = LocalDateTime(2099, 7, 1, 10, 0),
+            endDateTime = LocalDateTime(2099, 7, 1, 11, 0),
+            price = 100.0,
+            capacity = 10,
+            ownerEmails = listOf("shared@example.com"),
+            allowedPaymentTypes = listOf(PaymentInfo.Type.ON_SITE),
+        )
+        instanceRepo.create(instance)
+
+        val service = makeReservationService(instanceRepo, seriesRepo, defRepo, reservationRepo, capturingService)
+
+        val request = CreateInstanceReservationRequest(
+            eventInstanceId = instance.id,
+            seatCount = 1,
+            contactName = "Jana Novakova",
+            contactEmail = "jana@test.com",
+            contactPhone = "",
+            paymentType = PaymentInfo.Type.ON_SITE,
+            customValues = emptyMap(),
+            locale = "cs",
+        )
+
+        val result = service.reserveInstance(request, userId = null)
+        assertTrue(result.isRight(), "Expected Right but got: $result")
+
+        assertEquals(1, capturingService.sentEmails.count { it == "shared@example.com" },
+            "shared@example.com should be notified exactly once, but got: ${capturingService.sentEmails}")
+        Unit
     }
 }

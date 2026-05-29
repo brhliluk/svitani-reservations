@@ -22,7 +22,7 @@ data class EventDefinition(
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
-    val lectorEmail: String = "",
+    val ownerEmails: List<String> = emptyList(),
     val showAttendeeCount: Boolean = true,
 )
 
@@ -40,7 +40,7 @@ data class EventSeries(
     val lessonCount: Int,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
-    val lectorEmail: String = "",
+    val ownerEmails: List<String> = emptyList(),
     val lessonDayOfWeek: DayOfWeek? = null,
     val lessonStartTime: LocalTime? = null,
     val lessonEndTime: LocalTime? = null,
@@ -62,7 +62,7 @@ data class EventInstance(
     val isCancelled: Boolean = false,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
-    val lectorEmail: String = "",
+    val ownerEmails: List<String> = emptyList(),
     val isDropIn: Boolean = false,
     val showAttendeeCount: Boolean = true,
 ) {
@@ -89,7 +89,7 @@ data class CreateEventDefinitionRequest(
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
-    val lectorEmail: String = "",
+    val ownerEmails: List<String> = emptyList(),
     val showAttendeeCount: Boolean = true,
 )
 
@@ -102,7 +102,7 @@ data class CreateEventAndInstancesRequest(
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
-    val lectorEmail: String = "",
+    val ownerEmails: List<String> = emptyList(),
     val dateTimes: List<LocalDateTime>,
     val showAttendeeCount: Boolean = true,
 )
@@ -116,7 +116,7 @@ data class CreateEventAndSeriesRequest(
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
-    val lectorEmail: String = "",
+    val ownerEmails: List<String> = emptyList(),
     val startDate: LocalDate,
     val endDate: LocalDate,
     val lessonCount: Int,
@@ -143,7 +143,7 @@ data class CreateEventSeriesRequest(
     val lessonCount: Int,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
-    val lectorEmail: String = "",
+    val ownerEmails: List<String> = emptyList(),
     val lessonDayOfWeek: DayOfWeek? = null,
     val lessonStartTime: LocalTime? = null,
     val lessonEndTime: LocalTime? = null,
@@ -162,7 +162,7 @@ data class CreateEventInstanceRequest(
     val capacity: Int? = null,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
-    val lectorEmail: String = "",
+    val ownerEmails: List<String> = emptyList(),
     val showAttendeeCount: Boolean = true,
 )
 
@@ -182,7 +182,7 @@ data class UpdateEventDefinitionRequest(
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type>,
     val customFields: List<CustomFieldDefinition>,
-    val lectorEmail: String = "",
+    val ownerEmails: List<String> = emptyList(),
     val propagateToChildren: Boolean,
     val showAttendeeCount: Boolean = true,
 )
@@ -197,7 +197,7 @@ data class UpdateEventInstanceRequest(
     val capacity: Int,
     val allowedPaymentTypes: List<PaymentInfo.Type>,
     val customFields: List<CustomFieldDefinition>,
-    val lectorEmail: String = "",
+    val ownerEmails: List<String> = emptyList(),
     val isDropIn: Boolean = false,
     val showAttendeeCount: Boolean = true,
 )
@@ -213,7 +213,7 @@ data class UpdateEventSeriesRequest(
     val lessonCount: Int,
     val allowedPaymentTypes: List<PaymentInfo.Type>,
     val customFields: List<CustomFieldDefinition>,
-    val lectorEmail: String = "",
+    val ownerEmails: List<String> = emptyList(),
     val lessonDayOfWeek: DayOfWeek? = null,
     val lessonStartTime: LocalTime? = null,
     val lessonEndTime: LocalTime? = null,

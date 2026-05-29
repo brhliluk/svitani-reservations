@@ -61,7 +61,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
     var allowOnSite by remember { mutableStateOf(true) }
     var showCapacityWarning by remember { mutableStateOf(false) }
     var isDropIn by remember { mutableStateOf(false) }
-    var lectorEmail by remember { mutableStateOf("") }
+    var ownerEmails by remember { mutableStateOf(listOf("")) }
     var showAttendeeCount by remember { mutableStateOf(true) }
 
     LaunchedEffect(id) {
@@ -82,7 +82,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                 allowBankTransfer = inst.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
                 allowOnSite = inst.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
                 isDropIn = inst.isDropIn
-                lectorEmail = inst.lectorEmail
+                ownerEmails = inst.ownerEmails.ifEmpty { listOf("") }
                 showAttendeeCount = inst.showAttendeeCount
                 uiState = EditInstanceUiState.Loaded(inst)
             }
@@ -109,7 +109,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
             price = price?.toDouble() ?: 0.0, capacity = capacity,
             allowedPaymentTypes = allowedPayments, customFields = emptyList(),
             isDropIn = isDropIn,
-            lectorEmail = lectorEmail,
+            ownerEmails = ownerEmails.filter { it.isNotBlank() },
             showAttendeeCount = showAttendeeCount,
         )
         scope.launch {
@@ -150,8 +150,34 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                                 textArea(value = description, className = "textarea textarea-bordered h-24 w-full") { onInput { description = value ?: "" } }
                             }
                             div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lectorEmailLabel } }
-                                text(value = lectorEmail, className = "input input-bordered w-full") { onInput { lectorEmail = value ?: "" } }
+                                label(className = "label") {
+                                    span(className = "label-text font-medium") { +currentStrings.ownerEmailsLabel }
+                                }
+                                div(className = "flex flex-col gap-2") {
+                                    ownerEmails.forEachIndexed { index, email ->
+                                        div(className = "flex gap-2 items-center") {
+                                            text(value = email, className = "input input-bordered flex-1") {
+                                                placeholder(currentStrings.ownerEmailPlaceholder)
+                                                onInput {
+                                                    ownerEmails = ownerEmails.toMutableList().apply { set(index, value ?: "") }
+                                                }
+                                            }
+                                            if (ownerEmails.size > 1) {
+                                                button(className = "btn btn-ghost btn-sm btn-circle text-error") {
+                                                    onClick {
+                                                        ownerEmails = ownerEmails.toMutableList().apply { removeAt(index) }
+                                                    }
+                                                    span(className = "icon-[heroicons--x-mark] size-4")
+                                                }
+                                            }
+                                        }
+                                    }
+                                    button(className = "btn btn-outline btn-sm gap-2 self-start mt-1") {
+                                        onClick { ownerEmails = ownerEmails + "" }
+                                        span(className = "icon-[heroicons--plus] size-4")
+                                        +currentStrings.addOwnerEmailButton
+                                    }
+                                }
                             }
                             div(className = "form-control w-full") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.dateLabelField } }
@@ -242,7 +268,8 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                     button(className = "btn btn-primary") {
                         onClick {
                             if (title.isBlank()) { toastData = ToastData(currentStrings.validationNameRequired, ToastType.Error); return@onClick }
-                            if (lectorEmail.isBlank()) { toastData = ToastData(currentStrings.validationLectorEmailRequired, ToastType.Error); return@onClick }
+                            val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
+                            if (validOwnerEmails.isEmpty()) { toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error); return@onClick }
                             if (capacity < occupiedSpots) { showCapacityWarning = true; return@onClick }
                             doSave()
                         }

@@ -38,7 +38,7 @@ class ReservationService(
     private val reservationRepository: ReservationRepository,
     private val emailService: EmailService,
     private val lectorEmailService: LectorEmailService,
-    private val qrCodeService: BackendQrCodeGenerator,
+    private val qrCodeService: QrCodeGeneratorService,
     private val paymentTrigger: PaymentTrigger,
     private val appBaseUrl: String,
 ) : ReservationServiceInterface {
@@ -159,8 +159,8 @@ class ReservationService(
             icalBytes = icalBytes,
         ).onLeft { println("⚠️ Failed to send confirmation email: $it") }
 
-        val lectorEmail = resolveLectorEmail(target)
-        if (lectorEmail.isNotBlank()) {
+        val ownerEmails = resolveOwnerEmails(target)
+        if (ownerEmails.isNotEmpty()) {
             val newOccupiedSpots = when (target) {
                 is ReservationTarget.Instance -> target.event.occupiedSpots + reservation.seatCount
                 is ReservationTarget.Series -> target.series.occupiedSpots + reservation.seatCount
@@ -169,17 +169,19 @@ class ReservationService(
                 is ReservationTarget.Instance -> target.event.capacity
                 is ReservationTarget.Series -> target.series.capacity
             }
-            lectorEmailService.sendLectorReservationNotification(
-                lectorEmail = lectorEmail,
-                contactName = reservation.contactName,
-                contactEmail = reservation.contactEmail,
-                contactPhone = reservation.contactPhone,
-                seatCount = reservation.seatCount,
-                eventTitle = target.title,
-                occupiedSpots = newOccupiedSpots,
-                capacity = capacity,
-                locale = reservation.locale,
-            ).onLeft { println("⚠️ Failed to send lector reservation email: $it") }
+            ownerEmails.forEach { email ->
+                lectorEmailService.sendLectorReservationNotification(
+                    lectorEmail = email,
+                    contactName = reservation.contactName,
+                    contactEmail = reservation.contactEmail,
+                    contactPhone = reservation.contactPhone,
+                    seatCount = reservation.seatCount,
+                    eventTitle = target.title,
+                    occupiedSpots = newOccupiedSpots,
+                    capacity = capacity,
+                    locale = reservation.locale,
+                ).onLeft { println("⚠️ Failed to send owner reservation email to $email: $it") }
+            }
         }
 
         paymentTrigger.notifyNewReservation()
@@ -210,42 +212,43 @@ class ReservationService(
         emailService.sendCancellationNotice(cancelledReservation.contactEmail, target.title, cancelledReservation.id, cancelledReservation.locale)
             .mapLeft { ReservationError.FailedToSendCancellationEmail(it) }
 
-        val lectorEmail = resolveLectorEmail(target)
-        if (lectorEmail.isNotBlank()) {
+        val ownerEmails = resolveOwnerEmails(target)
+        if (ownerEmails.isNotEmpty()) {
             val capacity = when (target) {
                 is ReservationTarget.Instance -> target.event.capacity
                 is ReservationTarget.Series -> target.series.capacity
             }
-            lectorEmailService.sendLectorCancellationNotification(
-                lectorEmail = lectorEmail,
-                contactName = cancelledReservation.contactName,
-                eventTitle = target.title,
-                seatCount = cancelledReservation.seatCount,
-                occupiedSpots = updatedSpots,
-                capacity = capacity,
-                locale = cancelledReservation.locale,
-            ).onLeft { println("⚠️ Failed to send lector cancellation email: $it") }
+            ownerEmails.forEach { email ->
+                lectorEmailService.sendLectorCancellationNotification(
+                    lectorEmail = email,
+                    contactName = cancelledReservation.contactName,
+                    eventTitle = target.title,
+                    seatCount = cancelledReservation.seatCount,
+                    occupiedSpots = updatedSpots,
+                    capacity = capacity,
+                    locale = cancelledReservation.locale,
+                ).onLeft { println("⚠️ Failed to send owner cancellation email to $email: $it") }
+            }
         }
         true
     }
 
-    private suspend fun resolveLectorEmail(target: ReservationTarget): String {
+    private suspend fun resolveOwnerEmails(target: ReservationTarget): List<String> {
+        val emails = mutableSetOf<String>()
         when (target) {
             is ReservationTarget.Instance -> {
-                val instance = target.event
-                if (instance.lectorEmail.isNotBlank()) return instance.lectorEmail
-                if (instance.seriesId != null) {
-                    val seriesEmail = eventSeriesRepository.get(instance.seriesId)?.lectorEmail ?: ""
-                    if (seriesEmail.isNotBlank()) return seriesEmail
+                emails += target.event.ownerEmails
+                if (target.event.seriesId != null) {
+                    emails += eventSeriesRepository.get(target.event.seriesId)?.ownerEmails ?: emptyList()
                 }
-                return eventDefinitionRepository.get(instance.definitionId)?.lectorEmail ?: ""
+                emails += eventDefinitionRepository.get(target.event.definitionId)?.ownerEmails ?: emptyList()
             }
             is ReservationTarget.Series -> {
-                val series = target.series
-                if (series.lectorEmail.isNotBlank()) return series.lectorEmail
-                return eventDefinitionRepository.get(series.definitionId)?.lectorEmail ?: ""
+                emails += target.series.ownerEmails
+                emails += eventDefinitionRepository.get(target.series.definitionId)?.ownerEmails ?: emptyList()
             }
         }
+        return emails.filter { it.isNotBlank() }
     }
 
     private suspend fun Raise<ReservationError.CreateReservation>.generateUniqueVariableSymbol(): String {

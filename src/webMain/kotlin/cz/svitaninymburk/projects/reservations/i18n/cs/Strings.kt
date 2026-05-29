@@ -59,7 +59,9 @@ object CsStrings : AppStrings {
     override val seatCountLabel = "Počet míst"
     override val seatCountHint = "1"
     override val seatCountMaxReached: (Int) -> String = { "K dispozici je jen $it míst" }
-    override val lectorEmailLabel = "E-mail lektora / osoby zodpovědné za akci"
+    override val ownerEmailsLabel = "E-maily vlastníků / osob zodpovědných za akci"
+    override val ownerEmailPlaceholder = "E-mail"
+    override val addOwnerEmailButton = "Přidat vlastníka"
 
     // Reservation Detail
     override val reservationSummary = "Souhrn rezervace"
@@ -256,7 +258,7 @@ object CsStrings : AppStrings {
     override val fieldPerUnitPriceLabel = "Cena za jednotku (Kč)"
     override val fieldPerUnitFormula = "Vzorec: základní cena + hodnota pole × cena za jednotku"
     override val validationNameRequired = "Název je povinný"
-    override val validationLectorEmailRequired = "E-mail lektora je povinný"
+    override val validationOwnerEmailRequired = "Je potřeba zadat alespoň jeden e-mail vlastníka"
     override val validationRecurrenceEndRequired = "Zadejte datum konce opakování."
     override val validationRecurrenceDateFormat = "Neplatný formát data konce opakování."
     override val templateSavedToast = "Šablona úspěšně uložena!"

@@ -59,7 +59,9 @@ object EnStrings : AppStrings {
     override val seatCountLabel = "Number of seats"
     override val seatCountHint = "1"
     override val seatCountMaxReached: (Int) -> String = { "Only $it seats available" }
-    override val lectorEmailLabel = "Lector / responsible person email"
+    override val ownerEmailsLabel = "Owner / responsible person emails"
+    override val ownerEmailPlaceholder = "Email"
+    override val addOwnerEmailButton = "Add owner"
 
     // Reservation Detail
     override val reservationSummary = "Reservation summary"
@@ -256,7 +258,7 @@ object EnStrings : AppStrings {
     override val fieldPerUnitPriceLabel = "Price per unit (CZK)"
     override val fieldPerUnitFormula = "Formula: base price + field value × price per unit"
     override val validationNameRequired = "Name is required"
-    override val validationLectorEmailRequired = "Lector email is required"
+    override val validationOwnerEmailRequired = "At least one owner email is required"
     override val validationRecurrenceEndRequired = "Enter the recurrence end date."
     override val validationRecurrenceDateFormat = "Invalid recurrence end date format."
     override val templateSavedToast = "Template saved successfully!"

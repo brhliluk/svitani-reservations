@@ -33,7 +33,7 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
     // --- ZÁKLADNÍ STAVY FORMULÁŘE ---
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var lectorEmail by remember { mutableStateOf("") }
+    var ownerEmails by remember { mutableStateOf(listOf("")) }
     var price by remember { mutableStateOf<Number?>(0) }
     var capacity by remember { mutableIntStateOf(10) }
 
@@ -90,11 +90,34 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                         }
                     }
 
-                    // Email lektora
                     div(className = "form-control w-full md:col-span-2") {
-                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lectorEmailLabel } }
-                        text(value = lectorEmail, className = "input input-bordered w-full") {
-                            onInput { lectorEmail = value ?: "" }
+                        label(className = "label") {
+                            span(className = "label-text font-medium") { +currentStrings.ownerEmailsLabel }
+                        }
+                        div(className = "flex flex-col gap-2") {
+                            ownerEmails.forEachIndexed { index, email ->
+                                div(className = "flex gap-2 items-center") {
+                                    text(value = email, className = "input input-bordered flex-1") {
+                                        placeholder(currentStrings.ownerEmailPlaceholder)
+                                        onInput {
+                                            ownerEmails = ownerEmails.toMutableList().apply { set(index, value ?: "") }
+                                        }
+                                    }
+                                    if (ownerEmails.size > 1) {
+                                        button(className = "btn btn-ghost btn-sm btn-circle text-error") {
+                                            onClick {
+                                                ownerEmails = ownerEmails.toMutableList().apply { removeAt(index) }
+                                            }
+                                            span(className = "icon-[heroicons--x-mark] size-4")
+                                        }
+                                    }
+                                }
+                            }
+                            button(className = "btn btn-outline btn-sm gap-2 self-start mt-1") {
+                                onClick { ownerEmails = ownerEmails + "" }
+                                span(className = "icon-[heroicons--plus] size-4")
+                                +currentStrings.addOwnerEmailButton
+                            }
                         }
                     }
 
@@ -351,8 +374,9 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                         toastData = ToastData(currentStrings.validationNameRequired, ToastType.Error)
                         return@onClick
                     }
-                    if (lectorEmail.isBlank()) {
-                        toastData = ToastData(currentStrings.validationLectorEmailRequired, ToastType.Error)
+                    val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
+                    if (validOwnerEmails.isEmpty()) {
+                        toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error)
                         return@onClick
                     }
                     val allowedPayments = mutableListOf<PaymentInfo.Type>()
@@ -364,7 +388,7 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                     val request = CreateEventDefinitionRequest(
                         title = title,
                         description = description,
-                        lectorEmail = lectorEmail,
+                        ownerEmails = validOwnerEmails,
                         defaultPrice = price?.toDouble() ?: 0.0,
                         defaultCapacity = capacity,
                         defaultDuration = finalDuration,
