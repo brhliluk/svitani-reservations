@@ -262,6 +262,7 @@ fun IComponent.MainLayout() {
                         onLogin = { refreshUser() },
                         onLogout = { doLogout() },
                         onOpenMyReservations = { router.navigate("/my-reservations") },
+                        onNavigateToDashboard = { router.navigate("/") },
                     ) {
                         DashboardScreen(user = currentUser, initialFilterId = null)
                     }
@@ -281,6 +282,7 @@ fun IComponent.MainLayout() {
                             onLogin = { refreshUser() },
                             onLogout = { doLogout() },
                             onOpenMyReservations = { router.navigate("/my-reservations") },
+                            onNavigateToDashboard = { router.navigate("/") },
                         ) {
                             if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/") }
                             else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/") })
@@ -299,6 +301,7 @@ fun IComponent.MainLayout() {
                         onLogin = { refreshUser() },
                         onLogout = { doLogout() },
                         onOpenMyReservations = { router.navigate("/my-reservations") },
+                        onNavigateToDashboard = { router.navigate("/") },
                     ) {
                         if (user == null) LaunchedEffect(Unit) { router.navigate("/") }
                         else MyReservationsScreen(userId = user.id, onBackClick = { router.navigate("/") })
@@ -316,6 +319,7 @@ fun IComponent.MainLayout() {
                             onLogin = { refreshUser() },
                             onLogout = { doLogout() },
                             onOpenMyReservations = { router.navigate("/my-reservations") },
+                            onNavigateToDashboard = { router.navigate("/") },
                         ) {
                             ResetPasswordScreen(token = token.value, onSuccess = { router.navigate("/") })
                         }
@@ -331,6 +335,7 @@ fun IComponent.MainLayout() {
                         onLogin = { refreshUser() },
                         onLogout = { doLogout() },
                         onOpenMyReservations = { router.navigate("/my-reservations") },
+                        onNavigateToDashboard = { router.navigate("/") },
                     ) {
                         PrivacyScreen()
                     }
@@ -347,6 +352,7 @@ private fun IComponent.UserShell(
     onLogin: () -> Unit,
     onLogout: () -> Unit,
     onOpenMyReservations: () -> Unit,
+    onNavigateToDashboard: () -> Unit,
     content: @Composable IComponent.() -> Unit,
 ) {
     val currentStrings by strings
@@ -356,6 +362,7 @@ private fun IComponent.UserShell(
         onLogin = onLogin,
         onLogout = onLogout,
         onOpenMyReservations = onOpenMyReservations,
+        onNavigateToDashboard = onNavigateToDashboard,
     )
     main(className = "flex-grow") { content() }
     footer(className = "footer footer-center p-8 text-base-content/50") {

@@ -27,6 +27,7 @@ fun IComponent.AppHeader(
     onLogin: () -> Unit,
     onLogout: () -> Unit,
     onOpenMyReservations: () -> Unit,
+    onNavigateToDashboard: () -> Unit,
 ) {
     val currentStrings by strings
     var modalState by remember { mutableStateOf(AuthModalState.Closed) }
@@ -69,7 +70,8 @@ fun IComponent.AppHeader(
 
     header(className = "navbar min-h-16 bg-base-100 border-b border-primary/20 px-3 sm:px-8") {
 
-        div(className = "navbar-start gap-3 sm:gap-4") {
+        div(className = "navbar-start gap-3 sm:gap-4 cursor-pointer") {
+            onClick { onNavigateToDashboard() }
             img(src = "logo.svg", alt = "Svítání", className = "h-9 sm:h-10 w-auto")
             span(className = "hidden sm:inline text-lg font-bold text-primary dark:text-base-content") { +currentStrings.dashboard }
         }
