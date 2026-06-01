@@ -2,6 +2,7 @@ package cz.svitaninymburk.projects.reservations.repository.reservation
 
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.uuid.Uuid
 
@@ -78,4 +79,19 @@ class InMemoryReservationRepository : ReservationRepository {
         reservations[id] = reservation.copy(status = status)
         return true
     }
+}
+
+class InMemorySeriesLessonOptOutRepository : SeriesLessonOptOutRepository {
+    private val optOuts = ConcurrentHashMap<Uuid, SeriesLessonOptOut>()
+
+    override suspend fun save(optOut: SeriesLessonOptOut): SeriesLessonOptOut {
+        optOuts[optOut.id] = optOut
+        return optOut
+    }
+
+    override suspend fun findByReservationAndInstance(reservationId: Uuid, instanceId: Uuid): SeriesLessonOptOut? =
+        optOuts.values.find { it.reservationId == reservationId && it.instanceId == instanceId }
+
+    override suspend fun findByReservation(reservationId: Uuid): List<SeriesLessonOptOut> =
+        optOuts.values.filter { it.reservationId == reservationId }
 }

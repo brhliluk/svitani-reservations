@@ -22,6 +22,9 @@ interface ErrorStrings {
     val errorEventCancelled: String
     val errorFailedToGetReservations: String
     fun errorFailedToSendCancellationEmail(cause: String): String
+    val errorNotASeriesReservation: String
+    val errorInstanceNotInSeries: String
+    val errorAlreadyOptedOut: String
 
     // Event errors
     fun errorEventInstanceNotFoundId(id: String): String

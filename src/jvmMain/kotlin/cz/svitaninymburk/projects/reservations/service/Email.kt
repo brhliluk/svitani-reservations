@@ -289,6 +289,41 @@ class GmailEmailService(
             raise(EmailError.SendLectorCancellationFailed(e.fullMessage()))
         }
     } }
+
+    override suspend fun sendLessonOptOutNotice(
+        toEmail: String,
+        eventTitle: String,
+        lessonDate: kotlinx.datetime.LocalDate,
+        isLateCancellation: Boolean,
+        locale: String,
+    ): Either<EmailError.SendCancellation, Unit> = either { withContext(Dispatchers.IO) {
+        val s = emailStringsFor(locale)
+        val email = setupEmail()
+        email.addTo(toEmail)
+        email.subject = s.lessonOptOutSubject(eventTitle)
+        email.setTextMsg(s.lessonOptOutBody(eventTitle, lessonDate, isLateCancellation))
+        catch({ email.send() }) { e: EmailException ->
+            raise(EmailError.SendCancellationFailed(e.fullMessage()))
+        }
+    } }
+
+    override suspend fun sendLectorLessonOptOutNotification(
+        lectorEmail: String,
+        contactName: String,
+        eventTitle: String,
+        lessonDate: kotlinx.datetime.LocalDate,
+        isLateCancellation: Boolean,
+        locale: String,
+    ): Either<EmailError.SendLectorCancellation, Unit> = either { withContext(Dispatchers.IO) {
+        val s = emailStringsFor(locale)
+        val email = setupEmail()
+        email.addTo(lectorEmail)
+        email.subject = s.lectorLessonOptOutSubject(eventTitle)
+        email.setTextMsg(s.lectorLessonOptOutBody(contactName, eventTitle, lessonDate, isLateCancellation))
+        catch({ email.send() }) { e: EmailException ->
+            raise(EmailError.SendLectorCancellationFailed(e.fullMessage()))
+        }
+    } }
 }
 
 class ConsoleEmailService : EmailService, LectorEmailService {
@@ -368,6 +403,29 @@ class ConsoleEmailService : EmailService, LectorEmailService {
         seatCount: Int, occupiedSpots: Int, capacity: Int, locale: String,
     ): Either<EmailError.SendLectorCancellation, Unit> {
         println("[LECTOR EMAIL] To: $lectorEmail | Cancelled booking for '$eventTitle' | Customer: $contactName | Freed: $seatCount | Occupancy: $occupiedSpots/$capacity")
+        return Unit.right()
+    }
+
+    override suspend fun sendLessonOptOutNotice(
+        toEmail: String,
+        eventTitle: String,
+        lessonDate: kotlinx.datetime.LocalDate,
+        isLateCancellation: Boolean,
+        locale: String,
+    ): Either<EmailError.SendCancellation, Unit> {
+        println("📧 [MOCK] Lesson opt-out → $toEmail | $eventTitle | $lessonDate | late=$isLateCancellation")
+        return Unit.right()
+    }
+
+    override suspend fun sendLectorLessonOptOutNotification(
+        lectorEmail: String,
+        contactName: String,
+        eventTitle: String,
+        lessonDate: kotlinx.datetime.LocalDate,
+        isLateCancellation: Boolean,
+        locale: String,
+    ): Either<EmailError.SendLectorCancellation, Unit> {
+        println("📧 [MOCK] Lector lesson opt-out → $lectorEmail | $contactName | $eventTitle | $lessonDate")
         return Unit.right()
     }
 }

@@ -456,6 +456,16 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
         rows.map { it.toEventInstance(emailsMap[it[EventInstancesTable.id]] ?: emptyList()) }
     }
 
+    override suspend fun findBySeries(seriesId: Uuid): List<EventInstance> = dbQuery {
+        val rows = EventInstancesTable.selectAll()
+            .where { EventInstancesTable.seriesId eq seriesId }
+            .orderBy(EventInstancesTable.startDateTime, SortOrder.ASC)
+            .toList()
+        val ids = rows.map { it[EventInstancesTable.id] }
+        val emailsMap = getOwnerEmailsMap(EntityType.INSTANCE, ids)
+        rows.map { it.toEventInstance(emailsMap[it[EventInstancesTable.id]] ?: emptyList()) }
+    }
+
     override suspend fun countBySeries(seriesId: Uuid): Long = dbQuery {
         EventInstancesTable.selectAll()
             .where { EventInstancesTable.seriesId eq seriesId }

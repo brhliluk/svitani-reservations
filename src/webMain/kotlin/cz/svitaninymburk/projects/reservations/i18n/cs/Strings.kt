@@ -350,6 +350,14 @@ object CsStrings : AppStrings {
     override fun cancelLessonModalBody(date: String) = "Zrušit lekci dne $date? Přihlášení uživatelé dostanou email."
     override val toastLessonCancelled = "Lekce zrušena."
     override val cancelLessonButton = "Zrušit lekci"
+    override val lessonOptOut = "Odhlásit se z lekce"
+    override val lessonOptOutConfirmTitle = "Odhlásit se z lekce?"
+    override val lessonOptOutConfirmBody: (String) -> String = { date ->
+        "Odhlásit se z lekce dne $date? Místo bude uvolněno pro ostatní."
+    }
+    override val lessonOptedOut = "Odhlášeno"
+    override val lessonOptOutLate = "Pozdní odhlášení"
+    override val toastLessonOptOut = "Odhlášení z lekce bylo zaznamenáno."
 
     // Event Detail
     override val occupancyStatTitle = "Obsazenost"
@@ -489,6 +497,9 @@ object CsStrings : AppStrings {
     override val errorEventCancelled = "Událost byla zrušena"
     override val errorFailedToGetReservations = "Nelze získat seznam rezervací"
     override fun errorFailedToSendCancellationEmail(cause: String) = "Nepodařilo se odeslat email o zrušení rezervace: $cause"
+    override val errorNotASeriesReservation = "Rezervace není přihlášení na kroužek."
+    override val errorInstanceNotInSeries = "Tato lekce nepatří do vašeho kroužku."
+    override val errorAlreadyOptedOut = "Z této lekce jste se již odhlásili."
 
     override fun errorEventInstanceNotFoundId(id: String) = "Událost s id $id nenalezena"
     override fun errorEventDefinitionNotFoundId(id: String) = "Šablona události s id $id nenalezena"

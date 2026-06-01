@@ -69,6 +69,11 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
             .drop(page * pageSize)
             .take(pageSize)
 
+    override suspend fun findBySeries(seriesId: Uuid): List<EventInstance> =
+        instances.values
+            .filter { it.seriesId == seriesId }
+            .sortedBy { it.startDateTime }
+
     override suspend fun countBySeries(seriesId: Uuid): Long =
         instances.values.count { it.seriesId == seriesId }.toLong()
 

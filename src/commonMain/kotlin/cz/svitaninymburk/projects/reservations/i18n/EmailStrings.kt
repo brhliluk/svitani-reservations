@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.i18n
 
+import kotlinx.datetime.LocalDate
+
 interface EmailStrings {
     // Reservation confirmation
     fun reservationConfirmationSubject(eventTitle: String, eventDate: String): String
@@ -47,6 +49,12 @@ interface EmailStrings {
     fun lectorReservationBody(contactName: String, contactEmail: String, contactPhone: String?, seatCount: Int, eventTitle: String, occupiedSpots: Int, capacity: Int): String
     fun lectorCancellationSubject(eventTitle: String): String
     fun lectorCancellationBody(contactName: String, eventTitle: String, seatCount: Int, occupiedSpots: Int, capacity: Int): String
+
+    // Lesson opt-out notifications
+    fun lessonOptOutSubject(eventTitle: String): String
+    fun lessonOptOutBody(eventTitle: String, lessonDate: LocalDate, isLate: Boolean): String
+    fun lectorLessonOptOutSubject(eventTitle: String): String
+    fun lectorLessonOptOutBody(contactName: String, eventTitle: String, lessonDate: LocalDate, isLate: Boolean): String
 }
 
 fun emailStringsFor(locale: String): EmailStrings = when (locale) {
@@ -97,6 +105,17 @@ object CsEmailStrings : EmailStrings {
     override fun lectorCancellationSubject(eventTitle: String) = "Zrušená rezervace: $eventTitle"
     override fun lectorCancellationBody(contactName: String, eventTitle: String, seatCount: Int, occupiedSpots: Int, capacity: Int) =
         "Rezervace na akci $eventTitle byla zrušena.\n\nZákazník: $contactName\nUvolněná místa: $seatCount\n\nObsazenost: $occupiedSpots / $capacity míst"
+    override fun lessonOptOutSubject(eventTitle: String) = "Odhlášení z lekce: $eventTitle"
+    override fun lessonOptOutBody(eventTitle: String, lessonDate: LocalDate, isLate: Boolean): String {
+        val base = "Odhlásili jste se z lekce kurzu \"$eventTitle\" dne $lessonDate."
+        val lateNote = if (isLate) "\n\nUpozornění: Odhlášení proběhlo po termínu (po 18:00 předchozího dne)." else ""
+        return base + lateNote
+    }
+    override fun lectorLessonOptOutSubject(eventTitle: String) = "Odhlášení z lekce: $eventTitle"
+    override fun lectorLessonOptOutBody(contactName: String, eventTitle: String, lessonDate: LocalDate, isLate: Boolean): String {
+        val lateNote = if (isLate) " (pozdní odhlášení)" else ""
+        return "$contactName se odhlásil/a z lekce kurzu \"$eventTitle\" dne $lessonDate$lateNote."
+    }
 }
 
 object EnEmailStrings : EmailStrings {
@@ -142,4 +161,15 @@ object EnEmailStrings : EmailStrings {
     override fun lectorCancellationSubject(eventTitle: String) = "Cancelled booking: $eventTitle"
     override fun lectorCancellationBody(contactName: String, eventTitle: String, seatCount: Int, occupiedSpots: Int, capacity: Int) =
         "A booking for $eventTitle has been cancelled.\n\nCustomer: $contactName\nFreed seats: $seatCount\n\nOccupancy: $occupiedSpots / $capacity spots"
+    override fun lessonOptOutSubject(eventTitle: String) = "Lesson unsubscription: $eventTitle"
+    override fun lessonOptOutBody(eventTitle: String, lessonDate: LocalDate, isLate: Boolean): String {
+        val base = "You have unsubscribed from a lesson of \"$eventTitle\" on $lessonDate."
+        val lateNote = if (isLate) "\n\nNote: This was a late cancellation (after 6:00 PM the previous day)." else ""
+        return base + lateNote
+    }
+    override fun lectorLessonOptOutSubject(eventTitle: String) = "Lesson unsubscription: $eventTitle"
+    override fun lectorLessonOptOutBody(contactName: String, eventTitle: String, lessonDate: LocalDate, isLate: Boolean): String {
+        val lateNote = if (isLate) " (late cancellation)" else ""
+        return "$contactName unsubscribed from a lesson of \"$eventTitle\" on $lessonDate$lateNote."
+    }
 }

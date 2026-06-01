@@ -20,8 +20,10 @@ import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventDef
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ExposedReservationRepository
+import cz.svitaninymburk.projects.reservations.repository.reservation.ExposedSeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
+import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.repository.settings.AppSettingsRepository
 import cz.svitaninymburk.projects.reservations.repository.settings.ExposedAppSettingsRepository
 import cz.svitaninymburk.projects.reservations.repository.user.ExposedUserRepository
@@ -80,6 +82,7 @@ val appModule = module {
     // Reservations
     single<ReservationRepository> { ExposedReservationRepository() }
     single<PaymentEventRepository> { ExposedPaymentEventRepository() }
+    single<SeriesLessonOptOutRepository> { ExposedSeriesLessonOptOutRepository() }
 
     // Settings
     single { ExposedAppSettingsRepository() } bind AppSettingsRepository::class
@@ -100,8 +103,8 @@ val appModule = module {
     } binds arrayOf(EmailService::class, LectorEmailService::class)
     single { QrCodeService() }
     single { BackendQrCodeGenerator(get(), get()) }
-    single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz") } bind ReservationServiceInterface::class
-    single { AuthenticatedReservationService(get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
+    single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get()) } bind ReservationServiceInterface::class
+    single { AuthenticatedReservationService(get(), get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
     single { PaymentPairingService(get(), get(), get(), get(), get(), get()) }
     single { AdminService(get()) }
     single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get()) } bind AdminServiceInterface::class

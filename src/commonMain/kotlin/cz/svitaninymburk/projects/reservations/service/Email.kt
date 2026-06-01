@@ -6,6 +6,7 @@ import cz.svitaninymburk.projects.reservations.error.EmailError
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import dev.kilua.rpc.annotations.RpcService
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlin.uuid.Uuid
 
@@ -42,6 +43,14 @@ interface EmailService {
         lessonDateTime: LocalDateTime,
     ): Either<EmailError.SendLessonCancelled, Unit>
 
+    suspend fun sendLessonOptOutNotice(
+        toEmail: String,
+        eventTitle: String,
+        lessonDate: LocalDate,
+        isLateCancellation: Boolean,
+        locale: String,
+    ): Either<EmailError.SendCancellation, Unit>
+
 }
 
 interface LectorEmailService {
@@ -64,6 +73,15 @@ interface LectorEmailService {
         seatCount: Int,
         occupiedSpots: Int,
         capacity: Int,
+        locale: String,
+    ): Either<EmailError.SendLectorCancellation, Unit>
+
+    suspend fun sendLectorLessonOptOutNotification(
+        lectorEmail: String,
+        contactName: String,
+        eventTitle: String,
+        lessonDate: LocalDate,
+        isLateCancellation: Boolean,
         locale: String,
     ): Either<EmailError.SendLectorCancellation, Unit>
 }

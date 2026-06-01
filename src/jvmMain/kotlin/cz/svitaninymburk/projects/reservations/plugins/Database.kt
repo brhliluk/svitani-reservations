@@ -9,6 +9,7 @@ import cz.svitaninymburk.projects.reservations.repository.event.EventOwnerEmails
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesTable
 import cz.svitaninymburk.projects.reservations.repository.payment.PaymentEventsTable
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationsTable
+import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutsTable
 import cz.svitaninymburk.projects.reservations.repository.settings.AppSettingsTable
 import cz.svitaninymburk.projects.reservations.repository.user.UsersTable
 import io.ktor.server.application.*
@@ -68,7 +69,8 @@ fun Application.configureDatabases() {
             EventOwnerEmailsTable,
             ReservationsTable,
             AppSettingsTable,
-            PaymentEventsTable
+            PaymentEventsTable,
+            SeriesLessonOptOutsTable
         )
         MigrationUtils.statementsRequiredForDatabaseMigration(
             UsersTable,
@@ -80,6 +82,7 @@ fun Application.configureDatabases() {
             ReservationsTable,
             AppSettingsTable,
             PaymentEventsTable,
+            SeriesLessonOptOutsTable,
             withLogs = false
         ).forEach { exec(it) }
     }

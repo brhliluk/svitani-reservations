@@ -350,6 +350,14 @@ object EnStrings : AppStrings {
     override fun cancelLessonModalBody(date: String) = "Cancel the lesson on $date? Enrolled users will receive an email."
     override val toastLessonCancelled = "Lesson cancelled."
     override val cancelLessonButton = "Cancel lesson"
+    override val lessonOptOut = "Unsubscribe from lesson"
+    override val lessonOptOutConfirmTitle = "Unsubscribe from lesson?"
+    override val lessonOptOutConfirmBody: (String) -> String = { date ->
+        "Unsubscribe from the lesson on $date? The spot will be freed for others."
+    }
+    override val lessonOptedOut = "Unsubscribed"
+    override val lessonOptOutLate = "Late cancellation"
+    override val toastLessonOptOut = "You have been unsubscribed from the lesson."
 
     // Event Detail
     override val occupancyStatTitle = "Occupancy"
@@ -490,6 +498,9 @@ object EnStrings : AppStrings {
     override val errorEventCancelled = "Event was cancelled"
     override val errorFailedToGetReservations = "Failed to get reservations"
     override fun errorFailedToSendCancellationEmail(cause: String) = "Failed to send cancellation email: $cause"
+    override val errorNotASeriesReservation = "This reservation is not a course enrollment."
+    override val errorInstanceNotInSeries = "This lesson does not belong to your course."
+    override val errorAlreadyOptedOut = "You have already unsubscribed from this lesson."
 
     override fun errorEventInstanceNotFoundId(id: String) = "Event with id $id not found"
     override fun errorEventDefinitionNotFoundId(id: String) = "Event template with id $id not found"

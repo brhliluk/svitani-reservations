@@ -22,6 +22,9 @@ import kotlinx.serialization.Serializable
     @Serializable data object FailedToGetAllReservations : GetAll
     @Serializable data class FailedToSendCancellationEmail(val cause: EmailError.SendCancellation) : CancelReservation
     @Serializable data class SystemError(val message: String) : CreateReservation
+    @Serializable data object NotASeriesReservation : CancelReservation
+    @Serializable data object InstanceNotInSeries : CancelReservation
+    @Serializable data object AlreadyOptedOut : CancelReservation
 }
 
 fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (this) {
@@ -35,4 +38,7 @@ fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (thi
     is ReservationError.FailedToGetAllReservations -> strings.errorFailedToGetReservations
     is ReservationError.FailedToSendCancellationEmail -> strings.errorFailedToSendCancellationEmail(cause.localizedMessage)
     is ReservationError.SystemError -> message
+    is ReservationError.NotASeriesReservation -> strings.errorNotASeriesReservation
+    is ReservationError.InstanceNotInSeries -> strings.errorInstanceNotInSeries
+    is ReservationError.AlreadyOptedOut -> strings.errorAlreadyOptedOut
 }

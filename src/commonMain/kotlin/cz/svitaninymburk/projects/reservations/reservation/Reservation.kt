@@ -144,4 +144,21 @@ data class MyReservationListItem(
     val status: Reservation.Status,
     val paymentType: PaymentInfo.Type,
     val variableSymbol: String?,
+    val isSeries: Boolean,
+)
+
+@Serializable
+data class SeriesLessonItem(
+    val instanceId: Uuid,
+    val startDateTime: LocalDateTime,
+    val endDateTime: LocalDateTime,
+    val isCancelled: Boolean,
+    val isOptedOut: Boolean,
+    val isLateCancellation: Boolean,
+)
+
+@Serializable
+data class SeriesReservationDetail(
+    val reservation: Reservation,
+    val lessons: List<SeriesLessonItem>,
 )

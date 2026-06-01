@@ -785,6 +785,14 @@ class CapturingLectorEmailService : LectorEmailService {
         sentEmails.add(lectorEmail)
         return Unit.right()
     }
+
+    override suspend fun sendLectorLessonOptOutNotification(
+        lectorEmail: String, contactName: String, eventTitle: String,
+        lessonDate: LocalDate, isLateCancellation: Boolean, locale: String,
+    ): Either<EmailError.SendLectorCancellation, Unit> {
+        sentEmails.add(lectorEmail)
+        return Unit.right()
+    }
 }
 
 /** Simple stub implementing QrCodeGeneratorService — no AppSettingsProvider required. */
@@ -815,6 +823,7 @@ class ResolveOwnerEmailsTest {
         qrCodeService = StubQrCodeGenerator(),
         paymentTrigger = PaymentTrigger(),
         appBaseUrl = "https://test.example.com",
+        seriesLessonOptOutRepository = cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository(),
     )
 
     @Test

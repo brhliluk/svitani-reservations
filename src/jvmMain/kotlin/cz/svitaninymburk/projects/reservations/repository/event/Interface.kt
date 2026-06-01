@@ -34,6 +34,7 @@ interface EventInstanceRepository {
     suspend fun attemptToReserveSpots(instanceId: Uuid, amount: Int): Boolean
     suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventInstance>
     suspend fun findBySeriesPaged(seriesId: Uuid, page: Int, pageSize: Int): List<EventInstance>
+    suspend fun findBySeries(seriesId: Uuid): List<EventInstance>
     suspend fun countBySeries(seriesId: Uuid): Long
 }
 
