@@ -12,6 +12,8 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.Reservatio
 import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutsTable
 import cz.svitaninymburk.projects.reservations.repository.settings.AppSettingsTable
 import cz.svitaninymburk.projects.reservations.repository.user.UsersTable
+import cz.svitaninymburk.projects.reservations.repository.wallet.WalletTransactionsTable
+import cz.svitaninymburk.projects.reservations.repository.wallet.WalletsTable
 import io.ktor.server.application.*
 import kotlin.uuid.Uuid
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -70,7 +72,9 @@ fun Application.configureDatabases() {
             ReservationsTable,
             AppSettingsTable,
             PaymentEventsTable,
-            SeriesLessonOptOutsTable
+            SeriesLessonOptOutsTable,
+            WalletsTable,
+            WalletTransactionsTable
         )
         MigrationUtils.statementsRequiredForDatabaseMigration(
             UsersTable,
@@ -83,6 +87,8 @@ fun Application.configureDatabases() {
             AppSettingsTable,
             PaymentEventsTable,
             SeriesLessonOptOutsTable,
+            WalletsTable,
+            WalletTransactionsTable,
             withLogs = false
         ).forEach { exec(it) }
     }

@@ -5,7 +5,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.event.BooleanFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.event.NumberFieldDefinition
@@ -16,10 +18,13 @@ import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
 import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
 import cz.svitaninymburk.projects.reservations.event.hoursFromRange
 import cz.svitaninymburk.projects.reservations.i18n.strings
+import cz.svitaninymburk.projects.reservations.ui.components.CancellationPolicyBox
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
+import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.label
 import cz.svitaninymburk.projects.reservations.user.User
+import cz.svitaninymburk.projects.reservations.wallet.WalletInfo
 import dev.kilua.core.IComponent
 import dev.kilua.form.Autocomplete
 import dev.kilua.form.InputType
@@ -33,6 +38,8 @@ import dev.kilua.html.label
 import dev.kilua.html.option
 import dev.kilua.html.p
 import dev.kilua.html.span
+import dev.kilua.rpc.getService
+import kotlinx.coroutines.launch
 import web.events.Event
 import web.html.HTMLSelectElement
 
@@ -45,6 +52,8 @@ fun IComponent.ReservationModal(
     onSubmit: (ReservationTarget, ReservationFormData) -> Unit
 ) {
     val currentStrings by strings
+    val scope = rememberCoroutineScope()
+    val reservationService = getService<ReservationServiceInterface>(RpcSerializersModules)
 
     // Stavy formuláře — prefill z přihlášeného uživatele (User model nemá telefon)
     var firstName by remember(target, user) { mutableStateOf(user?.name.orEmpty()) }
@@ -55,6 +64,8 @@ fun IComponent.ReservationModal(
     var seatsExceeded by remember(target) { mutableStateOf(false) }
     var paymentType by remember(target) { mutableStateOf(PaymentInfo.Type.BANK_TRANSFER) }
     val customValuesState = remember(target) { mutableStateMapOf<String, CustomFieldValue>() }
+    var walletCode by remember(target) { mutableStateOf("") }
+    var walletInfo by remember(target) { mutableStateOf<WalletInfo?>(null) }
 
     val isValid =
         firstName.isNotBlank() &&
@@ -124,6 +135,8 @@ fun IComponent.ReservationModal(
                     }
                 }
 
+                CancellationPolicyBox()
+
                 // --- FORMULÁŘ ---
                 form(className = "flex flex-col gap-3") {
                     onEvent<Event>("submit") { it.preventDefault() }
@@ -188,6 +201,42 @@ fun IComponent.ReservationModal(
                         }
                         div(className = "label") {
                             span(className = "label-text-alt text-base-content/60") { +currentStrings.phoneHintAlt }
+                        }
+                    }
+
+                    // 4. Kód peněženky
+                    label(className = "form-control w-full") {
+                        div(className = "label") {
+                            span(className = "label-text") { +currentStrings.walletCode }
+                        }
+                        text(value = walletCode, className = "input input-bordered input-lg sm:input-md w-full") {
+                            placeholder(currentStrings.walletCodePlaceholder)
+                            onInput {
+                                walletCode = value ?: ""
+                                if (walletCode.length == 14) {
+                                    scope.launch {
+                                        walletInfo = reservationService.getWalletInfo(walletCode, email).getOrNull()
+                                    }
+                                } else {
+                                    walletInfo = null
+                                }
+                            }
+                        }
+                        div(className = "label") {
+                            span(className = "label-text-alt text-base-content/50") { +currentStrings.walletCodeHint }
+                        }
+                        if (walletInfo != null) {
+                            div(className = "label pt-0") {
+                                span(className = "label-text-alt text-success font-medium") {
+                                    +"${currentStrings.walletBalance}: ${walletInfo!!.balance.toInt()} ${currentStrings.currency}"
+                                }
+                            }
+                        }
+                        if (walletInfo != null && !walletInfo!!.emailMatches) {
+                            div(className = "alert alert-warning py-2 text-sm mt-1") {
+                                span(className = "icon-[heroicons--exclamation-triangle] size-4")
+                                span { +currentStrings.walletEmailMismatchWarning }
+                            }
                         }
                     }
 
@@ -258,7 +307,7 @@ fun IComponent.ReservationModal(
                         onClick {
                             if (!isSubmitting) onSubmit(
                                 target,
-                                ReservationFormData(firstName, lastName, email, phone, seats, paymentType, customValuesState, currentStrings.locale)
+                                ReservationFormData(firstName, lastName, email, phone, seats, paymentType, customValuesState, currentStrings.locale, walletCode.ifBlank { null })
                             )
                         }
                         if (isSubmitting) {

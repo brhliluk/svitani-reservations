@@ -69,6 +69,7 @@ object EnStrings : AppStrings {
     override val name = "Name"
     override val totalPrice = "Total price"
     override val cancelReservation = "Cancel reservation"
+    override val cancelReservationConfirmBody = "Are you sure you want to cancel this reservation? This action cannot be undone."
     override val qrPayment = "QR payment"
     override val shareOrDownload = "Click to share / download"
     override val accountNumber = "Account number"
@@ -448,6 +449,29 @@ object EnStrings : AppStrings {
     override val yes = "Yes"
     override val no = "No"
 
+    // Wallet System
+    override val walletCode = "Wallet code"
+    override val walletCodePlaceholder = "SVIT-XXXX-XXXX"
+    override val walletCodeHint = "Optional — enter code to apply credit"
+    override val walletBalance = "Wallet balance"
+    override val walletEmailMismatchWarning = "This wallet belongs to a different email. Use it anyway?"
+    override val walletEmailMismatchConfirm = "Yes, use this wallet"
+    override val walletCreditApplied = "Wallet credit was applied"
+    override val walletCreditIssued = "Credit was added to your wallet"
+    override val adminWallets = "Wallets"
+    override val adminWalletDetail = "Wallet detail"
+    override val adminWalletAdjust = "Manual balance adjustment"
+    override val adminWalletAdjustNote = "Note (required)"
+    override val adminWalletCreditButton = "Add credit"
+    override val adminWalletDebitButton = "Remove credit"
+    override val lessonRefundAmount = "Opt-out refund per lesson (CZK)"
+    override val walletExpiresOn = "Credits expire on"
+    override val walletLookupTitle = "Check wallet balance"
+    override val walletLookupSubtitle = "Enter your wallet code and email to verify your balance."
+    override val walletLookupEmailLabel = "Your email"
+    override val walletLookupSubmit = "Check"
+    override val walletLookupNotFound = "No wallet found with this code."
+
     // Admin Edit & Delete
     override val editTemplate = "Edit template"
     override val editEvent = "Edit event"
@@ -501,6 +525,9 @@ object EnStrings : AppStrings {
     override val errorNotASeriesReservation = "This reservation is not a course enrollment."
     override val errorInstanceNotInSeries = "This lesson does not belong to your course."
     override val errorAlreadyOptedOut = "You have already unsubscribed from this lesson."
+    override val errorWalletNotFound = "Wallet with this code was not found."
+    override val errorWalletEmpty = "Wallet has no balance."
+    override val errorWalletEmailMismatch = "This wallet belongs to a different email address."
 
     override fun errorEventInstanceNotFoundId(id: String) = "Event with id $id not found"
     override fun errorEventDefinitionNotFoundId(id: String) = "Event template with id $id not found"
@@ -517,6 +544,7 @@ object EnStrings : AppStrings {
     override val errorAdminGetInstancesFailed = "Failed to get lessons"
     override val errorAdminCancelLessonInstanceNotFound = "Lesson not found"
     override val errorAdminCancelLessonFailed = "Failed to cancel lesson"
+    override val errorAdminWalletOperationFailed = "Wallet operation failed"
 
     // Privacy Policy
     override val privacyTitle = "Privacy Policy"
@@ -536,6 +564,19 @@ object EnStrings : AppStrings {
     override val privacyContactBody = "To exercise your rights or for questions about data processing, contact us at: info@svitaninymburk.cz."
     override val privacyPolicyLink = "Privacy Policy"
     override val registrationPrivacyNote = "By registering, you acknowledge our"
+
+    // Cancellation policy box
+    override val cancellationPolicyTitle = "Cancellation Policy"
+    override val cancellationPolicyDeadline = "Cancel before 18:00 the previous day → credit equal to amount paid"
+    override val cancellationPolicyLessonOptOut = "Series lesson opt-out before 18:00 → credit per course settings"
+    override val cancellationPolicyNoRefundUnpaid = "Unpaid reservation → no credit issued"
+    override val cancellationPolicyNoRefundLate = "Late cancellation (after 18:00) → no credit issued"
+    override val cancellationPolicyWalletExplain = "Credit = wallet code usable on your next reservation, valid until end of season"
+    override val cancellationRefundEligible: (String) -> String = { amount ->
+        "Paid $amount CZK — if cancelled before 18:00 the previous day you will receive $amount CZK wallet credit"
+    }
+    override val cancellationLessonRefundEligible = "Paid — if opted out on time you will receive wallet credit per course settings"
+    override val cancellationNoRefund = "No credit will be returned when cancelling this reservation"
 
     // Admin Settings Screen
     override val navSettings = "Settings"

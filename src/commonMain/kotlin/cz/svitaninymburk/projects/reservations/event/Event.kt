@@ -45,6 +45,7 @@ data class EventSeries(
     val lessonStartTime: LocalTime? = null,
     val lessonEndTime: LocalTime? = null,
     val showAttendeeCount: Boolean = true,
+    val lessonRefundAmount: Double? = null,
 )
 
 @Serializable
@@ -149,6 +150,7 @@ data class CreateEventSeriesRequest(
     val lessonEndTime: LocalTime? = null,
     val customLessons: List<LessonConfig>? = null,
     val showAttendeeCount: Boolean = true,
+    val lessonRefundAmount: Double? = null,
 )
 
 @Serializable
@@ -218,4 +220,5 @@ data class UpdateEventSeriesRequest(
     val lessonStartTime: LocalTime? = null,
     val lessonEndTime: LocalTime? = null,
     val showAttendeeCount: Boolean = true,
+    val lessonRefundAmount: Double? = null,
 )

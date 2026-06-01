@@ -85,3 +85,32 @@ interface LectorEmailService {
         locale: String,
     ): Either<EmailError.SendLectorCancellation, Unit>
 }
+
+interface WalletEmailService {
+    suspend fun sendWalletCredited(
+        toEmail: String,
+        walletCode: String,
+        creditedAmount: Double,
+        newBalance: Double,
+        resetMonth: Int,
+        resetDay: Int,
+        locale: String,
+    ): Either<EmailError.SendWallet, Unit>
+
+    suspend fun sendWalletApplied(
+        toEmail: String,
+        walletCode: String,
+        deductedAmount: Double,
+        remainingBalance: Double,
+        locale: String,
+    ): Either<EmailError.SendWallet, Unit>
+
+    suspend fun sendWalletResetWarning(
+        toEmail: String,
+        walletCode: String,
+        currentBalance: Double,
+        resetMonth: Int,
+        resetDay: Int,
+        locale: String,
+    ): Either<EmailError.SendWallet, Unit>
+}

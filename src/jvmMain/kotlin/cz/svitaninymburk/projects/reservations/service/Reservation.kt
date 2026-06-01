@@ -14,6 +14,7 @@ import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepos
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.service.LectorEmailService
+import cz.svitaninymburk.projects.reservations.reservation.CancellationResult
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
@@ -27,7 +28,11 @@ import cz.svitaninymburk.projects.reservations.reservation.SeriesReservationDeta
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.service.ICalGenerator
+import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.util.currentCall
+import cz.svitaninymburk.projects.reservations.wallet.Wallet
+import cz.svitaninymburk.projects.reservations.wallet.WalletInfo
+import cz.svitaninymburk.projects.reservations.wallet.WalletTransactionReason
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import kotlinx.datetime.DateTimeUnit
@@ -53,6 +58,9 @@ open class ReservationService(
     private val paymentTrigger: PaymentTrigger,
     private val appBaseUrl: String,
     private val seriesLessonOptOutRepository: SeriesLessonOptOutRepository,
+    private val walletService: WalletService,
+    private val walletEmailService: WalletEmailService,
+    private val appSettingsProvider: AppSettingsProvider,
 ) : ReservationServiceInterface {
 
     /** Returns the authenticated caller's UUID from the JWT principal, or null if not authenticated. */
@@ -105,6 +113,7 @@ open class ReservationService(
             requestData = request,
             pricePerSeat = instance.price,
             target = target,
+            walletCode = request.walletCode,
         )
     }
 
@@ -126,6 +135,7 @@ open class ReservationService(
             requestData = request,
             pricePerSeat = series.price,
             target = seriesTarget,
+            walletCode = request.walletCode,
         )
     }
 
@@ -135,6 +145,7 @@ open class ReservationService(
         requestData: ReservationRequestData,
         pricePerSeat: Double,
         target: ReservationTarget,
+        walletCode: String? = null,
     ): Reservation {
         val variableSymbol = generateUniqueVariableSymbol()
 
@@ -160,20 +171,43 @@ open class ReservationService(
             locale = requestData.locale,
         )
 
-        reservationRepository.save(reservation)
+        var savedReservation = reservationRepository.save(reservation)
 
-        val qrImage: ByteArray? = if (reservation.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
-            qrCodeService.generateQrPng(reservation)
+        // Apply wallet debit if code provided
+        if (walletCode != null) {
+            val walletResult = walletService.validateForReservation(walletCode)
+            if (walletResult.isRight()) {
+                val wallet = walletResult.getOrNull()!!
+                val deductAmount = minOf(wallet.balance, reservation.totalPrice)
+                if (deductAmount > 0.0) {
+                    walletService.debit(wallet.id, deductAmount, WalletTransactionReason.RESERVATION_DEBIT, reservation.id)
+                    savedReservation = reservationRepository.save(
+                        reservation.copy(walletId = wallet.id, walletDeductedAmount = deductAmount)
+                    )
+                    walletEmailService.sendWalletApplied(
+                        toEmail = reservation.contactEmail,
+                        walletCode = wallet.code,
+                        deductedAmount = deductAmount,
+                        remainingBalance = wallet.balance - deductAmount,
+                        locale = reservation.locale,
+                    ).onLeft { println("⚠️ Failed to send wallet applied email to ${reservation.contactEmail}: $it") }
+                }
+            }
+            // If wallet validation fails (not found / empty), silently ignore and proceed without wallet
+        }
+
+        val qrImage: ByteArray? = if (savedReservation.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
+            qrCodeService.generateQrPng(savedReservation)
         } else null
 
         val icalBytes = when (target) {
-            is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, reservation.id, appBaseUrl)
-            is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, reservation.id, appBaseUrl)
+            is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, savedReservation.id, appBaseUrl)
+            is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, savedReservation.id, appBaseUrl)
         }.toByteArray(Charsets.UTF_8)
 
         emailService.sendReservationConfirmation(
-            toEmail = reservation.contactEmail,
-            reservation = reservation,
+            toEmail = savedReservation.contactEmail,
+            reservation = savedReservation,
             target = target,
             bankAccount = qrCodeService.accountNumber,
             qrCodeImage = qrImage,
@@ -183,8 +217,8 @@ open class ReservationService(
         val ownerEmails = resolveOwnerEmails(target)
         if (ownerEmails.isNotEmpty()) {
             val newOccupiedSpots = when (target) {
-                is ReservationTarget.Instance -> target.event.occupiedSpots + reservation.seatCount
-                is ReservationTarget.Series -> target.series.occupiedSpots + reservation.seatCount
+                is ReservationTarget.Instance -> target.event.occupiedSpots + savedReservation.seatCount
+                is ReservationTarget.Series -> target.series.occupiedSpots + savedReservation.seatCount
             }
             val capacity = when (target) {
                 is ReservationTarget.Instance -> target.event.capacity
@@ -193,27 +227,29 @@ open class ReservationService(
             ownerEmails.forEach { email ->
                 lectorEmailService.sendLectorReservationNotification(
                     lectorEmail = email,
-                    contactName = reservation.contactName,
-                    contactEmail = reservation.contactEmail,
-                    contactPhone = reservation.contactPhone,
-                    seatCount = reservation.seatCount,
+                    contactName = savedReservation.contactName,
+                    contactEmail = savedReservation.contactEmail,
+                    contactPhone = savedReservation.contactPhone,
+                    seatCount = savedReservation.seatCount,
                     eventTitle = target.title,
                     occupiedSpots = newOccupiedSpots,
                     capacity = capacity,
-                    locale = reservation.locale,
+                    locale = savedReservation.locale,
                 ).onLeft { println("⚠️ Failed to send owner reservation email to $email: $it") }
             }
         }
 
         paymentTrigger.notifyNewReservation()
 
-        return reservation
+        return savedReservation
     }
 
     override suspend fun cancelReservation(
         reservationId: Uuid,
         instanceId: Uuid?,
-    ): Either<ReservationError.CancelReservation, Boolean> = either {
+        walletCode: String?,
+        force: Boolean,
+    ): Either<ReservationError.CancelReservation, CancellationResult> = either {
         val reservation = ensureNotNull(reservationRepository.findById(reservationId)) { ReservationError.ReservationNotFound }
 
         if (instanceId != null) {
@@ -276,6 +312,38 @@ open class ReservationService(
                     locale = reservation.locale,
                 ).onLeft { println("⚠️ Failed to send owner opt-out email to $ownerEmail: $it") }
             }
+
+            // Wallet credit for lesson opt-out
+            val optOut = seriesLessonOptOutRepository.findByReservationAndInstance(reservationId, instanceId)
+            val series = eventSeriesRepository.get(reservation.reference.id)
+            val refundAmount: Double = when {
+                reservation.paidAmount <= 0.0 -> 0.0  // nothing was paid, no refund
+                optOut?.isLateCancellation == true -> 0.0  // late cancellation, no refund
+                else -> series?.lessonRefundAmount ?: 0.0
+            }
+            if (refundAmount > 0.0) {
+                // registeredUserId is always non-null here: the opt-out path enforces
+                // callerUuid != null && reservation.registeredUserId == callerUuid above.
+                val wallet: Wallet = walletService.findOrCreateForRegisteredUser(
+                    reservation.registeredUserId, reservation.contactEmail
+                )
+                val updatedWallet = walletService.credit(
+                    wallet.id, refundAmount, WalletTransactionReason.LESSON_OPT_OUT_REFUND, reservationId
+                )
+                val settings = appSettingsProvider.current
+                walletEmailService.sendWalletCredited(
+                    toEmail = reservation.contactEmail,
+                    walletCode = updatedWallet.code,
+                    creditedAmount = refundAmount,
+                    newBalance = updatedWallet.balance,
+                    resetMonth = settings.seasonResetMonth,
+                    resetDay = settings.seasonResetDay,
+                    locale = reservation.locale,
+                ).onLeft { println("⚠️ Failed to send wallet credited email to ${reservation.contactEmail}: $it") }
+                CancellationResult(walletCode = updatedWallet.code, walletCreditAmount = refundAmount)
+            } else {
+                CancellationResult()
+            }
         } else {
             // Whole-reservation cancellation path
             val target: ReservationTarget = ensureNotNull( when (reservation.reference) {
@@ -317,9 +385,66 @@ open class ReservationService(
                     ).onLeft { println("⚠️ Failed to send owner cancellation email to $email: $it") }
                 }
             }
-        }
 
-        true
+            // Wallet credit for whole-reservation cancellation
+            val paidAmount = reservation.paidAmount
+            if (paidAmount > 0.0) {
+                val wallet: Wallet = if (reservation.registeredUserId != null) {
+                    walletService.findOrCreateForRegisteredUser(reservation.registeredUserId, reservation.contactEmail)
+                } else {
+                    val resolved = walletService.resolveAnonymousWallet(walletCode, reservation.contactEmail, force)
+                    when (val r = resolved) {
+                        is Either.Left -> raise(r.value)
+                        is Either.Right -> r.value
+                    }
+                }
+
+                var updatedWallet = wallet
+                if (reservation.walletDeductedAmount > 0.0) {
+                    // Reverse the wallet debit first
+                    updatedWallet = walletService.credit(
+                        wallet.id, reservation.walletDeductedAmount,
+                        WalletTransactionReason.RESERVATION_DEBIT_REVERSAL, reservationId
+                    )
+                    // Refund the cash portion
+                    val cashPaid = paidAmount - reservation.walletDeductedAmount
+                    if (cashPaid > 0.0) {
+                        updatedWallet = walletService.credit(
+                            wallet.id, cashPaid, WalletTransactionReason.CANCELLATION_REFUND, reservationId
+                        )
+                    }
+                } else {
+                    updatedWallet = walletService.credit(
+                        wallet.id, paidAmount, WalletTransactionReason.CANCELLATION_REFUND, reservationId
+                    )
+                }
+                val settings = appSettingsProvider.current
+                walletEmailService.sendWalletCredited(
+                    toEmail = reservation.contactEmail,
+                    walletCode = updatedWallet.code,
+                    creditedAmount = paidAmount,
+                    newBalance = updatedWallet.balance,
+                    resetMonth = settings.seasonResetMonth,
+                    resetDay = settings.seasonResetDay,
+                    locale = reservation.locale,
+                ).onLeft { println("⚠️ Failed to send wallet credited email to ${reservation.contactEmail}: $it") }
+                CancellationResult(walletCode = updatedWallet.code, walletCreditAmount = paidAmount)
+            } else {
+                CancellationResult()
+            }
+        }
+    }
+
+    override suspend fun getWalletInfo(code: String, email: String): Either<ReservationError.GetWalletInfo, WalletInfo> = either {
+        val wallet = walletService.getWalletInfo(code) ?: raise(ReservationError.WalletNotFound)
+        val settings = appSettingsProvider.current
+        WalletInfo(
+            code = wallet.code,
+            balance = wallet.balance,
+            emailMatches = wallet.ownerEmail.equals(email, ignoreCase = true),
+            seasonResetDay = settings.seasonResetDay,
+            seasonResetMonth = settings.seasonResetMonth,
+        )
     }
 
     private suspend fun resolveOwnerEmails(target: ReservationTarget): List<String> {

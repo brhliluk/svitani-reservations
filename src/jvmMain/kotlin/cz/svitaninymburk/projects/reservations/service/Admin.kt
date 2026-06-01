@@ -33,6 +33,9 @@ import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
+import cz.svitaninymburk.projects.reservations.wallet.Wallet
+import cz.svitaninymburk.projects.reservations.wallet.WalletTransaction
+import cz.svitaninymburk.projects.reservations.wallet.WalletsPage
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.user.User
@@ -57,6 +60,7 @@ class AdminDashboardService(
     private val userRepository: UserRepository,
     private val emailService: EmailService,
     private val paymentEventRepository: PaymentEventRepository,
+    private val walletService: WalletService,
 ): AdminServiceInterface {
 
     override suspend fun getDashboardSummary(): Either<AdminError.GetSummary, AdminDashboardData> = either {
@@ -376,6 +380,7 @@ class AdminDashboardService(
                 lessonEndTime = request.lessonEndTime,
                 ownerEmails = request.ownerEmails,
                 showAttendeeCount = request.showAttendeeCount,
+                lessonRefundAmount = request.lessonRefundAmount,
             )
 
             eventSeriesRepository.create(newSeries)
@@ -680,6 +685,7 @@ class AdminDashboardService(
                 lessonEndTime = request.lessonEndTime,
                 ownerEmails = request.ownerEmails,
                 showAttendeeCount = request.showAttendeeCount,
+                lessonRefundAmount = request.lessonRefundAmount,
             )
         )
     }
@@ -838,4 +844,19 @@ class AdminDashboardService(
         val total = paymentEventRepository.countAll()
         PaymentEventsPage(items = items, page = page, pageSize = pageSize, totalCount = total)
     }
+
+    override suspend fun getWallets(page: Int, pageSize: Int): Either<AdminError.GetWallets, WalletsPage> =
+        Either.catch { walletService.getAll(page, pageSize) }
+            .mapLeft { AdminError.WalletOperationFailed }
+
+    override suspend fun getWalletTransactions(walletId: String): Either<AdminError.GetWallets, List<WalletTransaction>> =
+        Either.catch { walletService.getTransactions(Uuid.parse(walletId)) }
+            .mapLeft { AdminError.WalletOperationFailed }
+
+    override suspend fun adjustWalletBalance(walletId: String, amount: Double, note: String, isCredit: Boolean): Either<AdminError.GetWallets, Wallet> =
+        Either.catch {
+            val id = Uuid.parse(walletId)
+            if (isCredit) walletService.adminCredit(id, amount, note)
+            else walletService.adminDebit(id, amount, note)
+        }.mapLeft { AdminError.WalletOperationFailed }
 }

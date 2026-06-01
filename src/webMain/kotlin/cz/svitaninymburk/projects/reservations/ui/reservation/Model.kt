@@ -16,6 +16,7 @@ data class ReservationFormData(
     val paymentType: PaymentInfo.Type,
     val customValues: Map<String, CustomFieldValue>,
     val locale: String = "cs",
+    val walletCode: String? = null,
 ) {
     fun toCreateInstanceReservationRequest(id: Uuid): CreateInstanceReservationRequest = CreateInstanceReservationRequest(
         eventInstanceId = id,
@@ -26,6 +27,7 @@ data class ReservationFormData(
         paymentType = paymentType,
         customValues = customValues,
         locale = locale,
+        walletCode = walletCode,
     )
 
     fun toCreateSeriesReservationRequest(id: Uuid): CreateSeriesReservationRequest = CreateSeriesReservationRequest(
@@ -37,5 +39,6 @@ data class ReservationFormData(
         paymentType = paymentType,
         customValues = customValues,
         locale = locale,
+        walletCode = walletCode,
     )
 }

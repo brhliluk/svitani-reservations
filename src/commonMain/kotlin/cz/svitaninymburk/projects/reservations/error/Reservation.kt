@@ -11,6 +11,7 @@ import kotlinx.serialization.Serializable
     @Serializable @SerialName("get_all") sealed interface GetAll : ReservationError
     @Serializable @SerialName("get") sealed interface Get : ReservationError
     @Serializable @SerialName("get_detail") sealed interface GetDetail: ReservationError
+    @Serializable @SerialName("get_wallet") sealed interface GetWalletInfo : ReservationError
 
     @Serializable data object ReservationNotFound : CreateReservation, CancelReservation, Get, GetDetail
     @Serializable data object EventInstanceNotFound : GetDetail
@@ -25,6 +26,9 @@ import kotlinx.serialization.Serializable
     @Serializable data object NotASeriesReservation : CancelReservation
     @Serializable data object InstanceNotInSeries : CancelReservation
     @Serializable data object AlreadyOptedOut : CancelReservation
+    @Serializable data object WalletNotFound : CancelReservation, CreateReservation, GetWalletInfo
+    @Serializable data object WalletEmpty : CreateReservation
+    @Serializable data object WalletEmailMismatch : CancelReservation
 }
 
 fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (this) {
@@ -41,4 +45,7 @@ fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (thi
     is ReservationError.NotASeriesReservation -> strings.errorNotASeriesReservation
     is ReservationError.InstanceNotInSeries -> strings.errorInstanceNotInSeries
     is ReservationError.AlreadyOptedOut -> strings.errorAlreadyOptedOut
+    is ReservationError.WalletNotFound -> strings.errorWalletNotFound
+    is ReservationError.WalletEmpty -> strings.errorWalletEmpty
+    is ReservationError.WalletEmailMismatch -> strings.errorWalletEmailMismatch
 }

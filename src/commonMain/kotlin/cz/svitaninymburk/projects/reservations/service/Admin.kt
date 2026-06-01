@@ -3,6 +3,9 @@ package cz.svitaninymburk.projects.reservations.service
 import arrow.core.Either
 import cz.svitaninymburk.projects.reservations.error.AdminError
 import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
+import cz.svitaninymburk.projects.reservations.wallet.Wallet
+import cz.svitaninymburk.projects.reservations.wallet.WalletTransaction
+import cz.svitaninymburk.projects.reservations.wallet.WalletsPage
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
@@ -51,4 +54,7 @@ interface AdminServiceInterface {
     suspend fun getSeriesInstances(seriesId: Uuid, page: Int = 0, pageSize: Int = 10): Either<AdminError.GetInstances, SeriesInstancesPage>
     suspend fun cancelSeriesLesson(instanceId: Uuid): Either<AdminError.CancelLesson, Unit>
     suspend fun getPaymentEvents(page: Int, pageSize: Int): Either<AdminError.GetPaymentEvents, PaymentEventsPage>
+    suspend fun getWallets(page: Int, pageSize: Int): Either<AdminError.GetWallets, WalletsPage>
+    suspend fun getWalletTransactions(walletId: String): Either<AdminError.GetWallets, List<WalletTransaction>>
+    suspend fun adjustWalletBalance(walletId: String, amount: Double, note: String, isCredit: Boolean): Either<AdminError.GetWallets, Wallet>
 }

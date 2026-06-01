@@ -29,6 +29,8 @@ import cz.svitaninymburk.projects.reservations.repository.settings.ExposedAppSet
 import cz.svitaninymburk.projects.reservations.repository.user.ExposedUserRepository
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
+import cz.svitaninymburk.projects.reservations.repository.wallet.ExposedWalletRepository
+import cz.svitaninymburk.projects.reservations.repository.wallet.WalletRepository
 import cz.svitaninymburk.projects.reservations.service.*
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import io.ktor.client.HttpClient
@@ -84,6 +86,10 @@ val appModule = module {
     single<PaymentEventRepository> { ExposedPaymentEventRepository() }
     single<SeriesLessonOptOutRepository> { ExposedSeriesLessonOptOutRepository() }
 
+    // Wallets
+    single<WalletRepository> { ExposedWalletRepository() }
+    single { WalletService(get()) }
+
     // Settings
     single { ExposedAppSettingsRepository() } bind AppSettingsRepository::class
     single { AppSettingsProvider(get()) }
@@ -100,13 +106,13 @@ val appModule = module {
             appBaseUrl = System.getenv("APP_BASE_URL") ?: error("APP_BASE_URL env var is required"),
             eventRepository = get(),
         )
-    } binds arrayOf(EmailService::class, LectorEmailService::class)
+    } binds arrayOf(EmailService::class, LectorEmailService::class, WalletEmailService::class)
     single { QrCodeService() }
     single { BackendQrCodeGenerator(get(), get()) }
-    single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get()) } bind ReservationServiceInterface::class
+    single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get()) } bind ReservationServiceInterface::class
     single { AuthenticatedReservationService(get(), get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
     single { PaymentPairingService(get(), get(), get(), get(), get(), get()) }
     single { AdminService(get()) }
-    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get()) } bind AdminServiceInterface::class
+    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get()) } bind AdminServiceInterface::class
     single { UserService(get()) }
 }

@@ -118,6 +118,7 @@ object EventSeriesTable : Table("event_series") {
     val lessonStartTime = varchar("lesson_start_time", 8).nullable()
     val lessonEndTime = varchar("lesson_end_time", 8).nullable()
     val showAttendeeCount = bool("show_attendee_count").default(true)
+    val lessonRefundAmount = double("lesson_refund_amount").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -140,6 +141,7 @@ fun ResultRow.toEventSeries(ownerEmails: List<String>): EventSeries = EventSerie
     lessonStartTime = this[EventSeriesTable.lessonStartTime]?.let { LocalTime.parse(it) },
     lessonEndTime = this[EventSeriesTable.lessonEndTime]?.let { LocalTime.parse(it) },
     showAttendeeCount = this[EventSeriesTable.showAttendeeCount],
+    lessonRefundAmount = this[EventSeriesTable.lessonRefundAmount],
 )
 
 
@@ -341,6 +343,7 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[lessonStartTime] = series.lessonStartTime?.toString()
             row[lessonEndTime] = series.lessonEndTime?.toString()
             row[showAttendeeCount] = series.showAttendeeCount
+            row[lessonRefundAmount] = series.lessonRefundAmount
         }
         setOwnerEmails(EntityType.SERIES, series.id, series.ownerEmails)
         series
@@ -361,6 +364,7 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[lessonStartTime] = series.lessonStartTime?.toString()
             row[lessonEndTime] = series.lessonEndTime?.toString()
             row[showAttendeeCount] = series.showAttendeeCount
+            row[lessonRefundAmount] = series.lessonRefundAmount
         }
         setOwnerEmails(EntityType.SERIES, series.id, series.ownerEmails)
         series

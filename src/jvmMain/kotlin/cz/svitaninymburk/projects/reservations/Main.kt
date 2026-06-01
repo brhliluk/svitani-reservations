@@ -3,6 +3,7 @@ package cz.svitaninymburk.projects.reservations
 import cz.svitaninymburk.projects.reservations.mock.MockDataLoader
 import cz.svitaninymburk.projects.reservations.plugins.configureDatabases
 import cz.svitaninymburk.projects.reservations.plugins.startPaymentCheck
+import cz.svitaninymburk.projects.reservations.plugins.startWalletResetJobs
 import cz.svitaninymburk.projects.reservations.plugins.configureRouting
 import cz.svitaninymburk.projects.reservations.plugins.configureSecurity
 import dev.kilua.rpc.initRpc
@@ -22,6 +23,7 @@ fun Application.main() {
         appModule
     )
     startPaymentCheck()
+    startWalletResetJobs()
     configureSecurity()
     configureRouting()
 

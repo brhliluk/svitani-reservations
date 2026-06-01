@@ -25,6 +25,9 @@ interface ErrorStrings {
     val errorNotASeriesReservation: String
     val errorInstanceNotInSeries: String
     val errorAlreadyOptedOut: String
+    val errorWalletNotFound: String
+    val errorWalletEmpty: String
+    val errorWalletEmailMismatch: String
 
     // Event errors
     fun errorEventInstanceNotFoundId(id: String): String
@@ -43,6 +46,7 @@ interface ErrorStrings {
     val errorAdminGetInstancesFailed: String
     val errorAdminCancelLessonInstanceNotFound: String
     val errorAdminCancelLessonFailed: String
+    val errorAdminWalletOperationFailed: String
 
     // Settings errors
     val errorSettingsLoadFailed: String

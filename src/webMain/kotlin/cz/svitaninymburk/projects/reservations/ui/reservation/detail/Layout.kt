@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.shareSvgAsPng
+import cz.svitaninymburk.projects.reservations.ui.components.CancellationPolicyBox
 import cz.svitaninymburk.projects.reservations.ui.reservation.CustomFieldsDisplay
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
@@ -85,6 +86,11 @@ fun IComponent.ReservationDetailLayout(
                                 }
                                 CustomFieldsDisplay(target.customFields, reservation.customValues)
                             }
+                        }
+
+                        // Podmínky storna
+                        div(className = "mt-2") {
+                            CancellationPolicyBox()
                         }
 
                         // Tlačítko Zrušit (jen pokud to dává smysl)

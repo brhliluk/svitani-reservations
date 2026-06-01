@@ -13,6 +13,8 @@ import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.service.AdminDashboardService
+import cz.svitaninymburk.projects.reservations.service.WalletService
+import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
 import cz.svitaninymburk.projects.reservations.service.QrCodeGeneratorService
 import cz.svitaninymburk.projects.reservations.service.ConsoleEmailService
 import cz.svitaninymburk.projects.reservations.service.ICalGenerator
@@ -66,6 +68,7 @@ class AdminEditDeleteSpec {
         userRepository = InMemoryUserRepository(),
         emailService = ConsoleEmailService(),
         paymentEventRepository = InMemoryPaymentEventRepository(),
+        walletService = WalletService(InMemoryWalletRepository()),
     )
 
     private fun makeDefinition(id: Uuid = Uuid.random()) = EventDefinition(
@@ -541,6 +544,7 @@ class PaymentEventSpec {
             userRepository = InMemoryUserRepository(),
             emailService = ConsoleEmailService(),
             paymentEventRepository = paymentRepo,
+            walletService = WalletService(InMemoryWalletRepository()),
         )
 
         val result = service.markReservationAsPaid(reservation.id)
@@ -568,6 +572,7 @@ class PaymentEventSpec {
             userRepository = InMemoryUserRepository(),
             emailService = ConsoleEmailService(),
             paymentEventRepository = paymentRepo,
+            walletService = WalletService(InMemoryWalletRepository()),
         )
 
         val result = service.getPaymentEvents(page = 0, pageSize = 10)
@@ -596,6 +601,7 @@ class PaymentEventSpec {
             userRepository = InMemoryUserRepository(),
             emailService = ConsoleEmailService(),
             paymentEventRepository = paymentRepo,
+            walletService = WalletService(InMemoryWalletRepository()),
         )
 
         val page0 = service.getPaymentEvents(page = 0, pageSize = 3)
@@ -624,6 +630,7 @@ class PaginationSpec {
         userRepository = InMemoryUserRepository(),
         emailService = ConsoleEmailService(),
         paymentEventRepository = InMemoryPaymentEventRepository(),
+        walletService = WalletService(InMemoryWalletRepository()),
     )
 
     private fun makeDefinition(title: String = "Def", id: Uuid = Uuid.random()) = EventDefinition(
@@ -824,6 +831,16 @@ class ResolveOwnerEmailsTest {
         paymentTrigger = PaymentTrigger(),
         appBaseUrl = "https://test.example.com",
         seriesLessonOptOutRepository = cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository(),
+        walletService = cz.svitaninymburk.projects.reservations.service.WalletService(
+            cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository()
+        ),
+        walletEmailService = ConsoleEmailService(),
+        appSettingsProvider = cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider.forTest(
+            cz.svitaninymburk.projects.reservations.settings.AppSettings(
+                bankAccountNumber = "", fioToken = "", senderEmail = "",
+                gmailAppPassword = "", senderDisplayName = "",
+            )
+        ),
     )
 
     @Test

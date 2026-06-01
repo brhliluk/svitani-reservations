@@ -61,6 +61,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
     var showCapacityWarning by remember { mutableStateOf(false) }
     var ownerEmails by remember { mutableStateOf(listOf("")) }
     var showAttendeeCount by remember { mutableStateOf(true) }
+    var lessonRefundAmountInput by remember { mutableStateOf<Number?>(null) }
 
     LaunchedEffect(id) {
         val uuid = try { Uuid.parse(id) } catch (_: IllegalArgumentException) { null }
@@ -81,6 +82,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                 allowOnSite = s.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
                 ownerEmails = s.ownerEmails.ifEmpty { listOf("") }
                 showAttendeeCount = s.showAttendeeCount
+                lessonRefundAmountInput = s.lessonRefundAmount
                 uiState = EditSeriesUiState.Loaded(s)
             }
             .onLeft { uiState = EditSeriesUiState.Error(it.localizedMessage(currentStrings)) }
@@ -122,6 +124,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
             lessonEndTime = parsedEndTime,
             ownerEmails = ownerEmails.filter { it.isNotBlank() },
             showAttendeeCount = showAttendeeCount,
+            lessonRefundAmount = lessonRefundAmountInput?.toDouble()?.takeIf { it > 0 },
         )
         scope.launch {
             adminService.updateEventSeries(uuid, request)
@@ -268,6 +271,17 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                                         onChange { showAttendeeCount = value }
                                     }
                                     span(className = "label-text text-sm text-base-content/70") { +currentStrings.showAttendeeCountHint }
+                                }
+                            }
+                            div(className = "form-control w-full") {
+                                label(className = "label") {
+                                    span(className = "label-text font-medium") { +currentStrings.lessonRefundAmount }
+                                }
+                                div(className = "relative flex items-center") {
+                                    numeric(value = lessonRefundAmountInput, min = 0, className = "input input-bordered w-full pr-12") {
+                                        onInput { lessonRefundAmountInput = value }
+                                    }
+                                    span(className = "absolute right-4 text-base-content/50 font-medium") { +currentStrings.currency }
                                 }
                             }
                         }

@@ -35,7 +35,7 @@ class GmailEmailService(
     private val settings: AppSettingsProvider,
     private val appBaseUrl: String,
     private val eventRepository: EventInstanceRepository,
-) : EmailService, LectorEmailService {
+) : EmailService, LectorEmailService, WalletEmailService {
 
     private fun EmailException.fullMessage(): String = buildString {
         var t: Throwable? = this@fullMessage
@@ -324,9 +324,68 @@ class GmailEmailService(
             raise(EmailError.SendLectorCancellationFailed(e.fullMessage()))
         }
     } }
+
+    override suspend fun sendWalletCredited(
+        toEmail: String,
+        walletCode: String,
+        creditedAmount: Double,
+        newBalance: Double,
+        resetMonth: Int,
+        resetDay: Int,
+        locale: String,
+    ): Either<EmailError.SendWallet, Unit> = either { withContext(Dispatchers.IO) {
+        val strings = emailStringsFor(locale)
+        val resetDate = "%02d. %02d.".format(resetDay, resetMonth)
+        val walletLink = "$appBaseUrl/wallet/$walletCode"
+        val email = setupEmail()
+        email.addTo(toEmail)
+        email.subject = strings.walletCreditedSubject("%.0f".format(creditedAmount))
+        email.setHtmlMsg(strings.walletCreditedBody(walletCode, "%.0f".format(creditedAmount), "%.0f".format(newBalance), resetDate, walletLink))
+        catch({ email.send() }) { e: EmailException ->
+            raise(EmailError.SendWalletFailed(e.fullMessage()))
+        }
+    } }
+
+    override suspend fun sendWalletApplied(
+        toEmail: String,
+        walletCode: String,
+        deductedAmount: Double,
+        remainingBalance: Double,
+        locale: String,
+    ): Either<EmailError.SendWallet, Unit> = either { withContext(Dispatchers.IO) {
+        val strings = emailStringsFor(locale)
+        val walletLink = "$appBaseUrl/wallet/$walletCode"
+        val email = setupEmail()
+        email.addTo(toEmail)
+        email.subject = strings.walletAppliedSubject()
+        email.setHtmlMsg(strings.walletAppliedBody(walletCode, "%.0f".format(deductedAmount), "%.0f".format(remainingBalance), walletLink))
+        catch({ email.send() }) { e: EmailException ->
+            raise(EmailError.SendWalletFailed(e.fullMessage()))
+        }
+    } }
+
+    override suspend fun sendWalletResetWarning(
+        toEmail: String,
+        walletCode: String,
+        currentBalance: Double,
+        resetMonth: Int,
+        resetDay: Int,
+        locale: String,
+    ): Either<EmailError.SendWallet, Unit> = either { withContext(Dispatchers.IO) {
+        val strings = emailStringsFor(locale)
+        val resetDate = "%02d. %02d.".format(resetDay, resetMonth)
+        val walletLink = "$appBaseUrl/wallet/$walletCode"
+        val email = setupEmail()
+        email.addTo(toEmail)
+        email.subject = strings.walletResetWarningSubject(resetDate)
+        email.setHtmlMsg(strings.walletResetWarningBody("%.0f".format(currentBalance), walletCode, resetDate, walletLink))
+        catch({ email.send() }) { e: EmailException ->
+            raise(EmailError.SendWalletFailed(e.fullMessage()))
+        }
+    } }
 }
 
-class ConsoleEmailService : EmailService, LectorEmailService {
+class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService {
     override suspend fun sendReservationConfirmation(
         toEmail: String,
         reservation: Reservation,
@@ -426,6 +485,29 @@ class ConsoleEmailService : EmailService, LectorEmailService {
         locale: String,
     ): Either<EmailError.SendLectorCancellation, Unit> {
         println("📧 [MOCK] Lector lesson opt-out → $lectorEmail | $contactName | $eventTitle | $lessonDate")
+        return Unit.right()
+    }
+
+    override suspend fun sendWalletCredited(
+        toEmail: String, walletCode: String, creditedAmount: Double,
+        newBalance: Double, resetMonth: Int, resetDay: Int, locale: String,
+    ): Either<EmailError.SendWallet, Unit> {
+        println("[EMAIL] Wallet credited: $walletCode +$creditedAmount → balance: $newBalance")
+        return Unit.right()
+    }
+
+    override suspend fun sendWalletApplied(
+        toEmail: String, walletCode: String, deductedAmount: Double, remainingBalance: Double, locale: String,
+    ): Either<EmailError.SendWallet, Unit> {
+        println("[EMAIL] Wallet applied: $walletCode -$deductedAmount remaining: $remainingBalance")
+        return Unit.right()
+    }
+
+    override suspend fun sendWalletResetWarning(
+        toEmail: String, walletCode: String, currentBalance: Double,
+        resetMonth: Int, resetDay: Int, locale: String,
+    ): Either<EmailError.SendWallet, Unit> {
+        println("[EMAIL] Wallet reset warning: $walletCode balance: $currentBalance")
         return Unit.right()
     }
 }

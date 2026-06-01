@@ -8,6 +8,9 @@ data class AppSettings(
     val senderEmail: String,
     val gmailAppPassword: String,
     val senderDisplayName: String,
+    val seasonResetMonth: Int = 6,
+    val seasonResetDay: Int = 30,
+    val walletResetWarningDays: Int = 7,
 )
 
 @Serializable
@@ -17,6 +20,9 @@ data class AppSettingsDisplayDto(
     val senderEmail: String,
     val gmailPasswordMasked: String,
     val senderDisplayName: String,
+    val seasonResetMonth: Int,
+    val seasonResetDay: Int,
+    val walletResetWarningDays: Int,
 )
 
 @Serializable
@@ -26,6 +32,9 @@ data class UpdateSettingsRequest(
     val senderEmail: String,
     val gmailAppPassword: String?,   // null = keep current stored value
     val senderDisplayName: String,
+    val seasonResetMonth: Int = 6,
+    val seasonResetDay: Int = 30,
+    val walletResetWarningDays: Int = 7,
 )
 
 fun maskSecret(secret: String): String {

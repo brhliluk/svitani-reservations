@@ -29,10 +29,12 @@ import cz.svitaninymburk.projects.reservations.ui.admin.AdminReservationsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminSettingsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminUsersScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminPaymentsScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.AdminWalletsScreen
 import cz.svitaninymburk.projects.reservations.ui.auth.ResetPasswordScreen
 import cz.svitaninymburk.projects.reservations.ui.dashboard.DashboardScreen
 import cz.svitaninymburk.projects.reservations.ui.dashboard.MyReservationsScreen
 import cz.svitaninymburk.projects.reservations.ui.reservation.detail.ReservationDetailScreen
+import cz.svitaninymburk.projects.reservations.ui.wallet.WalletScreen
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
@@ -229,6 +231,13 @@ fun IComponent.MainLayout() {
                         }
                     }
                 }
+                route("/wallets") {
+                    view {
+                        AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                            AdminWalletsScreen()
+                        }
+                    }
+                }
             }
             route("/") {
                 view {
@@ -307,6 +316,13 @@ fun IComponent.MainLayout() {
                         else MyReservationsScreen(userId = user.id, onBackClick = { router.navigate("/") })
                     }
                 }
+            }
+
+            route("/wallet") {
+                string { code ->
+                    view { WalletScreen(initialCode = code.value) }
+                }
+                view { WalletScreen() }
             }
 
             route("/reset-password") {

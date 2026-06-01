@@ -8,16 +8,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
+import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
+import cz.svitaninymburk.projects.reservations.ui.util.Toast
+import cz.svitaninymburk.projects.reservations.ui.util.ToastData
+import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import dev.kilua.core.IComponent
+import dev.kilua.form.text.text
 import dev.kilua.html.button
 import dev.kilua.html.dialogRef
 import dev.kilua.html.div
 import dev.kilua.html.h3
+import dev.kilua.html.label
 import dev.kilua.html.p
 import dev.kilua.html.span
 import dev.kilua.rpc.getService
@@ -45,37 +51,161 @@ fun IComponent.ReservationDetailScreen(
         )
     }
 
+    var walletCode by remember { mutableStateOf("") }
+    var showEmailMismatchWarning by remember { mutableStateOf(false) }
+    var isCancelling by remember { mutableStateOf(false) }
+    var cancelErrorMessage by remember { mutableStateOf<String?>(null) }
+    var dialogPaidAmount by remember { mutableStateOf(0.0) }
+    var toastData by remember { mutableStateOf<ToastData?>(null) }
+
     val confirmDialog = dialogRef(className = "modal") {
-        div(className = "modal-box") {
+        div(className = "modal-box flex flex-col gap-4") {
             h3(className = "font-bold text-lg text-error flex items-center gap-2") {
                 span(className = "icon-[heroicons--exclamation-triangle] size-6")
-                +"Zrušit rezervaci?"
+                +currentStrings.cancelReservation
             }
 
-            p(className = "py-4") { +"Opravdu chcete zrušit tuto rezervaci? Tato akce je nevratná." }
+            p(className = "text-base-content/70") { +currentStrings.cancelReservationConfirmBody }
+
+            // Dynamic refund preview
+            if (dialogPaidAmount > 0.0) {
+                div(className = "alert alert-success py-2 px-3") {
+                    span(className = "icon-[heroicons--check-circle] size-5 flex-shrink-0")
+                    span(className = "text-sm") {
+                        +currentStrings.cancellationRefundEligible("${dialogPaidAmount.toInt()}")
+                    }
+                }
+            } else {
+                div(className = "alert alert-warning py-2 px-3") {
+                    span(className = "icon-[heroicons--exclamation-triangle] size-5 flex-shrink-0")
+                    span(className = "text-sm") { +currentStrings.cancellationNoRefund }
+                }
+            }
+
+            // Wallet code input
+            div(className = "form-control w-full") {
+                label(className = "label pb-1") {
+                    span(className = "label-text") { +currentStrings.walletCode }
+                }
+                text(value = walletCode, className = "input input-bordered w-full") {
+                    placeholder(currentStrings.walletCodePlaceholder)
+                    onInput { walletCode = value ?: "" }
+                }
+                label(className = "label pt-1") {
+                    span(className = "label-text-alt text-base-content/50") { +currentStrings.walletCodeHint }
+                }
+            }
+
+            // Email mismatch warning
+            if (showEmailMismatchWarning) {
+                div(className = "alert alert-warning") {
+                    span(className = "icon-[heroicons--exclamation-triangle] size-5")
+                    span { +currentStrings.walletEmailMismatchWarning }
+                }
+            }
+
+            // Error message
+            if (cancelErrorMessage != null) {
+                div(className = "alert alert-error text-sm py-2") {
+                    span(className = "icon-[heroicons--exclamation-circle] size-5")
+                    span { +cancelErrorMessage!! }
+                }
+            }
 
             div(className = "modal-action") {
                 button(className = "btn") {
-                    onClick { this@dialogRef.element.close() }
-                    +"Ponechat"
-                }
-
-                button(className = "btn btn-error text-white") {
+                    disabled(isCancelling)
                     onClick {
                         this@dialogRef.element.close()
-
-                        scope.launch {
-                            reservationService.cancelReservation(reservationId)
-                                .onRight { refreshTrigger++ }
-                                .onLeft { error -> web.prompts.alert("Chyba storna: ${error.localizedMessage(currentStrings)}") }
-                        }
+                        walletCode = ""
+                        showEmailMismatchWarning = false
+                        cancelErrorMessage = null
                     }
-                    +"Ano, zrušit rezervaci"
+                    +currentStrings.cancel
+                }
+
+                if (showEmailMismatchWarning) {
+                    button(className = "btn btn-warning text-white") {
+                        disabled(isCancelling)
+                        if (isCancelling) span(className = "loading loading-spinner loading-sm")
+                        onClick {
+                            isCancelling = true
+                            cancelErrorMessage = null
+                            scope.launch {
+                                reservationService.cancelReservation(
+                                    reservationId = reservationId,
+                                    instanceId = null,
+                                    walletCode = walletCode.ifBlank { null },
+                                    force = true,
+                                ).fold(
+                                    ifRight = { result ->
+                                        isCancelling = false
+                                        walletCode = ""
+                                        showEmailMismatchWarning = false
+                                        this@dialogRef.element.close()
+                                        if (result.walletCreditAmount != null && result.walletCreditAmount > 0.0) {
+                                            toastData = ToastData(
+                                                "${currentStrings.walletCreditIssued}: ${result.walletCode}",
+                                                ToastType.Success
+                                            )
+                                        }
+                                        refreshTrigger++
+                                    },
+                                    ifLeft = { error ->
+                                        isCancelling = false
+                                        cancelErrorMessage = error.localizedMessage(currentStrings)
+                                    }
+                                )
+                            }
+                        }
+                        +currentStrings.walletEmailMismatchConfirm
+                    }
+                } else {
+                    button(className = "btn btn-error text-white") {
+                        disabled(isCancelling)
+                        if (isCancelling) span(className = "loading loading-spinner loading-sm")
+                        onClick {
+                            isCancelling = true
+                            cancelErrorMessage = null
+                            scope.launch {
+                                reservationService.cancelReservation(
+                                    reservationId = reservationId,
+                                    instanceId = null,
+                                    walletCode = walletCode.ifBlank { null },
+                                    force = false,
+                                ).fold(
+                                    ifRight = {
+                                        isCancelling = false
+                                        walletCode = ""
+                                        showEmailMismatchWarning = false
+                                        this@dialogRef.element.close()
+                                        refreshTrigger++
+                                    },
+                                    ifLeft = { error ->
+                                        isCancelling = false
+                                        if (error is ReservationError.WalletEmailMismatch) {
+                                            showEmailMismatchWarning = true
+                                        } else {
+                                            cancelErrorMessage = error.localizedMessage(currentStrings)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                        +currentStrings.cancelReservation
+                    }
                 }
             }
         }
 
-        onClick { event -> if (event.target == this@dialogRef.element) this@dialogRef.element.close() }
+        onClick { event ->
+            if (event.target == this@dialogRef.element) {
+                this@dialogRef.element.close()
+                walletCode = ""
+                showEmailMismatchWarning = false
+                cancelErrorMessage = null
+            }
+        }
     }
 
     when (val state = uiState) {
@@ -85,7 +215,10 @@ fun IComponent.ReservationDetailScreen(
                 reservation = state.detail.reservation,
                 target = state.detail.target,
                 accountNumber = state.detail.accountNumber,
-                onCancelReservation = { confirmDialog.element.showModal() },
+                onCancelReservation = {
+                    dialogPaidAmount = state.detail.reservation.paidAmount
+                    confirmDialog.element.showModal()
+                },
                 onBackToDashboard = onBackClick,
             )
         }
@@ -113,6 +246,12 @@ fun IComponent.ReservationDetailScreen(
             }
         }
     }
+
+    Toast(
+        message = toastData?.message,
+        type = toastData?.type ?: ToastType.Success,
+        onDismiss = { toastData = null }
+    )
 }
 
 private sealed interface ReservationLoadingUiState {

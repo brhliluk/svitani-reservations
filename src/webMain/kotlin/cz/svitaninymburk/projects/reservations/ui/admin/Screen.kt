@@ -97,6 +97,13 @@ fun IComponent.AdminLayout(
                     }
                     li {
                         a(className = "rounded-lg hover:bg-base-200 transition-colors") {
+                            onClick { router.navigate("/admin/wallets") }
+                            span(className = "icon-[heroicons--wallet] size-5 text-primary/70")
+                            +currentStrings.adminWallets
+                        }
+                    }
+                    li {
+                        a(className = "rounded-lg hover:bg-base-200 transition-colors") {
                             onClick { router.navigate("/admin/settings") }
                             span(className = "icon-[heroicons--cog-6-tooth] size-5 text-primary/70")
                             +currentStrings.navSettings

@@ -69,6 +69,7 @@ object CsStrings : AppStrings {
     override val name = "Jméno"
     override val totalPrice = "Cena celkem"
     override val cancelReservation = "Zrušit rezervaci"
+    override val cancelReservationConfirmBody = "Opravdu chcete zrušit tuto rezervaci? Tato akce je nevratná."
     override val qrPayment = "Platba QR kódem"
     override val shareOrDownload = "Kliknutím sdílet / stáhnout"
     override val accountNumber = "Číslo účtu"
@@ -447,6 +448,29 @@ object CsStrings : AppStrings {
     override val yes = "Ano"
     override val no = "Ne"
 
+    // Wallet System
+    override val walletCode = "Kód peněženky"
+    override val walletCodePlaceholder = "SVIT-XXXX-XXXX"
+    override val walletCodeHint = "Nepovinné — zadejte kód pro uplatnění kreditu"
+    override val walletBalance = "Zůstatek peněženky"
+    override val walletEmailMismatchWarning = "Tato peněženka je přiřazena k jinému emailu. Chcete ji přesto použít?"
+    override val walletEmailMismatchConfirm = "Ano, použít tuto peněženku"
+    override val walletCreditApplied = "Kredit z peněženky byl uplatněn"
+    override val walletCreditIssued = "Kredit byl připsán do peněženky"
+    override val adminWallets = "Peněženky"
+    override val adminWalletDetail = "Detail peněženky"
+    override val adminWalletAdjust = "Ruční úprava kreditu"
+    override val adminWalletAdjustNote = "Poznámka (povinná)"
+    override val adminWalletCreditButton = "Přidat kredit"
+    override val adminWalletDebitButton = "Odebrat kredit"
+    override val lessonRefundAmount = "Kredit za odhlášení z lekce (Kč)"
+    override val walletExpiresOn = "Platnost kreditu do"
+    override val walletLookupTitle = "Zkontrolovat peněženku"
+    override val walletLookupSubtitle = "Zadejte kód peněženky a svůj e-mail pro ověření zůstatku."
+    override val walletLookupEmailLabel = "Váš e-mail"
+    override val walletLookupSubmit = "Zkontrolovat"
+    override val walletLookupNotFound = "Peněženka s tímto kódem nebyla nalezena."
+
     // Admin Edit & Delete
     override val editTemplate = "Upravit šablonu"
     override val editEvent = "Upravit termín"
@@ -500,6 +524,9 @@ object CsStrings : AppStrings {
     override val errorNotASeriesReservation = "Rezervace není přihlášení na kroužek."
     override val errorInstanceNotInSeries = "Tato lekce nepatří do vašeho kroužku."
     override val errorAlreadyOptedOut = "Z této lekce jste se již odhlásili."
+    override val errorWalletNotFound = "Peněženka s tímto kódem nebyla nalezena."
+    override val errorWalletEmpty = "Peněženka nemá žádný zůstatek."
+    override val errorWalletEmailMismatch = "Peněženka je přiřazena k jinému emailu."
 
     override fun errorEventInstanceNotFoundId(id: String) = "Událost s id $id nenalezena"
     override fun errorEventDefinitionNotFoundId(id: String) = "Šablona události s id $id nenalezena"
@@ -516,6 +543,7 @@ object CsStrings : AppStrings {
     override val errorAdminGetInstancesFailed = "Nepodařilo se získat lekce"
     override val errorAdminCancelLessonInstanceNotFound = "Lekce nenalezena"
     override val errorAdminCancelLessonFailed = "Nepodařilo se zrušit lekci"
+    override val errorAdminWalletOperationFailed = "Operace s peněženkou selhala"
 
     // Privacy Policy
     override val privacyTitle = "Zásady ochrany osobních údajů"
@@ -535,6 +563,19 @@ object CsStrings : AppStrings {
     override val privacyContactBody = "Pro uplatnění svých práv nebo dotazy k ochraně osobních údajů nás kontaktujte na: info@svitaninymburk.cz."
     override val privacyPolicyLink = "Zásady ochrany osobních údajů"
     override val registrationPrivacyNote = "Registrací berete na vědomí naše"
+
+    // Cancellation policy box
+    override val cancellationPolicyTitle = "Podmínky storna"
+    override val cancellationPolicyDeadline = "Storno do 18:00 předchozího dne → kredit v hodnotě zaplacené částky"
+    override val cancellationPolicyLessonOptOut = "Odhlášení z lekce seriálu do 18:00 → kredit dle nastavení kurzu"
+    override val cancellationPolicyNoRefundUnpaid = "Nezaplacená rezervace → kredit nevznikne"
+    override val cancellationPolicyNoRefundLate = "Pozdní storno (po 18:00) → kredit nevznikne"
+    override val cancellationPolicyWalletExplain = "Kredit = kód peněženky použitelný na příští rezervaci, platný do konce sezóny"
+    override val cancellationRefundEligible: (String) -> String = { amount ->
+        "Zaplaceno $amount Kč — při stornu do 18:00 předchozího dne dostanete kredit $amount Kč do peněženky"
+    }
+    override val cancellationLessonRefundEligible = "Zaplaceno — při včasném odhlášení dostanete kredit do peněženky dle nastavení kurzu"
+    override val cancellationNoRefund = "Při zrušení rezervace se žádný kredit nevrátí"
 
     // Admin Settings Screen
     override val navSettings = "Nastavení"

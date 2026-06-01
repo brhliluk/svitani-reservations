@@ -55,6 +55,14 @@ interface EmailStrings {
     fun lessonOptOutBody(eventTitle: String, lessonDate: LocalDate, isLate: Boolean): String
     fun lectorLessonOptOutSubject(eventTitle: String): String
     fun lectorLessonOptOutBody(contactName: String, eventTitle: String, lessonDate: LocalDate, isLate: Boolean): String
+
+    // Wallet notifications
+    fun walletCreditedSubject(amount: String): String
+    fun walletCreditedBody(walletCode: String, creditedAmount: String, newBalance: String, resetDate: String, walletLink: String): String
+    fun walletAppliedSubject(): String
+    fun walletAppliedBody(walletCode: String, deductedAmount: String, remainingBalance: String, walletLink: String): String
+    fun walletResetWarningSubject(resetDate: String): String
+    fun walletResetWarningBody(currentBalance: String, walletCode: String, resetDate: String, walletLink: String): String
 }
 
 fun emailStringsFor(locale: String): EmailStrings = when (locale) {
@@ -116,6 +124,30 @@ object CsEmailStrings : EmailStrings {
         val lateNote = if (isLate) " (pozdní odhlášení)" else ""
         return "$contactName se odhlásil/a z lekce kurzu \"$eventTitle\" dne $lessonDate$lateNote."
     }
+    override fun walletCreditedSubject(amount: String) = "Kredit $amount Kč připsán do peněženky"
+    override fun walletCreditedBody(walletCode: String, creditedAmount: String, newBalance: String, resetDate: String, walletLink: String) = """
+        <p>Na Vaši peněženku byl připsán kredit <strong>$creditedAmount Kč</strong>.</p>
+        <p style="margin:16px 0">Váš kód peněženky:</p>
+        <p style="margin:8px 0;text-align:center"><span style="font-family:'Courier New',monospace;font-size:1.3em;font-weight:bold;letter-spacing:3px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:10px 20px;display:inline-block">$walletCode</span></p>
+        <p style="margin:16px 0">Aktuální zůstatek: <strong>$newBalance Kč</strong> &nbsp;·&nbsp; Platnost do <strong>$resetDate</strong></p>
+        <p>Kód zadejte při příští rezervaci, nebo <a href="$walletLink">zkontrolujte zůstatek online</a>.</p>
+    """.trimIndent()
+    override fun walletAppliedSubject() = "Kredit z peněženky uplatněn"
+    override fun walletAppliedBody(walletCode: String, deductedAmount: String, remainingBalance: String, walletLink: String) = """
+        <p>Z Vaší peněženky byl odečten kredit <strong>$deductedAmount Kč</strong>.</p>
+        <p>Zbývající zůstatek: <strong>$remainingBalance Kč</strong></p>
+        <p style="margin:16px 0">Váš kód peněženky pro příští rezervaci:</p>
+        <p style="margin:8px 0;text-align:center"><span style="font-family:'Courier New',monospace;font-size:1.3em;font-weight:bold;letter-spacing:3px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:10px 20px;display:inline-block">$walletCode</span></p>
+        <p><a href="$walletLink">Zkontrolovat zůstatek peněženky</a></p>
+    """.trimIndent()
+    override fun walletResetWarningSubject(resetDate: String) = "Váš kredit bude brzy vynulován ($resetDate)"
+    override fun walletResetWarningBody(currentBalance: String, walletCode: String, resetDate: String, walletLink: String) = """
+        <p>Připomínáme, že dne <strong>$resetDate</strong> bude vynulován kredit ve Vaší peněžence.</p>
+        <p>Aktuální zůstatek: <strong>$currentBalance Kč</strong></p>
+        <p style="margin:16px 0">Kód Vaší peněženky:</p>
+        <p style="margin:8px 0;text-align:center"><span style="font-family:'Courier New',monospace;font-size:1.3em;font-weight:bold;letter-spacing:3px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:10px 20px;display:inline-block">$walletCode</span></p>
+        <p>Nezapomeňte kredit využít před tímto datem. <a href="$walletLink">Zkontrolovat zůstatek peněženky</a></p>
+    """.trimIndent()
 }
 
 object EnEmailStrings : EmailStrings {
@@ -172,4 +204,27 @@ object EnEmailStrings : EmailStrings {
         val lateNote = if (isLate) " (late cancellation)" else ""
         return "$contactName unsubscribed from a lesson of \"$eventTitle\" on $lessonDate$lateNote."
     }
+    override fun walletCreditedSubject(amount: String) = "Wallet credit of $amount CZK added"
+    override fun walletCreditedBody(walletCode: String, creditedAmount: String, newBalance: String, resetDate: String, walletLink: String) = """
+        <p>A credit of <strong>$creditedAmount CZK</strong> has been added to your wallet.</p>
+        <p style="margin:16px 0">Your wallet code:</p>
+        <p style="margin:8px 0;text-align:center"><span style="font-family:'Courier New',monospace;font-size:1.3em;font-weight:bold;letter-spacing:3px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:10px 20px;display:inline-block">$walletCode</span></p>
+        <p style="margin:16px 0">Current balance: <strong>$newBalance CZK</strong> &nbsp;·&nbsp; Valid until <strong>$resetDate</strong></p>
+        <p>Enter this code at your next reservation, or <a href="$walletLink">check your balance online</a>.</p>
+    """.trimIndent()
+    override fun walletAppliedSubject() = "Wallet credit applied"
+    override fun walletAppliedBody(walletCode: String, deductedAmount: String, remainingBalance: String, walletLink: String) = """
+        <p>A credit of <strong>$deductedAmount CZK</strong> was deducted from your wallet.</p>
+        <p>Remaining balance: <strong>$remainingBalance CZK</strong></p>
+        <p style="margin:16px 0">Your wallet code for the next reservation:</p>
+        <p style="margin:8px 0;text-align:center"><span style="font-family:'Courier New',monospace;font-size:1.3em;font-weight:bold;letter-spacing:3px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:10px 20px;display:inline-block">$walletCode</span></p>
+        <p><a href="$walletLink">Check wallet balance</a></p>
+    """.trimIndent()
+    override fun walletResetWarningSubject(resetDate: String) = "Your wallet credit will be reset on $resetDate"
+    override fun walletResetWarningBody(currentBalance: String, walletCode: String, resetDate: String, walletLink: String) = """
+        <p>Your wallet credit of <strong>$currentBalance CZK</strong> will be zeroed on <strong>$resetDate</strong>.</p>
+        <p style="margin:16px 0">Your wallet code:</p>
+        <p style="margin:8px 0;text-align:center"><span style="font-family:'Courier New',monospace;font-size:1.3em;font-weight:bold;letter-spacing:3px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:10px 20px;display:inline-block">$walletCode</span></p>
+        <p>Make sure to use your credit before this date. <a href="$walletLink">Check wallet balance</a></p>
+    """.trimIndent()
 }

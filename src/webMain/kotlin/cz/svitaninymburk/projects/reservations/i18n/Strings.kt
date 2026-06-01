@@ -85,6 +85,7 @@ interface AppStrings : ErrorStrings {
     val name: String
     val totalPrice: String
     val cancelReservation: String
+    val cancelReservationConfirmBody: String
     val qrPayment: String
     val shareOrDownload: String
     val accountNumber: String
@@ -495,6 +496,44 @@ interface AppStrings : ErrorStrings {
     val settingsSavedSuccess: String
     val settingsGmailPasswordHint: String
     val settingsFioTokenHint: String
+
+    // Wallet System
+    val walletCode: String
+    val walletCodePlaceholder: String
+    val walletCodeHint: String
+    val walletBalance: String
+    val walletEmailMismatchWarning: String
+    val walletEmailMismatchConfirm: String
+    val walletCreditApplied: String
+    val walletCreditIssued: String
+    val adminWallets: String
+    val adminWalletDetail: String
+    val adminWalletAdjust: String
+    val adminWalletAdjustNote: String
+    val adminWalletCreditButton: String
+    val adminWalletDebitButton: String
+    val lessonRefundAmount: String
+    val walletExpiresOn: String
+
+    // Wallet lookup page
+    val walletLookupTitle: String
+    val walletLookupSubtitle: String
+    val walletLookupEmailLabel: String
+    val walletLookupSubmit: String
+    val walletLookupNotFound: String
+
+    // Cancellation policy box
+    val cancellationPolicyTitle: String
+    val cancellationPolicyDeadline: String
+    val cancellationPolicyLessonOptOut: String
+    val cancellationPolicyNoRefundUnpaid: String
+    val cancellationPolicyNoRefundLate: String
+    val cancellationPolicyWalletExplain: String
+
+    // Dynamic refund preview in cancellation dialog
+    val cancellationRefundEligible: (String) -> String
+    val cancellationLessonRefundEligible: String
+    val cancellationNoRefund: String
 
     // Privacy Policy
     val privacyTitle: String

@@ -46,6 +46,8 @@ object ReservationsTable : Table("reservations") {
     val variableSymbol = varchar("variable_symbol", 50).nullable()
     val paymentPairingToken = varchar("payment_pairing_token", 255).nullable()
     val locale = varchar("locale", 10).default("cs")
+    val walletId = uuid("wallet_id").nullable()
+    val walletDeductedAmount = double("wallet_deducted_amount").default(0.0)
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -64,6 +66,8 @@ class ExposedReservationRepository : ReservationRepository {
             row[paymentType] = reservation.paymentType
             row[variableSymbol] = reservation.variableSymbol
             row[paymentPairingToken] = reservation.paymentPairingToken
+            row[walletId] = reservation.walletId
+            row[walletDeductedAmount] = reservation.walletDeductedAmount
 
             row[customValues] = reservation.customValues
         }
@@ -97,6 +101,8 @@ class ExposedReservationRepository : ReservationRepository {
                 row[variableSymbol] = reservation.variableSymbol
                 row[paymentPairingToken] = reservation.paymentPairingToken
                 row[locale] = reservation.locale
+                row[walletId] = reservation.walletId
+                row[walletDeductedAmount] = reservation.walletDeductedAmount
             }
         }
         reservation
@@ -227,5 +233,7 @@ fun ResultRow.toReservation(): Reservation {
         variableSymbol = this[ReservationsTable.variableSymbol],
         paymentPairingToken = this[ReservationsTable.paymentPairingToken],
         locale = this[ReservationsTable.locale],
+        walletId = this[ReservationsTable.walletId],
+        walletDeductedAmount = this[ReservationsTable.walletDeductedAmount],
     )
 }

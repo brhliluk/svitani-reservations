@@ -38,6 +38,9 @@ class AppSettingsService(
                 senderEmail = s.senderEmail,
                 gmailPasswordMasked = maskSecret(s.gmailAppPassword),
                 senderDisplayName = s.senderDisplayName,
+                seasonResetMonth = s.seasonResetMonth,
+                seasonResetDay = s.seasonResetDay,
+                walletResetWarningDays = s.walletResetWarningDays,
             )
         }) { _: Exception ->
             raise(SettingsError.LoadFailed)
@@ -96,6 +99,9 @@ class AppSettingsService(
             senderEmail = request.senderEmail,
             gmailAppPassword = request.gmailAppPassword ?: current.gmailAppPassword,
             senderDisplayName = request.senderDisplayName,
+            seasonResetMonth = request.seasonResetMonth,
+            seasonResetDay = request.seasonResetDay,
+            walletResetWarningDays = request.walletResetWarningDays,
         )
         catch({ repo.save(updated) }) { _: Exception ->
             raise(SettingsError.SaveFailed)

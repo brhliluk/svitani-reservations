@@ -23,6 +23,9 @@ object AppSettingsTable : Table("app_settings") {
     val senderEmail = text("sender_email")
     val gmailAppPasswordEncrypted = text("gmail_app_password_encrypted")
     val senderDisplayName = text("sender_display_name")
+    val seasonResetMonth = integer("season_reset_month").default(6)
+    val seasonResetDay = integer("season_reset_day").default(30)
+    val walletResetWarningDays = integer("wallet_reset_warning_days").default(7)
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -35,6 +38,9 @@ class ExposedAppSettingsRepository : AppSettingsRepository {
                 senderEmail = row[AppSettingsTable.senderEmail],
                 gmailAppPassword = SettingsEncryption.decrypt(row[AppSettingsTable.gmailAppPasswordEncrypted]),
                 senderDisplayName = row[AppSettingsTable.senderDisplayName],
+                seasonResetMonth = row[AppSettingsTable.seasonResetMonth],
+                seasonResetDay = row[AppSettingsTable.seasonResetDay],
+                walletResetWarningDays = row[AppSettingsTable.walletResetWarningDays],
             )
         }
     }
@@ -49,6 +55,9 @@ class ExposedAppSettingsRepository : AppSettingsRepository {
                 it[senderEmail] = defaults.senderEmail
                 it[gmailAppPasswordEncrypted] = SettingsEncryption.encrypt(defaults.gmailAppPassword)
                 it[senderDisplayName] = defaults.senderDisplayName
+                it[seasonResetMonth] = defaults.seasonResetMonth
+                it[seasonResetDay] = defaults.seasonResetDay
+                it[walletResetWarningDays] = defaults.walletResetWarningDays
             }
         }
     }
@@ -60,6 +69,9 @@ class ExposedAppSettingsRepository : AppSettingsRepository {
             it[senderEmail] = settings.senderEmail
             it[gmailAppPasswordEncrypted] = SettingsEncryption.encrypt(settings.gmailAppPassword)
             it[senderDisplayName] = settings.senderDisplayName
+            it[seasonResetMonth] = settings.seasonResetMonth
+            it[seasonResetDay] = settings.seasonResetDay
+            it[walletResetWarningDays] = settings.walletResetWarningDays
         }
     }
 }

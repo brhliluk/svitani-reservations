@@ -11,10 +11,14 @@ import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventIns
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
+import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
+import cz.svitaninymburk.projects.reservations.service.WalletService
+import cz.svitaninymburk.projects.reservations.settings.AppSettings
+import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -56,6 +60,12 @@ class SeriesLessonOptOutServiceTest {
         paymentTrigger = PaymentTrigger(),
         appBaseUrl = "https://test.example.com",
         seriesLessonOptOutRepository = optOutRepo,
+        walletService = WalletService(InMemoryWalletRepository()),
+        walletEmailService = ConsoleEmailService(),
+        appSettingsProvider = AppSettingsProvider.forTest(AppSettings(
+            bankAccountNumber = "", fioToken = "", senderEmail = "",
+            gmailAppPassword = "", senderDisplayName = "",
+        )),
     ) {
         override suspend fun currentCallerUserId(): Uuid? = callerId
     }
