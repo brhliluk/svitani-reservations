@@ -133,11 +133,9 @@ class AdminDashboardService(
 
         ensure(reservation.status == Reservation.Status.PENDING_PAYMENT) { AdminError.WrongReservationState(reservation.status) }
 
-        val success = reservationRepository.updateStatus(reservationId, Reservation.Status.CONFIRMED)
-
-        if (!success) {
-            raise(AdminError.FailedToMarkReservationPaid("Chyba při aktualizaci stavu v databázi."))
-        }
+        reservationRepository.save(
+            reservation.copy(status = Reservation.Status.CONFIRMED, paidAmount = reservation.totalPrice)
+        )
 
         runCatching {
             paymentEventRepository.insert(
