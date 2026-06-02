@@ -12,7 +12,7 @@ import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import kotlin.uuid.Uuid
 
 object SeriesLessonOptOutsTable : Table("series_lesson_opt_outs") {
@@ -33,7 +33,7 @@ interface SeriesLessonOptOutRepository {
 class ExposedSeriesLessonOptOutRepository(private val database: Database? = null) : SeriesLessonOptOutRepository {
 
     private suspend fun <T> query(block: suspend () -> T): T =
-        withContext(Dispatchers.IO) { newSuspendedTransaction(db = database) { block() } }
+        withContext(Dispatchers.IO) { suspendTransaction(db = database) { block() } }
 
     override suspend fun save(optOut: SeriesLessonOptOut): SeriesLessonOptOut = query {
         SeriesLessonOptOutsTable.insert { row ->

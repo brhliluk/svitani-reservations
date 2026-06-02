@@ -8,12 +8,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import org.koin.ktor.ext.inject
 import kotlin.time.Duration.Companion.hours
 
@@ -30,7 +31,7 @@ fun Application.startWalletResetJobs() {
                 val today = Clock.System.now().toLocalDateTime(tz).date
 
                 // Season reset
-                if (today.monthNumber == settings.seasonResetMonth && today.dayOfMonth == settings.seasonResetDay) {
+                if (today.month.number == settings.seasonResetMonth && today.day == settings.seasonResetDay) {
                     val count = walletService.performSeasonReset()
                     println("Season wallet reset: zeroed $count wallets")
                 }

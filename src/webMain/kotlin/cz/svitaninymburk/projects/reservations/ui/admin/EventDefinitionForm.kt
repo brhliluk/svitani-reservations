@@ -320,7 +320,7 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                                             if (field.priceModifier is PriceModifier.FixedAmount) {
                                                 div(className = "form-control") {
                                                     label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldFlatFeeLabel } }
-                                                    numeric(value = (field.priceModifier as PriceModifier.FixedAmount).amount.takeIf { it > 0 }, min = 0, className = "input input-sm input-bordered w-full") {
+                                                    numeric(value = field.priceModifier.amount.takeIf { it > 0 }, min = 0, className = "input input-sm input-bordered w-full") {
                                                         onInput {
                                                             updateCustomField(index, field.copy(priceModifier = PriceModifier.FixedAmount(value?.toDouble() ?: 0.0)))
                                                         }
@@ -343,7 +343,7 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                                             if (field.priceModifier is PriceModifier.PerUnit) {
                                                 div(className = "form-control") {
                                                     label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldPerUnitPriceLabel } }
-                                                    numeric(value = (field.priceModifier as PriceModifier.PerUnit).pricePerUnit.takeIf { it > 0 }, min = 0, className = "input input-sm input-bordered w-full") {
+                                                    numeric(value = field.priceModifier.pricePerUnit.takeIf { it > 0 }, min = 0, className = "input input-sm input-bordered w-full") {
                                                         onInput {
                                                             updateCustomField(index, field.copy(priceModifier = PriceModifier.PerUnit(value?.toDouble() ?: 0.0)))
                                                         }

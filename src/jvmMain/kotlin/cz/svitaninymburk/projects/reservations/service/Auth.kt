@@ -99,7 +99,7 @@ class AuthService(
 
         ensureNotNull(user) { AuthError.InvalidCredentials }
 
-        ensure(user is User.Email) { AuthError.LoggedInWithAnotherProvider(User.Google::class.java.kotlin as KClass<User>) }
+        ensure(user is User.Email) { AuthError.LoggedInWithAnotherProvider(@Suppress("UNCHECKED_CAST") (User.Google::class as KClass<User>)) }
 
         val isValid = hashingService.verify(request.password, user.passwordHash)
 
@@ -148,7 +148,7 @@ class AuthService(
 
     override suspend fun requestPasswordReset(email: String): Either<AuthError.RequestPasswordReset, Unit> = either {
         val user = ensureNotNull(userRepository.findByEmail(email)) { AuthError.UserNotFound }
-        ensure(user is User.Email) { AuthError.LoggedInWithAnotherProvider(User.Google::class.java.kotlin as KClass<User>) }
+        ensure(user is User.Email) { AuthError.LoggedInWithAnotherProvider(@Suppress("UNCHECKED_CAST") (User.Google::class as KClass<User>)) }
 
         val token = Uuid.random().toString()
 

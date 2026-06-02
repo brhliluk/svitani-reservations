@@ -2,11 +2,12 @@ package cz.svitaninymburk.projects.reservations.service
 
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
-import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 object ICalGenerator {
@@ -108,10 +109,10 @@ object ICalGenerator {
     }
 
     private fun localBasic(dt: LocalDateTime): String =
-        "%04d%02d%02dT%02d%02d%02d".format(dt.year, dt.monthNumber, dt.dayOfMonth, dt.hour, dt.minute, dt.second)
+        "%04d%02d%02dT%02d%02d%02d".format(dt.year, dt.month.number, dt.day, dt.hour, dt.minute, dt.second)
 
     private fun dateBasic(d: LocalDate): String =
-        "%04d%02d%02d".format(d.year, d.monthNumber, d.dayOfMonth)
+        "%04d%02d%02d".format(d.year, d.month.number, d.day)
 
     private fun utcBasic(dt: LocalDateTime): String = localBasic(dt) + "Z"
 

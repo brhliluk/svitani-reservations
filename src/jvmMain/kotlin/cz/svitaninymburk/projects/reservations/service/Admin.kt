@@ -421,8 +421,8 @@ class AdminDashboardService(
                             seriesId = newSeries.id,
                             title = newSeries.title,
                             description = newSeries.description,
-                            startDateTime = LocalDateTime(date, newSeries.lessonStartTime!!),
-                            endDateTime = LocalDateTime(date, newSeries.lessonEndTime!!),
+                            startDateTime = LocalDateTime(date, newSeries.lessonStartTime),
+                            endDateTime = LocalDateTime(date, newSeries.lessonEndTime),
                             price = newSeries.price,
                             capacity = newSeries.capacity,
                             allowedPaymentTypes = newSeries.allowedPaymentTypes,
@@ -554,8 +554,8 @@ class AdminDashboardService(
                             seriesId = newSeries.id,
                             title = newSeries.title,
                             description = newSeries.description,
-                            startDateTime = LocalDateTime(date, newSeries.lessonStartTime!!),
-                            endDateTime = LocalDateTime(date, newSeries.lessonEndTime!!),
+                            startDateTime = LocalDateTime(date, newSeries.lessonStartTime),
+                            endDateTime = LocalDateTime(date, newSeries.lessonEndTime),
                             price = newSeries.price,
                             capacity = newSeries.capacity,
                             allowedPaymentTypes = newSeries.allowedPaymentTypes,
@@ -652,8 +652,8 @@ class AdminDashboardService(
 
         // Send reschedule notification if datetime changed and instance belongs to a series
         if (previousStartDateTime != request.startDateTime && existing.seriesId != null) {
-            val series = eventSeriesRepository.get(existing.seriesId!!)
-            reservationRepository.findByReference(Reference.Series(existing.seriesId!!))
+            val series = eventSeriesRepository.get(existing.seriesId)
+            reservationRepository.findByReference(Reference.Series(existing.seriesId))
                 .filter { it.status != Reservation.Status.CANCELLED }
                 .forEach { res ->
                     emailService.sendLessonRescheduledNotification(
