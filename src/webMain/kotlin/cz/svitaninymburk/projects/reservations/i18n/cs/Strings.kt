@@ -453,6 +453,7 @@ object CsStrings : AppStrings {
     override val walletCode = "Kód peněženky"
     override val walletCodePlaceholder = "SVIT-XXXX-XXXX"
     override val walletCodeHint = "Nepovinné — zadejte kód pro uplatnění kreditu"
+    override val walletAutoCreate = "Nepovinné — pokud peněženku nemáte, automaticky se vám vytvoří"
     override val walletBalance = "Zůstatek peněženky"
     override val walletEmailMismatchWarning = "Tato peněženka je přiřazena k jinému emailu. Chcete ji přesto použít?"
     override val walletEmailMismatchConfirm = "Ano, použít tuto peněženku"
@@ -577,6 +578,8 @@ object CsStrings : AppStrings {
     }
     override val cancellationLessonRefundEligible = "Zaplaceno — při včasném odhlášení dostanete kredit do peněženky dle nastavení kurzu"
     override val cancellationNoRefund = "Při zrušení rezervace se žádný kredit nevrátí"
+    override val cancellationWindowPassed = "Lhůta pro kredit uplynula (po 18:00 předchozího dne) — kredit nevznikne"
+    override val cancellationNotPaid = "Rezervace nebyla zaplacena — žádný kredit nevznikne"
 
     // Admin Settings Screen
     override val navSettings = "Nastavení"

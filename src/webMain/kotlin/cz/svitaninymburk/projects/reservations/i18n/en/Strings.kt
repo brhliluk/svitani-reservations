@@ -454,6 +454,7 @@ object EnStrings : AppStrings {
     override val walletCode = "Wallet code"
     override val walletCodePlaceholder = "SVIT-XXXX-XXXX"
     override val walletCodeHint = "Optional — enter code to apply credit"
+    override val walletAutoCreate = "Optional — if you don't have a wallet, one will be created for you automatically"
     override val walletBalance = "Wallet balance"
     override val walletEmailMismatchWarning = "This wallet belongs to a different email. Use it anyway?"
     override val walletEmailMismatchConfirm = "Yes, use this wallet"
@@ -578,6 +579,8 @@ object EnStrings : AppStrings {
     }
     override val cancellationLessonRefundEligible = "Paid — if opted out on time you will receive wallet credit per course settings"
     override val cancellationNoRefund = "No credit will be returned when cancelling this reservation"
+    override val cancellationWindowPassed = "Cancellation window has passed (after 18:00 the day before) — no credit will be issued"
+    override val cancellationNotPaid = "Reservation was not paid — no credit will be issued"
 
     // Admin Settings Screen
     override val navSettings = "Settings"

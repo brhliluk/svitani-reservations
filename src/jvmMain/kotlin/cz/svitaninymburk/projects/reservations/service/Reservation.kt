@@ -13,7 +13,6 @@ import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRep
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutRepository
-import cz.svitaninymburk.projects.reservations.service.LectorEmailService
 import cz.svitaninymburk.projects.reservations.reservation.CancellationResult
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
@@ -27,7 +26,6 @@ import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
 import cz.svitaninymburk.projects.reservations.reservation.SeriesReservationDetail
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
-import cz.svitaninymburk.projects.reservations.service.ICalGenerator
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.util.currentCall
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
@@ -380,9 +378,15 @@ open class ReservationService(
                 }
             }
 
-            // Wallet credit for whole-reservation cancellation
+            // Wallet credit for whole-reservation cancellation — only within the deadline (18:00 day before)
             val paidAmount = reservation.paidAmount
-            if (paidAmount > 0.0) {
+            val timezone = TimeZone.of("Europe/Prague")
+            val cancellationDeadline = target.startDateTime.date
+                .minus(1, DateTimeUnit.DAY)
+                .atTime(18, 0)
+                .toInstant(timezone)
+            val withinCancellationWindow = Clock.System.now() < cancellationDeadline
+            if (paidAmount > 0.0 && withinCancellationWindow) {
                 val wallet: Wallet = if (reservation.registeredUserId != null) {
                     walletService.findOrCreateForRegisteredUser(reservation.registeredUserId, reservation.contactEmail)
                 } else {

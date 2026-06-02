@@ -502,6 +502,7 @@ interface AppStrings : ErrorStrings {
     val walletCode: String
     val walletCodePlaceholder: String
     val walletCodeHint: String
+    val walletAutoCreate: String
     val walletBalance: String
     val walletEmailMismatchWarning: String
     val walletEmailMismatchConfirm: String
@@ -535,6 +536,8 @@ interface AppStrings : ErrorStrings {
     val cancellationRefundEligible: (String) -> String
     val cancellationLessonRefundEligible: String
     val cancellationNoRefund: String
+    val cancellationWindowPassed: String
+    val cancellationNotPaid: String
 
     // Privacy Policy
     val privacyTitle: String

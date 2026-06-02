@@ -28,6 +28,13 @@ import dev.kilua.html.p
 import dev.kilua.html.span
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atTime
+import kotlinx.datetime.minus
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 
@@ -59,6 +66,7 @@ fun IComponent.ReservationDetailScreen(
     var isCancelling by remember { mutableStateOf(false) }
     var cancelErrorMessage by remember { mutableStateOf<String?>(null) }
     var dialogPaidAmount by remember { mutableStateOf(0.0) }
+    var dialogStartDateTime by remember { mutableStateOf<LocalDateTime?>(null) }
     var toastData by remember { mutableStateOf<ToastData?>(null) }
 
     val confirmDialog = dialogRef(className = "modal") {
@@ -71,31 +79,46 @@ fun IComponent.ReservationDetailScreen(
             p(className = "text-base-content/70") { +currentStrings.cancelReservationConfirmBody }
 
             // Dynamic refund preview
-            if (dialogPaidAmount > 0.0) {
-                div(className = "alert alert-success py-2 px-3") {
-                    span(className = "icon-[heroicons--check-circle] size-5 flex-shrink-0")
-                    span(className = "text-sm") {
-                        +currentStrings.cancellationRefundEligible("${dialogPaidAmount.toInt()}")
+            val now = Clock.System.now().toLocalDateTime(TimeZone.of("Europe/Prague"))
+            val cancellationDeadline = dialogStartDateTime?.date?.minus(1, DateTimeUnit.DAY)?.atTime(18, 0)
+            val withinCancellationWindow = cancellationDeadline != null && now < cancellationDeadline
+
+            when {
+                dialogPaidAmount > 0.0 && withinCancellationWindow -> {
+                    div(className = "alert alert-success py-2 px-3") {
+                        span(className = "icon-[heroicons--check-circle] size-5 flex-shrink-0")
+                        span(className = "text-sm") {
+                            +currentStrings.cancellationRefundEligible("${dialogPaidAmount.toInt()}")
+                        }
                     }
                 }
-            } else {
-                div(className = "alert alert-warning py-2 px-3") {
-                    span(className = "icon-[heroicons--exclamation-triangle] size-5 flex-shrink-0")
-                    span(className = "text-sm") { +currentStrings.cancellationNoRefund }
+                dialogPaidAmount > 0.0 -> {
+                    div(className = "alert alert-warning py-2 px-3") {
+                        span(className = "icon-[heroicons--exclamation-triangle] size-5 flex-shrink-0")
+                        span(className = "text-sm") { +currentStrings.cancellationWindowPassed }
+                    }
+                }
+                else -> {
+                    div(className = "alert alert-info py-2 px-3") {
+                        span(className = "icon-[heroicons--information-circle] size-5 flex-shrink-0")
+                        span(className = "text-sm") { +currentStrings.cancellationNotPaid }
+                    }
                 }
             }
 
-            // Wallet code input
-            div(className = "form-control w-full") {
-                label(className = "label pb-1") {
-                    span(className = "label-text") { +currentStrings.walletCode }
-                }
-                text(value = walletCode, className = "input input-bordered w-full") {
-                    placeholder(currentStrings.walletCodePlaceholder)
-                    onInput { walletCode = value ?: "" }
-                }
-                label(className = "label pt-1") {
-                    span(className = "label-text-alt text-base-content/50") { +currentStrings.walletCodeHint }
+            // Wallet code input — only relevant when a refund will be issued
+            if (dialogPaidAmount > 0.0 && withinCancellationWindow) {
+                div(className = "form-control w-full") {
+                    label(className = "label pb-1") {
+                        span(className = "label-text") { +currentStrings.walletCode }
+                    }
+                    text(value = walletCode, className = "input input-bordered w-full") {
+                        placeholder(currentStrings.walletCodePlaceholder)
+                        onInput { walletCode = value ?: "" }
+                    }
+                    label(className = "label pt-1") {
+                        span(className = "label-text-alt text-base-content/50") { +currentStrings.walletAutoCreate }
+                    }
                 }
             }
 
@@ -220,6 +243,7 @@ fun IComponent.ReservationDetailScreen(
                 accountNumber = state.detail.accountNumber,
                 onCancelReservation = {
                     dialogPaidAmount = state.detail.reservation.paidAmount
+                    dialogStartDateTime = state.detail.target?.startDateTime
                     confirmDialog.element.showModal()
                 },
                 onBackToDashboard = onBackClick,
