@@ -454,7 +454,7 @@ object CsStrings : AppStrings {
     override val no = "Ne"
 
     // Wallet System
-    override val walletHasCode = "Mám slevový kód"
+    override val walletHasCode = "Mám slevový kód (peněženku)"
     override val walletCode = "Kód peněženky"
     override val walletCodePlaceholder = "SVIT-XXXX-XXXX"
     override val walletCodeHint = "Nepovinné — zadejte kód pro uplatnění kreditu"

@@ -349,7 +349,9 @@ fun IComponent.ReservationModal(
                     }
                 }
 
-                CancellationPolicyBox()
+                div(className = "mt-1") {
+                    CancellationPolicyBox()
+                }
 
                 p(className = "text-xs text-base-content/50 mt-1") {
                     +currentStrings.requiredFieldLegend

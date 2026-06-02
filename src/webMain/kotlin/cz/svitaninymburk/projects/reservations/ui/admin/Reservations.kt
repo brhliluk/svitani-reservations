@@ -223,14 +223,14 @@ fun IComponent.AdminReservationsScreen() {
                                                 }
                                                 // Sloupec 6: Akce
                                                 td(className = "text-right") {
-                                                    div(className = "flex justify-end gap-1") {
+                                                    div(className = "flex justify-end items-center gap-1") {
                                                         if (!isPaid) {
-                                                            button(className = "btn btn-xs tooltip tooltip-left ${if (isCash) "btn-outline btn-info" else "btn-ghost text-success"}") {
+                                                            button(className = "btn btn-xs inline-flex items-center gap-1 tooltip tooltip-left ${if (isCash) "btn-outline btn-info" else "btn-ghost text-success"}") {
                                                                 attribute("data-tip", if (isCash) currentStrings.tooltipAcceptCash else currentStrings.tooltipMarkPaid)
                                                                 onClick {
                                                                     pendingAction = PendingAction(AdminActionType.CONFIRM_PAYMENT, res.id, res.contactName)
                                                                 }
-                                                                span(className = "icon-[heroicons--check-circle] size-5")
+                                                                span(className = "icon-[heroicons--check-circle] size-5 flex-none")
                                                                 if (isCash) +currentStrings.buttonCollect
                                                             }
                                                         }
