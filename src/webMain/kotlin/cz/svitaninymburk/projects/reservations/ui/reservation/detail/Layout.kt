@@ -77,10 +77,14 @@ fun IComponent.ReservationDetailLayout(
                         }
 
                         div(className = "flex flex-col gap-4 bg-base-200/50 p-6 rounded-xl") {
-                            DetailRow(currentStrings.status, uiState.statusLabel) // Zobrazíme textový stav
+                            DetailRow(currentStrings.status, uiState.statusLabel)
                             DetailRow(currentStrings.name, reservation.contactName)
                             DetailRow(currentStrings.seatCountLabel, "${reservation.seatCount}")
                             DetailRow(currentStrings.totalPrice, "${reservation.totalPrice} Kč")
+                            if (reservation.walletDeductedAmount > 0.0) {
+                                DetailRow(currentStrings.walletCreditApplied, "− ${reservation.walletDeductedAmount.toInt()} Kč")
+                                DetailRow(currentStrings.remainingToPay, "${reservation.unpaidAmount.toInt()} Kč")
+                            }
                         }
 
                         if (target != null && target.customFields.isNotEmpty()) {

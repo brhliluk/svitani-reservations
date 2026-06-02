@@ -507,6 +507,7 @@ interface AppStrings : ErrorStrings {
     val walletEmailMismatchWarning: String
     val walletEmailMismatchConfirm: String
     val walletCreditApplied: String
+    val remainingToPay: String
     val walletCreditIssued: String
     val adminWallets: String
     val adminWalletDetail: String

@@ -16,7 +16,7 @@ class QrCodeService {
 
     fun generateReservationPaymentSvg(reservation: Reservation, accountNumber: String): String {
         val iban = CzechIbanGenerator.toIban(accountNumber)
-        return generateQrSvg(SpaydGenerator.generate(iban, reservation.totalPrice, reservation.variableSymbol, null))
+        return generateQrSvg(SpaydGenerator.generate(iban, reservation.unpaidAmount, reservation.variableSymbol, null))
     }
 
     fun generateQrSvg(content: String): String {

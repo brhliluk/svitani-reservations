@@ -173,8 +173,15 @@ open class ReservationService(
                 val deductAmount = minOf(wallet.balance, reservation.totalPrice)
                 if (deductAmount > 0.0) {
                     walletService.debit(wallet.id, deductAmount, WalletTransactionReason.RESERVATION_DEBIT, reservation.id)
+                    val fullyPaid = deductAmount == reservation.totalPrice
                     savedReservation = reservationRepository.save(
-                        reservation.copy(walletId = wallet.id, walletDeductedAmount = deductAmount)
+                        reservation.copy(
+                            walletId = wallet.id,
+                            walletDeductedAmount = deductAmount,
+                            paidAmount = deductAmount,
+                            status = if (fullyPaid) Reservation.Status.CONFIRMED else reservation.status,
+                            paymentType = if (fullyPaid) PaymentInfo.Type.FREE else reservation.paymentType,
+                        )
                     )
                     walletEmailService.sendWalletApplied(
                         toEmail = reservation.contactEmail,

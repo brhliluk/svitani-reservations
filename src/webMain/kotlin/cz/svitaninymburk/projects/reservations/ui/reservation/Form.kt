@@ -91,6 +91,15 @@ fun IComponent.ReservationModal(
         } ?: true)
 
     if (target != null) {
+        val total = calculateTotalPrice(
+            basePrice = target.price,
+            seatCount = seats,
+            customFields = target.customFields,
+            customValues = customValuesState,
+        )
+        val walletDeduction = walletInfo?.let { minOf(it.balance, total) } ?: 0.0
+        val afterWallet = total - walletDeduction
+
         div(className = "modal modal-open modal-bottom sm:modal-middle bg-base-300/65 z-50") {
             div(className = "modal-box bg-base-100 shadow-xl border border-base-200 max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl p-4 sm:p-6") {
 
@@ -106,12 +115,6 @@ fun IComponent.ReservationModal(
                         div(className = "stat py-2") {
                             div(className = "stat-title") { +currentStrings.formTotalPrice }
                             div(className = "stat-value text-primary text-xl sm:text-2xl") {
-                                val total = calculateTotalPrice(
-                                    basePrice = target.price,
-                                    seatCount = seats,
-                                    customFields = target.customFields,
-                                    customValues = customValuesState,
-                                )
                                 if (total == 0.0) +currentStrings.free else +"$total ${currentStrings.currency}"
                             }
                             div(className = "stat-desc") {
@@ -129,6 +132,22 @@ fun IComponent.ReservationModal(
                                     +"${target.price} ${currentStrings.currency} × $seats ${currentStrings.persons} × $displayHours ${currentStrings.hours}"
                                 } else {
                                     +"${target.price} ${currentStrings.currency} × $seats ${currentStrings.persons}"
+                                }
+                            }
+                        }
+                    }
+
+                    if (walletDeduction > 0.0) {
+                        div(className = "mt-2 bg-success/10 border border-success/30 rounded-xl px-4 py-3 flex flex-col gap-1 text-sm") {
+                            div(className = "flex justify-between") {
+                                span(className = "text-base-content/60") { +currentStrings.walletCreditApplied }
+                                span(className = "font-medium text-success") { +"− ${walletDeduction.toInt()} ${currentStrings.currency}" }
+                            }
+                            div(className = "flex justify-between font-semibold") {
+                                span { +currentStrings.remainingToPay }
+                                span(className = "text-primary") {
+                                    if (afterWallet == 0.0) +currentStrings.free
+                                    else +"${afterWallet.toInt()} ${currentStrings.currency}"
                                 }
                             }
                         }
@@ -270,21 +289,23 @@ fun IComponent.ReservationModal(
                             }
                         }
 
-                        // Typ platby
-                        label(className = "form-control w-full sm:col-span-2") {
-                            div(className = "label") {
-                                span(className = "label-text") { +currentStrings.paymentType }
-                                span(className = "text-error") { +"*" }
-                            }
-                            select(className = "select select-bordered select-lg sm:select-md w-full") {
-                                for (paymentOption in target.allowedPaymentTypes) {
-                                    option(paymentOption.name, label = paymentOption.label)
+                        // Typ platby — skryto pokud peněženka pokrývá celou cenu
+                        if (afterWallet > 0.0) {
+                            label(className = "form-control w-full sm:col-span-2") {
+                                div(className = "label") {
+                                    span(className = "label-text") { +currentStrings.paymentType }
+                                    span(className = "text-error") { +"*" }
                                 }
+                                select(className = "select select-bordered select-lg sm:select-md w-full") {
+                                    for (paymentOption in target.allowedPaymentTypes) {
+                                        option(paymentOption.name, label = paymentOption.label)
+                                    }
 
-                                onChange { event ->
-                                    val targetSelect = event.target as? HTMLSelectElement
-                                    val selectedValue = targetSelect?.value
-                                    paymentType = PaymentInfo.Type.valueOf(selectedValue ?: PaymentInfo.Type.BANK_TRANSFER.name)
+                                    onChange { event ->
+                                        val targetSelect = event.target as? HTMLSelectElement
+                                        val selectedValue = targetSelect?.value
+                                        paymentType = PaymentInfo.Type.valueOf(selectedValue ?: PaymentInfo.Type.BANK_TRANSFER.name)
+                                    }
                                 }
                             }
                         }
@@ -305,10 +326,13 @@ fun IComponent.ReservationModal(
                     button(className = "btn btn-primary px-8 w-full sm:w-auto min-h-11") {
                         disabled(!isValid || isSubmitting)
                         onClick {
-                            if (!isSubmitting) onSubmit(
-                                target,
-                                ReservationFormData(firstName, lastName, email, phone, seats, paymentType, customValuesState, currentStrings.locale, walletCode.ifBlank { null })
-                            )
+                            if (!isSubmitting) {
+                                val effectivePaymentType = if (afterWallet == 0.0) PaymentInfo.Type.FREE else paymentType
+                                onSubmit(
+                                    target,
+                                    ReservationFormData(firstName, lastName, email, phone, seats, effectivePaymentType, customValuesState, currentStrings.locale, walletCode.ifBlank { null })
+                                )
+                            }
                         }
                         if (isSubmitting) {
                             span(className = "loading loading-spinner loading-sm")

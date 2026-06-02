@@ -24,7 +24,7 @@ class BackendQrCodeGenerator(
     override fun generateQrPng(reservation: Reservation): ByteArray {
         val spaydContent = qrCodeService.generateSpaydString(
             accountNumber = accountNumber,
-            amount = reservation.totalPrice,
+            amount = reservation.unpaidAmount,
             vs = reservation.variableSymbol?.filter { it.isDigit() }?.take(10),
             message = "Rezervace ${reservation.reference.id}"
         )
