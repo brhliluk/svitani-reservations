@@ -79,7 +79,7 @@ fun IComponent.ReservationDetailScreen(
             p(className = "text-base-content/70") { +currentStrings.cancelReservationConfirmBody }
 
             // Dynamic refund preview
-            val now = Clock.System.now().toLocalDateTime(TimeZone.of("Europe/Prague"))
+            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
             val cancellationDeadline = dialogStartDateTime?.date?.minus(1, DateTimeUnit.DAY)?.atTime(18, 0)
             val withinCancellationWindow = cancellationDeadline != null && now < cancellationDeadline
 
