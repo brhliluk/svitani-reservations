@@ -455,6 +455,7 @@ object EnStrings : AppStrings {
     override val no = "No"
 
     // Wallet System
+    override val walletHasCode = "I have a discount code"
     override val walletCode = "Wallet code"
     override val walletCodePlaceholder = "SVIT-XXXX-XXXX"
     override val walletCodeHint = "Optional — enter code to apply credit"

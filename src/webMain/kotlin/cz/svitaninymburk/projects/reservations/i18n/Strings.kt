@@ -503,6 +503,7 @@ interface AppStrings : ErrorStrings {
     val settingsFioTokenHint: String
 
     // Wallet System
+    val walletHasCode: String
     val walletCode: String
     val walletCodePlaceholder: String
     val walletCodeHint: String

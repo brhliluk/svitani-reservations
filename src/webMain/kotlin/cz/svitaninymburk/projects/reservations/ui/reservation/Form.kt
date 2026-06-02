@@ -29,6 +29,7 @@ import cz.svitaninymburk.projects.reservations.wallet.WalletInfo
 import dev.kilua.core.IComponent
 import dev.kilua.form.Autocomplete
 import dev.kilua.form.InputType
+import dev.kilua.form.check.checkBox
 import dev.kilua.form.form
 import dev.kilua.form.select.select
 import dev.kilua.form.text.text
@@ -68,6 +69,7 @@ fun IComponent.ReservationModal(
     val customValuesState = remember(target) { mutableStateMapOf<String, CustomFieldValue>() }
     var walletCode by remember(target) { mutableStateOf(initialWalletCode ?: "") }
     var walletInfo by remember(target) { mutableStateOf<WalletInfo?>(null) }
+    var walletExpanded by remember(target) { mutableStateOf(initialWalletCode != null) }
 
     LaunchedEffect(target) {
         if (walletCode.length == 14 && email.isNotBlank()) {
@@ -162,8 +164,6 @@ fun IComponent.ReservationModal(
                     }
                 }
 
-                CancellationPolicyBox()
-
                 // --- FORMULÁŘ ---
                 form(className = "flex flex-col gap-3") {
                     onEvent<Event>("submit") { it.preventDefault() }
@@ -238,42 +238,6 @@ fun IComponent.ReservationModal(
                         }
                     }
 
-                    // 4. Kód peněženky
-                    label(className = "form-control w-full") {
-                        div(className = "label") {
-                            span(className = "label-text") { +currentStrings.walletCode }
-                        }
-                        text(value = walletCode, className = "input input-bordered input-lg sm:input-md w-full") {
-                            placeholder(currentStrings.walletCodePlaceholder)
-                            onInput {
-                                walletCode = value ?: ""
-                                if (walletCode.length == 14) {
-                                    scope.launch {
-                                        walletInfo = reservationService.getWalletInfo(walletCode, email).getOrNull()
-                                    }
-                                } else {
-                                    walletInfo = null
-                                }
-                            }
-                        }
-                        div(className = "label") {
-                            span(className = "label-text-alt text-base-content/50") { +currentStrings.walletCodeHint }
-                        }
-                        if (walletInfo != null) {
-                            div(className = "label pt-0") {
-                                span(className = "label-text-alt text-success font-medium") {
-                                    +"${currentStrings.walletBalance}: ${walletInfo!!.balance.toInt()} ${currentStrings.currency}"
-                                }
-                            }
-                        }
-                        if (walletInfo != null && !walletInfo!!.emailMatches) {
-                            div(className = "alert alert-warning py-2 text-sm mt-1") {
-                                span(className = "icon-[heroicons--exclamation-triangle] size-4")
-                                span { +currentStrings.walletEmailMismatchWarning }
-                            }
-                        }
-                    }
-
                     if (target.customFields.isNotEmpty()) {
                         div(className = "divider text-xs text-base-content/50 my-1") { +currentStrings.moreDetails }
 
@@ -333,7 +297,59 @@ fun IComponent.ReservationModal(
                             }
                         }
                     }
+
+                    // Slevový kód peněženky
+                    label(className = "flex items-center gap-2 cursor-pointer w-fit") {
+                        checkBox(value = walletExpanded, className = "checkbox checkbox-sm") {
+                            onChange {
+                                walletExpanded = value
+                                if (!walletExpanded) {
+                                    walletCode = ""
+                                    walletInfo = null
+                                }
+                            }
+                        }
+                        span(className = "label-text") { +currentStrings.walletHasCode }
+                    }
+                    if (walletExpanded) {
+                        label(className = "form-control w-full") {
+                            div(className = "label") {
+                                span(className = "label-text") { +currentStrings.walletCode }
+                            }
+                            text(value = walletCode, className = "input input-bordered input-lg sm:input-md w-full") {
+                                placeholder(currentStrings.walletCodePlaceholder)
+                                onInput {
+                                    walletCode = value ?: ""
+                                    if (walletCode.length == 14) {
+                                        scope.launch {
+                                            walletInfo = reservationService.getWalletInfo(walletCode, email).getOrNull()
+                                        }
+                                    } else {
+                                        walletInfo = null
+                                    }
+                                }
+                            }
+                            div(className = "label") {
+                                span(className = "label-text-alt text-base-content/50") { +currentStrings.walletCodeHint }
+                            }
+                            if (walletInfo != null) {
+                                div(className = "label pt-0") {
+                                    span(className = "label-text-alt text-success font-medium") {
+                                        +"${currentStrings.walletBalance}: ${walletInfo!!.balance.toInt()} ${currentStrings.currency}"
+                                    }
+                                }
+                            }
+                            if (walletInfo != null && !walletInfo!!.emailMatches) {
+                                div(className = "alert alert-warning py-2 text-sm mt-1") {
+                                    span(className = "icon-[heroicons--exclamation-triangle] size-4")
+                                    span { +currentStrings.walletEmailMismatchWarning }
+                                }
+                            }
+                        }
+                    }
                 }
+
+                CancellationPolicyBox()
 
                 p(className = "text-xs text-base-content/50 mt-1") {
                     +currentStrings.requiredFieldLegend
