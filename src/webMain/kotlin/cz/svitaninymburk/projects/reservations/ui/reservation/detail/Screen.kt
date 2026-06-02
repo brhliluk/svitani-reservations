@@ -44,11 +44,14 @@ fun IComponent.ReservationDetailScreen(
 
     val uiState by produceState<ReservationLoadingUiState>(initialValue = ReservationLoadingUiState.Loading, key1 = refreshTrigger, key2 = reservationId) {
         value = ReservationLoadingUiState.Loading
-
-        reservationService.getDetail(reservationId).fold(
-            ifRight = { foundReservation -> value = ReservationLoadingUiState.Success(foundReservation) },
-            ifLeft = { error -> value = ReservationLoadingUiState.Error(error.localizedMessage(currentStrings)) }
-        )
+        try {
+            reservationService.getDetail(reservationId).fold(
+                ifRight = { foundReservation -> value = ReservationLoadingUiState.Success(foundReservation) },
+                ifLeft = { error -> value = ReservationLoadingUiState.Error(error.localizedMessage(currentStrings)) }
+            )
+        } catch (e: Exception) {
+            value = ReservationLoadingUiState.Error(currentStrings.loadingError(e.message ?: "unknown"))
+        }
     }
 
     var walletCode by remember { mutableStateOf("") }

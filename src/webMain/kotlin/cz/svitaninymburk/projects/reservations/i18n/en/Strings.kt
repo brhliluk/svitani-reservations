@@ -64,6 +64,7 @@ object EnStrings : AppStrings {
     override val addOwnerEmailButton = "Add owner"
 
     // Reservation Detail
+    override val eventNoLongerAvailable = "Event no longer available"
     override val reservationSummary = "Reservation summary"
     override val status = "Status"
     override val name = "Name"

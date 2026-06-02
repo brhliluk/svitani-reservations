@@ -78,15 +78,9 @@ open class ReservationService(
     override suspend fun getDetail(id: Uuid): Either<ReservationError.GetDetail, ReservationDetail> = either {
         val reservation = get(id).getOrElse { raise(ReservationError.ReservationNotFound) }
 
-        val target: ReservationTarget = when (val ref = reservation.reference) {
-            is Reference.Instance -> {
-                val event = eventInstanceRepository.get(ref.id) ?: raise(ReservationError.EventInstanceNotFound)
-                ReservationTarget.Instance(event)
-            }
-            is Reference.Series -> {
-                val series = eventSeriesRepository.get(ref.id) ?: raise(ReservationError.EventSeriesNotFound)
-                ReservationTarget.Series(series)
-            }
+        val target: ReservationTarget? = when (val ref = reservation.reference) {
+            is Reference.Instance -> eventInstanceRepository.get(ref.id)?.let { ReservationTarget.Instance(it) }
+            is Reference.Series -> eventSeriesRepository.get(ref.id)?.let { ReservationTarget.Series(it) }
         }
 
         ReservationDetail(reservation, target, qrCodeService.accountNumber)

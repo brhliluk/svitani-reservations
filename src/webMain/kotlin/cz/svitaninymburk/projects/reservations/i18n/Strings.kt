@@ -80,6 +80,7 @@ interface AppStrings : ErrorStrings {
     val addOwnerEmailButton: String
 
     // Reservation Detail
+    val eventNoLongerAvailable: String
     val reservationSummary: String
     val status: String
     val name: String

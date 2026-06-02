@@ -64,6 +64,7 @@ object CsStrings : AppStrings {
     override val addOwnerEmailButton = "Přidat vlastníka"
 
     // Reservation Detail
+    override val eventNoLongerAvailable = "Událost již není dostupná"
     override val reservationSummary = "Souhrn rezervace"
     override val status = "Stav"
     override val name = "Jméno"

@@ -134,7 +134,7 @@ data class CreateSeriesReservationRequest(
 @Serializable
 data class ReservationDetail(
     val reservation: Reservation,
-    val target: ReservationTarget,
+    val target: ReservationTarget?,
     val accountNumber: String,
 )
 

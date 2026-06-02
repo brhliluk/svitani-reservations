@@ -108,7 +108,7 @@ val appModule = module {
         )
     } binds arrayOf(EmailService::class, LectorEmailService::class, WalletEmailService::class)
     single { QrCodeService() }
-    single { BackendQrCodeGenerator(get(), get()) }
+    single { BackendQrCodeGenerator(get(), get()) } bind QrCodeGeneratorService::class
     single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get()) } bind ReservationServiceInterface::class
     single { AuthenticatedReservationService(get(), get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
     single { PaymentPairingService(get(), get(), get(), get(), get(), get()) }

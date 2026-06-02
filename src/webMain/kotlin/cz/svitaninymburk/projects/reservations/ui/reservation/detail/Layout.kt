@@ -28,7 +28,7 @@ import kotlin.time.Clock
 @Composable
 fun IComponent.ReservationDetailLayout(
     reservation: Reservation,
-    target: ReservationTarget,
+    target: ReservationTarget?,
     accountNumber: String,
     onCancelReservation: () -> Unit,
     onBackToDashboard: () -> Unit
@@ -65,10 +65,14 @@ fun IComponent.ReservationDetailLayout(
                         // ... (Zobrazení detailů rezervace - stejné jako minule) ...
                         div {
                             h2(className = "text-xs font-bold uppercase tracking-widest text-base-content/50 mb-2") { +currentStrings.reservationSummary }
-                            h3(className = "text-3xl font-bold text-primary mb-2") { +target.title }
-                            div(className = "flex items-center gap-2 text-base-content/70 font-medium") {
-                                span(className = "icon-[heroicons--calendar] size-5")
-                                span { +target.startDateTime.humanReadable }
+                            h3(className = "text-3xl font-bold text-primary mb-2") {
+                                +(target?.title ?: currentStrings.eventNoLongerAvailable)
+                            }
+                            if (target != null) {
+                                div(className = "flex items-center gap-2 text-base-content/70 font-medium") {
+                                    span(className = "icon-[heroicons--calendar] size-5")
+                                    span { +target.startDateTime.humanReadable }
+                                }
                             }
                         }
 
@@ -79,7 +83,7 @@ fun IComponent.ReservationDetailLayout(
                             DetailRow(currentStrings.totalPrice, "${reservation.totalPrice} Kč")
                         }
 
-                        if (target.customFields.isNotEmpty()) {
+                        if (target != null && target.customFields.isNotEmpty()) {
                             div(className = "flex flex-col gap-3 bg-base-200/50 p-6 rounded-xl") {
                                 h2(className = "text-xs font-bold uppercase tracking-widest text-base-content/50") {
                                     +currentStrings.customFieldsHeading
@@ -186,7 +190,9 @@ private data class ReservationUiState(
     val canBeCancelled: Boolean
 )
 
-private fun getReservationUiState(reservation: Reservation, reservationTarget: ReservationTarget, strings: AppStrings): ReservationUiState {
+private fun getReservationUiState(reservation: Reservation, reservationTarget: ReservationTarget?, strings: AppStrings): ReservationUiState {
+    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    val canCancel = reservationTarget != null && now < reservationTarget.startDateTime
     return when (reservation.status) {
         // 1. NOVÁ / ČEKÁ NA PLATBU
         Reservation.Status.PENDING_PAYMENT -> {
@@ -201,7 +207,7 @@ private fun getReservationUiState(reservation: Reservation, reservationTarget: R
                 textColorClass = if (isOnSite) "text-info" else "text-warning",
                 showPaymentInfo = !isOnSite,
                 showOnSiteInfo = isOnSite,
-                canBeCancelled = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) < reservationTarget.startDateTime
+                canBeCancelled = canCancel
             )
         }
         // 2. POTVRZENÁ / ZAPLACENÁ
@@ -214,7 +220,7 @@ private fun getReservationUiState(reservation: Reservation, reservationTarget: R
             iconClass = "icon-[heroicons--check-circle] text-success",
             textColorClass = "text-success",
             showPaymentInfo = false, // Už neukazujeme QR kód (nebo ho můžeme ukázat jako "daňový doklad")
-            canBeCancelled = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) < reservationTarget.startDateTime
+            canBeCancelled = canCancel
         )
         // 3. ZRUŠENÁ
         Reservation.Status.CANCELLED -> ReservationUiState(
