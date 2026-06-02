@@ -20,8 +20,9 @@ fun Application.main() {
     initRpc(
         initStaticResources = true,
         AppJson,
-        appModule
-    )
+    ) {
+        modules(appModule)
+    }
     startPaymentCheck()
     startWalletResetJobs()
     configureSecurity()
