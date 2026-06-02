@@ -239,6 +239,18 @@ fun IComponent.MainLayout() {
                     }
                 }
             }
+            route("/reservation") {
+                string { reservationId ->
+                    view {
+                        val reservationUuid =
+                            try { Uuid.parse(reservationId.value) }
+                            catch (_: IllegalArgumentException) { null }
+                        val router = Router.current
+                        if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/admin") }
+                        else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/admin") })
+                    }
+                }
+            }
             route("/") {
                 view {
                     val router = Router.current
