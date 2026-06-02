@@ -258,6 +258,7 @@ class AdminDashboardService(
                     variableSymbol = res.variableSymbol,
                     status = res.status,
                     paymentType = res.paymentType,
+                    walletDeductedAmount = res.walletDeductedAmount,
                     createdAt = res.createdAt,
                     customFields = customFields,
                     customValues = res.customValues,

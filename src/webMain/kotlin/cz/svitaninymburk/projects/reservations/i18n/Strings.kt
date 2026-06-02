@@ -388,6 +388,9 @@ interface AppStrings : ErrorStrings {
     val statusOnSiteBadge: String
     val statusWaiting: String
     val paymentMethodCash: String
+    val paymentMethodWallet: String
+    val paymentMethodBankTransferAndWallet: String
+    val paymentMethodCashAndWallet: String
     val tooltipAcceptCash: String
     val tooltipMarkPaid: String
     val buttonCollect: String

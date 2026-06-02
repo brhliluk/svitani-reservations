@@ -209,7 +209,15 @@ fun IComponent.AdminReservationsScreen() {
                                                             }
                                                         }
                                                         span(className = "text-xs text-base-content/60 font-medium") {
-                                                            if (isCash) +currentStrings.paymentMethodCash else +currentStrings.bankTransfer
+                                                            val isWallet = res.walletDeductedAmount >= res.totalPrice && res.totalPrice > 0
+                                                            val isPartialWallet = res.walletDeductedAmount > 0 && !isWallet
+                                                            when {
+                                                                isWallet -> +currentStrings.paymentMethodWallet
+                                                                isPartialWallet && isCash -> +currentStrings.paymentMethodCashAndWallet
+                                                                isPartialWallet -> +currentStrings.paymentMethodBankTransferAndWallet
+                                                                isCash -> +currentStrings.paymentMethodCash
+                                                                else -> +currentStrings.bankTransfer
+                                                            }
                                                         }
                                                     }
                                                 }

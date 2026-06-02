@@ -53,6 +53,7 @@ data class AdminReservationListItem(
     val variableSymbol: String?,
     val status: Reservation.Status,
     val paymentType: PaymentInfo.Type,
+    val walletDeductedAmount: Double = 0.0,
     val createdAt: Instant,
     val customFields: List<CustomFieldDefinition>,
     val customValues: Map<String, CustomFieldValue>,
