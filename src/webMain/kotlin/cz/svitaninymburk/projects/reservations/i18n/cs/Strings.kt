@@ -454,6 +454,7 @@ object CsStrings : AppStrings {
     override val walletCodePlaceholder = "SVIT-XXXX-XXXX"
     override val walletCodeHint = "Nepovinné — zadejte kód pro uplatnění kreditu"
     override val walletAutoCreate = "Nepovinné — pokud peněženku nemáte, automaticky se vám vytvoří"
+    override val walletUseHint = "Zadejte tento kód do rezervačního formuláře — kredit se automaticky odečte od ceny."
     override val walletBalance = "Zůstatek peněženky"
     override val walletEmailMismatchWarning = "Tato peněženka je přiřazena k jinému emailu. Chcete ji přesto použít?"
     override val walletEmailMismatchConfirm = "Ano, použít tuto peněženku"

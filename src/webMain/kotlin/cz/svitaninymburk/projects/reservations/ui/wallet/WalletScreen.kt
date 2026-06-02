@@ -123,7 +123,7 @@ fun IComponent.WalletScreen(initialCode: String = "") {
 
                         if (info.balance > 0) {
                             div(className = "text-sm text-base-content/70") {
-                                +currentStrings.walletCodeHint
+                                +currentStrings.walletUseHint
                             }
                         }
                     }

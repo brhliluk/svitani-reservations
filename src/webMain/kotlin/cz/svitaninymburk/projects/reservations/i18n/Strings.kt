@@ -503,6 +503,7 @@ interface AppStrings : ErrorStrings {
     val walletCodePlaceholder: String
     val walletCodeHint: String
     val walletAutoCreate: String
+    val walletUseHint: String
     val walletBalance: String
     val walletEmailMismatchWarning: String
     val walletEmailMismatchConfirm: String

@@ -455,6 +455,7 @@ object EnStrings : AppStrings {
     override val walletCodePlaceholder = "SVIT-XXXX-XXXX"
     override val walletCodeHint = "Optional — enter code to apply credit"
     override val walletAutoCreate = "Optional — if you don't have a wallet, one will be created for you automatically"
+    override val walletUseHint = "Enter this code in the reservation form — the credit will be automatically deducted from the price."
     override val walletBalance = "Wallet balance"
     override val walletEmailMismatchWarning = "This wallet belongs to a different email. Use it anyway?"
     override val walletEmailMismatchConfirm = "Yes, use this wallet"
