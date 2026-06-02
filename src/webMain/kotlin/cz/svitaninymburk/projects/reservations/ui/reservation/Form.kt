@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.reservation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +48,7 @@ import web.html.HTMLSelectElement
 fun IComponent.ReservationModal(
     target: ReservationTarget?,
     user: User?,
+    initialWalletCode: String? = null,
     isSubmitting: Boolean = false,
     onClose: () -> Unit,
     onSubmit: (ReservationTarget, ReservationFormData) -> Unit
@@ -64,8 +66,14 @@ fun IComponent.ReservationModal(
     var seatsExceeded by remember(target) { mutableStateOf(false) }
     var paymentType by remember(target) { mutableStateOf(PaymentInfo.Type.BANK_TRANSFER) }
     val customValuesState = remember(target) { mutableStateMapOf<String, CustomFieldValue>() }
-    var walletCode by remember(target) { mutableStateOf("") }
+    var walletCode by remember(target) { mutableStateOf(initialWalletCode ?: "") }
     var walletInfo by remember(target) { mutableStateOf<WalletInfo?>(null) }
+
+    LaunchedEffect(target) {
+        if (walletCode.length == 14 && email.isNotBlank()) {
+            walletInfo = reservationService.getWalletInfo(walletCode, email).getOrNull()
+        }
+    }
 
     val isValid =
         firstName.isNotBlank() &&

@@ -23,10 +23,12 @@ enum class AuthModalState { Closed, Login, Register, ForgotPassword }
 @Composable
 fun IComponent.AppHeader(
     user: User?,
+    walletCode: String?,
     onShowMessage: (String, ToastType) -> Unit,
     onLogin: () -> Unit,
     onLogout: () -> Unit,
     onOpenMyReservations: () -> Unit,
+    onOpenMyWallet: () -> Unit,
     onNavigateToDashboard: () -> Unit,
 ) {
     val currentStrings by strings
@@ -83,6 +85,13 @@ fun IComponent.AppHeader(
                         onClick { onOpenMyReservations() }
                         span(className = "icon-[heroicons--ticket] size-5")
                         span(className = "hidden sm:inline") { +currentStrings.myReservations }
+                    }
+                    if (walletCode != null) {
+                        button(className = "btn btn-ghost btn-sm min-h-11 gap-2") {
+                            onClick { onOpenMyWallet() }
+                            span(className = "icon-[heroicons--wallet] size-5")
+                            span(className = "hidden sm:inline") { +currentStrings.wallet }
+                        }
                     }
                     div(className = "avatar placeholder") {
                         attribute("aria-hidden", "true")

@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun IComponent.DashboardScreen(
     user: User?,
+    walletCode: String? = null,
     initialFilterId: String? = null,
 ) {
     var retryTrigger by remember { mutableStateOf(0) }
@@ -88,6 +89,7 @@ fun IComponent.DashboardScreen(
         is DashboardUiState.Loading -> Loading()
         is DashboardUiState.Success -> DashboardLayout(
             user = user,
+            walletCode = walletCode,
             events = state.instances,
             series = state.series,
             definitions = state.definitions,

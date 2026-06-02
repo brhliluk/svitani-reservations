@@ -27,6 +27,7 @@ enum class ViewMode { LIST, CALENDAR }
 @Composable
 fun IComponent.DashboardLayout(
     user: User?,
+    walletCode: String? = null,
     events: List<EventInstance>,
     series: List<EventSeries>,
     definitions: List<EventDefinition>,
@@ -163,6 +164,7 @@ fun IComponent.DashboardLayout(
         ReservationModal(
             target = reservationTarget,
             user = user,
+            initialWalletCode = walletCode,
             isSubmitting = isSubmitting,
             onClose = { reservationTarget = null },
             onSubmit = { target, data ->

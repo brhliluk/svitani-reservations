@@ -24,13 +24,13 @@ import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
 
 @Composable
-fun IComponent.WalletScreen(initialCode: String = "") {
+fun IComponent.WalletScreen(initialCode: String = "", initialEmail: String = "") {
     val scope = rememberCoroutineScope()
     val currentStrings by strings
     val reservationService = getService<ReservationServiceInterface>(RpcSerializersModules)
 
     var code by remember { mutableStateOf(initialCode) }
-    var email by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf(initialEmail) }
     var isLoading by remember { mutableStateOf(false) }
     var walletInfo by remember { mutableStateOf<WalletInfo?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }

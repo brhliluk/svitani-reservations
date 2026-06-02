@@ -37,11 +37,13 @@ data class UserDto(
     val email: String,
     val fullName: String,
     val role: User.Role,
+    val walletCode: String? = null,
 )
 
-fun User.toDto() = UserDto(
+fun User.toDto(walletCode: String? = null) = UserDto(
     id = this.id,
     email = this.email,
     fullName = this.name + " " + this.surname,
     role = this.role,
+    walletCode = walletCode,
 )

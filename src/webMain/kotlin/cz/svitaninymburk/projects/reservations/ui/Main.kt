@@ -59,6 +59,7 @@ fun IComponent.MainLayout() {
     val currentStrings by strings
 
     var currentUser by remember { mutableStateOf<User?>(null) }
+    var userWalletCode by remember { mutableStateOf<String?>(null) }
     var toastState by remember { mutableStateOf<ToastData?>(null) }
 
     fun showToast(message: String, type: ToastType = ToastType.Success) {
@@ -67,16 +68,21 @@ fun IComponent.MainLayout() {
 
     fun refreshUser() = scope.launch {
         authService.getCurrentUser()
-            .onRight { currentUser = it }
+            .onRight { user ->
+                currentUser = user
+                authService.getMyWalletCode().onRight { code -> userWalletCode = code }
+            }
             .onLeft { error ->
                 console.log(error.localizedMessage(currentStrings))
                 currentUser = null
+                userWalletCode = null
             }
     }
 
     fun doLogout() = scope.launch {
         authService.logout()
         currentUser = null
+        userWalletCode = null
     }
 
     LaunchedEffect(Unit) { refreshUser() }
@@ -282,10 +288,12 @@ fun IComponent.MainLayout() {
                         onShowMessage = ::showToast,
                         onLogin = { refreshUser() },
                         onLogout = { doLogout() },
+                        walletCode = userWalletCode,
                         onOpenMyReservations = { router.navigate("/my-reservations") },
+                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
                         onNavigateToDashboard = { router.navigate("/") },
                     ) {
-                        DashboardScreen(user = currentUser, initialFilterId = null)
+                        DashboardScreen(user = currentUser, walletCode = userWalletCode, initialFilterId = null)
                     }
                 }
             }
@@ -299,10 +307,12 @@ fun IComponent.MainLayout() {
                         val router = Router.current
                         UserShell(
                             user = currentUser,
+                            walletCode = userWalletCode,
                             onShowMessage = ::showToast,
                             onLogin = { refreshUser() },
                             onLogout = { doLogout() },
                             onOpenMyReservations = { router.navigate("/my-reservations") },
+                            onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
                             onNavigateToDashboard = { router.navigate("/") },
                         ) {
                             if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/") }
@@ -321,7 +331,9 @@ fun IComponent.MainLayout() {
                         onShowMessage = ::showToast,
                         onLogin = { refreshUser() },
                         onLogout = { doLogout() },
+                        walletCode = userWalletCode,
                         onOpenMyReservations = { router.navigate("/my-reservations") },
+                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
                         onNavigateToDashboard = { router.navigate("/") },
                     ) {
                         if (user == null) LaunchedEffect(Unit) { router.navigate("/") }
@@ -332,7 +344,7 @@ fun IComponent.MainLayout() {
 
             route("/wallet") {
                 string { code ->
-                    view { WalletScreen(initialCode = code.value) }
+                    view { WalletScreen(initialCode = code.value, initialEmail = currentUser?.email ?: "") }
                 }
                 view { WalletScreen() }
             }
@@ -343,10 +355,12 @@ fun IComponent.MainLayout() {
                         val router = Router.current
                         UserShell(
                             user = currentUser,
+                            walletCode = userWalletCode,
                             onShowMessage = ::showToast,
                             onLogin = { refreshUser() },
                             onLogout = { doLogout() },
                             onOpenMyReservations = { router.navigate("/my-reservations") },
+                            onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
                             onNavigateToDashboard = { router.navigate("/") },
                         ) {
                             ResetPasswordScreen(token = token.value, onSuccess = { router.navigate("/") })
@@ -362,7 +376,9 @@ fun IComponent.MainLayout() {
                         onShowMessage = ::showToast,
                         onLogin = { refreshUser() },
                         onLogout = { doLogout() },
+                        walletCode = userWalletCode,
                         onOpenMyReservations = { router.navigate("/my-reservations") },
+                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
                         onNavigateToDashboard = { router.navigate("/") },
                     ) {
                         PrivacyScreen()
@@ -376,20 +392,24 @@ fun IComponent.MainLayout() {
 @Composable
 private fun IComponent.UserShell(
     user: User?,
+    walletCode: String?,
     onShowMessage: (String, ToastType) -> Unit,
     onLogin: () -> Unit,
     onLogout: () -> Unit,
     onOpenMyReservations: () -> Unit,
+    onOpenMyWallet: () -> Unit,
     onNavigateToDashboard: () -> Unit,
     content: @Composable IComponent.() -> Unit,
 ) {
     val currentStrings by strings
     AppHeader(
         user = user,
+        walletCode = walletCode,
         onShowMessage = onShowMessage,
         onLogin = onLogin,
         onLogout = onLogout,
         onOpenMyReservations = onOpenMyReservations,
+        onOpenMyWallet = onOpenMyWallet,
         onNavigateToDashboard = onNavigateToDashboard,
     )
     main(className = "flex-grow") { content() }

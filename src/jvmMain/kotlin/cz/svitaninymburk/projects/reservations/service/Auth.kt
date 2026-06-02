@@ -37,6 +37,7 @@ class AuthService(
     private val emailService: EmailService,
     private val tokenService: JwtTokenService,
     private val hashingService: HashingService,
+    private val walletService: WalletService,
 ): AuthServiceInterface {
 
     override suspend fun loginWithGoogle(token: String): Either<AuthError.LoginWithGoogle, AuthResponse> = either {
@@ -65,8 +66,9 @@ class AuthService(
 
         val accessToken = tokenService.generateToken(user)
         val refreshToken = refreshTokenService.getToken(user.id)
+        val wallet = walletService.findOrCreateForRegisteredUser(user.id, user.email)
 
-        AuthResponse(accessToken, refreshToken, user.toDto())
+        AuthResponse(accessToken, refreshToken, user.toDto(walletCode = wallet.code))
     }
 
     override suspend fun register(request: RegisterRequest): Either<AuthError.Register, AuthResponse> = either {
@@ -89,8 +91,9 @@ class AuthService(
 
         val token = tokenService.generateToken(newUser)
         val refreshToken = refreshTokenService.getToken(newUser.id)
+        val wallet = walletService.findOrCreateForRegisteredUser(newUser.id, newUser.email)
 
-        AuthResponse(token, refreshToken, newUser.toDto())
+        AuthResponse(token, refreshToken, newUser.toDto(walletCode = wallet.code))
     }
 
     override suspend fun login(request: LoginRequest): Either<AuthError.LoginWithEmail, AuthResponse> = either {
@@ -107,6 +110,7 @@ class AuthService(
 
         val token = tokenService.generateToken(user)
         val refreshToken = refreshTokenService.getToken(user.id)
+        val wallet = walletService.findOrCreateForRegisteredUser(user.id, user.email)
 
         val call = currentCall() ?: throw IllegalStateException("Call context is missing")
         call.response.cookies.append(
@@ -120,7 +124,7 @@ class AuthService(
             )
         )
 
-        AuthResponse(token, refreshToken, user.toDto())
+        AuthResponse(token, refreshToken, user.toDto(walletCode = wallet.code))
     }
 
     override suspend fun logout(): Either<AuthError, Unit> = either {
@@ -176,6 +180,14 @@ class AuthService(
             passwordResetTokenExpiresAt = null
         )
         userRepository.update(user.id, updatedUser)
+    }
+
+    override suspend fun getMyWalletCode(): Either<AuthError.GetCurrentUser, String> = either {
+        val call = ensureNotNull(currentCall()) { AuthError.ApplicationCallLost }
+        val principal = ensureNotNull(call.principal<JWTPrincipal>()) { AuthError.NoJwtPrincipal }
+        val userId = ensureNotNull(Uuid.parse(principal.payload.getClaim("id").asString())) { AuthError.NoIdInPrincipal }
+        val user = userRepository.findById(userId) ?: raise(AuthError.UserNotFound)
+        walletService.findOrCreateForRegisteredUser(userId, user.email).code
     }
 }
 
