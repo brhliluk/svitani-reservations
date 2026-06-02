@@ -91,15 +91,6 @@ fun IComponent.ReservationModal(
         } ?: true)
 
     if (target != null) {
-        val total = calculateTotalPrice(
-            basePrice = target.price,
-            seatCount = seats,
-            customFields = target.customFields,
-            customValues = customValuesState,
-        )
-        val walletDeduction = walletInfo?.let { minOf(it.balance, total) } ?: 0.0
-        val afterWallet = total - walletDeduction
-
         div(className = "modal modal-open modal-bottom sm:modal-middle bg-base-300/65 z-50") {
             div(className = "modal-box bg-base-100 shadow-xl border border-base-200 max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl p-4 sm:p-6") {
 
@@ -111,6 +102,14 @@ fun IComponent.ReservationModal(
 
                 // Cena info
                 div(className = "py-4") {
+                    val total = calculateTotalPrice(
+                        basePrice = target.price,
+                        seatCount = seats,
+                        customFields = target.customFields,
+                        customValues = customValuesState,
+                    )
+                    val walletDeduction = walletInfo?.let { minOf(it.balance, total) } ?: 0.0
+
                     div(className = "stats shadow w-full bg-base-200/50") {
                         div(className = "stat py-2") {
                             div(className = "stat-title") { +currentStrings.formTotalPrice }
@@ -138,6 +137,7 @@ fun IComponent.ReservationModal(
                     }
 
                     if (walletDeduction > 0.0) {
+                        val afterWallet = total - walletDeduction
                         div(className = "mt-2 bg-success/10 border border-success/30 rounded-xl px-4 py-3 flex flex-col gap-1 text-sm") {
                             div(className = "flex justify-between") {
                                 span(className = "text-base-content/60") { +currentStrings.walletCreditApplied }
@@ -201,7 +201,14 @@ fun IComponent.ReservationModal(
                             autocomplete(Autocomplete.Email)
                             placeholder(currentStrings.emailHint)
                             attribute("aria-required", "true")
-                            onInput { email = value ?: "" }
+                            onInput {
+                                email = value ?: ""
+                                if (walletCode.length == 14) {
+                                    scope.launch {
+                                        walletInfo = reservationService.getWalletInfo(walletCode, email).getOrNull()
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -269,6 +276,14 @@ fun IComponent.ReservationModal(
 
                     // 4. Počet míst a Platba
                     div(className = "grid grid-cols-1 sm:grid-cols-3 gap-3") {
+                        val totalForPayment = calculateTotalPrice(
+                            basePrice = target.price,
+                            seatCount = seats,
+                            customFields = target.customFields,
+                            customValues = customValuesState,
+                        )
+                        val afterWallet = totalForPayment - (walletInfo?.let { minOf(it.balance, totalForPayment) } ?: 0.0)
+
                         // Počet míst
                         label(className = "form-control w-full sm:col-span-1") {
                             div(className = "label") {
@@ -327,7 +342,9 @@ fun IComponent.ReservationModal(
                         disabled(!isValid || isSubmitting)
                         onClick {
                             if (!isSubmitting) {
-                                val effectivePaymentType = if (afterWallet == 0.0) PaymentInfo.Type.FREE else paymentType
+                                val t = calculateTotalPrice(target.price, seats, target.customFields, customValuesState)
+                                val wd = walletInfo?.let { minOf(it.balance, t) } ?: 0.0
+                                val effectivePaymentType = if (wd == t) PaymentInfo.Type.FREE else paymentType
                                 onSubmit(
                                     target,
                                     ReservationFormData(firstName, lastName, email, phone, seats, effectivePaymentType, customValuesState, currentStrings.locale, walletCode.ifBlank { null })
