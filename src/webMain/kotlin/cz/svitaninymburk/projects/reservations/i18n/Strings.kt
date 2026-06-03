@@ -190,6 +190,8 @@ interface AppStrings : ErrorStrings {
     val navReservations: String
     val navUsers: String
     val logOut: String
+    val viewAsUser: String
+    val adminPanelLink: String
 
     // Admin Payments Screen
     val navPayments: String

@@ -174,6 +174,8 @@ object EnStrings : AppStrings {
     override val navReservations = "Reservations"
     override val navUsers = "Users"
     override val logOut = "Log out"
+    override val viewAsUser = "View as user"
+    override val adminPanelLink = "Admin panel"
 
     // Admin Payments Screen
     override val navPayments = "Payments"

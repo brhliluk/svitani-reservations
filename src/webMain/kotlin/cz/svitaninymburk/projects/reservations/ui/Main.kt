@@ -89,6 +89,11 @@ fun IComponent.MainLayout() {
 
     if (currentUser?.role == User.Role.ADMIN) {
         // ADMIN VIDÍ ADMIN LAYOUT
+        Toast(
+            message = toastState?.message,
+            type = toastState?.type ?: ToastType.Success,
+            onDismiss = { toastState = null }
+        )
         browserRouter {
             route("/admin") {
                 view {
@@ -252,15 +257,101 @@ fun IComponent.MainLayout() {
                             try { Uuid.parse(reservationId.value) }
                             catch (_: IllegalArgumentException) { null }
                         val router = Router.current
-                        if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/admin") }
-                        else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/admin") })
+                        UserShell(
+                            user = currentUser,
+                            walletCode = userWalletCode,
+                            onShowMessage = ::showToast,
+                            onLogin = { refreshUser() },
+                            onLogout = { doLogout() },
+                            onOpenMyReservations = { router.navigate("/my-reservations") },
+                            onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
+                            onNavigateToDashboard = { router.navigate("/") },
+                            onNavigateToAdmin = { router.navigate("/admin") },
+                        ) {
+                            if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/") }
+                            else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/") })
+                        }
+                    }
+                }
+            }
+            route("/my-reservations") {
+                view {
+                    val router = Router.current
+                    UserShell(
+                        user = currentUser,
+                        walletCode = userWalletCode,
+                        onShowMessage = ::showToast,
+                        onLogin = { refreshUser() },
+                        onLogout = { doLogout() },
+                        onOpenMyReservations = { router.navigate("/my-reservations") },
+                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
+                        onNavigateToDashboard = { router.navigate("/") },
+                        onNavigateToAdmin = { router.navigate("/admin") },
+                    ) {
+                        MyReservationsScreen(userId = currentUser!!.id, onBackClick = { router.navigate("/") })
+                    }
+                }
+            }
+            route("/wallet") {
+                string { code ->
+                    view { WalletScreen(initialCode = code.value, initialEmail = currentUser?.email ?: "") }
+                }
+                view { WalletScreen() }
+            }
+            route("/reset-password") {
+                string { token ->
+                    view {
+                        val router = Router.current
+                        UserShell(
+                            user = currentUser,
+                            walletCode = userWalletCode,
+                            onShowMessage = ::showToast,
+                            onLogin = { refreshUser() },
+                            onLogout = { doLogout() },
+                            onOpenMyReservations = { router.navigate("/my-reservations") },
+                            onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
+                            onNavigateToDashboard = { router.navigate("/") },
+                            onNavigateToAdmin = { router.navigate("/admin") },
+                        ) {
+                            ResetPasswordScreen(token = token.value, onSuccess = { router.navigate("/") })
+                        }
+                    }
+                }
+            }
+            route("/privacy") {
+                view {
+                    val router = Router.current
+                    UserShell(
+                        user = currentUser,
+                        walletCode = userWalletCode,
+                        onShowMessage = ::showToast,
+                        onLogin = { refreshUser() },
+                        onLogout = { doLogout() },
+                        onOpenMyReservations = { router.navigate("/my-reservations") },
+                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
+                        onNavigateToDashboard = { router.navigate("/") },
+                        onNavigateToAdmin = { router.navigate("/admin") },
+                    ) {
+                        PrivacyScreen()
                     }
                 }
             }
             route("/") {
                 view {
                     val router = Router.current
-                    LaunchedEffect(Unit) { router.navigate("/admin") }
+                    UserShell(
+                        user = currentUser,
+                        walletCode = userWalletCode,
+                        onShowMessage = ::showToast,
+                        onLogin = { refreshUser() },
+                        onLogout = { doLogout() },
+                        onOpenMyReservations = { router.navigate("/my-reservations") },
+                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
+                        onNavigateToDashboard = { router.navigate("/") },
+                        onNavigateToAdmin = { router.navigate("/admin") },
+                    ) {
+                        DashboardScreen(user = currentUser, walletCode = userWalletCode, initialFilterId = null)
+                    }
                 }
             }
         }
@@ -399,6 +490,7 @@ private fun IComponent.UserShell(
     onOpenMyReservations: () -> Unit,
     onOpenMyWallet: () -> Unit,
     onNavigateToDashboard: () -> Unit,
+    onNavigateToAdmin: (() -> Unit)? = null,
     content: @Composable IComponent.() -> Unit,
 ) {
     val currentStrings by strings
@@ -411,6 +503,7 @@ private fun IComponent.UserShell(
         onOpenMyReservations = onOpenMyReservations,
         onOpenMyWallet = onOpenMyWallet,
         onNavigateToDashboard = onNavigateToDashboard,
+        onNavigateToAdmin = onNavigateToAdmin,
     )
     main(className = "flex-grow") { content() }
     footer(className = "footer footer-center p-8 text-base-content/50") {

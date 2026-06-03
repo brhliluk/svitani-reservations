@@ -30,6 +30,7 @@ fun IComponent.AppHeader(
     onOpenMyReservations: () -> Unit,
     onOpenMyWallet: () -> Unit,
     onNavigateToDashboard: () -> Unit,
+    onNavigateToAdmin: (() -> Unit)? = null,
 ) {
     val currentStrings by strings
     var modalState by remember { mutableStateOf(AuthModalState.Closed) }
@@ -81,6 +82,13 @@ fun IComponent.AppHeader(
         div(className = "navbar-end gap-3 sm:gap-4") {
             div(className = "flex items-center gap-3 sm:pl-4 sm:border-l sm:border-base-200") {
                 if (user != null) {
+                    if (onNavigateToAdmin != null) {
+                        button(className = "btn btn-outline btn-primary btn-sm min-h-11 gap-2") {
+                            onClick { onNavigateToAdmin() }
+                            span(className = "icon-[heroicons--shield-check] size-5")
+                            span(className = "hidden sm:inline") { +currentStrings.adminPanelLink }
+                        }
+                    }
                     button(className = "btn btn-ghost btn-sm min-h-11 gap-2") {
                         onClick { onOpenMyReservations() }
                         span(className = "icon-[heroicons--ticket] size-5")

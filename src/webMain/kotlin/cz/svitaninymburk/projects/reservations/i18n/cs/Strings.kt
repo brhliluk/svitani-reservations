@@ -174,6 +174,8 @@ object CsStrings : AppStrings {
     override val navReservations = "Rezervace"
     override val navUsers = "Uživatelé"
     override val logOut = "Odhlásit se"
+    override val viewAsUser = "Zobrazit jako uživatel"
+    override val adminPanelLink = "Admin panel"
 
     // Admin Payments Screen
     override val navPayments = "Platby"

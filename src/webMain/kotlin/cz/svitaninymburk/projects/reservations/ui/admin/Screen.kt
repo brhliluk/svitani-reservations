@@ -109,6 +109,13 @@ fun IComponent.AdminLayout(
                             +currentStrings.navSettings
                         }
                     }
+                    li(className = "mt-2 pt-2 border-t border-base-200") {
+                        a(className = "rounded-lg hover:bg-base-200 transition-colors") {
+                            onClick { router.navigate("/") }
+                            span(className = "icon-[heroicons--eye] size-5 text-primary/70")
+                            +currentStrings.viewAsUser
+                        }
+                    }
                 }
 
                 // Uživatelský profil a odhlášení dole v sidebaru
