@@ -49,6 +49,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
     val scope = rememberCoroutineScope()
     val currentStrings by strings
     var toastData by remember { mutableStateOf<ToastData?>(null) }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     var definitions by remember { mutableStateOf<List<EventDefinition>>(emptyList()) }
     var isLoadingDefinitions by remember { mutableStateOf(true) }
@@ -390,6 +391,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                         +currentStrings.cancel
                     }
                     button(className = "btn btn-primary") {
+                        disabled(isSubmitting)
                         onClick {
                             if (startDate.isBlank() || startTime.isBlank()) {
                                 toastData = ToastData(currentStrings.validationDateTimeRequired, ToastType.Error)
@@ -436,17 +438,20 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                 return@onClick
                             }
 
+                            isSubmitting = true
                             scope.launch {
                                 var failed = false
                                 for (dt in dateTimes) {
                                     authEventService.createEventInstance(baseRequest.copy(startDateTime = dt))
                                         .onLeft { error ->
+                                            isSubmitting = false
                                             toastData = ToastData(currentStrings.toastInstanceCreateError(dt.toString(), error.localizedMessage(currentStrings)), ToastType.Error)
                                             failed = true
                                         }
                                     if (failed) break
                                 }
                                 if (!failed) {
+                                    isSubmitting = false
                                     toastData = ToastData(
                                         if (dateTimes.size > 1) currentStrings.toastInstancesCreated(dateTimes.size) else currentStrings.toastInstanceCreated,
                                         ToastType.Success
@@ -456,6 +461,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                 }
                             }
                         }
+                        if (isSubmitting) span(className = "loading loading-spinner loading-sm")
                         span(className = "icon-[heroicons--check] size-5")
                         +(if (isRecurring && previewDates.size > 1) currentStrings.createInstancesButton(previewDates.size) else currentStrings.createInstanceButton)
                     }

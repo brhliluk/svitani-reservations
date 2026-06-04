@@ -30,6 +30,7 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
     val scope = rememberCoroutineScope()
     val currentStrings by strings
     var toastData by remember { mutableStateOf<ToastData?>(null) }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     // --- ZÁKLADNÍ STAVY FORMULÁŘE ---
     var title by remember { mutableStateOf("") }
@@ -370,6 +371,7 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                 +currentStrings.cancel
             }
             button(className = "btn btn-primary") {
+                disabled(isSubmitting)
                 onClick {
                     if (title.isBlank()) {
                         toastData = ToastData(currentStrings.validationNameRequired, ToastType.Error)
@@ -398,18 +400,22 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                         showAttendeeCount = showAttendeeCount,
                     )
 
+                    isSubmitting = true
                     scope.launch {
                         adminService.createEventDefinition(request)
                             .onRight {
+                                isSubmitting = false
                                 toastData = ToastData(currentStrings.templateSavedToast, ToastType.Success)
                                 kotlinx.coroutines.delay(500)
                                 router.navigate("/admin/events") // Zpět do katalogu
                             }
                             .onLeft { error ->
+                                isSubmitting = false
                                 toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
                             }
                     }
                 }
+                if (isSubmitting) span(className = "loading loading-spinner loading-sm")
                 span(className = "icon-[heroicons--check] size-5")
                 +currentStrings.createTemplateButton
             }

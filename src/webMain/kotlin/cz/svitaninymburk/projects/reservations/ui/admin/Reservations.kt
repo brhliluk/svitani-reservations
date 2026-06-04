@@ -57,6 +57,7 @@ fun IComponent.AdminReservationsScreen() {
     var toastData by remember { mutableStateOf<ToastData?>(null) }
     var pendingAction by remember { mutableStateOf<PendingAction?>(null) }
     var expandedId by remember { mutableStateOf<Uuid?>(null) }
+    var isModalLoading by remember { mutableStateOf(false) }
 
     // Stavy pro vyhledávání
     var searchInput by remember { mutableStateOf("") }
@@ -333,31 +334,43 @@ fun IComponent.AdminReservationsScreen() {
                 }
                 div(className = "modal-action") {
                     button(className = "btn") {
+                        disabled(isModalLoading)
                         onClick { pendingAction = null }
                         +currentStrings.modalBack
                     }
                     button(className = "btn ${if (action.type == AdminActionType.CONFIRM_PAYMENT) "btn-success" else "btn-error"}") {
+                        disabled(isModalLoading)
+                        if (isModalLoading) span(className = "loading loading-spinner loading-sm")
                         onClick {
+                            isModalLoading = true
                             scope.launch {
                                 when (action.type) {
                                     AdminActionType.CONFIRM_PAYMENT -> {
                                         adminService.markReservationAsPaid(action.reservationId)
                                             .onRight {
+                                                isModalLoading = false
                                                 toastData = ToastData(currentStrings.toastPaymentConfirmed(action.participantName), ToastType.Success)
                                                 page = 0
                                                 expandedId = null
                                                 refreshTrigger++
                                             }
-                                            .onLeft { error -> toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error) }
+                                            .onLeft { error ->
+                                                isModalLoading = false
+                                                toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
+                                            }
                                     }
                                     AdminActionType.CANCEL_RESERVATION -> {
                                         reservationService.cancelReservation(action.reservationId)
                                             .onRight {
+                                                isModalLoading = false
                                                 toastData = ToastData(currentStrings.toastReservationCancelled(action.participantName), ToastType.Success)
                                                 expandedId = null
                                                 refreshTrigger++
                                             }
-                                            .onLeft { error -> toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error) }
+                                            .onLeft { error ->
+                                                isModalLoading = false
+                                                toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
+                                            }
                                     }
                                 }
                                 pendingAction = null

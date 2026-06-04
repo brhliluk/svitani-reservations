@@ -296,12 +296,14 @@ private fun IComponent.AdminWalletDetailPanel(
                     button(className = "btn btn-success gap-2") {
                         disabled(isSubmitting || (adjustAmount?.toDouble() ?: 0.0) <= 0 || adjustNote.isBlank())
                         onClick { doAdjust(true) }
+                        if (isSubmitting) span(className = "loading loading-spinner loading-sm")
                         span(className = "icon-[heroicons--plus] size-4")
                         +currentStrings.adminWalletCreditButton
                     }
                     button(className = "btn btn-error btn-outline gap-2") {
                         disabled(isSubmitting || (adjustAmount?.toDouble() ?: 0.0) <= 0 || adjustNote.isBlank())
                         onClick { doAdjust(false) }
+                        if (isSubmitting) span(className = "loading loading-spinner loading-sm")
                         span(className = "icon-[heroicons--minus] size-4")
                         +currentStrings.adminWalletDebitButton
                     }

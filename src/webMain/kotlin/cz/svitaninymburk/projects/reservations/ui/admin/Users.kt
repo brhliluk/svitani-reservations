@@ -54,6 +54,8 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
 
     var searchInput by remember { mutableStateOf("") }
     var activeSearchQuery by remember { mutableStateOf<String?>(null) }
+    var resettingPasswordForId by remember { mutableStateOf<kotlin.uuid.Uuid?>(null) }
+    var isModalLoading by remember { mutableStateOf(false) }
 
     val uiState by produceState<AdminUsersUiState>(
         initialValue = AdminUsersUiState.Loading,
@@ -219,18 +221,26 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
                                                         if (user.authType == AdminUserListItem.AuthType.EMAIL) {
                                                             button(className = "btn btn-ghost btn-xs tooltip tooltip-left") {
                                                                 attribute("data-tip", currentStrings.tooltipResetPassword)
+                                                                disabled(resettingPasswordForId == user.id)
+                                                                if (resettingPasswordForId == user.id) {
+                                                                    span(className = "loading loading-spinner loading-xs")
+                                                                } else {
+                                                                    span(className = "icon-[heroicons--envelope] size-5")
+                                                                }
                                                                 onClick {
+                                                                    resettingPasswordForId = user.id
                                                                     scope.launch {
                                                                         authService.requestPasswordReset(user.email)
                                                                             .onRight {
+                                                                                resettingPasswordForId = null
                                                                                 toastData = ToastData(currentStrings.forgotPasswordEmailSent, ToastType.Success)
                                                                             }
                                                                             .onLeft { error ->
+                                                                                resettingPasswordForId = null
                                                                                 toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
                                                                             }
                                                                     }
                                                                 }
-                                                                span(className = "icon-[heroicons--envelope] size-5")
                                                             }
                                                         }
                                                         if (user.id != currentUserId) {
@@ -287,28 +297,36 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
                 }
                 div(className = "modal-action") {
                     button(className = "btn") {
+                        disabled(isModalLoading)
                         onClick { pendingAction = null }
                         +currentStrings.modalBack
                     }
                     button(className = "btn ${if (action.type == UserAction.CHANGE_ROLE) "btn-primary" else "btn-error"}") {
+                        disabled(isModalLoading)
+                        if (isModalLoading) span(className = "loading loading-spinner loading-sm")
                         onClick {
+                            isModalLoading = true
                             scope.launch {
                                 if (action.type == UserAction.CHANGE_ROLE) {
                                     adminService.updateUserRole(action.userId, newRole)
                                         .onRight {
+                                            isModalLoading = false
                                             toastData = ToastData(currentStrings.toastRoleChanged(action.userName), ToastType.Success)
                                             refreshTrigger++
                                         }
                                         .onLeft { error ->
+                                            isModalLoading = false
                                             toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
                                         }
                                 } else {
                                     adminService.deleteUser(action.userId)
                                         .onRight {
+                                            isModalLoading = false
                                             toastData = ToastData(currentStrings.toastUserDeleted(action.userName), ToastType.Success)
                                             refreshTrigger++
                                         }
                                         .onLeft { error ->
+                                            isModalLoading = false
                                             toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
                                         }
                                 }

@@ -43,6 +43,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
     val scope = rememberCoroutineScope()
     val currentStrings by strings
     var toastData by remember { mutableStateOf<ToastData?>(null) }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     var uiState by remember { mutableStateOf<EditSeriesUiState>(EditSeriesUiState.Loading) }
 
@@ -126,14 +127,19 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
             showAttendeeCount = showAttendeeCount,
             lessonRefundAmount = lessonRefundAmountInput?.toDouble()?.takeIf { it > 0 },
         )
+        isSubmitting = true
         scope.launch {
             adminService.updateEventSeries(uuid, request)
                 .onRight {
+                    isSubmitting = false
                     toastData = ToastData(currentStrings.toastSeriesUpdated, ToastType.Success)
                     kotlinx.coroutines.delay(500)
                     history.back()
                 }
-                .onLeft { toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
+                .onLeft {
+                    isSubmitting = false
+                    toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error)
+                }
         }
     }
 
@@ -290,6 +296,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                 div(className = "flex justify-end gap-2 mt-4") {
                     button(className = "btn") { onClick { history.back() }; +currentStrings.cancel }
                     button(className = "btn btn-primary") {
+                        disabled(isSubmitting)
                         onClick {
                             if (title.isBlank()) { toastData = ToastData(currentStrings.validationSeriesTitleRequired, ToastType.Error); return@onClick }
                             val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
@@ -297,6 +304,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                             if (capacity < occupiedSpots) { showCapacityWarning = true; return@onClick }
                             doSave()
                         }
+                        if (isSubmitting) span(className = "loading loading-spinner loading-sm")
                         span(className = "icon-[heroicons--check] size-5")
                         +currentStrings.saveChanges
                     }

@@ -48,6 +48,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     val scope = rememberCoroutineScope()
     val currentStrings by strings
     var toastData by remember { mutableStateOf<ToastData?>(null) }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     var definitions by remember { mutableStateOf<List<EventDefinition>>(emptyList()) }
     var isLoadingDefinitions by remember { mutableStateOf(true) }
@@ -426,6 +427,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                         +currentStrings.cancel
                     }
                     button(className = "btn btn-secondary") {
+                        disabled(isSubmitting)
                         onClick {
                             if (startDate.isBlank() || endDate.isBlank()) {
                                 toastData = ToastData(currentStrings.validationDatesRequired, ToastType.Error)
@@ -503,18 +505,22 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 showAttendeeCount = showAttendeeCount,
                             )
 
+                            isSubmitting = true
                             scope.launch {
                                 adminService.createEventSeries(request)
                                     .onRight {
+                                        isSubmitting = false
                                         toastData = ToastData(currentStrings.toastSeriesCreated, ToastType.Success)
                                         delay(500)
                                         router.navigate("/admin/events")
                                     }
                                     .onLeft { error ->
+                                        isSubmitting = false
                                         toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
                                     }
                             }
                         }
+                        if (isSubmitting) span(className = "loading loading-spinner loading-sm")
                         span(className = "icon-[heroicons--check] size-5")
                         +currentStrings.createSeriesButton
                     }

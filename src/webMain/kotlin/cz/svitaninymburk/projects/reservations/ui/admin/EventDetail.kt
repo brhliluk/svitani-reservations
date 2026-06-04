@@ -57,6 +57,11 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var expandedId by remember { mutableStateOf<Uuid?>(null) }
 
+    var isModalLoading by remember { mutableStateOf(false) }
+    var isDeleteLoading by remember { mutableStateOf(false) }
+    var isCancelLessonLoading by remember { mutableStateOf(false) }
+    var togglingDropInId by remember { mutableStateOf<kotlin.uuid.Uuid?>(null) }
+
     var lessonsRefreshTrigger by remember { mutableStateOf(0) }
     val lessonsState by produceState<List<EventInstance>?>(
         initialValue = null,
@@ -198,9 +203,15 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                                     td {
                                                         if (!lesson.isCancelled) {
                                                             button(className = "btn btn-xs ${if (lesson.isDropIn) "btn-secondary" else "btn-ghost"}") {
+                                                                disabled(togglingDropInId == lesson.id)
                                                                 span(className = "icon-[heroicons--globe-alt] size-3")
-                                                                if (lesson.isDropIn) +" On" else +" Off"
+                                                                if (togglingDropInId == lesson.id) {
+                                                                    span(className = "loading loading-spinner loading-xs")
+                                                                } else {
+                                                                    if (lesson.isDropIn) +" On" else +" Off"
+                                                                }
                                                                 onClick {
+                                                                    togglingDropInId = lesson.id
                                                                     scope.launch {
                                                                         adminService.updateEventInstance(
                                                                             lesson.id,
@@ -217,6 +228,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                                                             )
                                                                         )
                                                                         lessonsRefreshTrigger++
+                                                                        togglingDropInId = null
                                                                     }
                                                                 }
                                                             }
@@ -410,12 +422,16 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                 div(className = "modal-action") {
                     // Tlačítko Zrušit (zavře dialog)
                     button(className = "btn") {
+                        disabled(isModalLoading)
                         onClick { pendingAction = null }
                         +currentStrings.modalBack
                     }
 
                     button(className = "btn ${if (action.type == AdminActionType.CONFIRM_PAYMENT) "btn-success" else "btn-error"}") {
+                        disabled(isModalLoading)
+                        if (isModalLoading) span(className = "loading loading-spinner loading-sm")
                         onClick {
+                            isModalLoading = true
                             scope.launch {
                                 when (action.type) {
                                     AdminActionType.CONFIRM_PAYMENT -> {
@@ -423,9 +439,13 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                             .onRight {
                                                 toastData = ToastData(currentStrings.toastPaymentConfirmed(action.participantName), ToastType.Success)
                                                 refreshTrigger++
+                                                isModalLoading = false
+                                                pendingAction = null
                                             }
                                             .onLeft { error ->
                                                 toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
+                                                isModalLoading = false
+                                                pendingAction = null
                                             }
                                     }
                                     AdminActionType.CANCEL_RESERVATION -> {
@@ -433,11 +453,16 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                             .onRight {
                                                 toastData = ToastData(currentStrings.toastReservationCancelled(action.participantName), ToastType.Success)
                                                 refreshTrigger++
+                                                isModalLoading = false
+                                                pendingAction = null
                                             }
-                                            .onLeft { error -> toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error) }
+                                            .onLeft { error ->
+                                                toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
+                                                isModalLoading = false
+                                                pendingAction = null
+                                            }
                                     }
                                 }
-                                pendingAction = null
                             }
                         }
                         if (action.type == AdminActionType.CONFIRM_PAYMENT) +currentStrings.modalConfirmAction else +currentStrings.modalConfirmCancelAction
@@ -461,10 +486,12 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                 h3(className = "font-bold text-lg text-error") { +currentStrings.confirmDeleteTitle }
                 p(className = "py-4") { +currentStrings.deleteEventImpact(reservationCount) }
                 div(className = "modal-action") {
-                    button(className = "btn") { onClick { showDeleteConfirm = false }; +currentStrings.modalBack }
+                    button(className = "btn") { disabled(isDeleteLoading); onClick { showDeleteConfirm = false }; +currentStrings.modalBack }
                     button(className = "btn btn-error") {
+                        disabled(isDeleteLoading)
+                        if (isDeleteLoading) span(className = "loading loading-spinner loading-sm")
                         onClick {
-                            showDeleteConfirm = false
+                            isDeleteLoading = true
                             scope.launch {
                                 val uuid = Uuid.parse(eventId)
                                 val result = if (isSeries)
@@ -480,7 +507,10 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                         kotlinx.coroutines.delay(500)
                                         router.navigate("/admin/events")
                                     }
-                                    .onLeft { toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
+                                    .onLeft {
+                                        toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error)
+                                        isDeleteLoading = false
+                                    }
                             }
                         }
                         if (isSeries) +currentStrings.deleteSeriesLabel else +currentStrings.deleteEventLabel
@@ -503,20 +533,29 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                 }
                 div(className = "modal-action") {
                     button(className = "btn") {
+                        disabled(isCancelLessonLoading)
                         onClick { cancelLessonPending = null }
                         +currentStrings.cancel
                     }
                     button(className = "btn btn-error") {
+                        disabled(isCancelLessonLoading)
+                        if (isCancelLessonLoading) span(className = "loading loading-spinner loading-sm")
                         onClick {
                             val toCancel = lessonToCancel
-                            cancelLessonPending = null
+                            isCancelLessonLoading = true
                             scope.launch {
                                 adminService.cancelSeriesLesson(toCancel.id)
                                     .onRight {
                                         toastData = ToastData(currentStrings.toastLessonCancelled, ToastType.Success)
                                         lessonsRefreshTrigger++
+                                        isCancelLessonLoading = false
+                                        cancelLessonPending = null
                                     }
-                                    .onLeft { toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
+                                    .onLeft {
+                                        toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error)
+                                        isCancelLessonLoading = false
+                                        cancelLessonPending = null
+                                    }
                             }
                         }
                         +currentStrings.cancelLessonButton
