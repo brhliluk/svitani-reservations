@@ -6,6 +6,7 @@ import cz.svitaninymburk.projects.reservations.plugins.startPaymentCheck
 import cz.svitaninymburk.projects.reservations.plugins.startWalletResetJobs
 import cz.svitaninymburk.projects.reservations.plugins.configureRouting
 import cz.svitaninymburk.projects.reservations.plugins.configureSecurity
+import cz.svitaninymburk.projects.reservations.plugins.configureSentry
 import dev.kilua.rpc.initRpc
 import io.ktor.server.application.*
 import io.ktor.server.plugins.compression.*
@@ -27,6 +28,7 @@ fun Application.main() {
     startWalletResetJobs()
     configureSecurity()
     configureRouting()
+    configureSentry()
 
     if (System.getenv("LOAD_MOCK_DATA").toBoolean()) {
         val mockLoader = MockDataLoader()

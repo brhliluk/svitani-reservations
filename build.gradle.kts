@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.kilua.rpc)
     alias(libs.plugins.kilua)
     alias(libs.plugins.vite.kotlin)
+    alias(libs.plugins.sentry)
 }
 
 extra["mainClassName"] = "io.ktor.server.netty.EngineMain"
@@ -116,6 +117,9 @@ kotlin {
                 implementation(libs.qrCode)
 
                 implementation(libs.bundles.database)
+
+                implementation(libs.sentry)
+                implementation(libs.sentry.logback)
             }
         }
         val commonTest by getting {
@@ -181,6 +185,19 @@ vite {
         proxy("/rpc", "http://localhost:8080")
         proxy("/rpcsse", "http://localhost:8080")
         proxy("/rpcws", "http://localhost:8080", ws = true)
+    }
+}
+
+sentry {
+    includeSourceContext = true
+
+    org = "rodinne-centrum-svitani"
+    projectName = "reservations"
+
+    val localPropertiesFile = rootDir.resolve("local.properties")
+    if (localPropertiesFile.exists()) {
+        val localProps = Properties().apply { localPropertiesFile.inputStream().use { load(it) } }
+        authToken.set(localProps.getProperty("sentry.authToken"))
     }
 }
 
