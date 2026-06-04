@@ -61,6 +61,7 @@ fun IComponent.MainLayout() {
     var currentUser by remember { mutableStateOf<User?>(null) }
     var userWalletCode by remember { mutableStateOf<String?>(null) }
     var toastState by remember { mutableStateOf<ToastData?>(null) }
+    var userLoaded by remember { mutableStateOf(false) }
 
     fun showToast(message: String, type: ToastType = ToastType.Success) {
         toastState = ToastData(message, type)
@@ -77,6 +78,7 @@ fun IComponent.MainLayout() {
                 currentUser = null
                 userWalletCode = null
             }
+        userLoaded = true
     }
 
     fun doLogout() = scope.launch {
@@ -87,7 +89,9 @@ fun IComponent.MainLayout() {
 
     LaunchedEffect(Unit) { refreshUser() }
 
-    if (currentUser?.role == User.Role.ADMIN) {
+    if (!userLoaded) {
+        div {}
+    } else if (currentUser?.role == User.Role.ADMIN) {
         // ADMIN VIDÍ ADMIN LAYOUT
         Toast(
             message = toastState?.message,
