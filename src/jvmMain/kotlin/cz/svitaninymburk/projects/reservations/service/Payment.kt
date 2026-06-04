@@ -23,6 +23,8 @@ import io.ktor.http.isSuccess
 import io.ktor.http.path
 import io.ktor.server.util.url
 import io.ktor.util.logging.KtorSimpleLogger
+import io.sentry.Sentry
+import io.sentry.SentryLevel
 import kotlinx.coroutines.channels.Channel
 import kotlin.reflect.jvm.jvmName
 
@@ -72,6 +74,13 @@ class PaymentPairingService(
 
         if ((transaction.amount < reservation.totalPrice) || (transaction.amount != reservation.unpaidAmount)) {
             logger.warn("⚠️ Nedoplatek! VS $vs: Očekávaná čáska: ${reservation.unpaidAmount}, přišlo ${transaction.amount}.")
+            Sentry.withScope { scope ->
+                scope.setTag("vs", vs)
+                scope.setTag("reservation_id", reservation.id.toString())
+                scope.setExtra("expected_amount", reservation.unpaidAmount.toString())
+                scope.setExtra("received_amount", transaction.amount.toString())
+                Sentry.captureMessage("Nedoplatek: VS $vs", SentryLevel.WARNING)
+            }
             emailService.sendPaymentNotPaidInFull(
                 reservation,
                 transaction,
@@ -105,7 +114,13 @@ class PaymentPairingService(
         }
 
         emailService.sendPaymentReceivedConfirmation(paidReservation)
-            .onLeft { logger.error("⚠️ Failed to send payment-received email for reservation ${paidReservation.id} (VS $vs): $it") }
+            .onLeft { error ->
+                Sentry.withScope { scope ->
+                    scope.setTag("reservation_id", paidReservation.id.toString())
+                    scope.setTag("vs", vs)
+                    logger.error("⚠️ Failed to send payment-received email for reservation ${paidReservation.id} (VS $vs): $error")
+                }
+            }
 
         logger.info("✅ Rezervace ${reservation.id} (VS $vs) úspěšně ZAPLACENA.")
     }

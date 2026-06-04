@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.plugins
 
+import cz.svitaninymburk.projects.reservations.error.PaymentPairingError
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.service.PaymentPairingService
 import cz.svitaninymburk.projects.reservations.service.PaymentTrigger
@@ -33,7 +34,12 @@ fun Application.startPaymentCheck() {
         while (isActive) {
             if (lastCheckTime.elapsedNow() > minInterval) {
                 paymentPairingService.checkAndPairPayments()
-                    .onLeft { e -> logger.warn(e.toString()) }
+                    .onLeft { error ->
+                        when (error) {
+                            is PaymentPairingError.Upstream -> logger.error("Payment check failed", error.exception)
+                            is PaymentPairingError.Failed -> logger.error("Payment check failed: ${error.message}")
+                        }
+                    }
                     .onRight { lastCheckTime = TimeSource.Monotonic.markNow() }
             }
 
