@@ -95,6 +95,8 @@ object CsStrings : AppStrings {
     override val rejected = "Zamítnuto"
     override val copyright = "© 2026 Spolu v Nymburce, z.s."
 
+    override val reservationClosed = "Rezervace jsou uzavřeny."
+
     // Reservation errors
     override val reservationFailed: (String) -> String = { "Rezervace se nezdařila: $it" }
 
@@ -211,6 +213,18 @@ object CsStrings : AppStrings {
     override val showLess = "Zobrazit méně"
     override val showMore: (Int) -> String = { "Zobrazit dalších $it" }
     override val loadingError: (String) -> String = { "Chyba načítání: $it" }
+
+    // Reservation Deadline (Admin Form)
+    override val reservationDeadlineSection = "Uzávěrka rezervací"
+    override val reservationDeadlineActive = "Aktivní uzávěrka"
+    override val reservationDeadlineTypeLabel = "Typ uzávěrky"
+    override val reservationDeadlineTypeHours = "Počet hodin před začátkem"
+    override val reservationDeadlineTypeTime = "Konkrétní čas (den + hodina)"
+    override val reservationDeadlineHoursLabel = "Hodin před začátkem"
+    override val reservationDeadlineDaysBeforeLabel = "Dní předem (0 = stejný den)"
+    override val reservationDeadlineTimeOfDayLabel = "Čas uzávěrky"
+    override val reservationDeadlineMessageLabel = "Zpráva po uzávěrce (volitelná)"
+    override val reservationDeadlineMessagePlaceholder = "Rezervace jsou uzavřeny, kontaktujte nás telefonicky."
 
     // Shared Admin Form Elements
     override val descriptionLabel = "Popis"
@@ -549,6 +563,7 @@ object CsStrings : AppStrings {
     override val errorWalletNotFound = "Peněženka s tímto kódem nebyla nalezena."
     override val errorWalletEmpty = "Peněženka nemá žádný zůstatek."
     override val errorWalletEmailMismatch = "Peněženka je přiřazena k jinému emailu."
+    override val errorReservationDeadlinePassed = "Uzávěrka rezervací pro tuto událost již proběhla."
 
     override fun errorEventInstanceNotFoundId(id: String) = "Událost s id $id nenalezena"
     override fun errorEventDefinitionNotFoundId(id: String) = "Šablona události s id $id nenalezena"

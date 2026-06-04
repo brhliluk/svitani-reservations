@@ -78,10 +78,18 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                         }
                     }
 
-                    button(className = "btn btn-primary rounded-full px-6 min-h-11 shadow-sm") {
-                        span(className = "icon-[heroicons--pencil-square] size-5")
-                        +currentStrings.courseSignUp
-                        onClick { onSignUpClick() }
+                    div(className = "flex flex-col items-end gap-1") {
+                        val isDeadlinePassed = series.isDeadlinePassed
+                        button(className = "btn btn-primary rounded-full px-6 min-h-11 shadow-sm${if (isDeadlinePassed) " btn-disabled" else ""}") {
+                            span(className = "icon-[heroicons--pencil-square] size-5")
+                            +currentStrings.courseSignUp
+                            if (!isDeadlinePassed) onClick { onSignUpClick() }
+                        }
+                        if (isDeadlinePassed) {
+                            span(className = "text-xs text-base-content/60 text-right") {
+                                +(series.reservationDeadlineMessage ?: currentStrings.reservationClosed)
+                            }
+                        }
                     }
                 }
             }

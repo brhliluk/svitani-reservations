@@ -27,13 +27,17 @@ import cz.svitaninymburk.projects.reservations.event.generateRecurrenceDates
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.minus
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import web.history.history
 import web.html.HTMLSelectElement
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.Uuid
@@ -69,6 +73,13 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
     var showAttendeeCount by remember { mutableStateOf(true) }
+
+    var deadlineEnabled by remember { mutableStateOf(false) }
+    var deadlineTypeIsHours by remember { mutableStateOf(true) }
+    var deadlineHours by remember { mutableIntStateOf(2) }
+    var deadlineDaysBefore by remember { mutableIntStateOf(1) }
+    var deadlineTimeStr by remember { mutableStateOf("18:00") }
+    var deadlineMessage by remember { mutableStateOf("") }
 
     // Inline recurrence (no longer read from definition)
     var recurrenceType by remember { mutableStateOf(RecurrenceType.NONE) }
@@ -384,6 +395,67 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                     }
                 }
 
+                // --- UZÁVĚRKA REZERVACÍ ---
+                div(className = "card bg-base-100 shadow-sm") {
+                    div(className = "card-body") {
+                        h2(className = "card-title text-lg mb-2") { +currentStrings.reservationDeadlineSection }
+                        label(className = "cursor-pointer label justify-start gap-3") {
+                            checkBox(value = deadlineEnabled, className = "checkbox checkbox-primary") {
+                                onChange { deadlineEnabled = value }
+                            }
+                            span(className = "label-text") { +currentStrings.reservationDeadlineActive }
+                        }
+                        if (deadlineEnabled) {
+                            div(className = "form-control w-full mt-2") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineTypeLabel } }
+                                select(className = "select select-bordered w-full") {
+                                    option(value = "hours", label = currentStrings.reservationDeadlineTypeHours) {
+                                        if (deadlineTypeIsHours) selected(true)
+                                    }
+                                    option(value = "time", label = currentStrings.reservationDeadlineTypeTime) {
+                                        if (!deadlineTypeIsHours) selected(true)
+                                    }
+                                    onChange { event ->
+                                        deadlineTypeIsHours = (event.target as? HTMLSelectElement)?.value == "hours"
+                                    }
+                                }
+                            }
+                            if (deadlineTypeIsHours) {
+                                div(className = "form-control w-full mt-2") {
+                                    label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineHoursLabel } }
+                                    numeric(value = deadlineHours, min = 0, decimals = 0, className = "input input-bordered w-full") {
+                                        attribute("step", "1")
+                                        onInput { deadlineHours = value?.toInt() ?: 0 }
+                                    }
+                                }
+                            } else {
+                                div(className = "grid grid-cols-2 gap-4 mt-2") {
+                                    div(className = "form-control w-full") {
+                                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineDaysBeforeLabel } }
+                                        numeric(value = deadlineDaysBefore, min = 0, decimals = 0, className = "input input-bordered w-full") {
+                                            attribute("step", "1")
+                                            onInput { deadlineDaysBefore = value?.toInt() ?: 0 }
+                                        }
+                                    }
+                                    div(className = "form-control w-full") {
+                                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineTimeOfDayLabel } }
+                                        text(value = deadlineTimeStr, type = InputType.Time, className = "input input-bordered w-full") {
+                                            onInput { deadlineTimeStr = value ?: "18:00" }
+                                        }
+                                    }
+                                }
+                            }
+                            div(className = "form-control w-full mt-2") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineMessageLabel } }
+                                text(value = deadlineMessage, className = "input input-bordered w-full") {
+                                    placeholder(currentStrings.reservationDeadlineMessagePlaceholder)
+                                    onInput { deadlineMessage = value ?: "" }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // --- ULOŽIT ---
                 div(className = "flex justify-end gap-2 mt-4") {
                     button(className = "btn") {
@@ -417,6 +489,19 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                             if (allowBankTransfer) allowedPayments.add(PaymentInfo.Type.BANK_TRANSFER)
                             if (allowOnSite) allowedPayments.add(PaymentInfo.Type.ON_SITE)
 
+                            val resolvedDeadline: Duration? = if (deadlineEnabled) {
+                                if (deadlineTypeIsHours) {
+                                    deadlineHours.hours
+                                } else {
+                                    try {
+                                        val tz = TimeZone.of("Europe/Prague")
+                                        val deadlineDate = parsedDateTime.date.minus(deadlineDaysBefore, DateTimeUnit.DAY)
+                                        val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(deadlineTimeStr))
+                                        parsedDateTime.toInstant(tz) - deadlineDateTime.toInstant(tz)
+                                    } catch (_: Exception) { null }
+                                }
+                            } else null
+
                             val baseRequest = CreateEventInstanceRequest(
                                 definitionId = Uuid.parse(selectedDefinitionId!!),
                                 startDateTime = parsedDateTime,
@@ -429,6 +514,8 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                 customFields = emptyList(),
                                 ownerEmails = validOwnerEmails,
                                 showAttendeeCount = showAttendeeCount,
+                                reservationDeadline = resolvedDeadline,
+                                reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
                             )
 
                             val dateTimes = if (isRecurring && previewDates.isNotEmpty()) previewDates else listOf(parsedDateTime)

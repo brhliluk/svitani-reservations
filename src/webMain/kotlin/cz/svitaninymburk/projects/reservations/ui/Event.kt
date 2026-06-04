@@ -75,11 +75,18 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
                         }
                     }
                 }
-                // Right: reserve button
-                val isDisabled = event.isCancelled || event.isFull
-                button(className = "btn btn-primary rounded-full px-6 min-h-11${if (isDisabled) " btn-disabled" else ""}") {
-                    +currentStrings.reserve
-                    if (!isDisabled) onClick { onClick() }
+                // Right: reserve button or deadline message
+                val isDisabled = event.isCancelled || event.isFull || event.isDeadlinePassed
+                div(className = "flex flex-col items-end gap-1") {
+                    button(className = "btn btn-primary rounded-full px-6 min-h-11${if (isDisabled) " btn-disabled" else ""}") {
+                        +currentStrings.reserve
+                        if (!isDisabled) onClick { onClick() }
+                    }
+                    if (event.isDeadlinePassed) {
+                        span(className = "text-xs text-base-content/60 text-right") {
+                            +(event.reservationDeadlineMessage ?: currentStrings.reservationClosed)
+                        }
+                    }
                 }
             }
         }

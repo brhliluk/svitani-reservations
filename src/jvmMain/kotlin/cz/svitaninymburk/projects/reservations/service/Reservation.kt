@@ -92,6 +92,7 @@ open class ReservationService(
         ensure(!instance.isCancelled) { ReservationError.EventCancelled }
         ensure(instance.endDateTime > Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) { ReservationError.EventAlreadyFinished }
         ensure(instance.startDateTime > Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) { ReservationError.EventAlreadyStarted }
+        ensure(!instance.isDeadlinePassed) { ReservationError.ReservationDeadlinePassed }
 
         val isReserved = eventInstanceRepository.attemptToReserveSpots(instanceId = instance.id, amount = request.seatCount,)
 
@@ -115,6 +116,8 @@ open class ReservationService(
     ): Either<ReservationError.CreateReservation, Reservation> = either {
 
         val series = ensureNotNull(eventSeriesRepository.get(request.eventSeriesId)) { ReservationError.ReservationNotFound }
+
+        ensure(!series.isDeadlinePassed) { ReservationError.ReservationDeadlinePassed }
 
         val isReserved = eventSeriesRepository.attemptToReserveSpots(series.id, request.seatCount)
         ensure(isReserved) { ReservationError.CapacityExceeded }

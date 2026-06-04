@@ -31,12 +31,15 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import cz.svitaninymburk.projects.reservations.event.LessonConfig
 import web.history.history
 import web.html.HTMLSelectElement
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
@@ -80,6 +83,14 @@ fun IComponent.AdminCreateEventScreen() {
     var courseLessonStartTimeStr by remember { mutableStateOf("") }
     var lessonDateOverrides by remember { mutableStateOf(mapOf<Int, String>()) }
     var lessonDropIn by remember { mutableStateOf(mapOf<Int, Boolean>()) }
+
+    // Deadline fields
+    var deadlineEnabled by remember { mutableStateOf(false) }
+    var deadlineTypeIsHours by remember { mutableStateOf(true) }
+    var deadlineHours by remember { mutableIntStateOf(2) }
+    var deadlineDaysBefore by remember { mutableIntStateOf(1) }
+    var deadlineTimeStr by remember { mutableStateOf("18:00") }
+    var deadlineMessage by remember { mutableStateOf("") }
 
     // Custom fields
     var customFields by remember { mutableStateOf(listOf<CustomFieldDefinition>()) }
@@ -660,6 +671,67 @@ fun IComponent.AdminCreateEventScreen() {
             }
         }
 
+        // Uzávěrka rezervací
+        div(className = "card bg-base-100 shadow-sm border border-base-200") {
+            div(className = "card-body") {
+                h2(className = "card-title text-lg mb-2") { +currentStrings.reservationDeadlineSection }
+                label(className = "cursor-pointer label justify-start gap-3") {
+                    checkBox(value = deadlineEnabled, className = "checkbox checkbox-primary") {
+                        onChange { deadlineEnabled = value }
+                    }
+                    span(className = "label-text") { +currentStrings.reservationDeadlineActive }
+                }
+                if (deadlineEnabled) {
+                    div(className = "form-control w-full mt-2") {
+                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineTypeLabel } }
+                        select(className = "select select-bordered w-full") {
+                            option(value = "hours", label = currentStrings.reservationDeadlineTypeHours) {
+                                if (deadlineTypeIsHours) selected(true)
+                            }
+                            option(value = "time", label = currentStrings.reservationDeadlineTypeTime) {
+                                if (!deadlineTypeIsHours) selected(true)
+                            }
+                            onChange { event ->
+                                deadlineTypeIsHours = (event.target as? HTMLSelectElement)?.value == "hours"
+                            }
+                        }
+                    }
+                    if (deadlineTypeIsHours) {
+                        div(className = "form-control w-full mt-2") {
+                            label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineHoursLabel } }
+                            numeric(value = deadlineHours, min = 0, decimals = 0, className = "input input-bordered w-full") {
+                                attribute("step", "1")
+                                onInput { deadlineHours = value?.toInt() ?: 0 }
+                            }
+                        }
+                    } else {
+                        div(className = "grid grid-cols-2 gap-4 mt-2") {
+                            div(className = "form-control w-full") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineDaysBeforeLabel } }
+                                numeric(value = deadlineDaysBefore, min = 0, decimals = 0, className = "input input-bordered w-full") {
+                                    attribute("step", "1")
+                                    onInput { deadlineDaysBefore = value?.toInt() ?: 0 }
+                                }
+                            }
+                            div(className = "form-control w-full") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineTimeOfDayLabel } }
+                                text(value = deadlineTimeStr, type = InputType.Time, className = "input input-bordered w-full") {
+                                    onInput { deadlineTimeStr = value ?: "18:00" }
+                                }
+                            }
+                        }
+                    }
+                    div(className = "form-control w-full mt-2") {
+                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineMessageLabel } }
+                        text(value = deadlineMessage, className = "input input-bordered w-full") {
+                            placeholder(currentStrings.reservationDeadlineMessagePlaceholder)
+                            onInput { deadlineMessage = value ?: "" }
+                        }
+                    }
+                }
+            }
+        }
+
         // Submit
         div(className = "flex justify-end gap-2 mt-4") {
             button(className = "btn") {
@@ -686,6 +758,20 @@ fun IComponent.AdminCreateEventScreen() {
                     }
                     val finalDuration = durationHours.hours + durationMinutes.minutes
 
+                    fun computeDeadline(startDt: LocalDateTime): Duration? {
+                        if (!deadlineEnabled) return null
+                        return if (deadlineTypeIsHours) {
+                            deadlineHours.hours
+                        } else {
+                            try {
+                                val tz = TimeZone.of("Europe/Prague")
+                                val deadlineDate = startDt.date.minus(deadlineDaysBefore, DateTimeUnit.DAY)
+                                val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(deadlineTimeStr))
+                                startDt.toInstant(tz) - deadlineDateTime.toInstant(tz)
+                            } catch (_: Exception) { null }
+                        }
+                    }
+
                     scope.launch {
                         when (eventType) {
                             EventCreateType.SINGLE -> {
@@ -711,6 +797,8 @@ fun IComponent.AdminCreateEventScreen() {
                                         customFields = customFields,
                                         showAttendeeCount = showAttendeeCount,
                                         dateTimes = listOf(dt),
+                                        reservationDeadline = computeDeadline(dt),
+                                        reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
                                     )
                                 ).onRight {
                                     toastData = ToastData(currentStrings.toastEventCreated, ToastType.Success)
@@ -738,6 +826,8 @@ fun IComponent.AdminCreateEventScreen() {
                                         customFields = customFields,
                                         showAttendeeCount = showAttendeeCount,
                                         dateTimes = previewDates,
+                                        reservationDeadline = previewDates.firstOrNull()?.let { computeDeadline(it) },
+                                        reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
                                     )
                                 ).onRight {
                                     toastData = ToastData(currentStrings.toastEventsCreated(previewDates.size), ToastType.Success)
@@ -780,6 +870,7 @@ fun IComponent.AdminCreateEventScreen() {
                                     if (overrideStr != null) try { LocalDate.parse(overrideStr) } catch (_: Exception) { it } else it
                                 } ?: parsedStart
 
+                                val courseStartDt = LocalDateTime(parsedStart, if (courseLessonStartTimeStr.isNotBlank()) try { LocalTime.parse(courseLessonStartTimeStr) } catch (_: Exception) { LocalTime(0, 0) } else LocalTime(0, 0))
                                 adminService.createEventAndSeries(
                                     CreateEventAndSeriesRequest(
                                         title = title,
@@ -795,6 +886,8 @@ fun IComponent.AdminCreateEventScreen() {
                                         lessonCount = lessonCount,
                                         customLessons = finalCustomLessons,
                                         showAttendeeCount = showAttendeeCount,
+                                        reservationDeadline = computeDeadline(courseStartDt),
+                                        reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
                                     )
                                 ).onRight {
                                     toastData = ToastData(currentStrings.toastCourseCreated, ToastType.Success)

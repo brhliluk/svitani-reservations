@@ -111,6 +111,9 @@ interface AppStrings : ErrorStrings {
     val rejected: String
     val copyright: String
 
+    // Reservation closed message (shown when deadline has passed)
+    val reservationClosed: String
+
     // Reservation errors
     val reservationFailed: (String) -> String
 
@@ -227,6 +230,18 @@ interface AppStrings : ErrorStrings {
     val showLess: String
     val showMore: (Int) -> String
     val loadingError: (String) -> String
+
+    // Reservation Deadline (Admin Form)
+    val reservationDeadlineSection: String
+    val reservationDeadlineActive: String
+    val reservationDeadlineTypeLabel: String
+    val reservationDeadlineTypeHours: String
+    val reservationDeadlineTypeTime: String
+    val reservationDeadlineHoursLabel: String
+    val reservationDeadlineDaysBeforeLabel: String
+    val reservationDeadlineTimeOfDayLabel: String
+    val reservationDeadlineMessageLabel: String
+    val reservationDeadlineMessagePlaceholder: String
 
     // Shared Admin Form Elements
     val descriptionLabel: String

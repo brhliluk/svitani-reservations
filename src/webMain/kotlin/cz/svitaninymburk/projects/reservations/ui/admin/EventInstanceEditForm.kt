@@ -16,18 +16,23 @@ import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
 import dev.kilua.form.check.checkBox
 import dev.kilua.form.number.numeric
+import dev.kilua.form.select.select
 import dev.kilua.form.text.text
 import dev.kilua.form.text.textArea
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import web.history.history
+import web.html.HTMLSelectElement
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.Uuid
@@ -65,6 +70,13 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
     var ownerEmails by remember { mutableStateOf(listOf("")) }
     var showAttendeeCount by remember { mutableStateOf(true) }
 
+    var deadlineEnabled by remember { mutableStateOf(false) }
+    var deadlineTypeIsHours by remember { mutableStateOf(true) }
+    var deadlineHours by remember { mutableIntStateOf(2) }
+    var deadlineDaysBefore by remember { mutableIntStateOf(1) }
+    var deadlineTimeStr by remember { mutableStateOf("18:00") }
+    var deadlineMessage by remember { mutableStateOf("") }
+
     LaunchedEffect(id) {
         val uuid = try { Uuid.parse(id) } catch (_: IllegalArgumentException) { null }
         if (uuid == null) { uiState = EditInstanceUiState.Error(currentStrings.invalidEventId); return@LaunchedEffect }
@@ -85,6 +97,12 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                 isDropIn = inst.isDropIn
                 ownerEmails = inst.ownerEmails.ifEmpty { listOf("") }
                 showAttendeeCount = inst.showAttendeeCount
+                if (inst.reservationDeadline != null) {
+                    deadlineEnabled = true
+                    deadlineHours = inst.reservationDeadline.inWholeHours.toInt()
+                    deadlineTypeIsHours = true
+                }
+                deadlineMessage = inst.reservationDeadlineMessage ?: ""
                 uiState = EditInstanceUiState.Loaded(inst)
             }
             .onLeft { uiState = EditInstanceUiState.Error(it.localizedMessage(currentStrings)) }
@@ -104,6 +122,18 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
             if (allowBankTransfer) add(PaymentInfo.Type.BANK_TRANSFER)
             if (allowOnSite) add(PaymentInfo.Type.ON_SITE)
         }
+        val resolvedDeadline: Duration? = if (deadlineEnabled) {
+            if (deadlineTypeIsHours) {
+                deadlineHours.hours
+            } else {
+                try {
+                    val pragueTz = TimeZone.of("Europe/Prague")
+                    val deadlineDate = startDt.date.minus(deadlineDaysBefore, DateTimeUnit.DAY)
+                    val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(deadlineTimeStr))
+                    startDt.toInstant(pragueTz) - deadlineDateTime.toInstant(pragueTz)
+                } catch (_: Exception) { null }
+            }
+        } else null
         val request = UpdateEventInstanceRequest(
             title = title, description = description,
             startDateTime = startDt, endDateTime = endDt,
@@ -112,6 +142,8 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
             isDropIn = isDropIn,
             ownerEmails = ownerEmails.filter { it.isNotBlank() },
             showAttendeeCount = showAttendeeCount,
+            reservationDeadline = resolvedDeadline,
+            reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
         )
         isSubmitting = true
         scope.launch {
@@ -264,6 +296,65 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                                 div {
                                     span(className = "font-medium") { +"Zobrazit jako drop-in lekci v přehledu" }
                                     p(className = "text-sm text-base-content/60 mt-1") { +"Lekce se zobrazí v přehledu akcí jako samostatně rezervovatelná s přiřazenou cenou." }
+                                }
+                            }
+                        }
+                    }
+                }
+                div(className = "card bg-base-100 shadow-sm") {
+                    div(className = "card-body") {
+                        h2(className = "card-title text-lg mb-2") { +currentStrings.reservationDeadlineSection }
+                        label(className = "cursor-pointer label justify-start gap-3") {
+                            checkBox(value = deadlineEnabled, className = "checkbox checkbox-primary") {
+                                onChange { deadlineEnabled = value }
+                            }
+                            span(className = "label-text") { +currentStrings.reservationDeadlineActive }
+                        }
+                        if (deadlineEnabled) {
+                            div(className = "form-control w-full mt-2") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineTypeLabel } }
+                                select(className = "select select-bordered w-full") {
+                                    option(value = "hours", label = currentStrings.reservationDeadlineTypeHours) {
+                                        if (deadlineTypeIsHours) selected(true)
+                                    }
+                                    option(value = "time", label = currentStrings.reservationDeadlineTypeTime) {
+                                        if (!deadlineTypeIsHours) selected(true)
+                                    }
+                                    onChange { event ->
+                                        deadlineTypeIsHours = (event.target as? HTMLSelectElement)?.value == "hours"
+                                    }
+                                }
+                            }
+                            if (deadlineTypeIsHours) {
+                                div(className = "form-control w-full mt-2") {
+                                    label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineHoursLabel } }
+                                    numeric(value = deadlineHours, min = 0, decimals = 0, className = "input input-bordered w-full") {
+                                        attribute("step", "1")
+                                        onInput { deadlineHours = value?.toInt() ?: 0 }
+                                    }
+                                }
+                            } else {
+                                div(className = "grid grid-cols-2 gap-4 mt-2") {
+                                    div(className = "form-control w-full") {
+                                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineDaysBeforeLabel } }
+                                        numeric(value = deadlineDaysBefore, min = 0, decimals = 0, className = "input input-bordered w-full") {
+                                            attribute("step", "1")
+                                            onInput { deadlineDaysBefore = value?.toInt() ?: 0 }
+                                        }
+                                    }
+                                    div(className = "form-control w-full") {
+                                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineTimeOfDayLabel } }
+                                        text(value = deadlineTimeStr, type = InputType.Time, className = "input input-bordered w-full") {
+                                            onInput { deadlineTimeStr = value ?: "18:00" }
+                                        }
+                                    }
+                                }
+                            }
+                            div(className = "form-control w-full mt-2") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineMessageLabel } }
+                                text(value = deadlineMessage, className = "input input-bordered w-full") {
+                                    placeholder(currentStrings.reservationDeadlineMessagePlaceholder)
+                                    onInput { deadlineMessage = value ?: "" }
                                 }
                             }
                         }

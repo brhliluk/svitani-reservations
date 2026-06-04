@@ -29,13 +29,17 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import cz.svitaninymburk.projects.reservations.event.LessonConfig
 import web.history.history
 import web.html.HTMLSelectElement
 import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 import kotlin.uuid.Uuid
 
 
@@ -71,6 +75,13 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
     var showAttendeeCount by remember { mutableStateOf(true) }
+
+    var deadlineEnabled by remember { mutableStateOf(false) }
+    var deadlineTypeIsHours by remember { mutableStateOf(true) }
+    var deadlineHours by remember { mutableIntStateOf(2) }
+    var deadlineDaysBefore by remember { mutableIntStateOf(1) }
+    var deadlineTimeStr by remember { mutableStateOf("18:00") }
+    var deadlineMessage by remember { mutableStateOf("") }
 
     val computedSeriesDates: List<LocalDate> = remember(startDate, lessonDayOfWeekOrdinal, lessonCount) {
         val dayOrdinal = lessonDayOfWeekOrdinal ?: return@remember emptyList()
@@ -420,6 +431,67 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                     }
                 }
 
+                // --- UZÁVĚRKA REZERVACÍ ---
+                div(className = "card bg-base-100 shadow-sm") {
+                    div(className = "card-body") {
+                        h2(className = "card-title text-lg mb-2") { +currentStrings.reservationDeadlineSection }
+                        label(className = "cursor-pointer label justify-start gap-3") {
+                            checkBox(value = deadlineEnabled, className = "checkbox checkbox-primary") {
+                                onChange { deadlineEnabled = value }
+                            }
+                            span(className = "label-text") { +currentStrings.reservationDeadlineActive }
+                        }
+                        if (deadlineEnabled) {
+                            div(className = "form-control w-full mt-2") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineTypeLabel } }
+                                select(className = "select select-bordered w-full") {
+                                    option(value = "hours", label = currentStrings.reservationDeadlineTypeHours) {
+                                        if (deadlineTypeIsHours) selected(true)
+                                    }
+                                    option(value = "time", label = currentStrings.reservationDeadlineTypeTime) {
+                                        if (!deadlineTypeIsHours) selected(true)
+                                    }
+                                    onChange { event ->
+                                        deadlineTypeIsHours = (event.target as? HTMLSelectElement)?.value == "hours"
+                                    }
+                                }
+                            }
+                            if (deadlineTypeIsHours) {
+                                div(className = "form-control w-full mt-2") {
+                                    label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineHoursLabel } }
+                                    numeric(value = deadlineHours, min = 0, decimals = 0, className = "input input-bordered w-full") {
+                                        attribute("step", "1")
+                                        onInput { deadlineHours = value?.toInt() ?: 0 }
+                                    }
+                                }
+                            } else {
+                                div(className = "grid grid-cols-2 gap-4 mt-2") {
+                                    div(className = "form-control w-full") {
+                                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineDaysBeforeLabel } }
+                                        numeric(value = deadlineDaysBefore, min = 0, decimals = 0, className = "input input-bordered w-full") {
+                                            attribute("step", "1")
+                                            onInput { deadlineDaysBefore = value?.toInt() ?: 0 }
+                                        }
+                                    }
+                                    div(className = "form-control w-full") {
+                                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineTimeOfDayLabel } }
+                                        text(value = deadlineTimeStr, type = InputType.Time, className = "input input-bordered w-full") {
+                                            onInput { deadlineTimeStr = value ?: "18:00" }
+                                        }
+                                    }
+                                }
+                            }
+                            div(className = "form-control w-full mt-2") {
+                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineMessageLabel } }
+                                text(value = deadlineMessage, className = "input input-bordered w-full") {
+                                    placeholder(currentStrings.reservationDeadlineMessagePlaceholder)
+                                    onInput { deadlineMessage = value ?: "" }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // --- ULOŽIT ---
                 div(className = "flex justify-end gap-2 mt-4") {
                     button(className = "btn") {
@@ -487,6 +559,21 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 }
                             } else null
 
+                            val resolvedDeadline: Duration? = if (deadlineEnabled) {
+                                if (deadlineTypeIsHours) {
+                                    deadlineHours.hours
+                                } else {
+                                    try {
+                                        val tz = TimeZone.of("Europe/Prague")
+                                        val startTime = if (lessonStartTimeStr.isNotBlank()) LocalTime.parse(lessonStartTimeStr) else LocalTime(0, 0)
+                                        val effectiveStart = LocalDateTime(parsedStartDate, startTime)
+                                        val deadlineDate = parsedStartDate.minus(deadlineDaysBefore, DateTimeUnit.DAY)
+                                        val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(deadlineTimeStr))
+                                        effectiveStart.toInstant(tz) - deadlineDateTime.toInstant(tz)
+                                    } catch (_: Exception) { null }
+                                }
+                            } else null
+
                             val request = CreateEventSeriesRequest(
                                 definitionId = Uuid.parse(selectedDefinitionId!!),
                                 title = titleOverride,
@@ -503,6 +590,8 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 lessonEndTime = parsedEndTime,
                                 customLessons = finalCustomLessons,
                                 showAttendeeCount = showAttendeeCount,
+                                reservationDeadline = resolvedDeadline,
+                                reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
                             )
 
                             isSubmitting = true

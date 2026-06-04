@@ -95,6 +95,8 @@ object EnStrings : AppStrings {
     override val rejected = "Rejected"
     override val copyright = "© 2026 Spolu v Nymburce, z.s."
 
+    override val reservationClosed = "Reservations are closed."
+
     // Reservation errors
     override val reservationFailed: (String) -> String = { "Reservation failed: $it" }
 
@@ -211,6 +213,18 @@ object EnStrings : AppStrings {
     override val showLess = "Show less"
     override val showMore: (Int) -> String = { "Show $it more" }
     override val loadingError: (String) -> String = { "Loading error: $it" }
+
+    // Reservation Deadline (Admin Form)
+    override val reservationDeadlineSection = "Reservation deadline"
+    override val reservationDeadlineActive = "Enable deadline"
+    override val reservationDeadlineTypeLabel = "Deadline type"
+    override val reservationDeadlineTypeHours = "Hours before event start"
+    override val reservationDeadlineTypeTime = "Specific time (day + hour)"
+    override val reservationDeadlineHoursLabel = "Hours before start"
+    override val reservationDeadlineDaysBeforeLabel = "Days before (0 = same day)"
+    override val reservationDeadlineTimeOfDayLabel = "Deadline time"
+    override val reservationDeadlineMessageLabel = "Message after deadline (optional)"
+    override val reservationDeadlineMessagePlaceholder = "Reservations are closed, please contact us by phone."
 
     // Shared Admin Form Elements
     override val descriptionLabel = "Description"
@@ -550,6 +564,7 @@ object EnStrings : AppStrings {
     override val errorWalletNotFound = "Wallet with this code was not found."
     override val errorWalletEmpty = "Wallet has no balance."
     override val errorWalletEmailMismatch = "This wallet belongs to a different email address."
+    override val errorReservationDeadlinePassed = "The reservation deadline for this event has passed."
 
     override fun errorEventInstanceNotFoundId(id: String) = "Event with id $id not found"
     override fun errorEventDefinitionNotFoundId(id: String) = "Event template with id $id not found"

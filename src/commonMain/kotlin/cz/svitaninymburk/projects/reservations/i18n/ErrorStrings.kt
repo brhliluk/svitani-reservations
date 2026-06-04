@@ -28,6 +28,7 @@ interface ErrorStrings {
     val errorWalletNotFound: String
     val errorWalletEmpty: String
     val errorWalletEmailMismatch: String
+    val errorReservationDeadlinePassed: String
 
     // Event errors
     fun errorEventInstanceNotFoundId(id: String): String

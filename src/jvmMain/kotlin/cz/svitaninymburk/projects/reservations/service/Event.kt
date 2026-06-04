@@ -69,6 +69,8 @@ class AuthenticatedEventService(
                 capacity = request.capacity ?: eventDefinition.defaultCapacity,
                 customFields = request.customFields.ifEmpty { eventDefinition.customFields },
                 showAttendeeCount = request.showAttendeeCount,
+                reservationDeadline = request.reservationDeadline,
+                reservationDeadlineMessage = request.reservationDeadlineMessage,
             )
         )
     }

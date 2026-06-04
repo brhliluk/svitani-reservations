@@ -8,6 +8,7 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.serialization.Serializable
+import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
@@ -46,7 +47,18 @@ data class EventSeries(
     val lessonEndTime: LocalTime? = null,
     val showAttendeeCount: Boolean = true,
     val lessonRefundAmount: Double? = null,
-)
+    val reservationDeadline: Duration? = null,
+    val reservationDeadlineMessage: String? = null,
+) {
+    val isFull: Boolean get() = occupiedSpots >= capacity
+    val isDeadlinePassed: Boolean get() {
+        val deadline = reservationDeadline ?: return false
+        val tz = TimeZone.of("Europe/Prague")
+        val effectiveStart = LocalDateTime(startDate, lessonStartTime ?: LocalTime(0, 0))
+        val deadlineInstant = effectiveStart.toInstant(tz) - deadline
+        return Clock.System.now() >= deadlineInstant
+    }
+}
 
 @Serializable
 data class EventInstance(
@@ -66,6 +78,8 @@ data class EventInstance(
     val ownerEmails: List<String> = emptyList(),
     val isDropIn: Boolean = false,
     val showAttendeeCount: Boolean = true,
+    val reservationDeadline: Duration? = null,
+    val reservationDeadlineMessage: String? = null,
 ) {
     val currentTimeZone get() = TimeZone.currentSystemDefault()
     val isFull: Boolean
@@ -74,6 +88,12 @@ data class EventInstance(
         get() = endDateTime.toInstant(currentTimeZone) - startDateTime.toInstant(currentTimeZone)
     val isSeries: Boolean
         get() = seriesId != null
+    val isDeadlinePassed: Boolean get() {
+        val deadline = reservationDeadline ?: return false
+        val tz = TimeZone.of("Europe/Prague")
+        val deadlineInstant = startDateTime.toInstant(tz) - deadline
+        return Clock.System.now() >= deadlineInstant
+    }
 }
 
 @Serializable
@@ -106,6 +126,8 @@ data class CreateEventAndInstancesRequest(
     val ownerEmails: List<String> = emptyList(),
     val dateTimes: List<LocalDateTime>,
     val showAttendeeCount: Boolean = true,
+    val reservationDeadline: Duration? = null,
+    val reservationDeadlineMessage: String? = null,
 )
 
 @Serializable
@@ -123,6 +145,8 @@ data class CreateEventAndSeriesRequest(
     val lessonCount: Int,
     val customLessons: List<LessonConfig>? = null,
     val showAttendeeCount: Boolean = true,
+    val reservationDeadline: Duration? = null,
+    val reservationDeadlineMessage: String? = null,
 )
 
 @Serializable
@@ -151,6 +175,8 @@ data class CreateEventSeriesRequest(
     val customLessons: List<LessonConfig>? = null,
     val showAttendeeCount: Boolean = true,
     val lessonRefundAmount: Double? = null,
+    val reservationDeadline: Duration? = null,
+    val reservationDeadlineMessage: String? = null,
 )
 
 @Serializable
@@ -166,6 +192,8 @@ data class CreateEventInstanceRequest(
     val customFields: List<CustomFieldDefinition> = emptyList(),
     val ownerEmails: List<String> = emptyList(),
     val showAttendeeCount: Boolean = true,
+    val reservationDeadline: Duration? = null,
+    val reservationDeadlineMessage: String? = null,
 )
 
 @Serializable
@@ -202,6 +230,8 @@ data class UpdateEventInstanceRequest(
     val ownerEmails: List<String> = emptyList(),
     val isDropIn: Boolean = false,
     val showAttendeeCount: Boolean = true,
+    val reservationDeadline: Duration? = null,
+    val reservationDeadlineMessage: String? = null,
 )
 
 @Serializable
@@ -221,4 +251,6 @@ data class UpdateEventSeriesRequest(
     val lessonEndTime: LocalTime? = null,
     val showAttendeeCount: Boolean = true,
     val lessonRefundAmount: Double? = null,
+    val reservationDeadline: Duration? = null,
+    val reservationDeadlineMessage: String? = null,
 )

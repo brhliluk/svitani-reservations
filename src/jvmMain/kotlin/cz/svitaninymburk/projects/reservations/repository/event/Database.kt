@@ -119,6 +119,8 @@ object EventSeriesTable : Table("event_series") {
     val lessonEndTime = varchar("lesson_end_time", 8).nullable()
     val showAttendeeCount = bool("show_attendee_count").default(true)
     val lessonRefundAmount = double("lesson_refund_amount").nullable()
+    val reservationDeadlineMs = long("reservation_deadline_ms").nullable()
+    val reservationDeadlineMessage = text("reservation_deadline_message").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -142,6 +144,8 @@ fun ResultRow.toEventSeries(ownerEmails: List<String>): EventSeries = EventSerie
     lessonEndTime = this[EventSeriesTable.lessonEndTime]?.let { LocalTime.parse(it) },
     showAttendeeCount = this[EventSeriesTable.showAttendeeCount],
     lessonRefundAmount = this[EventSeriesTable.lessonRefundAmount],
+    reservationDeadline = this[EventSeriesTable.reservationDeadlineMs]?.milliseconds,
+    reservationDeadlineMessage = this[EventSeriesTable.reservationDeadlineMessage],
 )
 
 
@@ -171,6 +175,8 @@ object EventInstancesTable : Table("event_instances") {
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
     val isDropIn = bool("is_drop_in").default(false)
     val showAttendeeCount = bool("show_attendee_count").default(true)
+    val reservationDeadlineMs = long("reservation_deadline_ms").nullable()
+    val reservationDeadlineMessage = text("reservation_deadline_message").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -192,6 +198,8 @@ fun ResultRow.toEventInstance(ownerEmails: List<String>): EventInstance = EventI
     ownerEmails = ownerEmails,
     isDropIn = this[EventInstancesTable.isDropIn],
     showAttendeeCount = this[EventInstancesTable.showAttendeeCount],
+    reservationDeadline = this[EventInstancesTable.reservationDeadlineMs]?.milliseconds,
+    reservationDeadlineMessage = this[EventInstancesTable.reservationDeadlineMessage],
 )
 
 class ExposedEventDefinitionRepository : EventDefinitionRepository {
@@ -344,6 +352,8 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[lessonEndTime] = series.lessonEndTime?.toString()
             row[showAttendeeCount] = series.showAttendeeCount
             row[lessonRefundAmount] = series.lessonRefundAmount
+            row[reservationDeadlineMs] = series.reservationDeadline?.inWholeMilliseconds
+            row[reservationDeadlineMessage] = series.reservationDeadlineMessage
         }
         setOwnerEmails(EntityType.SERIES, series.id, series.ownerEmails)
         series
@@ -365,6 +375,8 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[lessonEndTime] = series.lessonEndTime?.toString()
             row[showAttendeeCount] = series.showAttendeeCount
             row[lessonRefundAmount] = series.lessonRefundAmount
+            row[reservationDeadlineMs] = series.reservationDeadline?.inWholeMilliseconds
+            row[reservationDeadlineMessage] = series.reservationDeadlineMessage
         }
         setOwnerEmails(EntityType.SERIES, series.id, series.ownerEmails)
         series
@@ -493,6 +505,8 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[customFields] = instance.customFields
             row[isDropIn] = instance.isDropIn
             row[showAttendeeCount] = instance.showAttendeeCount
+            row[reservationDeadlineMs] = instance.reservationDeadline?.inWholeMilliseconds
+            row[reservationDeadlineMessage] = instance.reservationDeadlineMessage
         }
         setOwnerEmails(EntityType.INSTANCE, instance.id, instance.ownerEmails)
         instance
@@ -514,6 +528,8 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[customFields] = instance.customFields
             row[isDropIn] = instance.isDropIn
             row[showAttendeeCount] = instance.showAttendeeCount
+            row[reservationDeadlineMs] = instance.reservationDeadline?.inWholeMilliseconds
+            row[reservationDeadlineMessage] = instance.reservationDeadlineMessage
         }
         setOwnerEmails(EntityType.INSTANCE, instance.id, instance.ownerEmails)
         instance

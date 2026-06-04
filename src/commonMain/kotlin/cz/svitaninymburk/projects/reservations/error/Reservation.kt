@@ -29,6 +29,7 @@ import kotlinx.serialization.Serializable
     @Serializable data object WalletNotFound : CancelReservation, CreateReservation, GetWalletInfo
     @Serializable data object WalletEmpty : CreateReservation
     @Serializable data object WalletEmailMismatch : CancelReservation
+    @Serializable data object ReservationDeadlinePassed : CreateReservation
 }
 
 fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (this) {
@@ -48,4 +49,5 @@ fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (thi
     is ReservationError.WalletNotFound -> strings.errorWalletNotFound
     is ReservationError.WalletEmpty -> strings.errorWalletEmpty
     is ReservationError.WalletEmailMismatch -> strings.errorWalletEmailMismatch
+    is ReservationError.ReservationDeadlinePassed -> strings.errorReservationDeadlinePassed
 }

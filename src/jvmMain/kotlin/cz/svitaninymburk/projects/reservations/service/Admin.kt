@@ -380,6 +380,8 @@ class AdminDashboardService(
                 ownerEmails = request.ownerEmails,
                 showAttendeeCount = request.showAttendeeCount,
                 lessonRefundAmount = request.lessonRefundAmount,
+                reservationDeadline = request.reservationDeadline,
+                reservationDeadlineMessage = request.reservationDeadlineMessage,
             )
 
             eventSeriesRepository.create(newSeries)
@@ -474,6 +476,8 @@ class AdminDashboardService(
                         customFields = newDefinition.customFields,
                         ownerEmails = newDefinition.ownerEmails,
                         showAttendeeCount = newDefinition.showAttendeeCount,
+                        reservationDeadline = request.reservationDeadline,
+                        reservationDeadlineMessage = request.reservationDeadlineMessage,
                     )
                 )
             }
@@ -514,6 +518,8 @@ class AdminDashboardService(
                 customFields = newDefinition.customFields,
                 ownerEmails = request.ownerEmails,
                 showAttendeeCount = newDefinition.showAttendeeCount,
+                reservationDeadline = request.reservationDeadline,
+                reservationDeadlineMessage = request.reservationDeadlineMessage,
             )
             eventSeriesRepository.create(newSeries)
 
@@ -646,6 +652,8 @@ class AdminDashboardService(
                 customFields = request.customFields,
                 ownerEmails = request.ownerEmails,
                 showAttendeeCount = request.showAttendeeCount,
+                reservationDeadline = request.reservationDeadline,
+                reservationDeadlineMessage = request.reservationDeadlineMessage,
             )
         )
 
@@ -686,6 +694,8 @@ class AdminDashboardService(
                 ownerEmails = request.ownerEmails,
                 showAttendeeCount = request.showAttendeeCount,
                 lessonRefundAmount = request.lessonRefundAmount,
+                reservationDeadline = request.reservationDeadline,
+                reservationDeadlineMessage = request.reservationDeadlineMessage,
             )
         )
     }
