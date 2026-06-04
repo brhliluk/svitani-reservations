@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.admin.AdminUserListItem
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
@@ -43,6 +44,7 @@ private data class PendingUserAction(
 @Composable
 fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
     val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
+    val authService = getService<AuthServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
     val currentStrings by strings
 
@@ -213,6 +215,23 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
                                                                 )
                                                             }
                                                             span(className = "icon-[heroicons--arrows-right-left] size-5")
+                                                        }
+                                                        if (user.authType == AdminUserListItem.AuthType.EMAIL) {
+                                                            button(className = "btn btn-ghost btn-xs tooltip tooltip-left") {
+                                                                attribute("data-tip", currentStrings.tooltipResetPassword)
+                                                                onClick {
+                                                                    scope.launch {
+                                                                        authService.requestPasswordReset(user.email)
+                                                                            .onRight {
+                                                                                toastData = ToastData(currentStrings.forgotPasswordEmailSent, ToastType.Success)
+                                                                            }
+                                                                            .onLeft { error ->
+                                                                                toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
+                                                                            }
+                                                                    }
+                                                                }
+                                                                span(className = "icon-[heroicons--envelope] size-5")
+                                                            }
                                                         }
                                                         if (user.id != currentUserId) {
                                                             button(className = "btn btn-ghost btn-xs text-error tooltip tooltip-left") {

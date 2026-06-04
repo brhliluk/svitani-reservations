@@ -12,6 +12,7 @@ interface UserServiceInterface {
     suspend fun changeName(userId: Uuid, name: String): Either<UserError.ChangeName, User>
     suspend fun changeSurname(userId: Uuid, surname: String): Either<UserError.ChangeName, User>
     suspend fun changeEmail(userId: Uuid, email: String): Either<UserError.ChangeEmail, User>
+    suspend fun changePassword(oldPassword: String, newPassword: String): Either<UserError.ChangePassword, Unit>
 }
 
 @RpcService

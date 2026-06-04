@@ -28,7 +28,11 @@ import cz.svitaninymburk.projects.reservations.admin.PaymentEventsPage
 import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
 import cz.svitaninymburk.projects.reservations.admin.EventsPage
 import cz.svitaninymburk.projects.reservations.admin.SeriesInstancesPage
+import cz.svitaninymburk.projects.reservations.auth.BCryptHashingService
 import cz.svitaninymburk.projects.reservations.error.EmailError
+import cz.svitaninymburk.projects.reservations.error.UserError
+import cz.svitaninymburk.projects.reservations.service.UserService
+import cz.svitaninymburk.projects.reservations.user.User
 import arrow.core.Either
 import arrow.core.right
 import kotlinx.coroutines.runBlocking
@@ -971,5 +975,79 @@ class ResolveOwnerEmailsTest {
         assertEquals(1, capturingService.sentEmails.count { it == "shared@example.com" },
             "shared@example.com should be notified exactly once, but got: ${capturingService.sentEmails}")
         Unit
+    }
+}
+
+class ChangePasswordSpec {
+
+    private val hashing = BCryptHashingService()
+    private val userRepo = InMemoryUserRepository()
+
+    private fun makeUser(id: Uuid, passwordHash: String) = User.Email(
+        id = id,
+        email = "test@example.com",
+        name = "Test",
+        surname = "User",
+        role = User.Role.USER,
+        passwordHash = passwordHash,
+        passwordResetToken = null,
+        passwordResetTokenExpiresAt = null,
+    )
+
+    private fun makeService(userId: Uuid? = null) = object : UserService(userRepo, hashing) {
+        override suspend fun currentUserId(): Uuid? = userId
+    }
+
+    @Test
+    fun `returns WeakPassword when new password is shorter than 6 chars`() = runBlocking {
+        val id = Uuid.random()
+        userRepo.create(makeUser(id, hashing.generateSaltedHash("oldpass")))
+
+        val result = makeService(userId = id).changePassword("oldpass", "abc")
+
+        assertTrue(result.isLeft())
+        assertEquals(UserError.WeakPassword, (result as arrow.core.Either.Left).value)
+    }
+
+    @Test
+    fun `returns UserNotFound when no call context`() = runBlocking {
+        val result = makeService(userId = null).changePassword("oldpass", "newpass123")
+
+        assertTrue(result.isLeft())
+        assertTrue((result as arrow.core.Either.Left).value is UserError.UserNotFound)
+    }
+
+    @Test
+    fun `returns NotEmailUser for Google account`() = runBlocking {
+        val id = Uuid.random()
+        userRepo.create(User.Google(id = id, email = "g@example.com", name = "G", surname = "User", role = User.Role.USER, googleSub = "sub123"))
+
+        val result = makeService(userId = id).changePassword("any", "newpass123")
+
+        assertTrue(result.isLeft())
+        assertEquals(UserError.NotEmailUser, (result as arrow.core.Either.Left).value)
+    }
+
+    @Test
+    fun `returns WrongOldPassword when old password does not match`() = runBlocking {
+        val id = Uuid.random()
+        userRepo.create(makeUser(id, hashing.generateSaltedHash("correctpass")))
+
+        val result = makeService(userId = id).changePassword("wrongpass", "newpass123")
+
+        assertTrue(result.isLeft())
+        assertEquals(UserError.WrongOldPassword, (result as arrow.core.Either.Left).value)
+    }
+
+    @Test
+    fun `returns Unit and updates password hash on success`() = runBlocking {
+        val id = Uuid.random()
+        userRepo.create(makeUser(id, hashing.generateSaltedHash("oldpass")))
+
+        val result = makeService(userId = id).changePassword("oldpass", "newpass123")
+
+        assertTrue(result.isRight())
+        val updatedUser = userRepo.findById(id) as User.Email
+        assertTrue(hashing.verify("newpass123", updatedUser.passwordHash))
     }
 }

@@ -165,15 +165,19 @@ class ExposedReservationRepository : ReservationRepository {
         ReservationsTable.selectAll().map { it.toReservation() }
     }
 
-    override suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int): List<Reservation> = dbQuery {
+    override suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int, includeCancelled: Boolean): List<Reservation> = dbQuery {
         val query = ReservationsTable.selectAll()
+        val activeFilter = if (includeCancelled) null else
+            (ReservationsTable.status neq Reservation.Status.CANCELLED) and
+            (ReservationsTable.status neq Reservation.Status.REJECTED)
         if (!searchQuery.isNullOrBlank()) {
             val q = "%${searchQuery.lowercase()}%"
-            query.where {
-                (ReservationsTable.contactName.lowerCase() like q) or
+            val searchFilter = (ReservationsTable.contactName.lowerCase() like q) or
                 (ReservationsTable.contactEmail.lowerCase() like q) or
                 (ReservationsTable.variableSymbol.lowerCase() like q)
-            }
+            query.where { if (activeFilter != null) activeFilter and searchFilter else searchFilter }
+        } else if (activeFilter != null) {
+            query.where { activeFilter }
         }
         query.orderBy(ReservationsTable.createdAt, SortOrder.DESC)
              .limit(pageSize)
@@ -181,15 +185,19 @@ class ExposedReservationRepository : ReservationRepository {
              .map { it.toReservation() }
     }
 
-    override suspend fun countAll(searchQuery: String?): Long = dbQuery {
+    override suspend fun countAll(searchQuery: String?, includeCancelled: Boolean): Long = dbQuery {
         val query = ReservationsTable.selectAll()
+        val activeFilter = if (includeCancelled) null else
+            (ReservationsTable.status neq Reservation.Status.CANCELLED) and
+            (ReservationsTable.status neq Reservation.Status.REJECTED)
         if (!searchQuery.isNullOrBlank()) {
             val q = "%${searchQuery.lowercase()}%"
-            query.where {
-                (ReservationsTable.contactName.lowerCase() like q) or
+            val searchFilter = (ReservationsTable.contactName.lowerCase() like q) or
                 (ReservationsTable.contactEmail.lowerCase() like q) or
                 (ReservationsTable.variableSymbol.lowerCase() like q)
-            }
+            query.where { if (activeFilter != null) activeFilter and searchFilter else searchFilter }
+        } else if (activeFilter != null) {
+            query.where { activeFilter }
         }
         query.count()
     }

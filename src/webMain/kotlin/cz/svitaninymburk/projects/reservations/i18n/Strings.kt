@@ -182,6 +182,7 @@ interface AppStrings : ErrorStrings {
     val tableHeaderEvent: String
     val noReservationsForSearch: (String) -> String
     val noReservations: String
+    val showCancelledReservations: String
 
     // Admin Layout / Sidebar
     val adminPanel: String
@@ -438,6 +439,16 @@ interface AppStrings : ErrorStrings {
     val toastUserDeleted: (String) -> String
     val roleAdmin: String
     val roleUser: String
+
+    // Password change
+    val changePassword: String
+    val changePasswordTitle: String
+    val resetPassword: String
+    val oldPassword: String
+    val newPassword: String
+    val confirmNewPassword: String
+    val passwordChanged: String
+    val tooltipResetPassword: String
 
     // Attendance Screen
     val attendanceButton: String

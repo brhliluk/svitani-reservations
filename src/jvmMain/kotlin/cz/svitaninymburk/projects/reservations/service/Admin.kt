@@ -215,12 +215,12 @@ class AdminDashboardService(
         )
     }
 
-    override suspend fun getAllReservations(searchQuery: String?, page: Int, pageSize: Int): Either<AdminError.GetReservations, ReservationsPage> = either {
+    override suspend fun getAllReservations(searchQuery: String?, page: Int, pageSize: Int, includeCancelled: Boolean): Either<AdminError.GetReservations, ReservationsPage> = either {
         ensure(page >= 0) { AdminError.FailedToGetReservations("Neplatná stránka.") }
         ensure(pageSize in 1..200) { AdminError.FailedToGetReservations("Neplatná velikost stránky.") }
         try {
-            val reservations = reservationRepository.findAllPaged(searchQuery, page, pageSize)
-            val totalCount = reservationRepository.countAll(searchQuery)
+            val reservations = reservationRepository.findAllPaged(searchQuery, page, pageSize, includeCancelled)
+            val totalCount = reservationRepository.countAll(searchQuery, includeCancelled)
 
             val items = reservations.map { res ->
                 var eventTitle = "Neznámá událost"
@@ -661,6 +661,7 @@ class AdminDashboardService(
                         seriesTitle = series?.title ?: existing.title,
                         oldDateTime = existing.startDateTime,
                         newDateTime = request.startDateTime,
+                        locale = res.locale,
                     ).onLeft { println("⚠️ Failed to send reschedule email for ${res.id}: $it") }
                 }
         }
@@ -828,6 +829,7 @@ class AdminDashboardService(
                         contactName = res.contactName,
                         seriesTitle = series?.title ?: instance.title,
                         lessonDateTime = instance.startDateTime,
+                        locale = res.locale,
                     ).onLeft { println("⚠️ Failed to send lesson-cancelled email for ${res.id}: $it") }
                 }
         } catch (e: Exception) {

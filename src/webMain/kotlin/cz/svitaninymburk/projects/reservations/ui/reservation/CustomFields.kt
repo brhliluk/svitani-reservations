@@ -78,7 +78,6 @@ fun IComponent.renderCustomField(
                         field.max?.let { max(it) }
                         field.min?.let { min(it) }
                     }
-//                    bind(field.key, object : NumberFormControl {}) TODO: if setAttr not enough
                     required(field.isRequired)
                     onInput { stateMap[field.key] = NumberValue(field.key, this.value?.toFloatOrNull() ?: 0f) }
                 }

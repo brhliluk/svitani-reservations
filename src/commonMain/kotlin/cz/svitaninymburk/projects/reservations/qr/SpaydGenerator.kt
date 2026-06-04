@@ -2,6 +2,18 @@ package cz.svitaninymburk.projects.reservations.qr
 
 import kotlin.math.roundToInt
 
+private fun String.removeDiacritics(): String {
+    val map = mapOf(
+        'á' to 'a', 'č' to 'c', 'ď' to 'd', 'é' to 'e', 'ě' to 'e',
+        'í' to 'i', 'ň' to 'n', 'ó' to 'o', 'ř' to 'r', 'š' to 's',
+        'ť' to 't', 'ú' to 'u', 'ů' to 'u', 'ý' to 'y', 'ž' to 'z',
+        'Á' to 'A', 'Č' to 'C', 'Ď' to 'D', 'É' to 'E', 'Ě' to 'E',
+        'Í' to 'I', 'Ň' to 'N', 'Ó' to 'O', 'Ř' to 'R', 'Š' to 'S',
+        'Ť' to 'T', 'Ú' to 'U', 'Ů' to 'U', 'Ý' to 'Y', 'Ž' to 'Z',
+    )
+    return map { map.getOrElse(it) { it } }.joinToString("")
+}
+
 object SpaydGenerator {
     fun generate(iban: String, amount: Double, vs: String?, message: String?, currency: String = "CZK"): String = buildString {
         append("SPD*1.0")
@@ -19,10 +31,7 @@ object SpaydGenerator {
         }
 
         if (!message.isNullOrBlank()) {
-            // SPAYD nemá rád diakritiku. V KMP je těžké ji odstranit bez externí lib.
-            // Prozatím jen uppercase, ideálně bys měl mít funkci removeDiacritics()
-            val safeMsg = message.take(60).uppercase()
-            // .replace(Regex("[^A-Z0-9 ]"), "") // Volitelně vyhodit divné znaky
+            val safeMsg = message.take(60).removeDiacritics().uppercase().replace(Regex("[^A-Z0-9 ]"), "")
             append("*MSG:$safeMsg")
         }
     }

@@ -13,6 +13,7 @@ import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.auth.ChangePasswordDialog
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
@@ -38,12 +39,13 @@ fun IComponent.AdminDashboardScreen() {
 
     var refreshTrigger by remember { mutableStateOf(0) }
     var toastData by remember { mutableStateOf<ToastData?>(null) }
+    var showChangePassword by remember { mutableStateOf(false) }
 
     // Stažení dat z backendu
     val uiState by produceState<AdminDashboardUiState>(initialValue = AdminDashboardUiState.Loading, key1 = refreshTrigger) {
         adminService.getDashboardSummary()
             .onRight { value = AdminDashboardUiState.Success(it) }
-            .onLeft { value = AdminDashboardUiState.Error(it.toString()) }
+            .onLeft { value = AdminDashboardUiState.Error(it.localizedMessage(currentStrings)) }
     }
 
     when (val state = uiState) {
@@ -59,6 +61,11 @@ fun IComponent.AdminDashboardScreen() {
                 div {
                     h1(className = "text-3xl font-bold text-base-content") { +currentStrings.dashboard }
                     p(className = "text-base-content/60 mt-1") { +currentStrings.dashboardWelcome }
+                    button(className = "btn btn-ghost btn-sm gap-2 mt-2") {
+                        onClick { showChangePassword = true }
+                        span(className = "icon-[heroicons--key] size-4")
+                        +currentStrings.changePassword
+                    }
                 }
 
                 // --- 1. KPI STATISTIKY ---
@@ -135,6 +142,14 @@ fun IComponent.AdminDashboardScreen() {
                 type = toastData?.type ?: ToastType.Success,
                 onDismiss = { toastData = null }
             )
+            ChangePasswordDialog(
+                isOpen = showChangePassword,
+                onClose = { showChangePassword = false },
+                onSuccess = {
+                    showChangePassword = false
+                    toastData = ToastData(currentStrings.passwordChanged, ToastType.Success)
+                }
+            )
         }
     }
 }
@@ -181,7 +196,6 @@ fun IComponent.AdminPendingReservationRow(name: String, eventName: String, price
         }
         div(className = "flex items-center gap-3") {
             span(className = "font-bold text-warning whitespace-nowrap") { +price }
-            // Tlačítko pro schválení platby (zatím vizuální)
             button(className = "btn btn-circle btn-ghost btn-sm text-success") {
                 title(currentStrings.tooltipMarkPaid)
                 attribute("aria-label", currentStrings.tooltipMarkPaid)

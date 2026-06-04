@@ -34,6 +34,7 @@ interface EmailService {
         seriesTitle: String,
         oldDateTime: LocalDateTime,
         newDateTime: LocalDateTime,
+        locale: String,
     ): Either<EmailError.SendLessonRescheduled, Unit>
 
     suspend fun sendLessonCancelledNotification(
@@ -41,6 +42,7 @@ interface EmailService {
         contactName: String,
         seriesTitle: String,
         lessonDateTime: LocalDateTime,
+        locale: String,
     ): Either<EmailError.SendLessonCancelled, Unit>
 
     suspend fun sendLessonOptOutNotice(

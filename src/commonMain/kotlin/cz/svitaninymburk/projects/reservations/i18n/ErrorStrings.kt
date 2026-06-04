@@ -54,4 +54,9 @@ interface ErrorStrings {
     fun errorSettingsEmailTestFailed(reason: String): String
     fun errorSettingsFioTestFailed(reason: String): String
     val errorSettingsEncryptionKeyMissing: String
+
+    // Password change errors
+    val errorWrongOldPassword: String
+    val errorNotEmailUser: String
+    val errorPasswordTooWeak: String
 }

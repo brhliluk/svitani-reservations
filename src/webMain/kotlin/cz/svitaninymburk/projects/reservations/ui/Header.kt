@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import cz.svitaninymburk.projects.reservations.i18n.strings
+import cz.svitaninymburk.projects.reservations.ui.auth.ChangePasswordDialog
 import cz.svitaninymburk.projects.reservations.ui.auth.ForgotPasswordDialog
 import cz.svitaninymburk.projects.reservations.ui.auth.LoginDialog
 import cz.svitaninymburk.projects.reservations.ui.auth.RegisterDialog
@@ -16,9 +17,11 @@ import dev.kilua.html.button
 import dev.kilua.html.div
 import dev.kilua.html.header
 import dev.kilua.html.img
+import dev.kilua.html.li
 import dev.kilua.html.span
+import dev.kilua.html.ul
 
-enum class AuthModalState { Closed, Login, Register, ForgotPassword }
+enum class AuthModalState { Closed, Login, Register, ForgotPassword, ChangePassword }
 
 @Composable
 fun IComponent.AppHeader(
@@ -71,6 +74,15 @@ fun IComponent.AppHeader(
         }
     )
 
+    ChangePasswordDialog(
+        isOpen = modalState == AuthModalState.ChangePassword,
+        onClose = { modalState = AuthModalState.Closed },
+        onSuccess = {
+            modalState = AuthModalState.Closed
+            onShowMessage(currentStrings.passwordChanged, ToastType.Success)
+        }
+    )
+
     header(className = "navbar min-h-16 bg-base-100 border-b border-primary/20 px-3 sm:px-8") {
 
         div(className = "navbar-start gap-3 sm:gap-4 cursor-pointer") {
@@ -101,24 +113,44 @@ fun IComponent.AppHeader(
                             span(className = "hidden sm:inline") { +currentStrings.wallet }
                         }
                     }
-                    div(className = "avatar placeholder") {
-                        attribute("aria-hidden", "true")
-                        div(className = "bg-primary/10 text-primary w-10 rounded-full grid place-items-center") {
-                            span(className = "icon-[heroicons--user] size-6")
+
+                    // User dropdown
+                    div(className = "dropdown dropdown-end") {
+                        div(className = "flex items-center gap-2 cursor-pointer hover:bg-base-200 rounded-lg px-2 py-1 transition-colors") {
+                            attribute("tabindex", "0")
+                            attribute("role", "button")
+                            div(className = "avatar placeholder") {
+                                attribute("aria-hidden", "true")
+                                div(className = "bg-primary/10 text-primary w-10 rounded-full grid place-items-center") {
+                                    span(className = "icon-[heroicons--user] size-6")
+                                }
+                            }
+                            div(className = "hidden sm:flex flex-col text-sm") {
+                                span(className = "font-semibold text-base-content") {
+                                    +"${user.name} ${user.surname}"
+                                }
+                            }
+                            span(className = "icon-[heroicons--chevron-down] size-4 text-base-content/50")
                         }
-                    }
-                    div(className = "hidden sm:flex flex-col text-sm") {
-                        span(className = "font-semibold text-base-content") {
-                            +"${user.name} ${user.surname}"
+                        ul(className = "dropdown-content menu p-2 shadow-lg bg-base-100 rounded-box w-48 border border-base-200 z-50") {
+                            attribute("tabindex", "0")
+                            if (user is User.Email) {
+                                li {
+                                    div(className = "flex items-center gap-2") {
+                                        onClick { modalState = AuthModalState.ChangePassword }
+                                        span(className = "icon-[heroicons--key] size-4")
+                                        +currentStrings.changePassword
+                                    }
+                                }
+                            }
+                            li {
+                                div(className = "flex items-center gap-2 text-error") {
+                                    onClick { onLogout() }
+                                    span(className = "icon-[heroicons--arrow-right-on-rectangle] size-4")
+                                    +currentStrings.logOut
+                                }
+                            }
                         }
-                        button(className = "text-xs text-base-content/60 hover:text-primary text-left") {
-                            onClick { onLogout() }
-                            +currentStrings.logOut
-                        }
-                    }
-                    button(className = "sm:hidden btn btn-ghost btn-sm min-h-11") {
-                        onClick { onLogout() }
-                        +currentStrings.logOut
                     }
                 } else {
                     button(className = "btn btn-primary btn-sm min-h-11 px-4") {

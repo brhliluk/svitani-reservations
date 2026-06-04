@@ -166,6 +166,7 @@ object EnStrings : AppStrings {
     override val tableHeaderEvent = "Event / Course"
     override val noReservationsForSearch: (String) -> String = { "No reservations found for '$it'." }
     override val noReservations = "No reservations yet."
+    override val showCancelledReservations = "Show cancelled"
 
     // Admin Layout / Sidebar
     override val adminPanel = "Admin Panel"
@@ -426,6 +427,16 @@ object EnStrings : AppStrings {
     override val roleAdmin = "Administrator"
     override val roleUser = "User"
 
+    // Password change
+    override val changePassword = "Change password"
+    override val changePasswordTitle = "Change password"
+    override val resetPassword = "Reset password"
+    override val oldPassword = "Current password"
+    override val newPassword = "New password"
+    override val confirmNewPassword = "Confirm new password"
+    override val passwordChanged = "Password changed successfully"
+    override val tooltipResetPassword = "Send password reset email"
+
     // Attendance Screen
     override val attendanceButton = "Attendance"
     override val attendancePrintHeader: (String) -> String = { "Attendance: $it" }
@@ -617,4 +628,9 @@ object EnStrings : AppStrings {
     override fun errorSettingsEmailTestFailed(reason: String) = "Email test failed: $reason"
     override fun errorSettingsFioTestFailed(reason: String) = "FIO test failed: $reason"
     override val errorSettingsEncryptionKeyMissing = "Encryption key missing (SETTINGS_ENCRYPTION_KEY)"
+
+    // Password change errors
+    override val errorWrongOldPassword = "The current password is incorrect"
+    override val errorNotEmailUser = "This account is linked with Google and has no password"
+    override val errorPasswordTooWeak = "Password must be at least 6 characters"
 }

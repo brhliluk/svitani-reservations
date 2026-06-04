@@ -281,7 +281,7 @@ fun IComponent.AdminEventsScreen() {
                                                     definitionsPage = 0
                                                     refreshTrigger++
                                                 }
-                                                .onLeft { toastData = ToastData(currentStrings.errorToast(it.toString()), ToastType.Error) }
+                                                .onLeft { toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
                                         }
                                     }
                                     +currentStrings.deleteTemplate
@@ -319,7 +319,7 @@ fun IComponent.AdminEventsScreen() {
                                                     definitionsPage = 0
                                                     refreshTrigger++
                                                 }
-                                                .onLeft { toastData = ToastData(currentStrings.errorToast(it.toString()), ToastType.Error) }
+                                                .onLeft { toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
                                         }
                                     }
                                     if (itemToDelete.isSeries) +currentStrings.deleteSeriesLabel else +currentStrings.deleteEventLabel

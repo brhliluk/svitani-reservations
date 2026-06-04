@@ -345,97 +345,104 @@ open class ReservationService(
             }
         } else {
             // Whole-reservation cancellation path
-            val target: ReservationTarget = ensureNotNull( when (reservation.reference) {
+            val target: ReservationTarget? = when (reservation.reference) {
                 is Reference.Instance -> eventInstanceRepository.get(reservation.reference.id)?.let { ReservationTarget.Instance(it) }
                 is Reference.Series -> eventSeriesRepository.get(reservation.reference.id)?.let { ReservationTarget.Series(it) }
-            }) { ReservationError.ReservationNotFound }
+            }
 
-            ensure(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) < target.startDateTime) { ReservationError.EventAlreadyFinished }
+            if (target != null) {
+                ensure(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) < target.startDateTime) { ReservationError.EventAlreadyFinished }
+            }
 
             val cancelledReservation = reservation.copy(status = Reservation.Status.CANCELLED)
             reservationRepository.save(cancelledReservation)
 
-            val updatedSpots = when (reservation.reference) {
-                is Reference.Instance -> eventInstanceRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
-                is Reference.Series -> eventSeriesRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
-            } ?: when (target) {
-                is ReservationTarget.Instance -> (target.event.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
-                is ReservationTarget.Series -> (target.series.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
-            }
-
-            emailService.sendCancellationNotice(cancelledReservation.contactEmail, target.title, cancelledReservation.id, cancelledReservation.locale)
-                .mapLeft { ReservationError.FailedToSendCancellationEmail(it) }.bind()
-
-            val ownerEmails = resolveOwnerEmails(target)
-            if (ownerEmails.isNotEmpty()) {
-                val capacity = when (target) {
-                    is ReservationTarget.Instance -> target.event.capacity
-                    is ReservationTarget.Series -> target.series.capacity
+            if (target == null) {
+                // Referenced event was deleted — still cancel the reservation, skip side effects
+                CancellationResult()
+            } else {
+                val updatedSpots = when (reservation.reference) {
+                    is Reference.Instance -> eventInstanceRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
+                    is Reference.Series -> eventSeriesRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
+                } ?: when (target) {
+                    is ReservationTarget.Instance -> (target.event.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
+                    is ReservationTarget.Series -> (target.series.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
                 }
-                ownerEmails.forEach { email ->
-                    lectorEmailService.sendLectorCancellationNotification(
-                        lectorEmail = email,
-                        contactName = cancelledReservation.contactName,
-                        eventTitle = target.title,
-                        seatCount = cancelledReservation.seatCount,
-                        occupiedSpots = updatedSpots,
-                        capacity = capacity,
-                        locale = cancelledReservation.locale,
-                    ).onLeft { println("⚠️ Failed to send owner cancellation email to $email: $it") }
-                }
-            }
 
-            // Wallet credit for whole-reservation cancellation — only within the deadline (18:00 day before)
-            val paidAmount = reservation.paidAmount
-            val timezone = TimeZone.of("Europe/Prague")
-            val cancellationDeadline = target.startDateTime.date
-                .minus(1, DateTimeUnit.DAY)
-                .atTime(18, 0)
-                .toInstant(timezone)
-            val withinCancellationWindow = Clock.System.now() < cancellationDeadline
-            if (paidAmount > 0.0 && withinCancellationWindow) {
-                val wallet: Wallet = if (reservation.registeredUserId != null) {
-                    walletService.findOrCreateForRegisteredUser(reservation.registeredUserId, reservation.contactEmail)
-                } else {
-                    val resolved = walletService.resolveAnonymousWallet(walletCode, reservation.contactEmail, force)
-                    when (val r = resolved) {
-                        is Either.Left -> raise(r.value)
-                        is Either.Right -> r.value
+                emailService.sendCancellationNotice(cancelledReservation.contactEmail, target.title, cancelledReservation.id, cancelledReservation.locale)
+                    .mapLeft { ReservationError.FailedToSendCancellationEmail(it) }.bind()
+
+                val ownerEmails = resolveOwnerEmails(target)
+                if (ownerEmails.isNotEmpty()) {
+                    val capacity = when (target) {
+                        is ReservationTarget.Instance -> target.event.capacity
+                        is ReservationTarget.Series -> target.series.capacity
+                    }
+                    ownerEmails.forEach { email ->
+                        lectorEmailService.sendLectorCancellationNotification(
+                            lectorEmail = email,
+                            contactName = cancelledReservation.contactName,
+                            eventTitle = target.title,
+                            seatCount = cancelledReservation.seatCount,
+                            occupiedSpots = updatedSpots,
+                            capacity = capacity,
+                            locale = cancelledReservation.locale,
+                        ).onLeft { println("⚠️ Failed to send owner cancellation email to $email: $it") }
                     }
                 }
 
-                var updatedWallet = wallet
-                if (reservation.walletDeductedAmount > 0.0) {
-                    // Reverse the wallet debit first
-                    updatedWallet = walletService.credit(
-                        wallet.id, reservation.walletDeductedAmount,
-                        WalletTransactionReason.RESERVATION_DEBIT_REVERSAL, reservationId
-                    )
-                    // Refund the cash portion
-                    val cashPaid = paidAmount - reservation.walletDeductedAmount
-                    if (cashPaid > 0.0) {
+                // Wallet credit for whole-reservation cancellation — only within the deadline (18:00 day before)
+                val paidAmount = reservation.paidAmount
+                val timezone = TimeZone.of("Europe/Prague")
+                val cancellationDeadline = target.startDateTime.date
+                    .minus(1, DateTimeUnit.DAY)
+                    .atTime(18, 0)
+                    .toInstant(timezone)
+                val withinCancellationWindow = Clock.System.now() < cancellationDeadline
+                if (paidAmount > 0.0 && withinCancellationWindow) {
+                    val wallet: Wallet = if (reservation.registeredUserId != null) {
+                        walletService.findOrCreateForRegisteredUser(reservation.registeredUserId, reservation.contactEmail)
+                    } else {
+                        val resolved = walletService.resolveAnonymousWallet(walletCode, reservation.contactEmail, force)
+                        when (val r = resolved) {
+                            is Either.Left -> raise(r.value)
+                            is Either.Right -> r.value
+                        }
+                    }
+
+                    var updatedWallet = wallet
+                    if (reservation.walletDeductedAmount > 0.0) {
+                        // Reverse the wallet debit first
                         updatedWallet = walletService.credit(
-                            wallet.id, cashPaid, WalletTransactionReason.CANCELLATION_REFUND, reservationId
+                            wallet.id, reservation.walletDeductedAmount,
+                            WalletTransactionReason.RESERVATION_DEBIT_REVERSAL, reservationId
+                        )
+                        // Refund the cash portion
+                        val cashPaid = paidAmount - reservation.walletDeductedAmount
+                        if (cashPaid > 0.0) {
+                            updatedWallet = walletService.credit(
+                                wallet.id, cashPaid, WalletTransactionReason.CANCELLATION_REFUND, reservationId
+                            )
+                        }
+                    } else {
+                        updatedWallet = walletService.credit(
+                            wallet.id, paidAmount, WalletTransactionReason.CANCELLATION_REFUND, reservationId
                         )
                     }
+                    val settings = appSettingsProvider.current
+                    walletEmailService.sendWalletCredited(
+                        toEmail = reservation.contactEmail,
+                        walletCode = updatedWallet.code,
+                        creditedAmount = paidAmount,
+                        newBalance = updatedWallet.balance,
+                        resetMonth = settings.seasonResetMonth,
+                        resetDay = settings.seasonResetDay,
+                        locale = reservation.locale,
+                    ).onLeft { println("⚠️ Failed to send wallet credited email to ${reservation.contactEmail}: $it") }
+                    CancellationResult(walletCode = updatedWallet.code, walletCreditAmount = paidAmount)
                 } else {
-                    updatedWallet = walletService.credit(
-                        wallet.id, paidAmount, WalletTransactionReason.CANCELLATION_REFUND, reservationId
-                    )
+                    CancellationResult()
                 }
-                val settings = appSettingsProvider.current
-                walletEmailService.sendWalletCredited(
-                    toEmail = reservation.contactEmail,
-                    walletCode = updatedWallet.code,
-                    creditedAmount = paidAmount,
-                    newBalance = updatedWallet.balance,
-                    resetMonth = settings.seasonResetMonth,
-                    resetDay = settings.seasonResetDay,
-                    locale = reservation.locale,
-                ).onLeft { println("⚠️ Failed to send wallet credited email to ${reservation.contactEmail}: $it") }
-                CancellationResult(walletCode = updatedWallet.code, walletCreditAmount = paidAmount)
-            } else {
-                CancellationResult()
             }
         }
     }

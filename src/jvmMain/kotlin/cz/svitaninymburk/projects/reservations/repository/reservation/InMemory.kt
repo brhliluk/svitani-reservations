@@ -45,8 +45,10 @@ class InMemoryReservationRepository : ReservationRepository {
         return reservations.values.toList()
     }
 
-    override suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int): List<Reservation> {
-        var result = reservations.values.toList()
+    override suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int, includeCancelled: Boolean): List<Reservation> {
+        var result = if (includeCancelled) reservations.values.toList() else reservations.values.filter {
+            it.status != Reservation.Status.CANCELLED && it.status != Reservation.Status.REJECTED
+        }
         if (!searchQuery.isNullOrBlank()) {
             val q = searchQuery.lowercase()
             result = result.filter {
@@ -60,10 +62,13 @@ class InMemoryReservationRepository : ReservationRepository {
                      .take(pageSize)
     }
 
-    override suspend fun countAll(searchQuery: String?): Long {
-        if (searchQuery.isNullOrBlank()) return reservations.size.toLong()
+    override suspend fun countAll(searchQuery: String?, includeCancelled: Boolean): Long {
+        val base = if (includeCancelled) reservations.values.toList() else reservations.values.filter {
+            it.status != Reservation.Status.CANCELLED && it.status != Reservation.Status.REJECTED
+        }
+        if (searchQuery.isNullOrBlank()) return base.size.toLong()
         val q = searchQuery.lowercase()
-        return reservations.values.count {
+        return base.count {
             it.contactName.lowercase().contains(q) ||
             it.contactEmail.lowercase().contains(q) ||
             it.variableSymbol?.lowercase()?.contains(q) == true

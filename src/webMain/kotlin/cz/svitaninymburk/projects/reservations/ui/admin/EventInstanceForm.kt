@@ -3,6 +3,7 @@ package cz.svitaninymburk.projects.reservations.ui.admin
 import androidx.compose.runtime.*
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
+import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.*
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.service.AuthenticatedEventServiceInterface
@@ -113,7 +114,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                 }
             }
             .onLeft { error ->
-                toastData = ToastData(currentStrings.toastTemplatesLoadError(error.toString()), ToastType.Error)
+                toastData = ToastData(currentStrings.toastTemplatesLoadError(error.localizedMessage(currentStrings)), ToastType.Error)
                 isLoadingDefinitions = false
             }
     }
@@ -440,7 +441,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                 for (dt in dateTimes) {
                                     authEventService.createEventInstance(baseRequest.copy(startDateTime = dt))
                                         .onLeft { error ->
-                                            toastData = ToastData(currentStrings.toastInstanceCreateError(dt.toString(), error.toString()), ToastType.Error)
+                                            toastData = ToastData(currentStrings.toastInstanceCreateError(dt.toString(), error.localizedMessage(currentStrings)), ToastType.Error)
                                             failed = true
                                         }
                                     if (failed) break

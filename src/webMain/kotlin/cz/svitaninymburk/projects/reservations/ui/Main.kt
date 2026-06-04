@@ -294,9 +294,39 @@ fun IComponent.MainLayout() {
             }
             route("/wallet") {
                 string { code ->
-                    view { WalletScreen(initialCode = code.value, initialEmail = currentUser?.email ?: "") }
+                    view {
+                        val router = Router.current
+                        UserShell(
+                            user = currentUser,
+                            walletCode = userWalletCode,
+                            onShowMessage = ::showToast,
+                            onLogin = { refreshUser() },
+                            onLogout = { doLogout() },
+                            onOpenMyReservations = { router.navigate("/my-reservations") },
+                            onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
+                            onNavigateToDashboard = { router.navigate("/") },
+                            onNavigateToAdmin = { router.navigate("/admin") },
+                        ) {
+                            WalletScreen(initialCode = code.value, initialEmail = currentUser?.email ?: "")
+                        }
+                    }
                 }
-                view { WalletScreen() }
+                view {
+                    val router = Router.current
+                    UserShell(
+                        user = currentUser,
+                        walletCode = userWalletCode,
+                        onShowMessage = ::showToast,
+                        onLogin = { refreshUser() },
+                        onLogout = { doLogout() },
+                        onOpenMyReservations = { router.navigate("/my-reservations") },
+                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
+                        onNavigateToDashboard = { router.navigate("/") },
+                        onNavigateToAdmin = { router.navigate("/admin") },
+                    ) {
+                        WalletScreen()
+                    }
+                }
             }
             route("/reset-password") {
                 string { token ->
@@ -435,9 +465,37 @@ fun IComponent.MainLayout() {
 
             route("/wallet") {
                 string { code ->
-                    view { WalletScreen(initialCode = code.value, initialEmail = currentUser?.email ?: "") }
+                    view {
+                        val router = Router.current
+                        UserShell(
+                            user = currentUser,
+                            walletCode = userWalletCode,
+                            onShowMessage = ::showToast,
+                            onLogin = { refreshUser() },
+                            onLogout = { doLogout() },
+                            onOpenMyReservations = { router.navigate("/my-reservations") },
+                            onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
+                            onNavigateToDashboard = { router.navigate("/") },
+                        ) {
+                            WalletScreen(initialCode = code.value, initialEmail = currentUser?.email ?: "")
+                        }
+                    }
                 }
-                view { WalletScreen() }
+                view {
+                    val router = Router.current
+                    UserShell(
+                        user = currentUser,
+                        walletCode = userWalletCode,
+                        onShowMessage = ::showToast,
+                        onLogin = { refreshUser() },
+                        onLogout = { doLogout() },
+                        onOpenMyReservations = { router.navigate("/my-reservations") },
+                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
+                        onNavigateToDashboard = { router.navigate("/") },
+                    ) {
+                        WalletScreen()
+                    }
+                }
             }
 
             route("/reset-password") {

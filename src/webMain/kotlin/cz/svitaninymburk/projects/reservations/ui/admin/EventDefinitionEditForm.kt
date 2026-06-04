@@ -104,7 +104,7 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
                     kotlinx.coroutines.delay(500)
                     router.navigate("/admin/events")
                 }
-                .onLeft { toastData = ToastData(currentStrings.errorToast(it.toString()), ToastType.Error) }
+                .onLeft { toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
         }
     }
 

@@ -118,7 +118,7 @@ class AuthService(
                 name = "auth_token",
                 value = token,
                 httpOnly = true,
-                secure = false,  // TODO: na HTTPS dej true
+                secure = true,
                 path = "/",
                 maxAge = 7.days.inWholeSeconds.toInt(),
             )

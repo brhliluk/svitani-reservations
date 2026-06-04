@@ -166,6 +166,7 @@ object CsStrings : AppStrings {
     override val tableHeaderEvent = "Událost / Kurz"
     override val noReservationsForSearch: (String) -> String = { "Nebyly nalezeny žádné rezervace pro '$it'." }
     override val noReservations = "Zatím neexistují žádné rezervace."
+    override val showCancelledReservations = "Zobrazit zrušené"
 
     // Admin Layout / Sidebar
     override val adminPanel = "Admin Panel"
@@ -426,6 +427,16 @@ object CsStrings : AppStrings {
     override val roleAdmin = "Administrátor"
     override val roleUser = "Uživatel"
 
+    // Password change
+    override val changePassword = "Změnit heslo"
+    override val changePasswordTitle = "Změnit heslo"
+    override val resetPassword = "Resetovat heslo"
+    override val oldPassword = "Staré heslo"
+    override val newPassword = "Nové heslo"
+    override val confirmNewPassword = "Potvrzení nového hesla"
+    override val passwordChanged = "Heslo bylo úspěšně změněno"
+    override val tooltipResetPassword = "Odeslat e-mail pro reset hesla"
+
     // Attendance Screen
     override val attendanceButton = "Prezenční listina"
     override val attendancePrintHeader: (String) -> String = { "Prezence: $it" }
@@ -616,4 +627,9 @@ object CsStrings : AppStrings {
     override fun errorSettingsEmailTestFailed(reason: String) = "Test e-mailu selhal: $reason"
     override fun errorSettingsFioTestFailed(reason: String) = "Test FIO selhal: $reason"
     override val errorSettingsEncryptionKeyMissing = "Chybí šifrovací klíč (SETTINGS_ENCRYPTION_KEY)"
+
+    // Password change errors
+    override val errorWrongOldPassword = "Zadané heslo není správné"
+    override val errorNotEmailUser = "Tento účet je přihlášen přes Google a nemá heslo"
+    override val errorPasswordTooWeak = "Heslo musí mít alespoň 6 znaků"
 }

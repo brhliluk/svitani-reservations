@@ -114,5 +114,5 @@ val appModule = module {
     single { PaymentPairingService(get(), get(), get(), get(), get(), get()) }
     single { AdminService(get()) }
     single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get()) } bind AdminServiceInterface::class
-    single { UserService(get()) }
+    single { UserService(get(), get()) }
 }

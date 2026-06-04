@@ -3,6 +3,7 @@ package cz.svitaninymburk.projects.reservations.ui.admin
 import androidx.compose.runtime.*
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
+import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.*
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
@@ -716,7 +717,7 @@ fun IComponent.AdminCreateEventScreen() {
                                     delay(500)
                                     router.navigate("/admin/events")
                                 }.onLeft { error ->
-                                    toastData = ToastData(currentStrings.errorToast(error.toString()), ToastType.Error)
+                                    toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
                                 }
                             }
 
@@ -743,7 +744,7 @@ fun IComponent.AdminCreateEventScreen() {
                                     delay(500)
                                     router.navigate("/admin/events")
                                 }.onLeft { error ->
-                                    toastData = ToastData(currentStrings.errorToast(error.toString()), ToastType.Error)
+                                    toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
                                 }
                             }
 
@@ -800,7 +801,7 @@ fun IComponent.AdminCreateEventScreen() {
                                     delay(500)
                                     router.navigate("/admin/events")
                                 }.onLeft { error ->
-                                    toastData = ToastData(currentStrings.errorToast(error.toString()), ToastType.Error)
+                                    toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
                                 }
                             }
                         }

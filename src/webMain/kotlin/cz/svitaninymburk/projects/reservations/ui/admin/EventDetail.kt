@@ -425,7 +425,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                                 refreshTrigger++
                                             }
                                             .onLeft { error ->
-                                                toastData = ToastData(currentStrings.errorToast(error.toString()), ToastType.Error)
+                                                toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
                                             }
                                     }
                                     AdminActionType.CANCEL_RESERVATION -> {
@@ -434,7 +434,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                                 toastData = ToastData(currentStrings.toastReservationCancelled(action.participantName), ToastType.Success)
                                                 refreshTrigger++
                                             }
-                                            .onLeft { error -> toastData = ToastData(currentStrings.errorToast(error.toString()), ToastType.Error) }
+                                            .onLeft { error -> toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error) }
                                     }
                                 }
                                 pendingAction = null
@@ -480,7 +480,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                         kotlinx.coroutines.delay(500)
                                         router.navigate("/admin/events")
                                     }
-                                    .onLeft { toastData = ToastData(currentStrings.errorToast(it.toString()), ToastType.Error) }
+                                    .onLeft { toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
                             }
                         }
                         if (isSeries) +currentStrings.deleteSeriesLabel else +currentStrings.deleteEventLabel
@@ -516,7 +516,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                         toastData = ToastData(currentStrings.toastLessonCancelled, ToastType.Success)
                                         lessonsRefreshTrigger++
                                     }
-                                    .onLeft { toastData = ToastData(currentStrings.errorToast(it.toString()), ToastType.Error) }
+                                    .onLeft { toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
                             }
                         }
                         +currentStrings.cancelLessonButton

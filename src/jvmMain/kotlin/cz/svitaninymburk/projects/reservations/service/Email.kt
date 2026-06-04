@@ -223,9 +223,10 @@ class GmailEmailService(
         seriesTitle: String,
         oldDateTime: LocalDateTime,
         newDateTime: LocalDateTime,
+        locale: String,
     ): Either<EmailError.SendLessonRescheduled, Unit> = either { withContext(Dispatchers.IO) {
         val email = setupEmail()
-        val s = emailStringsFor("cs")
+        val s = emailStringsFor(locale)
         email.addTo(toEmail)
         email.subject = s.lessonRescheduledSubject(seriesTitle)
         email.setTextMsg(s.lessonRescheduledBody(contactName, seriesTitle, oldDateTime.humanReadable, newDateTime.humanReadable))
@@ -239,9 +240,10 @@ class GmailEmailService(
         contactName: String,
         seriesTitle: String,
         lessonDateTime: LocalDateTime,
+        locale: String,
     ): Either<EmailError.SendLessonCancelled, Unit> = either { withContext(Dispatchers.IO) {
         val email = setupEmail()
-        val s = emailStringsFor("cs")
+        val s = emailStringsFor(locale)
         email.addTo(toEmail)
         email.subject = s.lessonCancelledSubject(seriesTitle)
         email.setTextMsg(s.lessonCancelledBody(contactName, seriesTitle, lessonDateTime.humanReadable))
@@ -435,7 +437,7 @@ class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService
 
     override suspend fun sendLessonRescheduledNotification(
         toEmail: String, contactName: String, seriesTitle: String,
-        oldDateTime: LocalDateTime, newDateTime: LocalDateTime,
+        oldDateTime: LocalDateTime, newDateTime: LocalDateTime, locale: String,
     ): Either<EmailError.SendLessonRescheduled, Unit> {
         println("📧 [MOCK] Lekce přeplánována: $seriesTitle | $toEmail | ${oldDateTime} → ${newDateTime}")
         return Unit.right()
@@ -443,7 +445,7 @@ class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService
 
     override suspend fun sendLessonCancelledNotification(
         toEmail: String, contactName: String, seriesTitle: String,
-        lessonDateTime: LocalDateTime,
+        lessonDateTime: LocalDateTime, locale: String,
     ): Either<EmailError.SendLessonCancelled, Unit> {
         println("📧 [MOCK] Lekce zrušena: $seriesTitle | $toEmail | $lessonDateTime")
         return Unit.right()

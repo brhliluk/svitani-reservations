@@ -13,8 +13,8 @@ interface ReservationRepository {
     suspend fun countSeats(id: Uuid): Int
     suspend fun getAll(userId: Uuid): List<Reservation>
     suspend fun findAll(): List<Reservation>
-    suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int): List<Reservation>
-    suspend fun countAll(searchQuery: String?): Long
+    suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int, includeCancelled: Boolean = false): List<Reservation>
+    suspend fun countAll(searchQuery: String?, includeCancelled: Boolean = false): Long
     suspend fun existsByVariableSymbol(variableSymbol: String): Boolean
     suspend fun updateStatus(id: Uuid, status: Reservation.Status): Boolean
 }

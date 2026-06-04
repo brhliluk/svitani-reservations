@@ -133,7 +133,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                     kotlinx.coroutines.delay(500)
                     history.back()
                 }
-                .onLeft { toastData = ToastData(currentStrings.errorToast(it.toString()), ToastType.Error) }
+                .onLeft { toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
         }
     }
 
