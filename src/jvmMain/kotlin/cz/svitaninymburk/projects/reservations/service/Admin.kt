@@ -40,6 +40,8 @@ import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.util.humanReadable
+import io.ktor.util.logging.KtorSimpleLogger
+import kotlin.reflect.jvm.jvmName
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -62,6 +64,8 @@ class AdminDashboardService(
     private val paymentEventRepository: PaymentEventRepository,
     private val walletService: WalletService,
 ): AdminServiceInterface {
+
+    private val logger = KtorSimpleLogger(this::class.jvmName)
 
     override suspend fun getDashboardSummary(): Either<AdminError.GetSummary, AdminDashboardData> = either {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -151,7 +155,7 @@ class AdminDashboardService(
         }
 
         emailService.sendPaymentReceivedConfirmation(reservation)
-            .onLeft { println("⚠️ Failed to send payment-received email for reservation ${reservation.id}: $it") }
+            .onLeft { logger.error("Failed to send payment-received email for reservation ${reservation.id}: $it") }
     }
 
     override suspend fun getEventDetail(eventId: Uuid, isSeries: Boolean): Either<AdminError.GetEventDetail, AdminEventDetailData> = either {
@@ -675,7 +679,7 @@ class AdminDashboardService(
                         oldDateTime = existing.startDateTime,
                         newDateTime = request.startDateTime,
                         locale = res.locale,
-                    ).onLeft { println("⚠️ Failed to send reschedule email for ${res.id}: $it") }
+                    ).onLeft { logger.error("Failed to send reschedule email for ${res.id}: $it") }
                 }
         }
     }
@@ -765,7 +769,7 @@ class AdminDashboardService(
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
                 emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
-                    .onLeft { println("⚠️ Failed to send cancellation email for ${res.id}: $it") }
+                    .onLeft { logger.error("Failed to send cancellation email for ${res.id}: $it") }
             }
 
         eventInstanceRepository.delete(id)
@@ -779,7 +783,7 @@ class AdminDashboardService(
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
                 emailService.sendCancellationNotice(res.contactEmail, series.title, res.id, res.locale)
-                    .onLeft { println("⚠️ Failed to send cancellation email for ${res.id}: $it") }
+                    .onLeft { logger.error("Failed to send cancellation email for ${res.id}: $it") }
             }
 
         eventSeriesRepository.delete(id)
@@ -797,7 +801,7 @@ class AdminDashboardService(
                 .forEach { res ->
                     reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
                     emailService.sendCancellationNotice(res.contactEmail, eventTitle, res.id, res.locale)
-                        .onLeft { println("⚠️ Failed to send cancellation email for ${res.id}: $it") }
+                        .onLeft { logger.error("Failed to send cancellation email for ${res.id}: $it") }
                 }
         }
 
@@ -845,7 +849,7 @@ class AdminDashboardService(
                         seriesTitle = series?.title ?: instance.title,
                         lessonDateTime = instance.startDateTime,
                         locale = res.locale,
-                    ).onLeft { println("⚠️ Failed to send lesson-cancelled email for ${res.id}: $it") }
+                    ).onLeft { logger.error("Failed to send lesson-cancelled email for ${res.id}: $it") }
                 }
         } catch (e: Exception) {
             e.printStackTrace()
