@@ -1,0 +1,895 @@
+openapi: "3.1.0"
+info:
+  title: Svítání Reservations API
+  description: Mobilní REST API pro rezervační systém Svítání. Chybové odpovědi vždy vrací `ApiError` s polem `code` (strojový identifikátor) a `message` (česky čitelný popis).
+  version: "1"
+servers:
+  - url: https://rezervace.svitaninymburk.cz
+    description: Produkce
+  - url: http://localhost:8080
+    description: Lokální vývoj
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+    description: Přihlášení a správa tokenů
+  - name: Events
+    description: Události a kroužky
+  - name: Reservations
+    description: Rezervace uživatele
+  - name: Wallet
+    description: Peněženka
+  - name: Admin
+    description: Administrátorské funkce (vyžadují roli ADMIN)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: Uživatel není přihlášen nebo token vypršel
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            TokenExpired:
+              value: { code: TokenExpired, message: "Token vypršel" }
+            InvalidToken:
+              value: { code: InvalidToken, message: "Neplatný token" }
+    Forbidden:
+      description: Přístup odepřen — pouze pro administrátory
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            Forbidden:
+              value: { code: Forbidden, message: "Přístup odepřen — pouze pro administrátory" }
+
+  schemas:
+
+    # --- Chyby ---
+
+    ApiError:
+      type: object
+      required: [code, message]
+      description: Standardní chybová odpověď. Pole `code` je název Kotlin třídy chyby — vhodné pro switch v mobilní aplikaci.
+      properties:
+        code:
+          type: string
+          description: |
+            Strojově čitelný identifikátor chyby. Možné hodnoty dle endpointu:
+            - **Auth:** InvalidCredentials, InvalidToken, TokenExpired, UserNotFound, UserAlreadyExists, InvalidGoogleToken
+            - **Rezervace:** ReservationNotFound, EventInstanceNotFound, EventSeriesNotFound, CapacityExceeded, EventAlreadyFinished, EventAlreadyStarted, EventCancelled, ReservationDeadlinePassed, FailedToGetReservations
+            - **Peněženka:** WalletNotFound, WalletEmpty, WalletEmailMismatch
+            - **Docházka:** EventNotFound, ReservationNotFound, SystemError
+          example: InvalidCredentials
+        message:
+          type: string
+          description: Uživatelsky čitelný popis chyby v češtině
+          example: Neplatné přihlašovací údaje
+
+    # --- Auth ---
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: jana@example.cz
+        password:
+          type: string
+          format: password
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [accessToken, refreshToken, user]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserDto'
+
+    RefreshResponse:
+      type: object
+      required: [accessToken]
+      properties:
+        accessToken:
+          type: string
+
+    UserDto:
+      type: object
+      required: [id, email, fullName, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+          example: Jana Nováková
+        role:
+          type: string
+          enum: [USER, ADMIN]
+        walletCode:
+          type: string
+          nullable: true
+          description: Kód peněženky, pokud ji uživatel má
+
+    # --- Události ---
+
+    EventsResponse:
+      type: object
+      required: [instances, series]
+      properties:
+        instances:
+          type: array
+          description: Jednorázové události
+          items:
+            $ref: '#/components/schemas/EventInstance'
+        series:
+          type: array
+          description: Kroužky (série lekcí)
+          items:
+            $ref: '#/components/schemas/EventSeries'
+
+    EventInstance:
+      type: object
+      required: [id, title, startDateTime, endDateTime, price, capacity, occupiedSpots]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        startDateTime:
+          type: string
+          format: date-time
+        endDateTime:
+          type: string
+          format: date-time
+        price:
+          type: number
+          description: Cena v CZK
+        capacity:
+          type: integer
+        occupiedSpots:
+          type: integer
+        allowedPaymentTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentType'
+
+    EventSeries:
+      type: object
+      required: [id, title, startDate, endDate, price, capacity, occupiedSpots]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        price:
+          type: number
+          description: Cena v CZK
+        capacity:
+          type: integer
+        occupiedSpots:
+          type: integer
+        allowedPaymentTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentType'
+
+    PaymentType:
+      type: string
+      enum: [BANK_TRANSFER, ON_SITE, FREE]
+      description: |
+        - `BANK_TRANSFER` — bankovní převod (QR kód)
+        - `ON_SITE` — platba na místě
+        - `FREE` — zdarma
+
+    # --- Rezervace ---
+
+    Reservation:
+      type: object
+      required: [id, contactName, contactEmail, seatCount, totalPrice, paidAmount, status, createdAt, paymentType]
+      properties:
+        id:
+          type: string
+          format: uuid
+        contactName:
+          type: string
+        contactEmail:
+          type: string
+          format: email
+        contactPhone:
+          type: string
+          nullable: true
+        seatCount:
+          type: integer
+          minimum: 1
+        totalPrice:
+          type: number
+        paidAmount:
+          type: number
+        status:
+          type: string
+          enum: [PENDING_PAYMENT, CONFIRMED, CANCELLED, REJECTED]
+        createdAt:
+          type: string
+          format: date-time
+        paymentType:
+          $ref: '#/components/schemas/PaymentType'
+        variableSymbol:
+          type: string
+          nullable: true
+          description: Variabilní symbol pro párování platby
+
+    ReservationDetail:
+      type: object
+      required: [reservation, accountNumber]
+      properties:
+        reservation:
+          $ref: '#/components/schemas/Reservation'
+        target:
+          nullable: true
+          description: Cíl rezervace (událost nebo kroužek)
+          oneOf:
+            - $ref: '#/components/schemas/ReservationTargetInstance'
+            - $ref: '#/components/schemas/ReservationTargetSeries'
+        accountNumber:
+          type: string
+          example: 2702819049/2010
+
+    ReservationTargetInstance:
+      type: object
+      description: Jednorázová událost jako cíl rezervace
+      properties:
+        type:
+          type: string
+          enum: [instance]
+        event:
+          $ref: '#/components/schemas/EventInstance'
+
+    ReservationTargetSeries:
+      type: object
+      description: Kroužek jako cíl rezervace
+      properties:
+        type:
+          type: string
+          enum: [series]
+        series:
+          $ref: '#/components/schemas/EventSeries'
+
+    MyReservationListItem:
+      type: object
+      required: [id, eventTitle, startDateTime, seatCount, totalPrice, status, paymentType, isSeries]
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventTitle:
+          type: string
+        startDateTime:
+          type: string
+          format: date-time
+        seatCount:
+          type: integer
+        totalPrice:
+          type: number
+        status:
+          type: string
+          enum: [PENDING_PAYMENT, CONFIRMED, CANCELLED, REJECTED]
+        paymentType:
+          $ref: '#/components/schemas/PaymentType'
+        variableSymbol:
+          type: string
+          nullable: true
+        isSeries:
+          type: boolean
+
+    CreateInstanceReservationRequest:
+      type: object
+      required: [eventInstanceId, contactName, contactEmail, contactPhone, paymentType, customValues]
+      properties:
+        eventInstanceId:
+          type: string
+          format: uuid
+        seatCount:
+          type: integer
+          default: 1
+          minimum: 1
+        contactName:
+          type: string
+        contactEmail:
+          type: string
+          format: email
+        contactPhone:
+          type: string
+        paymentType:
+          $ref: '#/components/schemas/PaymentType'
+        customValues:
+          type: object
+          description: Hodnoty vlastních polí definovaných na události
+          additionalProperties: true
+        locale:
+          type: string
+          default: cs
+          example: cs
+        walletCode:
+          type: string
+          nullable: true
+          description: Kód peněženky pro uplatnění kreditu
+
+    CreateSeriesReservationRequest:
+      type: object
+      required: [eventSeriesId, contactName, contactEmail, contactPhone, paymentType, customValues]
+      properties:
+        eventSeriesId:
+          type: string
+          format: uuid
+        seatCount:
+          type: integer
+          default: 1
+          minimum: 1
+        contactName:
+          type: string
+        contactEmail:
+          type: string
+          format: email
+        contactPhone:
+          type: string
+        paymentType:
+          $ref: '#/components/schemas/PaymentType'
+        customValues:
+          type: object
+          description: Hodnoty vlastních polí definovaných na kroužku
+          additionalProperties: true
+        locale:
+          type: string
+          default: cs
+          example: cs
+        walletCode:
+          type: string
+          nullable: true
+          description: Kód peněženky pro uplatnění kreditu
+
+    CancellationResult:
+      type: object
+      description: Výsledek zrušení rezervace. Pokud byl kredit vrácen do peněženky, obsahuje kód a částku.
+      properties:
+        walletCode:
+          type: string
+          nullable: true
+        walletCreditAmount:
+          type: number
+          nullable: true
+
+    MobilePaymentInfo:
+      type: object
+      required: [spayd, amount, iban, accountNumber]
+      properties:
+        spayd:
+          type: string
+          description: SPAYD řetězec pro generování QR kódu platby
+          example: "SPD*1.0*ACC:CZ6550860000002702819049*AM:1200.0*CC:CZK*X-VS:1234567890*MSG:Rezervace"
+        amount:
+          type: number
+          description: Zbývající částka k zaplacení v CZK
+        variableSymbol:
+          type: string
+          nullable: true
+        iban:
+          type: string
+          example: CZ6550860000002702819049
+        accountNumber:
+          type: string
+          example: 2702819049/2010
+
+    # --- Peněženka ---
+
+    WalletInfo:
+      type: object
+      required: [code, balance, emailMatches, seasonResetDay, seasonResetMonth]
+      properties:
+        code:
+          type: string
+          description: Kód peněženky
+        balance:
+          type: number
+          description: Aktuální zůstatek v CZK
+        emailMatches:
+          type: boolean
+          description: Zda email peněženky odpovídá přihlášenému uživateli
+        seasonResetDay:
+          type: integer
+          description: Den resetu sezóny
+        seasonResetMonth:
+          type: integer
+          description: Měsíc resetu sezóny
+
+    # --- Docházka ---
+
+    AttendanceList:
+      type: object
+      required: [eventInstanceId, entries]
+      properties:
+        eventInstanceId:
+          type: string
+          format: uuid
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttendanceEntry'
+
+    AttendanceEntry:
+      type: object
+      required: [reservationId, contactName, seatCount, checkedIn]
+      properties:
+        reservationId:
+          type: string
+          format: uuid
+        contactName:
+          type: string
+        seatCount:
+          type: integer
+        checkedIn:
+          type: boolean
+
+    SetAttendanceRequest:
+      type: object
+      required: [reservationId, checkedIn]
+      properties:
+        reservationId:
+          type: string
+          format: uuid
+        checkedIn:
+          type: boolean
+
+paths:
+
+  # ── Auth (veřejné) ─────────────────────────────────────────────────────────
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Přihlášení emailem a heslem
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        "200":
+          description: Přihlášení proběhlo úspěšně
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        "401":
+          description: Neplatné přihlašovací údaje
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                InvalidCredentials:
+                  value: { code: InvalidCredentials, message: "Neplatné přihlašovací údaje" }
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Obnovení přístupového tokenu pomocí refresh tokenu
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        "200":
+          description: Nový přístupový token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        "401":
+          description: Neplatný nebo vypršelý refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                TokenExpired:
+                  value: { code: TokenExpired, message: "Token vypršel" }
+                InvalidToken:
+                  value: { code: InvalidToken, message: "Neplatný token" }
+
+  # ── Auth (zabezpečené) ─────────────────────────────────────────────────────
+
+  /api/v1/me:
+    get:
+      tags: [Auth]
+      summary: Informace o přihlášeném uživateli
+      responses:
+        "200":
+          description: Profil uživatele
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDto'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── Peněženka ──────────────────────────────────────────────────────────────
+
+  /api/v1/wallet:
+    get:
+      tags: [Wallet]
+      summary: Informace o peněžence přihlášeného uživatele
+      responses:
+        "200":
+          description: Stav peněženky
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletInfo'
+        "400":
+          description: Chyba peněženky
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                WalletEmpty:
+                  value: { code: WalletEmpty, message: "Peněženka nemá žádný zůstatek" }
+                WalletEmailMismatch:
+                  value: { code: WalletEmailMismatch, message: "Peněženka je přiřazena k jinému emailu" }
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          description: Peněženka nenalezena
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                WalletNotFound:
+                  value: { code: WalletNotFound, message: "Peněženka s tímto kódem nebyla nalezena" }
+
+  # ── Události ───────────────────────────────────────────────────────────────
+
+  /api/v1/events:
+    get:
+      tags: [Events]
+      summary: Všechny nadcházející události a kroužky
+      responses:
+        "200":
+          description: Seznam událostí a kroužků
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsResponse'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/events/{id}:
+    get:
+      tags: [Events]
+      summary: Detail události včetně stavu kapacity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Detail rezervace s cílovou událostí
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationDetail'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          description: Událost nenalezena
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                EventInstanceNotFound:
+                  value: { code: EventInstanceNotFound, message: "Událost nebyla nalezena" }
+
+  # ── Rezervace ──────────────────────────────────────────────────────────────
+
+  /api/v1/reservations/instance:
+    post:
+      tags: [Reservations]
+      summary: Vytvoření rezervace na jednorázovou událost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInstanceReservationRequest'
+      responses:
+        "200":
+          description: Rezervace vytvořena
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationDetail'
+        "400":
+          description: Rezervaci nelze vytvořit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                EventAlreadyFinished:
+                  value: { code: EventAlreadyFinished, message: "Událost již skončila" }
+                EventAlreadyStarted:
+                  value: { code: EventAlreadyStarted, message: "Událost již začala" }
+                EventCancelled:
+                  value: { code: EventCancelled, message: "Událost byla zrušena" }
+                ReservationDeadlinePassed:
+                  value: { code: ReservationDeadlinePassed, message: "Uzávěrka rezervací pro tuto událost již proběhla" }
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          description: Událost nenalezena
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                EventInstanceNotFound:
+                  value: { code: EventInstanceNotFound, message: "Událost nebyla nalezena" }
+        "409":
+          description: Kapacita události překročena
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                CapacityExceeded:
+                  value: { code: CapacityExceeded, message: "Kapacita události překročena" }
+
+  /api/v1/reservations/series:
+    post:
+      tags: [Reservations]
+      summary: Přihlášení na kroužek (série lekcí)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSeriesReservationRequest'
+      responses:
+        "200":
+          description: Rezervace na kroužek vytvořena
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationDetail'
+        "400":
+          description: Přihlášení nelze provést
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                EventCancelled:
+                  value: { code: EventCancelled, message: "Událost byla zrušena" }
+                ReservationDeadlinePassed:
+                  value: { code: ReservationDeadlinePassed, message: "Uzávěrka rezervací pro tuto událost již proběhla" }
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          description: Kroužek nenalezen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                EventSeriesNotFound:
+                  value: { code: EventSeriesNotFound, message: "Kroužek nebyl nalezen" }
+        "409":
+          description: Kapacita kroužku překročena
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                CapacityExceeded:
+                  value: { code: CapacityExceeded, message: "Kapacita události překročena" }
+
+  /api/v1/reservations/mine:
+    get:
+      tags: [Reservations]
+      summary: Moje rezervace (přihlášený uživatel)
+      responses:
+        "200":
+          description: Seznam rezervací uživatele
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MyReservationListItem'
+        "400":
+          description: Chyba načítání rezervací
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                FailedToGetReservations:
+                  value: { code: FailedToGetReservations, message: "Nelze získat seznam rezervací" }
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/reservations/{id}/cancel:
+    post:
+      tags: [Reservations]
+      summary: Zrušení rezervace
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Rezervace zrušena
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancellationResult'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          description: Rezervace nenalezena
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                ReservationNotFound:
+                  value: { code: ReservationNotFound, message: "Rezervace nebyla nalezena" }
+
+  /api/v1/reservations/{id}/payment:
+    get:
+      tags: [Reservations]
+      summary: Platební informace pro QR kód a bankovní převod
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Platební údaje včetně SPAYD řetězce
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobilePaymentInfo'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          description: Rezervace nenalezena
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                ReservationNotFound:
+                  value: { code: ReservationNotFound, message: "Rezervace nebyla nalezena" }
+
+  # ── Admin ──────────────────────────────────────────────────────────────────
+
+  /api/v1/admin/events/{id}/attendance:
+    get:
+      tags: [Admin]
+      summary: Docházka na událost — seznam přihlášených s příznakem příchodu
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Docházkový seznam události
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceList'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          description: Událost nenalezena
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                EventNotFound:
+                  value: { code: EventNotFound, message: "Událost nenalezena" }
+
+  /api/v1/admin/attendance/{reservationId}:
+    post:
+      tags: [Admin]
+      summary: Označení příchodu / odchodu pro konkrétní rezervaci
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetAttendanceRequest'
+      responses:
+        "200":
+          description: Docházka aktualizována
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceList'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          description: Rezervace nenalezena
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                ReservationNotFound:
+                  value: { code: ReservationNotFound, message: "Rezervace nebyla nalezena" }

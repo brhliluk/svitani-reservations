@@ -13,14 +13,19 @@ import dev.kilua.rpc.getServiceManager
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
+import io.ktor.server.plugins.swagger.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 
 fun Application.configureRouting() {
     routing {
+        swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml")
+
         install(CallContextPlugin)
         applyRoutes(getServiceManager<EventServiceInterface>(), RpcSerializersModules)
+
+        mobilePublicAuthRoutes()
 
         authenticate("auth-jwt") {
 
@@ -35,6 +40,7 @@ fun Application.configureRouting() {
             applyRoutes(getServiceManager<RefreshTokenServiceInterface>(), RpcSerializersModules)
             applyRoutes(getServiceManager<AuthenticatedReservationServiceInterface>(), RpcSerializersModules)
             applyRoutes(getServiceManager<UserServiceInterface>(), RpcSerializersModules)
+            mobileSecuredRoutes()
         }
 
         authenticate("auth-jwt") {

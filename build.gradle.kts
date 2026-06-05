@@ -92,6 +92,7 @@ kotlin {
                 implementation(libs.ktor.contentNegotiation.json)
                 implementation(libs.ktor.server.auth)
                 implementation(libs.ktor.server.auth.jwt)
+                implementation(libs.ktor.server.swagger)
                 implementation(libs.ktor.client.core)
                 implementation(libs.ktor.client.cio)
                 implementation(libs.ktor.client.contentNegotiation)
@@ -134,6 +135,9 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(kotlin("test-junit"))
+                implementation(libs.ktor.server.test.host)
+                implementation(project.dependencies.platform(libs.koin.bom))
+                implementation(libs.koin.test)
             }
         }
         val webMain by getting {

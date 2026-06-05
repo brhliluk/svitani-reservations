@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.Reservatio
 import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutsTable
 import cz.svitaninymburk.projects.reservations.repository.settings.AppSettingsTable
 import cz.svitaninymburk.projects.reservations.repository.user.UsersTable
+import cz.svitaninymburk.projects.reservations.repository.attendance.ReservationAttendanceTable
 import cz.svitaninymburk.projects.reservations.repository.wallet.WalletTransactionsTable
 import cz.svitaninymburk.projects.reservations.repository.wallet.WalletsTable
 import io.ktor.server.application.*
@@ -74,7 +75,8 @@ fun Application.configureDatabases() {
             PaymentEventsTable,
             SeriesLessonOptOutsTable,
             WalletsTable,
-            WalletTransactionsTable
+            WalletTransactionsTable,
+            ReservationAttendanceTable,
         )
         MigrationUtils.statementsRequiredForDatabaseMigration(
             UsersTable,
@@ -89,7 +91,8 @@ fun Application.configureDatabases() {
             SeriesLessonOptOutsTable,
             WalletsTable,
             WalletTransactionsTable,
-            withLogs = false
+            ReservationAttendanceTable,
+            withLogs = false,
         ).forEach { exec(it) }
     }
 }

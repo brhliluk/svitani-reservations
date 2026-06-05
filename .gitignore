@@ -16,8 +16,3 @@ local.properties
 # Superpowers dev planning docs (local only)
 docs/superpowers/
 .superpowers/
-
-# Extracted library sources / build artifacts at repo root
-META-INF/
-commonMain/
-jvmMain/

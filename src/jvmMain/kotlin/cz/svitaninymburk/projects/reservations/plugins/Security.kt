@@ -2,11 +2,14 @@ package cz.svitaninymburk.projects.reservations.plugins
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import cz.svitaninymburk.projects.reservations.api.ApiError
 import cz.svitaninymburk.projects.reservations.auth.JwtTokenService
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.auth.parseAuthorizationHeader
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
+import io.ktor.server.response.respond
 import org.koin.ktor.ext.inject
 
 fun Application.configureSecurity() {
@@ -29,6 +32,13 @@ fun Application.configureSecurity() {
                 } else {
                     null
                 }
+            }
+
+            challenge { _, _ ->
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    ApiError("Unauthorized", "Uživatel není přihlášen nebo token vypršel"),
+                )
             }
 
             authHeader { call ->

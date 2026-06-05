@@ -29,6 +29,8 @@ import cz.svitaninymburk.projects.reservations.repository.settings.ExposedAppSet
 import cz.svitaninymburk.projects.reservations.repository.user.ExposedUserRepository
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
+import cz.svitaninymburk.projects.reservations.repository.attendance.AttendanceRepository
+import cz.svitaninymburk.projects.reservations.repository.attendance.ExposedAttendanceRepository
 import cz.svitaninymburk.projects.reservations.repository.wallet.ExposedWalletRepository
 import cz.svitaninymburk.projects.reservations.repository.wallet.WalletRepository
 import cz.svitaninymburk.projects.reservations.service.*
@@ -89,6 +91,10 @@ val appModule = module {
     // Wallets
     single<WalletRepository> { ExposedWalletRepository() }
     single { WalletService(get()) }
+
+    // Attendance
+    single<AttendanceRepository> { ExposedAttendanceRepository() }
+    single { AttendanceService(get(), get()) }
 
     // Settings
     single { ExposedAppSettingsRepository() } bind AppSettingsRepository::class
