@@ -1,9 +1,12 @@
 @file:Suppress("UnstableApiUsage")
 
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
+        google()
         mavenLocal()
     }
 }
@@ -17,3 +20,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "reservations"
+
+include(":shared")

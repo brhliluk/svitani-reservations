@@ -37,5 +37,5 @@ fun calculateTotalPrice(
     return total
 }
 
-internal fun hoursFromRange(value: TimeRangeValue): Double =
+fun hoursFromRange(value: TimeRangeValue): Double =
     (value.to.toSecondOfDay() - value.from.toSecondOfDay()) / 3600.0

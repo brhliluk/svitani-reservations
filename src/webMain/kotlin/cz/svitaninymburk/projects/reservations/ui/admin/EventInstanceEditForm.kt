@@ -97,9 +97,10 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                 isDropIn = inst.isDropIn
                 ownerEmails = inst.ownerEmails.ifEmpty { listOf("") }
                 showAttendeeCount = inst.showAttendeeCount
-                if (inst.reservationDeadline != null) {
+                val instDeadline = inst.reservationDeadline
+                if (instDeadline != null) {
                     deadlineEnabled = true
-                    deadlineHours = inst.reservationDeadline.inWholeHours.toInt()
+                    deadlineHours = instDeadline.inWholeHours.toInt()
                     deadlineTypeIsHours = true
                 }
                 deadlineMessage = inst.reservationDeadlineMessage ?: ""

@@ -410,6 +410,8 @@ class AdminDashboardService(
                     )
                 }
             } else if (newSeries.lessonDayOfWeek != null && newSeries.lessonStartTime != null && newSeries.lessonEndTime != null) {
+                val lessonStartTime = newSeries.lessonStartTime!!
+                val lessonEndTime = newSeries.lessonEndTime!!
                 var date = newSeries.startDate
                 while (date.dayOfWeek != newSeries.lessonDayOfWeek) {
                     date = date.plus(1, DateTimeUnit.DAY)
@@ -422,8 +424,8 @@ class AdminDashboardService(
                             seriesId = newSeries.id,
                             title = newSeries.title,
                             description = newSeries.description,
-                            startDateTime = LocalDateTime(date, newSeries.lessonStartTime),
-                            endDateTime = LocalDateTime(date, newSeries.lessonEndTime),
+                            startDateTime = LocalDateTime(date, lessonStartTime),
+                            endDateTime = LocalDateTime(date, lessonEndTime),
                             price = newSeries.price,
                             capacity = newSeries.capacity,
                             allowedPaymentTypes = newSeries.allowedPaymentTypes,
@@ -547,6 +549,8 @@ class AdminDashboardService(
                     )
                 }
             } else if (newSeries.lessonDayOfWeek != null && newSeries.lessonStartTime != null && newSeries.lessonEndTime != null) {
+                val lessonStartTime = newSeries.lessonStartTime!!
+                val lessonEndTime = newSeries.lessonEndTime!!
                 var date = newSeries.startDate
                 while (date.dayOfWeek != newSeries.lessonDayOfWeek) {
                     date = date.plus(1, DateTimeUnit.DAY)
@@ -559,8 +563,8 @@ class AdminDashboardService(
                             seriesId = newSeries.id,
                             title = newSeries.title,
                             description = newSeries.description,
-                            startDateTime = LocalDateTime(date, newSeries.lessonStartTime),
-                            endDateTime = LocalDateTime(date, newSeries.lessonEndTime),
+                            startDateTime = LocalDateTime(date, lessonStartTime),
+                            endDateTime = LocalDateTime(date, lessonEndTime),
                             price = newSeries.price,
                             capacity = newSeries.capacity,
                             allowedPaymentTypes = newSeries.allowedPaymentTypes,
@@ -659,8 +663,9 @@ class AdminDashboardService(
 
         // Send reschedule notification if datetime changed and instance belongs to a series
         if (previousStartDateTime != request.startDateTime && existing.seriesId != null) {
-            val series = eventSeriesRepository.get(existing.seriesId)
-            reservationRepository.findByReference(Reference.Series(existing.seriesId))
+            val seriesId = existing.seriesId!!
+            val series = eventSeriesRepository.get(seriesId)
+            reservationRepository.findByReference(Reference.Series(seriesId))
                 .filter { it.status != Reservation.Status.CANCELLED }
                 .forEach { res ->
                     emailService.sendLessonRescheduledNotification(

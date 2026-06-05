@@ -73,6 +73,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
+                api(projects.shared)
                 implementation(libs.kilua.rpc)
                 implementation(libs.kotlinx.datetime)
                 implementation(libs.kilua.common.types)

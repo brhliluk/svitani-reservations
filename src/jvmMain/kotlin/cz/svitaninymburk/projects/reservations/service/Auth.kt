@@ -167,7 +167,8 @@ class AuthService(
     override suspend fun resetPassword(token: String, newPassword: String): Either<AuthError.ResetPassword, Unit> = either {
         val user = ensureNotNull(userRepository.findByResetToken(token)) { AuthError.UserNotFound }
 
-        if (user.passwordResetTokenExpiresAt == null || user.passwordResetTokenExpiresAt < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) {
+        val passwordResetTokenExpiresAt = user.passwordResetTokenExpiresAt
+        if (passwordResetTokenExpiresAt == null || passwordResetTokenExpiresAt < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) {
             raise(AuthError.TokenExpired)
         }
 

@@ -98,9 +98,10 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                 ownerEmails = s.ownerEmails.ifEmpty { listOf("") }
                 showAttendeeCount = s.showAttendeeCount
                 lessonRefundAmountInput = s.lessonRefundAmount
-                if (s.reservationDeadline != null) {
+                val seriesDeadline = s.reservationDeadline
+                if (seriesDeadline != null) {
                     deadlineEnabled = true
-                    deadlineHours = s.reservationDeadline.inWholeHours.toInt()
+                    deadlineHours = seriesDeadline.inWholeHours.toInt()
                     deadlineTypeIsHours = true
                 }
                 deadlineMessage = s.reservationDeadlineMessage ?: ""

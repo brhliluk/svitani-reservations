@@ -169,7 +169,8 @@ fun IComponent.ReservationDetailScreen(
                                         walletCode = ""
                                         showEmailMismatchWarning = false
                                         this@dialogRef.element.close()
-                                        if (result.walletCreditAmount != null && result.walletCreditAmount > 0.0) {
+                                        val credit = result.walletCreditAmount
+                                        if (credit != null && credit > 0.0) {
                                             toastData = ToastData(
                                                 "${currentStrings.walletCreditIssued}: ${result.walletCode}",
                                                 ToastType.Success

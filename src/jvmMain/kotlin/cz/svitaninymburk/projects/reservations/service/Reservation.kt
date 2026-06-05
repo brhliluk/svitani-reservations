@@ -327,7 +327,7 @@ open class ReservationService(
                 // registeredUserId is always non-null here: the opt-out path enforces
                 // callerUuid != null && reservation.registeredUserId == callerUuid above.
                 val wallet: Wallet = walletService.findOrCreateForRegisteredUser(
-                    reservation.registeredUserId, reservation.contactEmail
+                    reservation.registeredUserId!!, reservation.contactEmail
                 )
                 val updatedWallet = walletService.credit(
                     wallet.id, refundAmount, WalletTransactionReason.LESSON_OPT_OUT_REFUND, reservationId
@@ -403,8 +403,9 @@ open class ReservationService(
                     .toInstant(timezone)
                 val withinCancellationWindow = Clock.System.now() < cancellationDeadline
                 if (paidAmount > 0.0 && withinCancellationWindow) {
-                    val wallet: Wallet = if (reservation.registeredUserId != null) {
-                        walletService.findOrCreateForRegisteredUser(reservation.registeredUserId, reservation.contactEmail)
+                    val reservationRegisteredUserId = reservation.registeredUserId
+                    val wallet: Wallet = if (reservationRegisteredUserId != null) {
+                        walletService.findOrCreateForRegisteredUser(reservationRegisteredUserId, reservation.contactEmail)
                     } else {
                         val resolved = walletService.resolveAnonymousWallet(walletCode, reservation.contactEmail, force)
                         when (val r = resolved) {
@@ -468,7 +469,8 @@ open class ReservationService(
             is ReservationTarget.Instance -> {
                 emails += target.event.ownerEmails
                 if (target.event.seriesId != null) {
-                    emails += eventSeriesRepository.get(target.event.seriesId)?.ownerEmails ?: emptyList()
+                    val seriesId = target.event.seriesId!!
+                    emails += eventSeriesRepository.get(seriesId)?.ownerEmails ?: emptyList()
                 }
                 emails += eventDefinitionRepository.get(target.event.definitionId)?.ownerEmails ?: emptyList()
             }
