@@ -24,6 +24,13 @@ sqlite-jdbc = "3.53.1.0"
 hikaricp = "7.0.2"
 sentry-plugin = "6.9.0"
 sentry-sdk = "8.43.0"
+agp = "8.9.2"
+navigation3 = "1.1.2"
+compose-bom = "2025.03.01"
+activity-compose = "1.10.1"
+lifecycle = "2.9.0"
+security-crypto = "1.1.0-alpha06"
+coroutines = "1.10.2"
 
 [libraries]
 kilua = { module = "dev.kilua:kilua", version.ref = "kilua" }
@@ -46,6 +53,7 @@ ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-contentNegotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
 
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 kilua-tailwindcss = { module = "dev.kilua:kilua-tailwindcss", version.ref = "kilua" }
@@ -67,6 +75,23 @@ koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core" }
 koin-ktor = { module = "io.insert-koin:koin-ktor" }
 koin-test = { module = "io.insert-koin:koin-test" }
+koin-android = { module = "io.insert-koin:koin-android" }
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose" }
+
+navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "navigation3" }
+navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
+
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+compose-material3 = { module = "androidx.compose.material3:material3" }
+compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
+lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
+
+security-crypto = { module = "androidx.security:security-crypto", version.ref = "security-crypto" }
+
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 
@@ -103,3 +128,6 @@ kilua-rpc = { id = "dev.kilua.rpc", version.ref = "kilua-rpc" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 vite-kotlin = { id = "dev.opensavvy.vite.kotlin", version.ref = "vite-kotlin" }
 sentry = { id = "io.sentry.jvm.gradle", version.ref = "sentry-plugin" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
