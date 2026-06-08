@@ -5,7 +5,8 @@
 
     <application
         android:name=".ReservationsApp"
-        android:label="@string/app_name">
+        android:label="@string/app_name"
+        android:theme="@style/Theme.Reservations">
 
         <activity
             android:name=".MainActivity"
