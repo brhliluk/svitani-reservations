@@ -9,6 +9,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import cz.svitaninymburk.projects.reservations.android.R
 import cz.svitaninymburk.projects.reservations.android.feature.events.EventsScreen
 import cz.svitaninymburk.projects.reservations.android.feature.profile.ProfileScreen
 import cz.svitaninymburk.projects.reservations.android.feature.reservations.MyReservationsScreen
@@ -26,19 +28,19 @@ fun MainScreen(onLogout: () -> Unit) {
                     selected = selectedTab == MainTab.EVENTS,
                     onClick = { selectedTab = MainTab.EVENTS },
                     icon = { Icon(Icons.Default.Home, contentDescription = null) },
-                    label = { Text("Události") },
+                    label = { Text(stringResource(R.string.nav_events)) },
                 )
                 NavigationBarItem(
                     selected = selectedTab == MainTab.RESERVATIONS,
                     onClick = { selectedTab = MainTab.RESERVATIONS },
                     icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
-                    label = { Text("Moje rezervace") },
+                    label = { Text(stringResource(R.string.nav_reservations)) },
                 )
                 NavigationBarItem(
                     selected = selectedTab == MainTab.PROFILE,
                     onClick = { selectedTab = MainTab.PROFILE },
                     icon = { Icon(Icons.Default.Person, contentDescription = null) },
-                    label = { Text("Profil") },
+                    label = { Text(stringResource(R.string.nav_profile)) },
                 )
             }
         }

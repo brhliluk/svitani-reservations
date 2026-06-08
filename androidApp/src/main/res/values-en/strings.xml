@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Svítání</string>
+
+    <!-- Login -->
+    <string name="login_subtitle">Sign in to your account</string>
+    <string name="login_email_label">Email</string>
+    <string name="login_password_label">Password</string>
+    <string name="login_button">Sign in</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_logout">Sign out</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_events">Events</string>
+    <string name="nav_reservations">My reservations</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Placeholder screens -->
+    <string name="events_coming_soon">Events — coming soon</string>
+    <string name="reservations_coming_soon">My reservations — coming soon</string>
+</resources>

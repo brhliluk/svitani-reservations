@@ -5,7 +5,7 @@
 
     <application
         android:name=".ReservationsApp"
-        android:label="Svítání">
+        android:label="@string/app_name">
 
         <activity
             android:name=".MainActivity"
