@@ -30,7 +30,7 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
     }
 
     fun consumeLoginSuccess() {
-        uiState.update { it.copy(loginSuccess = false) }
+        uiState.update { it.copy(loginSuccess = false, email = "", password = "", error = null) }
     }
 
     fun login() {
