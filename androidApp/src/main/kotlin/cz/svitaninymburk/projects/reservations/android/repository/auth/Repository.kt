@@ -9,17 +9,20 @@ import cz.svitaninymburk.projects.reservations.android.error.RepositoryError
 import cz.svitaninymburk.projects.reservations.api.ApiError
 import cz.svitaninymburk.projects.reservations.auth.AuthResponse
 import cz.svitaninymburk.projects.reservations.auth.LoginRequest
+import cz.svitaninymburk.projects.reservations.auth.UserDto
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import androidx.core.content.edit
 import arrow.core.raise.ensure
+import kotlinx.serialization.json.Json
 
 class AuthRepositoryImpl(
     private val httpClient: HttpClient,
     private val prefs: SharedPreferences,
 ) : AuthRepository {
+    private val json = Json { ignoreUnknownKeys = true }
     override suspend fun login(email: String, password: String): Either<RepositoryError, AuthResponse> = either {
         val response = catch {
             httpClient.post("/api/v1/auth/login") {
@@ -41,6 +44,7 @@ class AuthRepositoryImpl(
         prefs.edit {
             putString(KEY_ACCESS_TOKEN, auth.accessToken)
             putString(KEY_REFRESH_TOKEN, auth.refreshToken)
+            putString(KEY_USER, json.encodeToString(auth.user))
         }
 
         auth
@@ -53,11 +57,18 @@ class AuthRepositoryImpl(
         prefs.edit {
             remove(KEY_ACCESS_TOKEN)
             remove(KEY_REFRESH_TOKEN)
+            remove(KEY_USER)
         }
     }
+
+    override fun getUser(): UserDto? =
+        prefs.getString(KEY_USER, null)?.let {
+            catch { json.decodeFromString<UserDto>(it) }.getOrNull()
+        }
 
     companion object {
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
+        private const val KEY_USER = "user_dto"
     }
 }

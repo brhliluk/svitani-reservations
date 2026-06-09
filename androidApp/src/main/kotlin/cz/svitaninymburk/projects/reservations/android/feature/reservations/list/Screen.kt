@@ -17,7 +17,7 @@ import cz.svitaninymburk.projects.reservations.android.R
 import cz.svitaninymburk.projects.reservations.android.error.toMessage
 import cz.svitaninymburk.projects.reservations.android.feature.reservations.ui.StatusBadge
 import cz.svitaninymburk.projects.reservations.android.feature.reservations.util.formatted
-import cz.svitaninymburk.projects.reservations.android.feature.reservations.util.toCzkString
+import cz.svitaninymburk.projects.reservations.android.util.toCzkString
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -40,12 +40,15 @@ fun ReservationListContent(
     onRetry: () -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
+) = Surface(
+    modifier = modifier.fillMaxSize(),
+    color = MaterialTheme.colorScheme.background,
 ) {
     val context = LocalContext.current
     PullToRefreshBox(
         isRefreshing = state.isLoading && state.items.isNotEmpty(),
         onRefresh = onRefresh,
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
     ) {
         when {
             state.isLoading && state.items.isEmpty() -> LoadingState()

@@ -12,6 +12,13 @@
     <string name="profile_title">Profil</string>
     <string name="profile_logout">Odhlásit se</string>
 
+    <!-- Profile — Wallet -->
+    <string name="profile_wallet_title">Peněženka</string>
+    <string name="profile_wallet_code">Kód peněženky</string>
+    <string name="profile_wallet_balance">Zůstatek</string>
+    <string name="profile_wallet_expires">Platnost do</string>
+    <string name="profile_wallet_retry">Zkusit znovu</string>
+
     <!-- Bottom navigation -->
     <string name="nav_events">Události</string>
     <string name="nav_reservations">Moje rezervace</string>

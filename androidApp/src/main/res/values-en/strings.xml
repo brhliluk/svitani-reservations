@@ -12,6 +12,13 @@
     <string name="profile_title">Profile</string>
     <string name="profile_logout">Sign out</string>
 
+    <!-- Profile — Wallet -->
+    <string name="profile_wallet_title">Wallet</string>
+    <string name="profile_wallet_code">Wallet code</string>
+    <string name="profile_wallet_balance">Balance</string>
+    <string name="profile_wallet_expires">Valid until</string>
+    <string name="profile_wallet_retry">Try again</string>
+
     <!-- Bottom navigation -->
     <string name="nav_events">Events</string>
     <string name="nav_reservations">My reservations</string>

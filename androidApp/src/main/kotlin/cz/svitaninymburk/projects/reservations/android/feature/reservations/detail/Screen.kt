@@ -24,7 +24,7 @@ import cz.svitaninymburk.projects.reservations.android.feature.reservations.ui.S
 import cz.svitaninymburk.projects.reservations.android.feature.reservations.util.copyToClipboard
 import cz.svitaninymburk.projects.reservations.android.feature.reservations.util.formatted
 import cz.svitaninymburk.projects.reservations.android.feature.reservations.util.shareQrCode
-import cz.svitaninymburk.projects.reservations.android.feature.reservations.util.toCzkString
+import cz.svitaninymburk.projects.reservations.android.util.toCzkString
 import cz.svitaninymburk.projects.reservations.api.MobilePaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
