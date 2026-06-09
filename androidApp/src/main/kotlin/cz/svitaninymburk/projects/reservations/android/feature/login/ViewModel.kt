@@ -2,7 +2,8 @@ package cz.svitaninymburk.projects.reservations.android.feature.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cz.svitaninymburk.projects.reservations.android.repository.AuthRepository
+import cz.svitaninymburk.projects.reservations.android.error.RepositoryError
+import cz.svitaninymburk.projects.reservations.android.repository.auth.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -12,7 +13,7 @@ data class LoginUiState(
     val email: String = "",
     val password: String = "",
     val isLoading: Boolean = false,
-    val error: String? = null,
+    val error: RepositoryError? = null,
     val loginSuccess: Boolean = false,
 )
 
@@ -37,12 +38,8 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
         uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             authRepository.login(uiState.value.email, uiState.value.password)
-                .onLeft { error ->
-                    uiState.update { it.copy(isLoading = false, error = error.message) }
-                }
-                .onRight { _ ->
-                    uiState.update { it.copy(isLoading = false, loginSuccess = true) }
-                }
+                .onLeft { error -> uiState.update { it.copy(isLoading = false, error = error) } }
+                .onRight { _ -> uiState.update { it.copy(isLoading = false, loginSuccess = true) } }
         }
     }
 }

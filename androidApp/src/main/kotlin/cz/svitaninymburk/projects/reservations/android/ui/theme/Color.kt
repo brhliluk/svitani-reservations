@@ -6,6 +6,22 @@ import androidx.compose.ui.graphics.Color
 
 // Svítání tonal palette — seed #D46B08 (oklch 0.65 0.21 41)
 
+// Status semantic colors — light
+internal val StatusPendingContentLight = Color(0xFFE65100)
+internal val StatusPendingContainerLight = Color(0xFFFFE0CC)
+internal val StatusConfirmedContentLight = Color(0xFF2E7D32)
+internal val StatusConfirmedContainerLight = Color(0xFFC8E6C9)
+internal val StatusNeutralContentLight = Color(0xFF616161)
+internal val StatusNeutralContainerLight = Color(0xFFE0E0E0)
+
+// Status semantic colors — dark
+internal val StatusPendingContentDark = Color(0xFFFFB060)
+internal val StatusPendingContainerDark = Color(0xFF5C2D00)
+internal val StatusConfirmedContentDark = Color(0xFF81C784)
+internal val StatusConfirmedContainerDark = Color(0xFF1B5E20)
+internal val StatusNeutralContentDark = Color(0xFF9E9E9E)
+internal val StatusNeutralContainerDark = Color(0xFF424242)
+
 private val md_light_primary = Color(0xFF8B4200)
 private val md_light_onPrimary = Color(0xFFFFFFFF)
 private val md_light_primaryContainer = Color(0xFFFFDBCA)

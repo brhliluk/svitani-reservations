@@ -8,7 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cz.svitaninymburk.projects.reservations.android.R
-import cz.svitaninymburk.projects.reservations.android.repository.AuthRepository
+import cz.svitaninymburk.projects.reservations.android.repository.auth.AuthRepository
 import org.koin.compose.koinInject
 
 @Composable

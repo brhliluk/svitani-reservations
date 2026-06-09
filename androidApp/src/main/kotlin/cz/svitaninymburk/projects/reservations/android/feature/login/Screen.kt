@@ -6,6 +6,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -15,6 +16,8 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cz.svitaninymburk.projects.reservations.android.R
+import cz.svitaninymburk.projects.reservations.android.error.RepositoryError
+import cz.svitaninymburk.projects.reservations.android.error.toMessage
 import cz.svitaninymburk.projects.reservations.android.ui.theme.SvitaniTheme
 import org.koin.androidx.compose.koinViewModel
 
@@ -48,6 +51,7 @@ fun LoginScreenContent(
     modifier = Modifier.fillMaxSize(),
     color = MaterialTheme.colorScheme.background,
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.Center,
@@ -79,9 +83,9 @@ fun LoginScreenContent(
         )
         Spacer(Modifier.height(16.dp))
 
-        uiState.error?.let { errorMsg ->
+        uiState.error?.let { error ->
             Text(
-                text = errorMsg,
+                text = error.toMessage(context),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.fillMaxWidth(),
@@ -110,7 +114,7 @@ fun LoginScreenContent(
 private class LoginUiStateProvider : PreviewParameterProvider<LoginUiState> {
     override val values = sequenceOf(
         LoginUiState(email = "", password = ""),
-        LoginUiState(email = "jan@example.cz", password = "špatné heslo", error = "Nesprávný email nebo heslo."),
+        LoginUiState(email = "jan@example.cz", password = "špatné heslo", error = RepositoryError.Server("InvalidCredentials", "Nesprávný email nebo heslo.")),
         LoginUiState(email = "jan@example.cz", password = "heslo123", isLoading = true),
     )
 }

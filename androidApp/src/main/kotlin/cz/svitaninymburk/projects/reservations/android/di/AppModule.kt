@@ -5,8 +5,8 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import cz.svitaninymburk.projects.reservations.android.api.provideHttpClient
-import cz.svitaninymburk.projects.reservations.android.repository.AuthRepository
-import cz.svitaninymburk.projects.reservations.android.repository.AuthRepositoryImpl
+import cz.svitaninymburk.projects.reservations.android.repository.auth.AuthRepository
+import cz.svitaninymburk.projects.reservations.android.repository.auth.AuthRepositoryImpl
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 

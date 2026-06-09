@@ -2,14 +2,13 @@ package cz.svitaninymburk.projects.reservations.android
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import cz.svitaninymburk.projects.reservations.android.feature.login.LoginScreen
 import cz.svitaninymburk.projects.reservations.android.main.MainScreen
-import cz.svitaninymburk.projects.reservations.android.repository.AuthRepository
+import cz.svitaninymburk.projects.reservations.android.repository.auth.AuthRepository
 import cz.svitaninymburk.projects.reservations.android.ui.theme.SvitaniTheme
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject

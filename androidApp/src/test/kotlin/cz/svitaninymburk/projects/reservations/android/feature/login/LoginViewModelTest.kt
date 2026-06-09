@@ -1,19 +1,18 @@
 package cz.svitaninymburk.projects.reservations.android.feature.login
 
 import arrow.core.Either
-import cz.svitaninymburk.projects.reservations.android.repository.AuthRepository
-import cz.svitaninymburk.projects.reservations.api.ApiError
+import cz.svitaninymburk.projects.reservations.android.error.RepositoryError
+import cz.svitaninymburk.projects.reservations.android.repository.auth.AuthRepository
 import cz.svitaninymburk.projects.reservations.auth.AuthResponse
 import cz.svitaninymburk.projects.reservations.auth.UserDto
 import cz.svitaninymburk.projects.reservations.user.User
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.*
 import kotlin.test.*
 
-@OptIn(ExperimentalCoroutinesApi::class, ExperimentalUuidApi::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 class LoginViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
@@ -58,28 +57,26 @@ class LoginViewModelTest {
     }
 
     @Test
-    fun `login failure sets error message`() = runTest {
-        val error = ApiError("InvalidCredentials", "Neplatné přihlašovací údaje")
+    fun `login failure sets error`() = runTest {
+        val error = RepositoryError.Server("InvalidCredentials", "Neplatné přihlašovací údaje")
         val vm = LoginViewModel(FakeAuthRepository(loginResult = Either.Left(error)))
         vm.onEmailChange("x@x.cz")
         vm.onPasswordChange("spatne")
         vm.login()
         advanceUntilIdle()
-        assertEquals("Neplatné přihlašovací údaje", vm.uiState.value.error)
+        assertEquals(error, vm.uiState.value.error)
         assertFalse(vm.uiState.value.loginSuccess)
     }
 }
 
-@OptIn(ExperimentalUuidApi::class)
 private class FakeAuthRepository(
-    private val loginResult: Either<ApiError, AuthResponse> = Either.Right(fakeAuthResponse()),
+    private val loginResult: Either<RepositoryError, AuthResponse> = Either.Right(fakeAuthResponse()),
 ) : AuthRepository {
     override suspend fun login(email: String, password: String) = loginResult
     override fun hasToken() = false
     override fun clearTokens() {}
 }
 
-@OptIn(ExperimentalUuidApi::class)
 private fun fakeAuthResponse() = AuthResponse(
     accessToken = "access",
     refreshToken = "refresh",

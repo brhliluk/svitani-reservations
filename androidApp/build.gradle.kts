@@ -30,7 +30,11 @@ android {
 }
 
 kotlin {
-    compilerOptions.freeCompilerArgs.addAll("-Xexplicit-backing-fields")
+    compilerOptions.freeCompilerArgs.addAll(
+        "-Xexplicit-backing-fields",
+        "-opt-in=kotlin.uuid.ExperimentalUuidApi",
+        "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+    )
 }
 
 dependencies {
@@ -65,10 +69,17 @@ dependencies {
     implementation(platform(libs.arrow.stack))
     implementation(libs.arrow.core)
 
+    // QR Code
+    implementation(libs.qrCode)
+
     // EncryptedSharedPreferences
     implementation(libs.security.crypto)
+
+    // Kotlinx DateTime (for LocalDateTime formatting in UI)
+    implementation(libs.kotlinx.datetime)
 
     // Tests
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.kotlinx.datetime)
 }

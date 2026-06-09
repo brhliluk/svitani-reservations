@@ -20,4 +20,45 @@
     <!-- Placeholder screens -->
     <string name="events_coming_soon">Events — coming soon</string>
     <string name="reservations_coming_soon">My reservations — coming soon</string>
+
+    <!-- My Reservations -->
+    <string name="reservations_empty">No reservations yet</string>
+    <string name="reservations_error_load">Failed to load reservations</string>
+    <string name="reservations_retry">Try again</string>
+
+    <!-- Reservation status -->
+    <string name="reservation_status_pending_payment">Pending payment</string>
+    <string name="reservation_status_confirmed">Confirmed</string>
+    <string name="reservation_status_cancelled">Cancelled</string>
+    <string name="reservation_status_rejected">Rejected</string>
+
+    <!-- Reservation detail -->
+    <string name="reservation_seats">Seats</string>
+    <string name="reservation_seat_count">Seats: %1$d</string>
+    <string name="reservation_total_price">Total price</string>
+    <string name="reservation_date">Date and time</string>
+    <string name="reservation_payment_type">Payment method</string>
+    <string name="reservation_payment_type_bank">Bank transfer</string>
+    <string name="reservation_payment_type_on_site">On site</string>
+    <string name="reservation_payment_type_free">Free</string>
+    <string name="reservation_payment_section_title">Bank transfer payment</string>
+    <string name="reservation_payment_account">Account number</string>
+    <string name="reservation_payment_variable_symbol">Variable symbol</string>
+    <string name="reservation_payment_amount">Amount due</string>
+    <string name="reservation_payment_share_qr">Share QR code</string>
+    <string name="reservation_copied_to_clipboard">Copied</string>
+    <string name="reservation_copy_action">Copy</string>
+    <string name="reservation_cancel_button">Cancel reservation</string>
+    <string name="reservation_cancel_dialog_title">Cancel reservation?</string>
+    <string name="reservation_cancel_dialog_message">This action cannot be undone.</string>
+    <string name="reservation_cancel_dialog_confirm">Cancel</string>
+    <string name="reservation_cancel_dialog_dismiss">Keep</string>
+    <string name="reservation_cancelled_info">This reservation has been cancelled.</string>
+    <string name="reservation_rejected_info">This reservation has been rejected.</string>
+
+    <!-- Errors -->
+    <string name="error_network">Network error. Could not connect to server</string>
+    <string name="error_unauthorized">Please sign in again</string>
+    <string name="error_http">Server error (%1$d)</string>
+    <string name="error_parse">Failed to load data</string>
 </resources>

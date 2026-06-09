@@ -20,4 +20,45 @@
     <!-- Placeholder screens -->
     <string name="events_coming_soon">Události — připravujeme</string>
     <string name="reservations_coming_soon">Moje rezervace — připravujeme</string>
+
+    <!-- My Reservations -->
+    <string name="reservations_empty">Zatím žádné rezervace</string>
+    <string name="reservations_error_load">Nepodařilo se načíst rezervace</string>
+    <string name="reservations_retry">Zkusit znovu</string>
+
+    <!-- Reservation status -->
+    <string name="reservation_status_pending_payment">Čeká na platbu</string>
+    <string name="reservation_status_confirmed">Potvrzena</string>
+    <string name="reservation_status_cancelled">Zrušena</string>
+    <string name="reservation_status_rejected">Zamítnuta</string>
+
+    <!-- Reservation detail -->
+    <string name="reservation_seats">Počet míst</string>
+    <string name="reservation_seat_count">Počet míst: %1$d</string>
+    <string name="reservation_total_price">Celková cena</string>
+    <string name="reservation_date">Datum a čas</string>
+    <string name="reservation_payment_type">Způsob platby</string>
+    <string name="reservation_payment_type_bank">Bankovní převod</string>
+    <string name="reservation_payment_type_on_site">Na místě</string>
+    <string name="reservation_payment_type_free">Zdarma</string>
+    <string name="reservation_payment_section_title">Platba převodem</string>
+    <string name="reservation_payment_account">Číslo účtu</string>
+    <string name="reservation_payment_variable_symbol">Variabilní symbol</string>
+    <string name="reservation_payment_amount">Částka k úhradě</string>
+    <string name="reservation_payment_share_qr">Sdílet QR kód</string>
+    <string name="reservation_copied_to_clipboard">Zkopírováno</string>
+    <string name="reservation_copy_action">Kopírovat</string>
+    <string name="reservation_cancel_button">Zrušit rezervaci</string>
+    <string name="reservation_cancel_dialog_title">Zrušit rezervaci?</string>
+    <string name="reservation_cancel_dialog_message">Tuto akci nelze vrátit zpět.</string>
+    <string name="reservation_cancel_dialog_confirm">Zrušit</string>
+    <string name="reservation_cancel_dialog_dismiss">Ponechat</string>
+    <string name="reservation_cancelled_info">Tato rezervace byla zrušena.</string>
+    <string name="reservation_rejected_info">Tato rezervace byla zamítnuta.</string>
+
+    <!-- Errors -->
+    <string name="error_network">Chyba sítě. Nepodařilo se připojit k serveru</string>
+    <string name="error_unauthorized">Prosím, přihlaste se znovu</string>
+    <string name="error_http">Chyba serveru (%1$d)</string>
+    <string name="error_parse">Nepodařilo se načíst data</string>
 </resources>

@@ -1,18 +1,31 @@
 package cz.svitaninymburk.projects.reservations.android.feature.reservations
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import cz.svitaninymburk.projects.reservations.android.R
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.ui.NavDisplay
+import cz.svitaninymburk.projects.reservations.android.feature.reservations.detail.ReservationDetailScreen
+import cz.svitaninymburk.projects.reservations.android.feature.reservations.list.ReservationListScreen
 
 @Composable
 fun MyReservationsScreen() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(stringResource(R.string.reservations_coming_soon), style = MaterialTheme.typography.bodyLarge)
-    }
+    val backStack = rememberNavBackStack(ReservationList)
+
+    NavDisplay(
+        backStack = backStack,
+        onBack = { backStack.removeLastOrNull() },
+        entryProvider = entryProvider {
+            entry<ReservationList> {
+                ReservationListScreen(
+                    onNavigateToDetail = { item -> backStack.add(ReservationDetail(item)) }
+                )
+            }
+            entry<ReservationDetail> {
+                ReservationDetailScreen(
+                    item = it.item,
+                    onNavigateBack = { backStack.removeLastOrNull() },
+                )
+            }
+        }
+    )
 }
