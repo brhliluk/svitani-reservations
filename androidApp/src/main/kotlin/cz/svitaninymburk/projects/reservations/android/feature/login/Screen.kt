@@ -44,68 +44,64 @@ fun LoginScreenContent(
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onLogin: () -> Unit,
+) = Surface(
+    modifier = Modifier.fillMaxSize(),
+    color = MaterialTheme.colorScheme.background,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
+        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
+        Spacer(Modifier.height(8.dp))
+        Text(stringResource(R.string.login_subtitle), style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(32.dp))
+
+        OutlinedTextField(
+            value = uiState.email,
+            onValueChange = onEmailChange,
+            label = { Text(stringResource(R.string.login_email_label)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = uiState.password,
+            onValueChange = onPasswordChange,
+            label = { Text(stringResource(R.string.login_password_label)) },
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(16.dp))
+
+        uiState.error?.let { errorMsg ->
+            Text(
+                text = errorMsg,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth(),
+            )
             Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.login_subtitle), style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(32.dp))
+        }
 
-            OutlinedTextField(
-                value = uiState.email,
-                onValueChange = onEmailChange,
-                label = { Text(stringResource(R.string.login_email_label)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = uiState.password,
-                onValueChange = onPasswordChange,
-                label = { Text(stringResource(R.string.login_password_label)) },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(16.dp))
-
-            uiState.error?.let { errorMsg ->
-                Text(
-                    text = errorMsg,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.fillMaxWidth(),
+        Button(
+            onClick = onLogin,
+            enabled = !uiState.isLoading,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
                 )
-                Spacer(Modifier.height(8.dp))
-            }
-
-            Button(
-                onClick = onLogin,
-                enabled = !uiState.isLoading,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                } else {
-                    Text(stringResource(R.string.login_button))
-                }
+            } else {
+                Text(stringResource(R.string.login_button))
             }
         }
     }
