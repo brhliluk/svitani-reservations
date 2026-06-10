@@ -14,6 +14,12 @@ data class EventsResponse(
 )
 
 @Serializable
+data class SeriesDetailResponse(
+    val series: EventSeries,
+    val lessons: List<EventInstance>,
+)
+
+@Serializable
 data class MobilePaymentInfo(
     val spayd: String,
     val amount: Double,

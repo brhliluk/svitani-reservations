@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations.service
 
 import arrow.core.Either
+import cz.svitaninymburk.projects.reservations.api.SeriesDetailResponse
 import cz.svitaninymburk.projects.reservations.error.EventError
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventInstanceRequest
@@ -18,6 +19,8 @@ interface EventServiceInterface {
     suspend fun getAllInstances(): Either<EventError.GetInstances, List<EventInstance>>
     suspend fun getAllSeries(): Either<EventError.GetSeries, List<EventSeries>>
     suspend fun getAllDefinitions(): Either<EventError.GetDefinitions, List<EventDefinition>>
+    suspend fun getInstance(id: Uuid): Either<EventError.GetInstance, EventInstance>
+    suspend fun getSeriesDetail(id: Uuid): Either<EventError.GetSeriesDetail, SeriesDetailResponse>
 }
 
 @RpcService

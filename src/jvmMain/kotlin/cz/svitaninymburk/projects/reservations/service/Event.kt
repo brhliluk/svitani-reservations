@@ -5,6 +5,7 @@ import arrow.core.getOrElse
 import arrow.core.raise.either
 import arrow.core.raise.ensureNotNull
 import arrow.fx.coroutines.parZip
+import cz.svitaninymburk.projects.reservations.api.SeriesDetailResponse
 import cz.svitaninymburk.projects.reservations.error.EventError
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventInstanceRequest
@@ -122,5 +123,15 @@ class EventService(
 
     override suspend fun getAllDefinitions(): Either<EventError.GetDefinitions, List<EventDefinition>> = either {
         eventDefinitionRepository.getAll(null)
+    }
+
+    override suspend fun getInstance(id: Uuid): Either<EventError.GetInstance, EventInstance> = either {
+        ensureNotNull(eventInstanceRepository.get(id)) { EventError.EventInstanceNotFound(id.toString()) }
+    }
+
+    override suspend fun getSeriesDetail(id: Uuid): Either<EventError.GetSeriesDetail, SeriesDetailResponse> = either {
+        val series = ensureNotNull(eventSeriesRepository.get(id)) { EventError.EventSeriesNotFound(id.toString()) }
+        val lessons = eventInstanceRepository.findBySeries(id).sortedBy { it.startDateTime }
+        SeriesDetailResponse(series, lessons)
     }
 }

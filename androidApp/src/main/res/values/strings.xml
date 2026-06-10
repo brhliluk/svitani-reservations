@@ -24,8 +24,26 @@
     <string name="nav_reservations">Moje rezervace</string>
     <string name="nav_profile">Profil</string>
 
+    <!-- Events -->
+    <string name="events_tab_one_off">Jednorázové</string>
+    <string name="events_tab_courses">Kurzy</string>
+    <string name="events_empty_one_off">Žádné nadcházející události</string>
+    <string name="events_empty_courses">Žádné kurzy</string>
+    <string name="events_retry">Zkusit znovu</string>
+    <string name="event_badge_full">Obsazeno</string>
+    <string name="event_badge_cancelled">Zrušeno</string>
+    <string name="event_badge_drop_in">Drop-in</string>
+    <string name="event_occupancy">%1$d/%2$d míst</string>
+    <string name="event_lesson_count">Počet lekcí: %1$d</string>
+    <string name="event_detail_date">Datum a čas</string>
+    <string name="event_detail_price">Cena</string>
+    <string name="event_detail_capacity">Obsazenost</string>
+    <string name="event_detail_lessons">Lekce</string>
+    <string name="event_detail_reserve_coming_soon">Rezervovat — již brzy</string>
+    <string name="event_detail_deadline_passed">Rezervace již nejsou možné</string>
+    <string name="event_detail_date_range">%1$s – %2$s</string>
+
     <!-- Placeholder screens -->
-    <string name="events_coming_soon">Události — připravujeme</string>
     <string name="reservations_coming_soon">Moje rezervace — připravujeme</string>
 
     <!-- My Reservations -->

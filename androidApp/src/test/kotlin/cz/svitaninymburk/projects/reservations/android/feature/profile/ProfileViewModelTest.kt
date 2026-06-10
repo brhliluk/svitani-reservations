@@ -84,6 +84,7 @@ private class FakeAuthRepository : AuthRepository {
         throw UnsupportedOperationException()
     override fun hasToken() = true
     override fun clearTokens() { tokensCleared = true }
+    override fun getUser() = null
 }
 
 private class FakeWalletRepository(

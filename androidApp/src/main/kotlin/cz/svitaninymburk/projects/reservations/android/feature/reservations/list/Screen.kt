@@ -1,6 +1,5 @@
 package cz.svitaninymburk.projects.reservations.android.feature.reservations.list
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -107,9 +106,8 @@ private fun ReservationList(
 @Composable
 private fun ReservationCard(item: MyReservationListItem, onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(

@@ -5,6 +5,7 @@ compose = "1.11.0-beta01"
 kilua-rpc = "0.0.44"
 ksp = "2.3.9"
 kotlinx-datetime = "0.8.0"
+kotlinx-datetime-names = "0.1.1"
 kotlinx-serialization = "1.11.0"
 ktor = "3.5.0"
 logback = "1.5.34"
@@ -36,6 +37,8 @@ coroutines = "1.10.2"
 kilua = { module = "dev.kilua:kilua", version.ref = "kilua" }
 kilua-common-types = { module = "dev.kilua:kilua-common-types", version.ref = "kilua" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+kotlinx-datetime-names = { module = "io.github.adrcotfas:kotlinx-datetime-names", version.ref = "kotlinx-datetime-names" }
+desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version = "2.1.5" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 
 kilua-rpc = { module = "dev.kilua:kilua-rpc-ktor-koin", version.ref = "kilua-rpc" }

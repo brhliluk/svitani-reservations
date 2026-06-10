@@ -26,6 +26,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
+        isCoreLibraryDesugaringEnabled = true
     }
 }
 
@@ -77,6 +78,8 @@ dependencies {
 
     // Kotlinx DateTime (for LocalDateTime formatting in UI)
     implementation(libs.kotlinx.datetime)
+    implementation(libs.kotlinx.datetime.names)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     // Tests
     testImplementation(kotlin("test"))

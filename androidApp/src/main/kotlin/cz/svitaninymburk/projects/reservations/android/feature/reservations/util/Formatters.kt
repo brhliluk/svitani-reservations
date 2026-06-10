@@ -1,8 +1,12 @@
 package cz.svitaninymburk.projects.reservations.android.feature.reservations.util
 
 import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.toJavaLocalDateTime
-import java.time.format.DateTimeFormatter
+import kotlinx.datetime.format.Padding
+import kotlinx.datetime.format.char
 
-internal val dateFormatter = DateTimeFormatter.ofPattern("d. M. yyyy HH:mm")
-internal fun LocalDateTime.formatted() = toJavaLocalDateTime().format(dateFormatter)
+private val dateTimeFormat = LocalDateTime.Format {
+    day(Padding.NONE); char('.'); char(' '); monthNumber(Padding.NONE); char('.'); char(' '); year()
+    char(' '); hour(); char(':'); minute()
+}
+
+internal fun LocalDateTime.formatted(): String = dateTimeFormat.format(this)

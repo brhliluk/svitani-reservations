@@ -18,8 +18,12 @@ import kotlinx.serialization.Serializable
     @Serializable @SerialName("update_instance") sealed interface UpdateEventInstance: EventError
     @Serializable @SerialName("delete_instance") sealed interface DeleteEventInstance: EventError
 
+    @Serializable @SerialName("get_instance") sealed interface GetInstance: EventError
+    @Serializable @SerialName("get_series_detail") sealed interface GetSeriesDetail: EventError
+
     @Serializable data class EventDefinitionNotFound(val id: String): CreateEventInstance, UpdateEventDefinition, DeleteEventDefiniton
-    @Serializable data class EventInstanceNotFound(val id: String): UpdateEventInstance, DeleteEventInstance
+    @Serializable data class EventInstanceNotFound(val id: String): UpdateEventInstance, DeleteEventInstance, GetInstance
+    @Serializable data class EventSeriesNotFound(val id: String): GetSeriesDetail
 
     @Serializable data object FailedToGetInstances: GetInstances
     @Serializable data object FailedToGetSeries: GetSeries
@@ -29,6 +33,7 @@ import kotlinx.serialization.Serializable
 fun EventError.localizedMessage(strings: ErrorStrings): String = when (this) {
     is EventError.EventInstanceNotFound -> strings.errorEventInstanceNotFoundId(id)
     is EventError.EventDefinitionNotFound -> strings.errorEventDefinitionNotFoundId(id)
+    is EventError.EventSeriesNotFound -> strings.errorEventSeriesNotFound
     is EventError.FailedToGetDefinitions -> strings.errorFailedToGetDefinitions
     is EventError.FailedToGetInstances -> strings.errorFailedToGetInstances
     is EventError.FailedToGetSeries -> strings.errorFailedToGetSeries

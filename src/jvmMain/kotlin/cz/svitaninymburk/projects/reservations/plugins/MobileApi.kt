@@ -91,9 +91,14 @@ fun Route.mobileSecuredRoutes() {
                 )
             }
 
-            get("{id}") {
+            get("instances/{id}") {
                 val id = Uuid.parse(call.parameters["id"]!!)
-                call.respondEither(reservationService.getDetail(id))
+                call.respondEither(eventService.getInstance(id))
+            }
+
+            get("series/{id}") {
+                val id = Uuid.parse(call.parameters["id"]!!)
+                call.respondEither(eventService.getSeriesDetail(id))
             }
         }
 

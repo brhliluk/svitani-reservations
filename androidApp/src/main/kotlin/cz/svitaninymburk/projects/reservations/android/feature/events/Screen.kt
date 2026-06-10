@@ -1,18 +1,33 @@
 package cz.svitaninymburk.projects.reservations.android.feature.events
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import cz.svitaninymburk.projects.reservations.android.R
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.ui.NavDisplay
+import cz.svitaninymburk.projects.reservations.android.feature.events.detail.InstanceDetailScreen
+import cz.svitaninymburk.projects.reservations.android.feature.events.detail.SeriesDetailScreen
+import cz.svitaninymburk.projects.reservations.android.feature.events.list.EventListScreen
 
 @Composable
 fun EventsScreen() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(stringResource(R.string.events_coming_soon), style = MaterialTheme.typography.bodyLarge)
-    }
+    val backStack = rememberNavBackStack(EventList)
+
+    NavDisplay(
+        backStack = backStack,
+        onBack = { backStack.removeLastOrNull() },
+        entryProvider = entryProvider {
+            entry<EventList> {
+                EventListScreen(
+                    onNavigateToInstance = { backStack.add(EventInstanceDetail(it.id.toString())) },
+                    onNavigateToSeries = { backStack.add(EventSeriesDetail(it.id.toString())) },
+                )
+            }
+            entry<EventInstanceDetail> { key ->
+                InstanceDetailScreen(id = key.id, onNavigateBack = { backStack.removeLastOrNull() })
+            }
+            entry<EventSeriesDetail> { key ->
+                SeriesDetailScreen(id = key.id, onNavigateBack = { backStack.removeLastOrNull() })
+            }
+        }
+    )
 }

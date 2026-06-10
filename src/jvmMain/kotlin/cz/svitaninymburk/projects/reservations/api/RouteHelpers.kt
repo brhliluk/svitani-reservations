@@ -3,6 +3,7 @@ package cz.svitaninymburk.projects.reservations.api
 import arrow.core.Either
 import cz.svitaninymburk.projects.reservations.error.AppError
 import cz.svitaninymburk.projects.reservations.error.AuthError
+import cz.svitaninymburk.projects.reservations.error.EventError
 import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.CsErrorStrings
@@ -20,6 +21,7 @@ fun AppError.localized(): String {
     return when (e) {
         is AuthError -> e.localizedMessage(CsErrorStrings)
         is ReservationError -> e.localizedMessage(CsErrorStrings)
+        is EventError -> e.localizedMessage(CsErrorStrings)
         else -> code()
     }
 }

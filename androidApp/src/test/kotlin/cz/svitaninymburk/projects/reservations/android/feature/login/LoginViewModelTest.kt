@@ -75,6 +75,7 @@ private class FakeAuthRepository(
     override suspend fun login(email: String, password: String) = loginResult
     override fun hasToken() = false
     override fun clearTokens() {}
+    override fun getUser() = null
 }
 
 private fun fakeAuthResponse() = AuthResponse(
