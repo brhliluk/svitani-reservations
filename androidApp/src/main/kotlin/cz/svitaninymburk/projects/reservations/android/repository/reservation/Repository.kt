@@ -9,12 +9,18 @@ import arrow.core.raise.ensure
 import cz.svitaninymburk.projects.reservations.android.error.RepositoryError
 import cz.svitaninymburk.projects.reservations.api.ApiError
 import cz.svitaninymburk.projects.reservations.api.MobilePaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
+import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
+import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlin.uuid.Uuid
 
@@ -76,5 +82,51 @@ class ReservationsRepositoryImpl(
                 .map { RepositoryError.Server(it.code, it.message) }
                 .getOrElse { RepositoryError.Http(response.status.value) }
         }
+    }
+
+    override suspend fun createInstanceReservation(
+        request: CreateInstanceReservationRequest,
+    ): Either<RepositoryError, Reservation> = either {
+        ensure(accessToken != null) { RepositoryError.Unauthorized }
+        val response = catch {
+            httpClient.post("/api/v1/reservations/instance") {
+                bearerAuth(accessToken!!)
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+        }.mapLeft { RepositoryError.Network }.bind()
+
+        ensure(response.status.isSuccess()) {
+            catch { response.body<ApiError>() }
+                .map { RepositoryError.Server(it.code, it.message) }
+                .getOrElse { RepositoryError.Http(response.status.value) }
+        }
+
+        catch { response.body<Reservation>() }
+            .mapLeft { RepositoryError.Parse }
+            .bind()
+    }
+
+    override suspend fun createSeriesReservation(
+        request: CreateSeriesReservationRequest,
+    ): Either<RepositoryError, Reservation> = either {
+        ensure(accessToken != null) { RepositoryError.Unauthorized }
+        val response = catch {
+            httpClient.post("/api/v1/reservations/series") {
+                bearerAuth(accessToken!!)
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+        }.mapLeft { RepositoryError.Network }.bind()
+
+        ensure(response.status.isSuccess()) {
+            catch { response.body<ApiError>() }
+                .map { RepositoryError.Server(it.code, it.message) }
+                .getOrElse { RepositoryError.Http(response.status.value) }
+        }
+
+        catch { response.body<Reservation>() }
+            .mapLeft { RepositoryError.Parse }
+            .bind()
     }
 }
