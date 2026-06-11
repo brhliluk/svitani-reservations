@@ -142,7 +142,7 @@ class ReservationFormViewModel(
     fun setUseWallet(value: Boolean) = uiState.update { it.copy(useWallet = value) }
 
     fun setSeatCount(value: Int) = uiState.update {
-        it.copy(seatCount = value.coerceIn(1, it.target?.maxCapacity ?: 1))
+        it.copy(seatCount = value.coerceIn(1, maxOf(1, it.target?.maxCapacity ?: 1)))
     }
 
     fun setCustomValue(value: CustomFieldValue) = uiState.update {

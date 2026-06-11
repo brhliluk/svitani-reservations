@@ -289,6 +289,14 @@ class ReservationFormViewModelTest {
     }
 
     @Test
+    fun `setSeatCount does not crash for a full event`() = runTest {
+        val vm = viewModel(instance = mockInstance(capacity = 10, occupiedSpots = 10))
+        advanceUntilIdle()
+        vm.setSeatCount(2)
+        assertEquals(1, vm.uiState.value.seatCount)
+    }
+
+    @Test
     fun `reload does not clobber user-edited contact fields`() = runTest {
         val vm = viewModel()
         advanceUntilIdle()
