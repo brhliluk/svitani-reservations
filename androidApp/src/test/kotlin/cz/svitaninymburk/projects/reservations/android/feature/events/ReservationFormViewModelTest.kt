@@ -149,8 +149,8 @@ class ReservationFormViewModelTest {
         advanceUntilIdle()
         val state = vm.uiState.value
         assertFalse(state.isLoading)
-        assertIs<ReservationTarget.Instance>(state.target)
-        assertEquals("Pilates", state.target?.title)
+        val target = assertIs<ReservationTarget.Instance>(state.target)
+        assertEquals("Pilates", target.title)
         assertEquals("Jan Novák", state.contactName)
         assertEquals("jan@example.com", state.contactEmail)
         assertEquals(PaymentInfo.Type.BANK_TRANSFER, state.paymentType)
@@ -160,8 +160,8 @@ class ReservationFormViewModelTest {
     fun `loads series target when isSeries`() = runTest {
         val vm = viewModel(isSeries = true)
         advanceUntilIdle()
-        assertIs<ReservationTarget.Series>(vm.uiState.value.target)
-        assertEquals("Kurz keramiky", vm.uiState.value.target?.title)
+        val target = assertIs<ReservationTarget.Series>(vm.uiState.value.target)
+        assertEquals("Kurz keramiky", target.title)
     }
 
     @Test
@@ -199,6 +199,105 @@ class ReservationFormViewModelTest {
         advanceUntilIdle()
         assertNull(vm.uiState.value.wallet)
         assertNull(vm.uiState.value.loadError)
+    }
+
+    // --- Task 3: editace, validace, cena ---
+
+    @Test
+    fun `seatCount is coerced to free capacity`() = runTest {
+        val vm = viewModel(instance = mockInstance(capacity = 10, occupiedSpots = 7)) // 3 volná místa
+        advanceUntilIdle()
+        vm.setSeatCount(5)
+        assertEquals(3, vm.uiState.value.seatCount)
+        vm.setSeatCount(0)
+        assertEquals(1, vm.uiState.value.seatCount)
+    }
+
+    @Test
+    fun `form is valid with prefilled contact plus phone`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.isValid) // telefon chybí
+        vm.setContactPhone("+420123456789")
+        assertTrue(vm.uiState.value.isValid)
+    }
+
+    @Test
+    fun `short phone makes form invalid`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.setContactPhone("12345")
+        assertFalse(vm.uiState.value.isValid)
+    }
+
+    @Test
+    fun `invalid email makes form invalid`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.setContactPhone("+420123456789")
+        vm.setContactEmail("neplatny-email")
+        assertFalse(vm.uiState.value.isValid)
+    }
+
+    @Test
+    fun `required text custom field blocks validity until filled`() = runTest {
+        val field = TextFieldDefinition(key = "alergie", label = "Alergie", isRequired = true)
+        val vm = viewModel(instance = mockInstance(customFields = listOf(field)))
+        advanceUntilIdle()
+        vm.setContactPhone("+420123456789")
+        assertFalse(vm.uiState.value.isValid)
+        vm.setCustomValue(TextValue(fieldKey = "alergie", value = "ořechy"))
+        assertTrue(vm.uiState.value.isValid)
+    }
+
+    @Test
+    fun `totalPrice reflects seat count and fixed amount modifier`() = runTest {
+        val field = BooleanFieldDefinition(
+            key = "pomucky",
+            label = "Zapůjčení pomůcek",
+            priceModifier = PriceModifier.FixedAmount(50.0),
+        )
+        val vm = viewModel(instance = mockInstance(price = 300.0, customFields = listOf(field)))
+        advanceUntilIdle()
+        vm.setSeatCount(2)
+        assertEquals(600.0, vm.uiState.value.totalPrice)
+        vm.setCustomValue(BooleanValue(fieldKey = "pomucky", value = true))
+        assertEquals(650.0, vm.uiState.value.totalPrice)
+    }
+
+    @Test
+    fun `wallet deduction is capped at total price`() = runTest {
+        val vm = viewModel(
+            instance = mockInstance(price = 300.0),
+            wallet = Either.Right(walletInfo(balance = 1000.0)),
+        )
+        advanceUntilIdle()
+        vm.setUseWallet(true)
+        assertEquals(300.0, vm.uiState.value.walletDeduction)
+        assertEquals(0.0, vm.uiState.value.amountToPay)
+    }
+
+    @Test
+    fun `wallet deduction is zero when switch is off`() = runTest {
+        val vm = viewModel(
+            instance = mockInstance(price = 300.0),
+            wallet = Either.Right(walletInfo(balance = 1000.0)),
+        )
+        advanceUntilIdle()
+        assertEquals(0.0, vm.uiState.value.walletDeduction)
+        assertEquals(300.0, vm.uiState.value.amountToPay)
+    }
+
+    @Test
+    fun `reload does not clobber user-edited contact fields`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.setContactName("Jiné Jméno")
+        vm.setContactEmail("jine@example.com")
+        vm.load()
+        advanceUntilIdle()
+        assertEquals("Jiné Jméno", vm.uiState.value.contactName)
+        assertEquals("jine@example.com", vm.uiState.value.contactEmail)
     }
 }
 

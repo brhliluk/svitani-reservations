@@ -2,6 +2,7 @@ package cz.svitaninymburk.projects.reservations.android.feature.events.reservati
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import arrow.core.Either
 import cz.svitaninymburk.projects.reservations.android.error.RepositoryError
 import cz.svitaninymburk.projects.reservations.android.repository.auth.AuthRepository
 import cz.svitaninymburk.projects.reservations.android.repository.event.EventsRepository
@@ -61,7 +62,7 @@ data class ReservationFormUiState(
     val isValid: Boolean
         get() {
             val t = target ?: return false
-            if (contactName.isBlank() || contactPhone.isBlank()) return false
+            if (contactName.isBlank() || contactPhone.trim().length < 9) return false
             if (!EMAIL_REGEX.matches(contactEmail)) return false
             if (amountToPay > 0.0 && paymentType == null) return false
             return t.customFields.filter { it.isRequired }.all { field ->
@@ -101,10 +102,15 @@ class ReservationFormViewModel(
     fun load() {
         uiState.update { it.copy(isLoading = true, loadError = null) }
         authRepository.getUser()?.let { user ->
-            uiState.update { it.copy(contactName = user.fullName, contactEmail = user.email) }
+            uiState.update {
+                it.copy(
+                    contactName = it.contactName.ifBlank { user.fullName },
+                    contactEmail = it.contactEmail.ifBlank { user.email },
+                )
+            }
         }
         viewModelScope.launch {
-            val targetResult: arrow.core.Either<RepositoryError, ReservationTarget> = if (isSeries) {
+            val targetResult: Either<RepositoryError, ReservationTarget> = if (isSeries) {
                 eventsRepository.getSeriesDetail(id).map { ReservationTarget.Series(it.series) }
             } else {
                 eventsRepository.getInstance(id).map { ReservationTarget.Instance(it) }
@@ -127,5 +133,19 @@ class ReservationFormViewModel(
                 if (wallet.balance > 0.0) uiState.update { it.copy(wallet = wallet) }
             }
         }
+    }
+
+    fun setContactName(value: String) = uiState.update { it.copy(contactName = value) }
+    fun setContactEmail(value: String) = uiState.update { it.copy(contactEmail = value) }
+    fun setContactPhone(value: String) = uiState.update { it.copy(contactPhone = value) }
+    fun setPaymentType(value: PaymentInfo.Type) = uiState.update { it.copy(paymentType = value) }
+    fun setUseWallet(value: Boolean) = uiState.update { it.copy(useWallet = value) }
+
+    fun setSeatCount(value: Int) = uiState.update {
+        it.copy(seatCount = value.coerceIn(1, it.target?.maxCapacity ?: 1))
+    }
+
+    fun setCustomValue(value: CustomFieldValue) = uiState.update {
+        it.copy(customValues = it.customValues + (value.fieldKey to value))
     }
 }
