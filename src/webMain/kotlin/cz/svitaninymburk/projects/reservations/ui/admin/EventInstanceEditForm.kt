@@ -69,6 +69,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
     var isDropIn by remember { mutableStateOf(false) }
     var ownerEmails by remember { mutableStateOf(listOf("")) }
     var showAttendeeCount by remember { mutableStateOf(true) }
+    var showHideConfirm by remember { mutableStateOf(false) }
 
     var deadlineEnabled by remember { mutableStateOf(false) }
     var deadlineTypeIsHours by remember { mutableStateOf(true) }
@@ -173,9 +174,34 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                     button(className = "btn btn-circle btn-ghost btn-sm") {
                         span(className = "icon-[heroicons--arrow-left] size-5"); onClick { history.back() }
                     }
-                    div {
+                    div(className = "flex-1") {
                         h1(className = "text-3xl font-bold text-base-content") { +currentStrings.editInstanceTitle }
                         p(className = "text-base-content/60") { +state.instance.title }
+                    }
+                    if (state.instance.isPublished) {
+                        span(className = "badge badge-primary badge-sm") { +currentStrings.statusPublished }
+                    } else {
+                        span(className = "badge badge-ghost badge-sm") { +currentStrings.statusHidden }
+                    }
+                    val isPublished = state.instance.isPublished
+                    button(className = if (isPublished) "btn btn-sm btn-outline" else "btn btn-sm btn-primary") {
+                        onClick {
+                            if (isPublished && occupiedSpots > 0) {
+                                showHideConfirm = true
+                            } else {
+                                val uuid = try { Uuid.parse(id) } catch (_: IllegalArgumentException) { return@onClick }
+                                scope.launch {
+                                    adminService.setInstancePublished(uuid, !isPublished)
+                                        .onRight {
+                                            val msg = if (isPublished) currentStrings.toastHidden else currentStrings.toastPublished
+                                            toastData = ToastData(msg, ToastType.Success)
+                                            uiState = EditInstanceUiState.Loaded(state.instance.copy(isPublished = !isPublished))
+                                        }
+                                        .onLeft { toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
+                                }
+                            }
+                        }
+                        +if (isPublished) currentStrings.hideButton else currentStrings.publishButton
                     }
                 }
                 div(className = "card bg-base-100 shadow-sm") {
@@ -394,6 +420,37 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                 div(className = "modal-action") {
                     button(className = "btn") { onClick { showCapacityWarning = false }; +currentStrings.cancel }
                     button(className = "btn btn-warning") { onClick { showCapacityWarning = false; doSave() }; +currentStrings.saveChanges }
+                }
+            }
+        }
+    }
+
+    if (showHideConfirm) {
+        val loadedState = uiState as? EditInstanceUiState.Loaded
+        if (loadedState != null) {
+            val inst = loadedState.instance
+            div(className = "modal modal-open") {
+                div(className = "modal-box") {
+                    h3(className = "font-bold text-lg") { +currentStrings.hideButton }
+                    p(className = "py-4") { +currentStrings.hideWithReservationsConfirm }
+                    div(className = "modal-action") {
+                        button(className = "btn") { onClick { showHideConfirm = false }; +currentStrings.cancel }
+                        button(className = "btn btn-warning") {
+                            onClick {
+                                showHideConfirm = false
+                                val uuid = try { Uuid.parse(id) } catch (_: IllegalArgumentException) { return@onClick }
+                                scope.launch {
+                                    adminService.setInstancePublished(uuid, false)
+                                        .onRight {
+                                            toastData = ToastData(currentStrings.toastHidden, ToastType.Success)
+                                            uiState = EditInstanceUiState.Loaded(inst.copy(isPublished = false))
+                                        }
+                                        .onLeft { toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
+                                }
+                            }
+                            +currentStrings.hideButton
+                        }
+                    }
                 }
             }
         }
