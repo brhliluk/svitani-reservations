@@ -37,6 +37,7 @@ class EventServiceDetailSpec {
         endDateTime = end,
         price = 200.0,
         capacity = 10,
+        isPublished = true,
     )
 
     private fun makeSeries(id: Uuid = Uuid.random()) = EventSeries(
@@ -49,6 +50,7 @@ class EventServiceDetailSpec {
         startDate = LocalDate(2027, 9, 1),
         endDate = LocalDate(2027, 12, 15),
         lessonCount = 10,
+        isPublished = true,
     )
 
     @Test
