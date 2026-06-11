@@ -894,6 +894,7 @@ class ResolveOwnerEmailsTest {
             capacity = 10,
             ownerEmails = listOf("instance@example.com"),
             allowedPaymentTypes = listOf(PaymentInfo.Type.ON_SITE),
+            isPublished = true,
         )
         instanceRepo.create(instance)
 
@@ -953,6 +954,7 @@ class ResolveOwnerEmailsTest {
             capacity = 10,
             ownerEmails = listOf("shared@example.com"),
             allowedPaymentTypes = listOf(PaymentInfo.Type.ON_SITE),
+            isPublished = true,
         )
         instanceRepo.create(instance)
 
