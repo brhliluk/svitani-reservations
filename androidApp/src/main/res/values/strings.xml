@@ -39,7 +39,6 @@
     <string name="event_detail_price">Cena</string>
     <string name="event_detail_capacity">Obsazenost</string>
     <string name="event_detail_lessons">Lekce</string>
-    <string name="event_detail_reserve_coming_soon">Rezervovat — již brzy</string>
     <string name="event_detail_reserve">Rezervovat</string>
     <string name="event_detail_deadline_passed">Rezervace již nejsou možné</string>
     <string name="event_detail_date_range">%1$s – %2$s</string>

@@ -32,13 +32,14 @@ import org.koin.core.parameter.parametersOf
 fun SeriesDetailScreen(
     id: String,
     onNavigateBack: () -> Unit,
+    onReserve: () -> Unit,
 ) {
     val vm: SeriesDetailViewModel = koinViewModel(
         key = id,
         parameters = { parametersOf(Uuid.parse(id)) },
     )
     val state by vm.uiState.collectAsStateWithLifecycle()
-    SeriesDetailContent(state = state, onBack = onNavigateBack, onRetry = vm::load)
+    SeriesDetailContent(state = state, onBack = onNavigateBack, onRetry = vm::load, onReserve = onReserve)
 }
 
 @Composable
@@ -46,6 +47,7 @@ fun SeriesDetailContent(
     state: SeriesDetailUiState,
     onBack: () -> Unit,
     onRetry: () -> Unit,
+    onReserve: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -67,6 +69,7 @@ fun SeriesDetailContent(
             )
             state.detail != null -> SeriesDetailBody(
                 detail = state.detail,
+                onReserve = onReserve,
                 modifier = Modifier.padding(innerPadding),
             )
         }
@@ -74,7 +77,7 @@ fun SeriesDetailContent(
 }
 
 @Composable
-private fun SeriesDetailBody(detail: SeriesDetailResponse, modifier: Modifier = Modifier) {
+private fun SeriesDetailBody(detail: SeriesDetailResponse, onReserve: () -> Unit, modifier: Modifier = Modifier) {
     val series = detail.series
     Column(
         modifier = modifier
@@ -132,12 +135,13 @@ private fun SeriesDetailBody(detail: SeriesDetailResponse, modifier: Modifier = 
                 }
             }
         }
+        val canReserve = !series.isFull && !series.isDeadlinePassed
         Button(
-            onClick = {},
-            enabled = false,
+            onClick = onReserve,
+            enabled = canReserve,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(stringResource(R.string.event_detail_reserve_coming_soon))
+            Text(stringResource(R.string.event_detail_reserve))
         }
     }
 }

@@ -39,7 +39,6 @@
     <string name="event_detail_price">Price</string>
     <string name="event_detail_capacity">Occupancy</string>
     <string name="event_detail_lessons">Lessons</string>
-    <string name="event_detail_reserve_coming_soon">Reserve — coming soon</string>
     <string name="event_detail_reserve">Reserve</string>
     <string name="event_detail_deadline_passed">Reservations are no longer possible</string>
     <string name="event_detail_date_range">%1$s – %2$s</string>

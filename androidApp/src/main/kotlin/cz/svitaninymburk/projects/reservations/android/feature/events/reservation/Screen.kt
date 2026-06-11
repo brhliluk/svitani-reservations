@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -151,13 +152,14 @@ private fun FormBody(
 ) {
     val context = LocalContext.current
     val target = state.target ?: return
-    val emailInvalid = state.contactEmail.isNotBlank() && !state.contactEmail.matches(Regex(".+@.+\\..+"))
+    val emailInvalid = state.isEmailInvalid
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(16.dp)
+            .imePadding(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         PriceSummaryCard(state)

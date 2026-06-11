@@ -32,13 +32,14 @@ import org.koin.core.parameter.parametersOf
 fun InstanceDetailScreen(
     id: String,
     onNavigateBack: () -> Unit,
+    onReserve: () -> Unit,
 ) {
     val vm: InstanceDetailViewModel = koinViewModel(
         key = id,
         parameters = { parametersOf(Uuid.parse(id)) },
     )
     val state by vm.uiState.collectAsStateWithLifecycle()
-    InstanceDetailContent(state = state, onBack = onNavigateBack, onRetry = vm::load)
+    InstanceDetailContent(state = state, onBack = onNavigateBack, onRetry = vm::load, onReserve = onReserve)
 }
 
 @Composable
@@ -46,6 +47,7 @@ fun InstanceDetailContent(
     state: InstanceDetailUiState,
     onBack: () -> Unit,
     onRetry: () -> Unit,
+    onReserve: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -67,6 +69,7 @@ fun InstanceDetailContent(
             )
             state.instance != null -> InstanceDetailBody(
                 instance = state.instance,
+                onReserve = onReserve,
                 modifier = Modifier.padding(innerPadding),
             )
         }
@@ -74,7 +77,7 @@ fun InstanceDetailContent(
 }
 
 @Composable
-private fun InstanceDetailBody(instance: EventInstance, modifier: Modifier = Modifier) {
+private fun InstanceDetailBody(instance: EventInstance, onReserve: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -112,12 +115,13 @@ private fun InstanceDetailBody(instance: EventInstance, modifier: Modifier = Mod
                 color = MaterialTheme.colorScheme.error,
             )
         }
+        val canReserve = !instance.isCancelled && !instance.isFull && !instance.isDeadlinePassed
         Button(
-            onClick = {},
-            enabled = false,
+            onClick = onReserve,
+            enabled = canReserve,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(stringResource(R.string.event_detail_reserve_coming_soon))
+            Text(stringResource(R.string.event_detail_reserve))
         }
     }
 }

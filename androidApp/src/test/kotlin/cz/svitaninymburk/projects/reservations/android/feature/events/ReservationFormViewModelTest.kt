@@ -308,6 +308,18 @@ class ReservationFormViewModelTest {
         assertEquals("jine@example.com", vm.uiState.value.contactEmail)
     }
 
+    @Test
+    fun `isEmailInvalid only flags non-blank malformed emails`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.setContactEmail("")
+        assertFalse(vm.uiState.value.isEmailInvalid)
+        vm.setContactEmail("neplatny")
+        assertTrue(vm.uiState.value.isEmailInvalid)
+        vm.setContactEmail("jan@example.com")
+        assertFalse(vm.uiState.value.isEmailInvalid)
+    }
+
     // --- Task 4: submit ---
 
     private fun validVm(

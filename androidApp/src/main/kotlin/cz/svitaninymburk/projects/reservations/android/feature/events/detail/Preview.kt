@@ -48,6 +48,7 @@ private fun InstanceDetailContentPreview() {
             state = InstanceDetailUiState(isLoading = false, instance = previewInstance),
             onBack = {},
             onRetry = {},
+            onReserve = {},
         )
     }
 }
@@ -60,6 +61,7 @@ private fun SeriesDetailContentPreview() {
             state = SeriesDetailUiState(isLoading = false, detail = SeriesDetailResponse(previewSeries, previewLessons)),
             onBack = {},
             onRetry = {},
+            onReserve = {},
         )
     }
 }

@@ -59,6 +59,9 @@ data class ReservationFormUiState(
     val amountToPay: Double
         get() = totalPrice - walletDeduction
 
+    val isEmailInvalid: Boolean
+        get() = contactEmail.isNotBlank() && !EMAIL_REGEX.matches(contactEmail)
+
     val isValid: Boolean
         get() {
             val t = target ?: return false
