@@ -386,6 +386,7 @@ class AdminDashboardService(
                 lessonRefundAmount = request.lessonRefundAmount,
                 reservationDeadline = request.reservationDeadline,
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
+                isPublished = request.isPublished,
             )
 
             eventSeriesRepository.create(newSeries)
@@ -410,6 +411,7 @@ class AdminDashboardService(
                             isDropIn = lesson.isDropIn,
                             ownerEmails = newSeries.ownerEmails,
                             showAttendeeCount = newSeries.showAttendeeCount,
+                            isPublished = request.isPublished,
                         )
                     )
                 }
@@ -437,6 +439,7 @@ class AdminDashboardService(
                             isDropIn = false,
                             ownerEmails = newSeries.ownerEmails,
                             showAttendeeCount = newSeries.showAttendeeCount,
+                            isPublished = request.isPublished,
                         )
                     )
                     date = date.plus(1, DateTimeUnit.WEEK)
@@ -484,6 +487,7 @@ class AdminDashboardService(
                         showAttendeeCount = newDefinition.showAttendeeCount,
                         reservationDeadline = request.reservationDeadline,
                         reservationDeadlineMessage = request.reservationDeadlineMessage,
+                        isPublished = request.isPublished,
                     )
                 )
             }
@@ -526,6 +530,7 @@ class AdminDashboardService(
                 showAttendeeCount = newDefinition.showAttendeeCount,
                 reservationDeadline = request.reservationDeadline,
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
+                isPublished = request.isPublished,
             )
             eventSeriesRepository.create(newSeries)
 
@@ -549,6 +554,7 @@ class AdminDashboardService(
                             isDropIn = lesson.isDropIn,
                             ownerEmails = newSeries.ownerEmails,
                             showAttendeeCount = newSeries.showAttendeeCount,
+                            isPublished = request.isPublished,
                         )
                     )
                 }
@@ -576,6 +582,7 @@ class AdminDashboardService(
                             isDropIn = false,
                             ownerEmails = newSeries.ownerEmails,
                             showAttendeeCount = newSeries.showAttendeeCount,
+                            isPublished = request.isPublished,
                         )
                     )
                     date = date.plus(1, DateTimeUnit.WEEK)

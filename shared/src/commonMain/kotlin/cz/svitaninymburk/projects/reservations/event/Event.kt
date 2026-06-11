@@ -130,6 +130,7 @@ data class CreateEventAndInstancesRequest(
     val showAttendeeCount: Boolean = true,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
+    val isPublished: Boolean = false,
 )
 
 @Serializable
@@ -149,6 +150,7 @@ data class CreateEventAndSeriesRequest(
     val showAttendeeCount: Boolean = true,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
+    val isPublished: Boolean = false,
 )
 
 @Serializable
@@ -179,6 +181,7 @@ data class CreateEventSeriesRequest(
     val lessonRefundAmount: Double? = null,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
+    val isPublished: Boolean = false,
 )
 
 @Serializable
@@ -196,6 +199,7 @@ data class CreateEventInstanceRequest(
     val showAttendeeCount: Boolean = true,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
+    val isPublished: Boolean = false,
 )
 
 @Serializable

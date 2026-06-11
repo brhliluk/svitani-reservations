@@ -73,6 +73,7 @@ class AuthenticatedEventService(
                 showAttendeeCount = request.showAttendeeCount,
                 reservationDeadline = request.reservationDeadline,
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
+                isPublished = request.isPublished,
             )
         )
     }
