@@ -162,7 +162,7 @@ class GmailEmailService(
         reservation: Reservation,
         paymentInfo: BankTransaction,
         bankAccount: String,
-        qrCodeImage: String,
+        qrCodeImage: ByteArray,
     ): Either<EmailError.SendPaymentNotPaidInFull, Unit> = either { withContext(Dispatchers.IO) {
         val s = emailStringsFor(reservation.locale)
         val email = setupEmail()
@@ -171,14 +171,13 @@ class GmailEmailService(
 
         val event = eventRepository.get(reservation.reference.id)
 
-        // TODO: reflect the change from byteArray to svg string
         val dataSource = ByteArrayDataSource(qrCodeImage, "image/png")
         val cid = email.embed(dataSource, "qr-code-platba")
 
         email.setHtmlMsg(buildString { appendHTML().html { body {
             p { +s.partialPaymentBody(event?.title) }
             p { +s.partialPaymentAmount(paymentInfo.amount) }
-            p { +s.partialPaymentRemaining(reservation.totalPrice - paymentInfo.amount) }
+            p { +s.partialPaymentRemaining(reservation.unpaidAmount) }
             p { +s.partialPaymentDetails }
             img {
                 src = "cid:$cid"
@@ -421,7 +420,7 @@ class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService
         reservation: Reservation,
         paymentInfo: BankTransaction,
         bankAccount: String,
-        qrCodeImage: String
+        qrCodeImage: ByteArray
     ): Either<EmailError.SendPaymentNotPaidInFull, Unit> {
         println("📧 [MOCK EMAIL] Nedoplatek pro: ${reservation.contactEmail}")
         return Unit.right()

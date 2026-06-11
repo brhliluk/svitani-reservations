@@ -139,6 +139,7 @@ kotlin {
                 implementation(kotlin("test"))
                 implementation(kotlin("test-junit"))
                 implementation(libs.ktor.server.test.host)
+                implementation(libs.ktor.client.mock)
                 implementation(project.dependencies.platform(libs.koin.bom))
                 implementation(libs.koin.test)
             }

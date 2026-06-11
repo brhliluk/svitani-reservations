@@ -7,7 +7,7 @@ import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.bank.FioResponse
 import cz.svitaninymburk.projects.reservations.bank.parseFioTransactions
 import cz.svitaninymburk.projects.reservations.error.PaymentPairingError
-import cz.svitaninymburk.projects.reservations.qr.QrCodeService
+import cz.svitaninymburk.projects.reservations.service.QrCodeGeneratorService
 import cz.svitaninymburk.projects.reservations.repository.payment.NewPaymentEvent
 import cz.svitaninymburk.projects.reservations.repository.payment.PaymentEventRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
@@ -33,7 +33,7 @@ class PaymentPairingService(
     private val httpClient: HttpClient,
     private val reservationRepo: ReservationRepository,
     private val emailService: EmailService,
-    private val qrCodeService: QrCodeService,
+    private val qrCodeService: QrCodeGeneratorService,
     private val settings: AppSettingsProvider,
     private val paymentEventRepository: PaymentEventRepository,
 ) {
@@ -72,8 +72,8 @@ class PaymentPairingService(
             return
         }
 
-        if ((transaction.amount < reservation.totalPrice) || (transaction.amount != reservation.unpaidAmount)) {
-            logger.warn("⚠️ Nedoplatek! VS $vs: Očekávaná čáska: ${reservation.unpaidAmount}, přišlo ${transaction.amount}.")
+        if (transaction.amount < reservation.unpaidAmount) {
+            logger.warn("⚠️ Nedoplatek! VS $vs: Očekávaná částka: ${reservation.unpaidAmount}, přišlo ${transaction.amount}.")
             Sentry.withScope { scope ->
                 scope.setTag("vs", vs)
                 scope.setTag("reservation_id", reservation.id.toString())
@@ -81,21 +81,36 @@ class PaymentPairingService(
                 scope.setExtra("received_amount", transaction.amount.toString())
                 Sentry.captureMessage("Nedoplatek: VS $vs", SentryLevel.WARNING)
             }
+            val updatedReservation = reservation.copy(
+                paidAmount = reservation.paidAmount + transaction.amount
+            )
+            reservationRepo.save(updatedReservation)
+
+            runCatching {
+                paymentEventRepository.insert(
+                    NewPaymentEvent(
+                        reservationId = reservation.id,
+                        amount = transaction.amount,
+                        type = PaymentInfo.Type.BANK_TRANSFER,
+                        source = PaymentEvent.Source.AUTO_FIO,
+                    )
+                )
+            }.onFailure { e ->
+                println("WARNING: Failed to record partial payment event for FIO transaction ${transaction.remoteId}: ${e.message}")
+            }
+
             emailService.sendPaymentNotPaidInFull(
-                reservation,
+                updatedReservation,
                 transaction,
                 settings.current.bankAccountNumber,
-                qrCodeService.generateReservationPaymentSvg(
-                    reservation.copy(totalPrice = reservation.unpaidAmount - transaction.amount),
-                    settings.current.bankAccountNumber,
-                )
+                qrCodeService.generateQrPng(updatedReservation),
             )
             return
         }
 
         val paidReservation = reservation.copy(
             status = Reservation.Status.CONFIRMED,
-            paidAmount = transaction.amount,
+            paidAmount = reservation.paidAmount + transaction.amount,
             paymentPairingToken = transaction.remoteId,
         )
         reservationRepo.save(paidReservation)
