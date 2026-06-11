@@ -432,14 +432,11 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                             }
 
                             div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") {
-                                    span(className = "label-text font-medium") { +currentStrings.publishImmediatelyLabel }
-                                }
                                 label(className = "cursor-pointer label justify-start gap-3") {
                                     checkBox(value = publishImmediately, className = "checkbox checkbox-primary") {
                                         onChange { publishImmediately = value }
                                     }
-                                    span(className = "label-text text-sm text-base-content/70") { +currentStrings.publishImmediatelyLabel }
+                                    span(className = "label-text font-medium") { +currentStrings.publishImmediatelyLabel }
                                 }
                             }
                         }
