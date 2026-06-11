@@ -16,8 +16,10 @@ import cz.svitaninymburk.projects.reservations.repository.attendance.Reservation
 import cz.svitaninymburk.projects.reservations.repository.wallet.WalletTransactionsTable
 import cz.svitaninymburk.projects.reservations.repository.wallet.WalletsTable
 import io.ktor.server.application.*
+import java.nio.ByteBuffer
 import kotlin.uuid.Uuid
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -39,26 +41,7 @@ fun Application.configureDatabases() {
     transaction {
         // Data migration runs first (before MigrationUtils can drop old columns)
         try {
-            val alreadyMigrated = EventOwnerEmailsTable.selectAll().count() > 0L
-            if (!alreadyMigrated) {
-                listOf(
-                    "event_definitions" to "definition",
-                    "event_series" to "series",
-                    "event_instances" to "instance",
-                ).forEach { (tableName, entityType) ->
-                    exec("SELECT id, lector_email FROM $tableName WHERE lector_email IS NOT NULL AND lector_email != ''") { rs ->
-                        while (rs.next()) {
-                            val entityId = Uuid.parse(rs.getString("id"))
-                            val email = rs.getString("lector_email")
-                            EventOwnerEmailsTable.insert {
-                                it[EventOwnerEmailsTable.entityType] = entityType
-                                it[EventOwnerEmailsTable.entityId] = entityId
-                                it[EventOwnerEmailsTable.email] = email
-                            }
-                        }
-                    }
-                }
-            }
+            migrateLectorEmailsToOwnerEmails()
         } catch (e: Exception) {
             println("⚠️ lector_email migration failed (non-fatal, data may need manual migration): ${e.message}")
         }
@@ -94,5 +77,44 @@ fun Application.configureDatabases() {
             ReservationAttendanceTable,
             withLogs = false,
         ).forEach { exec(it) }
+    }
+}
+
+internal fun JdbcTransaction.migrateLectorEmailsToOwnerEmails() {
+    // The target table is normally created later in configureDatabases, so on the
+    // first run after deploying this migration it does not exist yet
+    SchemaUtils.create(EventOwnerEmailsTable)
+    val alreadyMigrated = EventOwnerEmailsTable.selectAll().count() > 0L
+    if (!alreadyMigrated) {
+        listOf(
+            "event_definitions" to "definition",
+            "event_series" to "series",
+            "event_instances" to "instance",
+        ).forEach { (tableName, entityType) ->
+            val hasLectorEmailColumn = exec(
+                "SELECT count(*) FROM pragma_table_info('$tableName') WHERE name = 'lector_email'"
+            ) { rs -> rs.next() && rs.getInt(1) > 0 } ?: false
+            if (!hasLectorEmailColumn) return@forEach
+
+            val ownerEmails = mutableListOf<Pair<Uuid, String>>()
+            exec("SELECT id, lector_email FROM $tableName WHERE lector_email IS NOT NULL AND lector_email != ''") { rs ->
+                while (rs.next()) {
+                    // Exposed stores UUIDs in SQLite as 16-byte blobs, but older rows may hold text
+                    val entityId = when (val rawId = rs.getObject("id")) {
+                        is ByteArray -> ByteBuffer.wrap(rawId).let { Uuid.fromLongs(it.long, it.long) }
+                        is String -> Uuid.parse(rawId)
+                        else -> error("Unexpected id type in $tableName: ${rawId?.javaClass?.name}")
+                    }
+                    ownerEmails += entityId to rs.getString("lector_email")
+                }
+            }
+            ownerEmails.forEach { (entityId, email) ->
+                EventOwnerEmailsTable.insert {
+                    it[EventOwnerEmailsTable.entityType] = entityType
+                    it[EventOwnerEmailsTable.entityId] = entityId
+                    it[EventOwnerEmailsTable.email] = email
+                }
+            }
+        }
     }
 }

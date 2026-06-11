@@ -68,17 +68,24 @@ fun IComponent.MainLayout() {
     }
 
     fun refreshUser() = scope.launch {
-        authService.getCurrentUser()
-            .onRight { user ->
-                currentUser = user
-                authService.getMyWalletCode().onRight { code -> userWalletCode = code }
-            }
-            .onLeft { error ->
-                console.log(error.localizedMessage(currentStrings))
-                currentUser = null
-                userWalletCode = null
-            }
-        userLoaded = true
+        try {
+            authService.getCurrentUser()
+                .onRight { user ->
+                    currentUser = user
+                    authService.getMyWalletCode().onRight { code -> userWalletCode = code }
+                }
+                .onLeft { error ->
+                    console.log(error.localizedMessage(currentStrings))
+                    currentUser = null
+                    userWalletCode = null
+                }
+        } catch (e: Exception) {
+            console.log(e.message ?: "getCurrentUser failed")
+            currentUser = null
+            userWalletCode = null
+        } finally {
+            userLoaded = true
+        }
     }
 
     fun doLogout() = scope.launch {
