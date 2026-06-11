@@ -35,6 +35,7 @@ import web.history.history
 import web.html.HTMLSelectElement
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 
 private sealed interface EditSeriesUiState {
@@ -77,6 +78,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
     var deadlineDaysBefore by remember { mutableIntStateOf(1) }
     var deadlineTimeStr by remember { mutableStateOf("18:00") }
     var deadlineMessage by remember { mutableStateOf("") }
+    var customFields by remember { mutableStateOf(listOf<CustomFieldDefinition>()) }
 
     LaunchedEffect(id) {
         val uuid = try { Uuid.parse(id) } catch (_: IllegalArgumentException) { null }
@@ -105,6 +107,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                     deadlineTypeIsHours = true
                 }
                 deadlineMessage = s.reservationDeadlineMessage ?: ""
+                customFields = s.customFields
                 uiState = EditSeriesUiState.Loaded(s)
             }
             .onLeft { uiState = EditSeriesUiState.Error(it.localizedMessage(currentStrings)) }
@@ -154,7 +157,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
             price = price?.toDouble() ?: 0.0, capacity = capacity,
             startDate = parsedStart, endDate = parsedEnd,
             lessonCount = lessonCount, allowedPaymentTypes = allowedPayments,
-            customFields = emptyList(),
+            customFields = customFields,
             lessonDayOfWeek = parsedDay,
             lessonStartTime = parsedStartTime,
             lessonEndTime = parsedEndTime,
@@ -170,7 +173,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                 .onRight {
                     isSubmitting = false
                     toastData = ToastData(currentStrings.toastSeriesUpdated, ToastType.Success)
-                    kotlinx.coroutines.delay(500)
+                    kotlinx.coroutines.delay(500.milliseconds)
                     history.back()
                 }
                 .onLeft {
@@ -330,6 +333,9 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                         }
                     }
                 }
+                // --- CUSTOM FIELDS BUILDER ---
+                CustomFieldsBuilderSection(customFields) { customFields = it }
+
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body") {
                         h2(className = "card-title text-lg mb-2") { +currentStrings.reservationDeadlineSection }

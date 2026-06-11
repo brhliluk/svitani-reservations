@@ -76,6 +76,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
     var deadlineDaysBefore by remember { mutableIntStateOf(1) }
     var deadlineTimeStr by remember { mutableStateOf("18:00") }
     var deadlineMessage by remember { mutableStateOf("") }
+    var customFields by remember { mutableStateOf(listOf<CustomFieldDefinition>()) }
 
     LaunchedEffect(id) {
         val uuid = try { Uuid.parse(id) } catch (_: IllegalArgumentException) { null }
@@ -104,6 +105,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                     deadlineTypeIsHours = true
                 }
                 deadlineMessage = inst.reservationDeadlineMessage ?: ""
+                customFields = inst.customFields
                 uiState = EditInstanceUiState.Loaded(inst)
             }
             .onLeft { uiState = EditInstanceUiState.Error(it.localizedMessage(currentStrings)) }
@@ -139,7 +141,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
             title = title, description = description,
             startDateTime = startDt, endDateTime = endDt,
             price = price?.toDouble() ?: 0.0, capacity = capacity,
-            allowedPaymentTypes = allowedPayments, customFields = emptyList(),
+            allowedPaymentTypes = allowedPayments, customFields = customFields,
             isDropIn = isDropIn,
             ownerEmails = ownerEmails.filter { it.isNotBlank() },
             showAttendeeCount = showAttendeeCount,
@@ -302,6 +304,9 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                         }
                     }
                 }
+                // --- CUSTOM FIELDS BUILDER ---
+                CustomFieldsBuilderSection(customFields) { customFields = it }
+
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body") {
                         h2(className = "card-title text-lg mb-2") { +currentStrings.reservationDeadlineSection }
