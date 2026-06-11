@@ -320,6 +320,16 @@ interface AppStrings : ErrorStrings {
     val toastInstancesCreated: (Int) -> String
     val toastInstanceCreated: String
 
+    // Event publishing
+    val publishImmediatelyLabel: String
+    val statusPublished: String
+    val statusHidden: String
+    val publishButton: String
+    val hideButton: String
+    val hideWithReservationsConfirm: String
+    val toastPublished: String
+    val toastHidden: String
+
     // Event Series Form
     val newSeriesTitle: String
     val newSeriesSubtitle: String
