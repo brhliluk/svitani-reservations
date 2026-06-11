@@ -297,6 +297,7 @@ class AdminDashboardService(
                     capacity = s.capacity,
                     occupiedSpots = s.occupiedSpots,
                     priceString = "${s.price} Kč",
+                    isPublished = s.isPublished,
                 )
             }
 
@@ -310,7 +311,8 @@ class AdminDashboardService(
                     dateInfo = i.startDateTime.humanReadable,
                     capacity = i.capacity,
                     occupiedSpots = i.occupiedSpots,
-                    priceString = "${i.price} Kč"
+                    priceString = "${i.price} Kč",
+                    isPublished = i.isPublished,
                 )
             }
 
@@ -689,6 +691,16 @@ class AdminDashboardService(
                     ).onLeft { logger.error("Failed to send reschedule email for ${res.id}: $it") }
                 }
         }
+    }
+
+    override suspend fun setInstancePublished(id: Uuid, published: Boolean): Either<AdminError.UpdateEvent, Unit> = either {
+        val existing = ensureNotNull(eventInstanceRepository.get(id)) { AdminError.InstanceNotFoundForEdit(id) }
+        eventInstanceRepository.update(existing.copy(isPublished = published))
+    }
+
+    override suspend fun setSeriesPublished(id: Uuid, published: Boolean): Either<AdminError.UpdateSeries, Unit> = either {
+        val existing = ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
+        eventSeriesRepository.update(existing.copy(isPublished = published))
     }
 
     override suspend fun updateEventSeries(id: Uuid, request: cz.svitaninymburk.projects.reservations.event.UpdateEventSeriesRequest): Either<AdminError.UpdateSeries, Unit> = either {

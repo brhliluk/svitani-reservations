@@ -48,6 +48,8 @@ interface AdminServiceInterface {
     suspend fun updateEventDefinition(id: Uuid, request: UpdateEventDefinitionRequest): Either<AdminError.UpdateDefinition, Unit>
     suspend fun updateEventInstance(id: Uuid, request: UpdateEventInstanceRequest): Either<AdminError.UpdateEvent, Unit>
     suspend fun updateEventSeries(id: Uuid, request: UpdateEventSeriesRequest): Either<AdminError.UpdateSeries, Unit>
+    suspend fun setInstancePublished(id: Uuid, published: Boolean): Either<AdminError.UpdateEvent, Unit>
+    suspend fun setSeriesPublished(id: Uuid, published: Boolean): Either<AdminError.UpdateSeries, Unit>
     suspend fun deleteEventDefinition(id: Uuid): Either<AdminError.DeleteDefinition, Unit>
     suspend fun deleteEventInstance(id: Uuid): Either<AdminError.DeleteEvent, Unit>
     suspend fun deleteEventSeries(id: Uuid): Either<AdminError.DeleteSeries, Unit>
