@@ -19,6 +19,7 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
@@ -31,102 +32,70 @@ class ReservationsRepositoryImpl(
     private val accessToken: String?
         get() = prefs.getString("access_token", null)
 
-    override suspend fun getMyReservations(): Either<RepositoryError, List<MyReservationListItem>> = either {
-        ensure(accessToken != null) { RepositoryError.Unauthorized }
-        val response = catch {
-            httpClient.get("/api/v1/reservations/mine") {
-                bearerAuth(accessToken!!)
-            }
-        }.mapLeft { RepositoryError.Network }.bind()
+    override suspend fun getMyReservations(): Either<RepositoryError, List<MyReservationListItem>> =
+        getJson("/api/v1/reservations/mine")
 
-        ensure(response.status.isSuccess()) {
-            catch { response.body<ApiError>() }
-                .map { RepositoryError.Server(it.code, it.message) }
-                .getOrElse { RepositoryError.Http(response.status.value) }
-        }
+    override suspend fun getPaymentInfo(id: Uuid): Either<RepositoryError, MobilePaymentInfo> =
+        getJson("/api/v1/reservations/$id/payment")
 
-        catch { response.body<List<MyReservationListItem>>() }
-            .mapLeft { RepositoryError.Parse }
-            .bind()
-    }
-
-    override suspend fun getPaymentInfo(id: Uuid): Either<RepositoryError, MobilePaymentInfo> = either {
-        ensure(accessToken != null) { RepositoryError.Unauthorized }
-        val response = catch {
-            httpClient.get("/api/v1/reservations/$id/payment") {
-                bearerAuth(accessToken!!)
-            }
-        }.mapLeft { RepositoryError.Network }.bind()
-
-        ensure(response.status.isSuccess()) {
-            catch { response.body<ApiError>() }
-                .map { RepositoryError.Server(it.code, it.message) }
-                .getOrElse { RepositoryError.Http(response.status.value) }
-        }
-
-        catch { response.body<MobilePaymentInfo>() }
-            .mapLeft { RepositoryError.Parse }
-            .bind()
-    }
-
-    override suspend fun cancelReservation(id: Uuid): Either<RepositoryError, Unit> = either {
-        ensure(accessToken != null) { RepositoryError.Unauthorized }
-        val response = catch {
-            httpClient.post("/api/v1/reservations/$id/cancel") {
-                bearerAuth(accessToken!!)
-            }
-        }.mapLeft { RepositoryError.Network }.bind()
-
-        ensure(response.status.isSuccess()) {
-            catch { response.body<ApiError>() }
-                .map { RepositoryError.Server(it.code, it.message) }
-                .getOrElse { RepositoryError.Http(response.status.value) }
-        }
-    }
+    override suspend fun cancelReservation(id: Uuid): Either<RepositoryError, Unit> =
+        postNoBody("/api/v1/reservations/$id/cancel")
 
     override suspend fun createInstanceReservation(
         request: CreateInstanceReservationRequest,
-    ): Either<RepositoryError, Reservation> = either {
-        ensure(accessToken != null) { RepositoryError.Unauthorized }
-        val response = catch {
-            httpClient.post("/api/v1/reservations/instance") {
-                bearerAuth(accessToken!!)
-                contentType(ContentType.Application.Json)
-                setBody(request)
-            }
-        }.mapLeft { RepositoryError.Network }.bind()
-
-        ensure(response.status.isSuccess()) {
-            catch { response.body<ApiError>() }
-                .map { RepositoryError.Server(it.code, it.message) }
-                .getOrElse { RepositoryError.Http(response.status.value) }
-        }
-
-        catch { response.body<Reservation>() }
-            .mapLeft { RepositoryError.Parse }
-            .bind()
-    }
+    ): Either<RepositoryError, Reservation> =
+        postJson("/api/v1/reservations/instance", request)
 
     override suspend fun createSeriesReservation(
         request: CreateSeriesReservationRequest,
-    ): Either<RepositoryError, Reservation> = either {
+    ): Either<RepositoryError, Reservation> =
+        postJson("/api/v1/reservations/series", request)
+
+    private suspend inline fun <reified T> getJson(path: String): Either<RepositoryError, T> = either {
         ensure(accessToken != null) { RepositoryError.Unauthorized }
         val response = catch {
-            httpClient.post("/api/v1/reservations/series") {
-                bearerAuth(accessToken!!)
-                contentType(ContentType.Application.Json)
-                setBody(request)
-            }
+            httpClient.get(path) { bearerAuth(accessToken!!) }
         }.mapLeft { RepositoryError.Network }.bind()
 
-        ensure(response.status.isSuccess()) {
-            catch { response.body<ApiError>() }
-                .map { RepositoryError.Server(it.code, it.message) }
-                .getOrElse { RepositoryError.Http(response.status.value) }
-        }
+        ensure(response.status.isSuccess()) { errorFrom(response) }
 
-        catch { response.body<Reservation>() }
+        catch { response.body<T>() }
             .mapLeft { RepositoryError.Parse }
             .bind()
     }
+
+    private suspend inline fun <reified B, reified T> postJson(
+        path: String,
+        body: B,
+    ): Either<RepositoryError, T> = either {
+        ensure(accessToken != null) { RepositoryError.Unauthorized }
+        val response = catch {
+            httpClient.post(path) {
+                bearerAuth(accessToken!!)
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+        }.mapLeft { RepositoryError.Network }.bind()
+
+        ensure(response.status.isSuccess()) { errorFrom(response) }
+
+        catch { response.body<T>() }
+            .mapLeft { RepositoryError.Parse }
+            .bind()
+    }
+
+    private suspend fun postNoBody(path: String): Either<RepositoryError, Unit> = either {
+        ensure(accessToken != null) { RepositoryError.Unauthorized }
+        val response = catch {
+            httpClient.post(path) { bearerAuth(accessToken!!) }
+        }.mapLeft { RepositoryError.Network }.bind()
+
+        ensure(response.status.isSuccess()) { errorFrom(response) }
+    }
+
+    /** Maps a failed HTTP response to a Server error (from the ApiError body) or a bare Http error. */
+    private suspend fun errorFrom(response: HttpResponse): RepositoryError =
+        catch { response.body<ApiError>() }
+            .map { RepositoryError.Server(it.code, it.message) }
+            .getOrElse { RepositoryError.Http(response.status.value) }
 }
