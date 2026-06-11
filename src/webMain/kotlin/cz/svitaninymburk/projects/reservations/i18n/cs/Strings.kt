@@ -303,6 +303,16 @@ object CsStrings : AppStrings {
     override val toastInstancesCreated: (Int) -> String = { "Vytvořeno $it termínů!" }
     override val toastInstanceCreated = "Termín byl úspěšně vypsán!"
 
+    // Event publishing
+    override val publishImmediatelyLabel = "Zveřejnit ihned"
+    override val statusPublished = "Zveřejněno"
+    override val statusHidden = "Skryté"
+    override val publishButton = "Zveřejnit"
+    override val hideButton = "Skrýt"
+    override val hideWithReservationsConfirm = "Termín zmizí z veřejnosti, existující rezervace zůstanou zachovány. Pokračovat?"
+    override val toastPublished = "Termín byl zveřejněn"
+    override val toastHidden = "Termín byl skryt"
+
     // Event Series Form
     override val newSeriesTitle = "Vytvořit kurz"
     override val newSeriesSubtitle = "Nastavte období a počet lekcí. Detaily jsou předvyplněné ze šablony."

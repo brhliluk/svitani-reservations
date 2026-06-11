@@ -50,6 +50,7 @@ fun IComponent.AdminEventsScreen() {
     var refreshTrigger by remember { mutableIntStateOf(0) }
     var deleteDefinitionPending by remember { mutableStateOf<AdminEventListItem?>(null) }
     var deleteItemPending by remember { mutableStateOf<AdminEventListItem?>(null) }
+    var hideItemPending by remember { mutableStateOf<AdminEventListItem?>(null) }
 
     val uiState by produceState<AdminEventsUiState>(
         initialValue = AdminEventsUiState.Loading,
@@ -161,7 +162,16 @@ fun IComponent.AdminEventsScreen() {
                                                             val typePath = if (item.isSeries) "series" else "instance"
                                                             router.navigate("/admin/events/$typePath/${item.id}")
                                                         }
-                                                        td(className = "pl-8 font-medium") { +item.title }
+                                                        td(className = "pl-8 font-medium") {
+                                                            +item.title
+                                                            if (!item.isDefinitionOnly) {
+                                                                if (item.isPublished) {
+                                                                    span(className = "badge badge-primary badge-sm ml-2") { +currentStrings.statusPublished }
+                                                                } else {
+                                                                    span(className = "badge badge-ghost badge-sm ml-2") { +currentStrings.statusHidden }
+                                                                }
+                                                            }
+                                                        }
                                                         td {
                                                             if (item.isSeries) {
                                                                 div(className = "badge badge-secondary badge-outline badge-sm gap-1") {
@@ -196,6 +206,36 @@ fun IComponent.AdminEventsScreen() {
                                                                         it.stopPropagation()
                                                                         val typePath = if (item.isSeries) "series" else "instance"
                                                                         router.navigate("/admin/events/$typePath/${item.id}/edit")
+                                                                    }
+                                                                }
+                                                                if (!item.isDefinitionOnly) {
+                                                                    button(className = "btn btn-ghost btn-xs btn-circle") {
+                                                                        if (item.isPublished) {
+                                                                            span(className = "icon-[heroicons--eye-slash] size-4 text-base-content/50")
+                                                                        } else {
+                                                                            span(className = "icon-[heroicons--eye] size-4 text-base-content/50")
+                                                                        }
+                                                                        onClick {
+                                                                            it.stopPropagation()
+                                                                            if (item.isPublished && item.occupiedSpots > 0) {
+                                                                                hideItemPending = item
+                                                                            } else {
+                                                                                scope.launch {
+                                                                                    val result = if (item.isSeries)
+                                                                                        adminService.setSeriesPublished(item.id, !item.isPublished)
+                                                                                    else
+                                                                                        adminService.setInstancePublished(item.id, !item.isPublished)
+                                                                                    result
+                                                                                        .onRight {
+                                                                                            val msg = if (item.isPublished) currentStrings.toastHidden else currentStrings.toastPublished
+                                                                                            toastData = ToastData(msg, ToastType.Success)
+                                                                                            definitionsPage = 0
+                                                                                            refreshTrigger++
+                                                                                        }
+                                                                                        .onLeft { toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
+                                                                                }
+                                                                            }
+                                                                        }
                                                                     }
                                                                 }
                                                                 button(className = "btn btn-ghost btn-xs btn-circle text-error") {
@@ -290,6 +330,43 @@ fun IComponent.AdminEventsScreen() {
                         }
                         form(className = "modal-backdrop") {
                             button { onClick { deleteDefinitionPending = null }; +currentStrings.close }
+                        }
+                    }
+                }
+
+                // Hide confirmation modal (published event with reservations)
+                val itemToHide = hideItemPending
+                if (itemToHide != null) {
+                    div(className = "modal modal-open") {
+                        div(className = "modal-box") {
+                            h3(className = "font-bold text-lg") { +currentStrings.hideButton }
+                            p(className = "py-4") { +currentStrings.hideWithReservationsConfirm }
+                            div(className = "modal-action") {
+                                button(className = "btn") { onClick { hideItemPending = null }; +currentStrings.modalBack }
+                                button(className = "btn btn-warning") {
+                                    onClick {
+                                        val toHide = itemToHide
+                                        hideItemPending = null
+                                        scope.launch {
+                                            val result = if (toHide.isSeries)
+                                                adminService.setSeriesPublished(toHide.id, false)
+                                            else
+                                                adminService.setInstancePublished(toHide.id, false)
+                                            result
+                                                .onRight {
+                                                    toastData = ToastData(currentStrings.toastHidden, ToastType.Success)
+                                                    definitionsPage = 0
+                                                    refreshTrigger++
+                                                }
+                                                .onLeft { toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
+                                        }
+                                    }
+                                    +currentStrings.hideButton
+                                }
+                            }
+                        }
+                        form(className = "modal-backdrop") {
+                            button { onClick { hideItemPending = null }; +currentStrings.close }
                         }
                     }
                 }

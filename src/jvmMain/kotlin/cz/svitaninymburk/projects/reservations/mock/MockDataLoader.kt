@@ -175,6 +175,7 @@ class MockDataLoader: KoinComponent {
             lessonCount = 10,
             description = "Keramika pro začátečníky",
             customFields = listOf(),
+            isPublished = true,
         )
         seriesRepo.create(seriesCeramics)
 
@@ -192,7 +193,8 @@ class MockDataLoader: KoinComponent {
             price = 180.0,
             capacity = 12,
             occupiedSpots = 4,
-            description = defYoga.description
+            description = defYoga.description,
+            isPublished = true,
         ))
 
         instRepo.create(EventInstance(
@@ -205,6 +207,7 @@ class MockDataLoader: KoinComponent {
             capacity = 10,
             occupiedSpots = 10,
             description = defYoga.description,
+            isPublished = true,
         ))
 
         instRepo.create(EventInstance(
@@ -217,6 +220,7 @@ class MockDataLoader: KoinComponent {
             capacity = 1,
             occupiedSpots = 0,
             description = defParty.description,
+            isPublished = true,
         ))
 
         instRepo.create(EventInstance(
@@ -228,7 +232,8 @@ class MockDataLoader: KoinComponent {
             price = 150.0,
             capacity = 10,
             occupiedSpots = 5,
-            description = defYoga.description
+            description = defYoga.description,
+            isPublished = true,
         ))
     }
 }

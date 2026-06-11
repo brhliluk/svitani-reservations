@@ -3,6 +3,7 @@ package cz.svitaninymburk.projects.reservations.service
 import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.raise.either
+import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import arrow.fx.coroutines.parZip
 import cz.svitaninymburk.projects.reservations.api.SeriesDetailResponse
@@ -72,6 +73,7 @@ class AuthenticatedEventService(
                 showAttendeeCount = request.showAttendeeCount,
                 reservationDeadline = request.reservationDeadline,
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
+                isPublished = request.isPublished,
             )
         )
     }
@@ -114,11 +116,11 @@ class EventService(
     }
 
     override suspend fun getAllInstances(): Either<EventError.GetInstances, List<EventInstance>> = either {
-        eventInstanceRepository.getAll(null)
+        eventInstanceRepository.getAll(null).filter { it.isPublished }
     }
 
     override suspend fun getAllSeries(): Either<EventError.GetSeries, List<EventSeries>> = either {
-        eventSeriesRepository.getAll(null)
+        eventSeriesRepository.getAll(null).filter { it.isPublished }
     }
 
     override suspend fun getAllDefinitions(): Either<EventError.GetDefinitions, List<EventDefinition>> = either {
@@ -126,11 +128,14 @@ class EventService(
     }
 
     override suspend fun getInstance(id: Uuid): Either<EventError.GetInstance, EventInstance> = either {
-        ensureNotNull(eventInstanceRepository.get(id)) { EventError.EventInstanceNotFound(id.toString()) }
+        val instance = ensureNotNull(eventInstanceRepository.get(id)) { EventError.EventInstanceNotFound(id.toString()) }
+        ensure(instance.isPublished) { EventError.EventInstanceNotFound(id.toString()) }
+        instance
     }
 
     override suspend fun getSeriesDetail(id: Uuid): Either<EventError.GetSeriesDetail, SeriesDetailResponse> = either {
         val series = ensureNotNull(eventSeriesRepository.get(id)) { EventError.EventSeriesNotFound(id.toString()) }
+        ensure(series.isPublished) { EventError.EventSeriesNotFound(id.toString()) }
         val lessons = eventInstanceRepository.findBySeries(id).sortedBy { it.startDateTime }
         SeriesDetailResponse(series, lessons)
     }

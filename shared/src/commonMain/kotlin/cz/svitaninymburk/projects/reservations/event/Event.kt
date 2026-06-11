@@ -36,6 +36,7 @@ data class EventSeries(
     val price: Double,
     val capacity: Int,
     val occupiedSpots: Int = 0,
+    val isPublished: Boolean = false,
     val startDate: LocalDate,
     val endDate: LocalDate,
     val lessonCount: Int,
@@ -73,6 +74,7 @@ data class EventInstance(
     val capacity: Int,
     val occupiedSpots: Int = 0,
     val isCancelled: Boolean = false,
+    val isPublished: Boolean = false,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
     val ownerEmails: List<String> = emptyList(),
@@ -128,6 +130,7 @@ data class CreateEventAndInstancesRequest(
     val showAttendeeCount: Boolean = true,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
+    val isPublished: Boolean = false,
 )
 
 @Serializable
@@ -147,6 +150,7 @@ data class CreateEventAndSeriesRequest(
     val showAttendeeCount: Boolean = true,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
+    val isPublished: Boolean = false,
 )
 
 @Serializable
@@ -177,6 +181,7 @@ data class CreateEventSeriesRequest(
     val lessonRefundAmount: Double? = null,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
+    val isPublished: Boolean = false,
 )
 
 @Serializable
@@ -194,6 +199,7 @@ data class CreateEventInstanceRequest(
     val showAttendeeCount: Boolean = true,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
+    val isPublished: Boolean = false,
 )
 
 @Serializable

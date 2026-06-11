@@ -303,6 +303,16 @@ object EnStrings : AppStrings {
     override val toastInstancesCreated: (Int) -> String = { "Created $it dates!" }
     override val toastInstanceCreated = "Date was successfully scheduled!"
 
+    // Event publishing
+    override val publishImmediatelyLabel = "Publish immediately"
+    override val statusPublished = "Published"
+    override val statusHidden = "Hidden"
+    override val publishButton = "Publish"
+    override val hideButton = "Hide"
+    override val hideWithReservationsConfirm = "The event will disappear from the public site; existing reservations are kept. Continue?"
+    override val toastPublished = "Event published"
+    override val toastHidden = "Event hidden"
+
     // Event Series Form
     override val newSeriesTitle = "Create course"
     override val newSeriesSubtitle = "Set the period and number of lessons. Details are prefilled from the template."

@@ -70,6 +70,7 @@ data class AdminEventListItem(
     val occupiedSpots: Int,
     val priceString: String,
     val isDefinitionOnly: Boolean = false,
+    val isPublished: Boolean = true,
 )
 
 @Serializable

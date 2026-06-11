@@ -46,6 +46,9 @@ fun Application.configureDatabases() {
             println("⚠️ lector_email migration failed (non-fatal, data may need manual migration): ${e.message}")
         }
 
+        val instancesPublishMissing = !columnExists("event_instances", "is_published")
+        val seriesPublishMissing = !columnExists("event_series", "is_published")
+
         SchemaUtils.create(
             UsersTable,
             RefreshTokensTable,
@@ -77,6 +80,27 @@ fun Application.configureDatabases() {
             ReservationAttendanceTable,
             withLogs = false,
         ).forEach { exec(it) }
+
+        try {
+            backfillPublishedIfFirstRun("event_instances", instancesPublishMissing)
+            backfillPublishedIfFirstRun("event_series", seriesPublishMissing)
+        } catch (e: Exception) {
+            println("⚠️ is_published backfill failed (non-fatal): ${e.message}")
+        }
+    }
+}
+
+internal fun JdbcTransaction.columnExists(table: String, column: String): Boolean =
+    exec("SELECT count(*) FROM pragma_table_info('$table') WHERE name = '$column'") { rs ->
+        rs.next() && rs.getInt(1) > 0
+    } ?: false
+
+// Po přidání sloupce is_published zveřejní všechny existující řádky, aby události
+// vytvořené před touto funkcí zůstaly veřejně viditelné. Idempotentní: spustí se jen
+// v běhu, kdy sloupec předtím neexistoval (wasMissingBefore == true).
+internal fun JdbcTransaction.backfillPublishedIfFirstRun(tableName: String, wasMissingBefore: Boolean) {
+    if (wasMissingBefore) {
+        exec("UPDATE $tableName SET is_published = 1")
     }
 }
 

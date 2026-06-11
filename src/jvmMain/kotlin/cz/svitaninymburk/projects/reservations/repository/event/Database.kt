@@ -108,6 +108,7 @@ object EventSeriesTable : Table("event_series") {
     val price = double("price")
     val capacity = integer("capacity")
     val occupiedSpots = integer("occupied_spots").default(0)
+    val isPublished = bool("is_published").default(false)
     val startDate = date("start_date")
     val endDate = date("end_date")
     val lessonCount = integer("lesson_count")
@@ -146,6 +147,7 @@ fun ResultRow.toEventSeries(ownerEmails: List<String>): EventSeries = EventSerie
     lessonRefundAmount = this[EventSeriesTable.lessonRefundAmount],
     reservationDeadline = this[EventSeriesTable.reservationDeadlineMs]?.milliseconds,
     reservationDeadlineMessage = this[EventSeriesTable.reservationDeadlineMessage],
+    isPublished = this[EventSeriesTable.isPublished],
 )
 
 
@@ -170,6 +172,7 @@ object EventInstancesTable : Table("event_instances") {
     val capacity = integer("capacity")
     val occupiedSpots = integer("occupied_spots").default(0)
     val isCancelled = bool("is_cancelled").default(false)
+    val isPublished = bool("is_published").default(false)
 
     val allowedPaymentTypes = json<List<PaymentInfo.Type>>("allowed_payment_types", Json)
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
@@ -200,6 +203,7 @@ fun ResultRow.toEventInstance(ownerEmails: List<String>): EventInstance = EventI
     showAttendeeCount = this[EventInstancesTable.showAttendeeCount],
     reservationDeadline = this[EventInstancesTable.reservationDeadlineMs]?.milliseconds,
     reservationDeadlineMessage = this[EventInstancesTable.reservationDeadlineMessage],
+    isPublished = this[EventInstancesTable.isPublished],
 )
 
 class ExposedEventDefinitionRepository : EventDefinitionRepository {
@@ -342,6 +346,7 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[price] = series.price
             row[capacity] = series.capacity
             row[occupiedSpots] = series.occupiedSpots
+            row[isPublished] = series.isPublished
             row[startDate] = series.startDate
             row[endDate] = series.endDate
             row[lessonCount] = series.lessonCount
@@ -365,6 +370,7 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[description] = series.description
             row[price] = series.price
             row[capacity] = series.capacity
+            row[isPublished] = series.isPublished
             row[startDate] = series.startDate
             row[endDate] = series.endDate
             row[lessonCount] = series.lessonCount
@@ -501,6 +507,7 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[capacity] = instance.capacity
             row[occupiedSpots] = instance.occupiedSpots
             row[isCancelled] = instance.isCancelled
+            row[isPublished] = instance.isPublished
             row[allowedPaymentTypes] = instance.allowedPaymentTypes
             row[customFields] = instance.customFields
             row[isDropIn] = instance.isDropIn
@@ -524,6 +531,7 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[capacity] = instance.capacity
             row[occupiedSpots] = instance.occupiedSpots
             row[isCancelled] = instance.isCancelled
+            row[isPublished] = instance.isPublished
             row[allowedPaymentTypes] = instance.allowedPaymentTypes
             row[customFields] = instance.customFields
             row[isDropIn] = instance.isDropIn
