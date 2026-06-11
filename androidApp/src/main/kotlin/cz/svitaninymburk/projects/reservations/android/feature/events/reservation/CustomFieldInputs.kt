@@ -3,6 +3,8 @@ package cz.svitaninymburk.projects.reservations.android.feature.events.reservati
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -69,15 +71,21 @@ fun CustomFieldInput(
             modifier = modifier.fillMaxWidth(),
         )
 
-        is BooleanFieldDefinition -> Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = modifier.fillMaxWidth(),
-        ) {
-            Checkbox(
-                checked = (value as? BooleanValue)?.value == true,
-                onCheckedChange = { onChange(BooleanValue(fieldKey = definition.key, value = it)) },
-            )
-            Text(fieldLabel(definition), style = MaterialTheme.typography.bodyMedium)
+        is BooleanFieldDefinition -> {
+            val checked = (value as? BooleanValue)?.value == true
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = modifier
+                    .fillMaxWidth()
+                    .toggleable(
+                        value = checked,
+                        role = Role.Checkbox,
+                        onValueChange = { onChange(BooleanValue(fieldKey = definition.key, value = it)) },
+                    ),
+            ) {
+                Checkbox(checked = checked, onCheckedChange = null)
+                Text(fieldLabel(definition), style = MaterialTheme.typography.bodyMedium)
+            }
         }
 
         is TimeRangeFieldDefinition -> TimeRangeInput(
