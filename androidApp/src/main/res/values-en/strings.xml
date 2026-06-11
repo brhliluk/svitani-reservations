@@ -40,6 +40,7 @@
     <string name="event_detail_capacity">Occupancy</string>
     <string name="event_detail_lessons">Lessons</string>
     <string name="event_detail_reserve_coming_soon">Reserve — coming soon</string>
+    <string name="event_detail_reserve">Reserve</string>
     <string name="event_detail_deadline_passed">Reservations are no longer possible</string>
     <string name="event_detail_date_range">%1$s – %2$s</string>
 
@@ -80,6 +81,28 @@
     <string name="reservation_cancel_dialog_dismiss">Keep</string>
     <string name="reservation_cancelled_info">This reservation has been cancelled.</string>
     <string name="reservation_rejected_info">This reservation has been rejected.</string>
+
+    <!-- Reservation form -->
+    <string name="reservation_form_title">Reservation</string>
+    <string name="reservation_form_name">Full name *</string>
+    <string name="reservation_form_email">Email *</string>
+    <string name="reservation_form_phone">Phone *</string>
+    <string name="reservation_form_seats">Seats</string>
+    <string name="reservation_form_seats_max">Maximum %1$d seats</string>
+    <string name="reservation_form_payment_type">Payment method</string>
+    <string name="reservation_form_use_wallet">Use credit (%1$s)</string>
+    <string name="reservation_form_wallet_deduction">Credit applied</string>
+    <string name="reservation_form_remaining_to_pay">Remaining to pay</string>
+    <string name="reservation_form_total_price">Total price</string>
+    <string name="reservation_form_free">Free</string>
+    <string name="reservation_form_submit">Reserve</string>
+    <string name="reservation_form_required_legend">* required field</string>
+    <string name="reservation_form_error_email">Enter a valid email</string>
+    <string name="reservation_form_time_from">From</string>
+    <string name="reservation_form_time_to">To</string>
+    <string name="reservation_form_time_pick">Pick time</string>
+    <string name="reservation_form_dialog_confirm">OK</string>
+    <string name="reservation_form_dialog_cancel">Cancel</string>
 
     <!-- Errors -->
     <string name="error_network">Network error. Could not connect to server</string>
