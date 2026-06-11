@@ -420,6 +420,19 @@ class ReservationFormViewModelTest {
         advanceUntilIdle()
         assertNull(reservations.lastInstanceRequest)
     }
+
+    @Test
+    fun `submit after success does not create a duplicate reservation`() = runTest {
+        val reservations = FakeReservationsRepository(Either.Right(mockReservation()))
+        val vm = validVm(reservations = reservations)
+        advanceUntilIdle()
+        vm.submit()
+        advanceUntilIdle()
+        reservations.lastInstanceRequest = null
+        vm.submit()
+        advanceUntilIdle()
+        assertNull(reservations.lastInstanceRequest)
+    }
 }
 
 private fun walletInfo(balance: Double) = WalletInfo(

@@ -152,7 +152,7 @@ class ReservationFormViewModel(
     fun submit() {
         val state = uiState.value
         val target = state.target ?: return
-        if (!state.isValid || state.isSubmitting) return
+        if (!state.isValid || state.isSubmitting || state.createdReservation != null) return
         uiState.update { it.copy(isSubmitting = true, submitError = null) }
 
         // Zrcadlí web (Form.kt): kredit pokrývá vše (vč. ceny 0) → FREE
