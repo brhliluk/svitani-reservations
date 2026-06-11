@@ -388,6 +388,10 @@ fun IComponent.MainLayout() {
                     }
                 }
             }
+            view {
+                val router = Router.current
+                LaunchedEffect(Unit) { router.navigate("/") }
+            }
         }
 
     } else div(className = "min-h-screen flex flex-col bg-base-100 text-base-content") {
@@ -537,6 +541,10 @@ fun IComponent.MainLayout() {
                         PrivacyScreen()
                     }
                 }
+            }
+            view {
+                val router = Router.current
+                LaunchedEffect(Unit) { router.navigate("/") }
             }
         }
     }
