@@ -148,4 +148,66 @@ class ReservationFormViewModel(
     fun setCustomValue(value: CustomFieldValue) = uiState.update {
         it.copy(customValues = it.customValues + (value.fieldKey to value))
     }
+
+    fun submit() {
+        val state = uiState.value
+        val target = state.target ?: return
+        if (!state.isValid || state.isSubmitting) return
+        uiState.update { it.copy(isSubmitting = true, submitError = null) }
+
+        // Zrcadlí web (Form.kt): kredit pokrývá vše (vč. ceny 0) → FREE
+        val effectivePaymentType =
+            if (state.amountToPay == 0.0) PaymentInfo.Type.FREE else state.paymentType!!
+        val walletCode = if (state.useWallet) state.wallet?.code else null
+
+        viewModelScope.launch {
+            val result = when (target) {
+                is ReservationTarget.Instance -> reservationsRepository.createInstanceReservation(
+                    CreateInstanceReservationRequest(
+                        eventInstanceId = target.id,
+                        seatCount = state.seatCount,
+                        contactName = state.contactName.trim(),
+                        contactEmail = state.contactEmail.trim(),
+                        contactPhone = state.contactPhone.trim(),
+                        paymentType = effectivePaymentType,
+                        customValues = state.customValues,
+                        locale = locale,
+                        walletCode = walletCode,
+                    )
+                )
+                is ReservationTarget.Series -> reservationsRepository.createSeriesReservation(
+                    CreateSeriesReservationRequest(
+                        eventSeriesId = target.id,
+                        seatCount = state.seatCount,
+                        contactName = state.contactName.trim(),
+                        contactEmail = state.contactEmail.trim(),
+                        contactPhone = state.contactPhone.trim(),
+                        paymentType = effectivePaymentType,
+                        customValues = state.customValues,
+                        locale = locale,
+                        walletCode = walletCode,
+                    )
+                )
+            }
+            result
+                .onLeft { error -> uiState.update { it.copy(isSubmitting = false, submitError = error) } }
+                .onRight { reservation ->
+                    uiState.update {
+                        it.copy(isSubmitting = false, createdReservation = reservation.toListItem(target))
+                    }
+                }
+        }
+    }
 }
+
+private fun Reservation.toListItem(target: ReservationTarget) = MyReservationListItem(
+    id = id,
+    eventTitle = target.title,
+    startDateTime = target.startDateTime,
+    seatCount = seatCount,
+    totalPrice = totalPrice,
+    status = status,
+    paymentType = paymentType,
+    variableSymbol = variableSymbol,
+    isSeries = reference is Reference.Series,
+)

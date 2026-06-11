@@ -307,6 +307,119 @@ class ReservationFormViewModelTest {
         assertEquals("Jiné Jméno", vm.uiState.value.contactName)
         assertEquals("jine@example.com", vm.uiState.value.contactEmail)
     }
+
+    // --- Task 4: submit ---
+
+    private fun validVm(
+        reservations: FakeReservationsRepository = FakeReservationsRepository(Either.Right(mockReservation())),
+        instance: EventInstance = mockInstance(),
+        wallet: Either<RepositoryError, WalletInfo> = Either.Left(RepositoryError.Http(404)),
+        isSeries: Boolean = false,
+    ): ReservationFormViewModel {
+        val vm = viewModel(isSeries = isSeries, instance = instance, reservations = reservations, wallet = wallet)
+        vm.setContactPhone("+420 123 456 789 ")
+        return vm
+    }
+
+    @Test
+    fun `submit sends trimmed instance request and maps created reservation`() = runTest {
+        val reservations = FakeReservationsRepository(Either.Right(mockReservation()))
+        val vm = validVm(reservations = reservations)
+        advanceUntilIdle()
+        vm.setSeatCount(2)
+        vm.submit()
+        advanceUntilIdle()
+
+        val request = assertNotNull(reservations.lastInstanceRequest)
+        assertEquals(instanceId, request.eventInstanceId)
+        assertEquals(2, request.seatCount)
+        assertEquals("+420 123 456 789", request.contactPhone)
+        assertEquals(PaymentInfo.Type.BANK_TRANSFER, request.paymentType)
+        assertEquals("cs", request.locale)
+        assertNull(request.walletCode)
+
+        val created = assertNotNull(vm.uiState.value.createdReservation)
+        assertEquals("Pilates", created.eventTitle)
+        assertEquals(Reservation.Status.PENDING_PAYMENT, created.status)
+        assertFalse(created.isSeries)
+        assertFalse(vm.uiState.value.isSubmitting)
+    }
+
+    @Test
+    fun `submit targets series endpoint for series target`() = runTest {
+        val reservations = FakeReservationsRepository(
+            Either.Right(mockReservation().copy(reference = Reference.Series(seriesId)))
+        )
+        val vm = validVm(reservations = reservations, isSeries = true)
+        advanceUntilIdle()
+        vm.submit()
+        advanceUntilIdle()
+
+        val request = assertNotNull(reservations.lastSeriesRequest)
+        assertEquals(seriesId, request.eventSeriesId)
+        assertNull(reservations.lastInstanceRequest)
+        assertTrue(assertNotNull(vm.uiState.value.createdReservation).isSeries)
+    }
+
+    @Test
+    fun `submit sends wallet code and FREE type when credit covers everything`() = runTest {
+        val reservations = FakeReservationsRepository(Either.Right(mockReservation()))
+        val vm = validVm(
+            reservations = reservations,
+            instance = mockInstance(price = 300.0),
+            wallet = Either.Right(walletInfo(balance = 1000.0)),
+        )
+        advanceUntilIdle()
+        vm.setUseWallet(true)
+        vm.submit()
+        advanceUntilIdle()
+
+        val request = assertNotNull(reservations.lastInstanceRequest)
+        assertEquals("WAL12345678901", request.walletCode)
+        assertEquals(PaymentInfo.Type.FREE, request.paymentType)
+    }
+
+    @Test
+    fun `submit keeps selected payment type when credit covers only part`() = runTest {
+        val reservations = FakeReservationsRepository(Either.Right(mockReservation()))
+        val vm = validVm(
+            reservations = reservations,
+            instance = mockInstance(price = 300.0),
+            wallet = Either.Right(walletInfo(balance = 100.0)),
+        )
+        advanceUntilIdle()
+        vm.setUseWallet(true)
+        vm.setPaymentType(PaymentInfo.Type.ON_SITE)
+        vm.submit()
+        advanceUntilIdle()
+
+        val request = assertNotNull(reservations.lastInstanceRequest)
+        assertEquals("WAL12345678901", request.walletCode)
+        assertEquals(PaymentInfo.Type.ON_SITE, request.paymentType)
+    }
+
+    @Test
+    fun `submit failure exposes submitError and keeps form`() = runTest {
+        val error = RepositoryError.Server("EventInstanceIsFull", "Kapacita je vyčerpána")
+        val vm = validVm(reservations = FakeReservationsRepository(Either.Left(error)))
+        advanceUntilIdle()
+        vm.submit()
+        advanceUntilIdle()
+
+        assertEquals(error, vm.uiState.value.submitError)
+        assertNull(vm.uiState.value.createdReservation)
+        assertFalse(vm.uiState.value.isSubmitting)
+    }
+
+    @Test
+    fun `submit does nothing when form is invalid`() = runTest {
+        val reservations = FakeReservationsRepository(Either.Right(mockReservation()))
+        val vm = viewModel(reservations = reservations) // bez telefonu → nevalidní
+        advanceUntilIdle()
+        vm.submit()
+        advanceUntilIdle()
+        assertNull(reservations.lastInstanceRequest)
+    }
 }
 
 private fun walletInfo(balance: Double) = WalletInfo(
