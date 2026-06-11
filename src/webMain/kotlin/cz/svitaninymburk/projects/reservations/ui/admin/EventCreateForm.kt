@@ -68,6 +68,7 @@ fun IComponent.AdminCreateEventScreen() {
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
     var showAttendeeCount by remember { mutableStateOf(true) }
+    var publishImmediately by remember { mutableStateOf(false) }
 
     // Single / Recurring fields
     var startDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()) }
@@ -280,6 +281,16 @@ fun IComponent.AdminCreateEventScreen() {
                                 onChange { showAttendeeCount = value }
                             }
                             span(className = "label-text text-sm text-base-content/70") { +currentStrings.showAttendeeCountHint }
+                        }
+                    }
+
+                    div(className = "form-control w-full md:col-span-2") {
+                        p(className = "label-text font-medium mb-1") { +currentStrings.publishImmediatelyLabel }
+                        label(className = "cursor-pointer label justify-start gap-3") {
+                            checkBox(value = publishImmediately, className = "checkbox checkbox-primary") {
+                                onChange { publishImmediately = value }
+                            }
+                            span(className = "label-text text-sm text-base-content/70") { +currentStrings.publishImmediatelyLabel }
                         }
                     }
                 }
@@ -634,6 +645,7 @@ fun IComponent.AdminCreateEventScreen() {
                                         dateTimes = listOf(dt),
                                         reservationDeadline = computeDeadline(dt),
                                         reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
+                                        isPublished = publishImmediately,
                                     )
                                 ).onRight {
                                     toastData = ToastData(currentStrings.toastEventCreated, ToastType.Success)
@@ -663,6 +675,7 @@ fun IComponent.AdminCreateEventScreen() {
                                         dateTimes = previewDates,
                                         reservationDeadline = previewDates.firstOrNull()?.let { computeDeadline(it) },
                                         reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
+                                        isPublished = publishImmediately,
                                     )
                                 ).onRight {
                                     toastData = ToastData(currentStrings.toastEventsCreated(previewDates.size), ToastType.Success)
@@ -723,6 +736,7 @@ fun IComponent.AdminCreateEventScreen() {
                                         showAttendeeCount = showAttendeeCount,
                                         reservationDeadline = computeDeadline(courseStartDt),
                                         reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
+                                        isPublished = publishImmediately,
                                     )
                                 ).onRight {
                                     toastData = ToastData(currentStrings.toastCourseCreated, ToastType.Success)

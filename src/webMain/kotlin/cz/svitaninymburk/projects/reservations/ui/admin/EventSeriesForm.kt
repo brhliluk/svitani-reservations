@@ -75,6 +75,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
     var showAttendeeCount by remember { mutableStateOf(true) }
+    var publishImmediately by remember { mutableStateOf(false) }
 
     var deadlineEnabled by remember { mutableStateOf(false) }
     var deadlineTypeIsHours by remember { mutableStateOf(true) }
@@ -429,6 +430,18 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                     span(className = "label-text text-sm text-base-content/70") { +currentStrings.showAttendeeCountHint }
                                 }
                             }
+
+                            div(className = "form-control w-full md:col-span-2") {
+                                label(className = "label") {
+                                    span(className = "label-text font-medium") { +currentStrings.publishImmediatelyLabel }
+                                }
+                                label(className = "cursor-pointer label justify-start gap-3") {
+                                    checkBox(value = publishImmediately, className = "checkbox checkbox-primary") {
+                                        onChange { publishImmediately = value }
+                                    }
+                                    span(className = "label-text text-sm text-base-content/70") { +currentStrings.publishImmediatelyLabel }
+                                }
+                            }
                         }
                     }
                 }
@@ -598,6 +611,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 showAttendeeCount = showAttendeeCount,
                                 reservationDeadline = resolvedDeadline,
                                 reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
+                                isPublished = publishImmediately,
                             )
 
                             isSubmitting = true
