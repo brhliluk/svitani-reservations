@@ -24,7 +24,7 @@ interface EmailService {
     suspend fun sendCancellationNotice(toEmail: String, eventTitle: String, reservationId: Uuid, locale: String): Either<EmailError.SendCancellation, Unit>
 
     suspend fun sendPaymentReceivedConfirmation(reservation: Reservation): Either<EmailError.SendPaymentConfirmation, Unit>
-    suspend fun sendPaymentNotPaidInFull(reservation: Reservation, paymentInfo: BankTransaction, bankAccount: String, qrCodeImage: String): Either<EmailError.SendPaymentNotPaidInFull, Unit>
+    suspend fun sendPaymentNotPaidInFull(reservation: Reservation, paymentInfo: BankTransaction, bankAccount: String, qrCodeImage: ByteArray): Either<EmailError.SendPaymentNotPaidInFull, Unit>
 
     suspend fun sendPasswordResetEmail(toEmail: String, resetToken: String) : Either<EmailError.SendPasswordReset, Unit>
 

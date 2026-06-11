@@ -39,6 +39,7 @@ import web.html.HTMLSelectElement
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.Uuid
 
@@ -80,6 +81,8 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
     var deadlineDaysBefore by remember { mutableIntStateOf(1) }
     var deadlineTimeStr by remember { mutableStateOf("18:00") }
     var deadlineMessage by remember { mutableStateOf("") }
+
+    var customFields by remember { mutableStateOf(listOf<CustomFieldDefinition>()) }
 
     // Inline recurrence (no longer read from definition)
     var recurrenceType by remember { mutableStateOf(RecurrenceType.NONE) }
@@ -395,6 +398,9 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                     }
                 }
 
+                // --- CUSTOM FIELDS BUILDER ---
+                CustomFieldsBuilderSection(customFields) { customFields = it }
+
                 // --- UZÁVĚRKA REZERVACÍ ---
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body") {
@@ -511,7 +517,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                 price = priceOverride?.toDouble() ?: 0.0,
                                 capacity = capacityOverride,
                                 allowedPaymentTypes = allowedPayments,
-                                customFields = emptyList(),
+                                customFields = customFields,
                                 ownerEmails = validOwnerEmails,
                                 showAttendeeCount = showAttendeeCount,
                                 reservationDeadline = resolvedDeadline,
@@ -543,7 +549,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                         if (dateTimes.size > 1) currentStrings.toastInstancesCreated(dateTimes.size) else currentStrings.toastInstanceCreated,
                                         ToastType.Success
                                     )
-                                    delay(500)
+                                    delay(500.milliseconds)
                                     router.navigate("/admin/events")
                                 }
                             }

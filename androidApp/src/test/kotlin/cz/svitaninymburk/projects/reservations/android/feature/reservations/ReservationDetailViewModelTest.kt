@@ -5,6 +5,8 @@ import cz.svitaninymburk.projects.reservations.android.error.RepositoryError
 import cz.svitaninymburk.projects.reservations.android.feature.reservations.detail.ReservationDetailViewModel
 import cz.svitaninymburk.projects.reservations.android.repository.reservation.ReservationsRepository
 import cz.svitaninymburk.projects.reservations.api.MobilePaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
+import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
@@ -125,6 +127,10 @@ private class FakeReservationsRepositoryDetail(
     override suspend fun getMyReservations() = Either.Right(emptyList<MyReservationListItem>())
     override suspend fun getPaymentInfo(id: Uuid) = paymentInfoResult
     override suspend fun cancelReservation(id: Uuid) = cancelResult
+    override suspend fun createInstanceReservation(request: CreateInstanceReservationRequest) =
+        throw UnsupportedOperationException()
+    override suspend fun createSeriesReservation(request: CreateSeriesReservationRequest) =
+        throw UnsupportedOperationException()
 }
 
 private fun mockItem(

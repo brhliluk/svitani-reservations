@@ -83,6 +83,8 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     var deadlineTimeStr by remember { mutableStateOf("18:00") }
     var deadlineMessage by remember { mutableStateOf("") }
 
+    var customFields by remember { mutableStateOf(listOf<CustomFieldDefinition>()) }
+
     val computedSeriesDates: List<LocalDate> = remember(startDate, lessonDayOfWeekOrdinal, lessonCount) {
         val dayOrdinal = lessonDayOfWeekOrdinal ?: return@remember emptyList()
         val startD = try { LocalDate.parse(startDate) } catch (_: Exception) { return@remember emptyList() }
@@ -431,6 +433,9 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                     }
                 }
 
+                // --- CUSTOM FIELDS BUILDER ---
+                CustomFieldsBuilderSection(customFields) { customFields = it }
+
                 // --- UZÁVĚRKA REZERVACÍ ---
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body") {
@@ -589,6 +594,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 lessonStartTime = parsedStartTime,
                                 lessonEndTime = parsedEndTime,
                                 customLessons = finalCustomLessons,
+                                customFields = customFields,
                                 showAttendeeCount = showAttendeeCount,
                                 reservationDeadline = resolvedDeadline,
                                 reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },

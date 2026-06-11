@@ -85,4 +85,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.kotlinx.datetime)
+    testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.ktor.client.contentNegotiation)
+    testImplementation(libs.ktor.contentNegotiation.json)
 }

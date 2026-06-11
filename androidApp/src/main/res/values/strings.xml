@@ -39,7 +39,7 @@
     <string name="event_detail_price">Cena</string>
     <string name="event_detail_capacity">Obsazenost</string>
     <string name="event_detail_lessons">Lekce</string>
-    <string name="event_detail_reserve_coming_soon">Rezervovat — již brzy</string>
+    <string name="event_detail_reserve">Rezervovat</string>
     <string name="event_detail_deadline_passed">Rezervace již nejsou možné</string>
     <string name="event_detail_date_range">%1$s – %2$s</string>
 
@@ -80,6 +80,28 @@
     <string name="reservation_cancel_dialog_dismiss">Ponechat</string>
     <string name="reservation_cancelled_info">Tato rezervace byla zrušena.</string>
     <string name="reservation_rejected_info">Tato rezervace byla zamítnuta.</string>
+
+    <!-- Reservation form -->
+    <string name="reservation_form_title">Rezervace</string>
+    <string name="reservation_form_name">Jméno a příjmení *</string>
+    <string name="reservation_form_email">Email *</string>
+    <string name="reservation_form_phone">Telefon *</string>
+    <string name="reservation_form_seats">Počet míst</string>
+    <string name="reservation_form_seats_max">Maximálně %1$d míst</string>
+    <string name="reservation_form_payment_type">Způsob platby</string>
+    <string name="reservation_form_use_wallet">Použít kredit (%1$s)</string>
+    <string name="reservation_form_wallet_deduction">Čerpání kreditu</string>
+    <string name="reservation_form_remaining_to_pay">Zbývá uhradit</string>
+    <string name="reservation_form_total_price">Celková cena</string>
+    <string name="reservation_form_free">Zdarma</string>
+    <string name="reservation_form_submit">Rezervovat</string>
+    <string name="reservation_form_required_legend">* povinné pole</string>
+    <string name="reservation_form_error_email">Zadejte platný e-mail</string>
+    <string name="reservation_form_time_from">Od</string>
+    <string name="reservation_form_time_to">Do</string>
+    <string name="reservation_form_time_pick">Vybrat čas</string>
+    <string name="reservation_form_dialog_confirm">OK</string>
+    <string name="reservation_form_dialog_cancel">Zrušit</string>
 
     <!-- Errors -->
     <string name="error_network">Chyba sítě. Nepodařilo se připojit k serveru</string>

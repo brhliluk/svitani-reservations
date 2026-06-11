@@ -41,6 +41,7 @@ import web.html.HTMLSelectElement
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
 private enum class EventCreateType { SINGLE, RECURRING, COURSE }
@@ -94,11 +95,6 @@ fun IComponent.AdminCreateEventScreen() {
 
     // Custom fields
     var customFields by remember { mutableStateOf(listOf<CustomFieldDefinition>()) }
-    var showCustomFields by remember { mutableStateOf(false) }
-
-    fun updateCustomField(index: Int, newField: CustomFieldDefinition) {
-        customFields = customFields.toMutableList().apply { set(index, newField) }
-    }
 
     // Recurring preview
     val previewDates: List<LocalDateTime> = remember(startDate, startTime, recurrenceType, recurrenceEndDateStr, eventType) {
@@ -507,171 +503,8 @@ fun IComponent.AdminCreateEventScreen() {
             }
         }
 
-        // Custom fields (expandable)
-        div(className = "card bg-base-100 shadow-sm") {
-            div(className = "card-body") {
-                div(className = "flex justify-between items-center") {
-                    button(className = "btn btn-ghost btn-sm gap-2") {
-                        onClick { showCustomFields = !showCustomFields }
-                        span(className = if (showCustomFields) "icon-[heroicons--chevron-up] size-4" else "icon-[heroicons--chevron-down] size-4")
-                        +currentStrings.customFieldsHeading
-                        if (customFields.isNotEmpty()) {
-                            div(className = "badge badge-neutral badge-sm") { +"${customFields.size}" }
-                        }
-                    }
-                    if (showCustomFields) {
-                        div(className = "dropdown dropdown-end") {
-                            div(className = "btn btn-sm btn-outline btn-secondary") {
-                                attribute("tabindex", "0")
-                                attribute("role", "button")
-                                span(className = "icon-[heroicons--plus] size-4")
-                                +currentStrings.addFieldButton
-                            }
-                            ul(className = "dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52") {
-                                attribute("tabindex", "0")
-                                li { a { onClick { customFields = customFields + TextFieldDefinition("field_${customFields.size}", "Nové textové pole") }; +currentStrings.addTextField } }
-                                li { a { onClick { customFields = customFields + NumberFieldDefinition("field_${customFields.size}", "Nové číselné pole") }; +currentStrings.addNumberField } }
-                                li { a { onClick { customFields = customFields + BooleanFieldDefinition("field_${customFields.size}", "Nové zaškrtávací pole") }; +currentStrings.addBooleanField } }
-                                li { a { onClick { customFields = customFields + TimeRangeFieldDefinition("field_${customFields.size}", "Nový časový úsek") }; +currentStrings.addTimeRangeField } }
-                            }
-                        }
-                    }
-                }
-
-                if (showCustomFields) {
-                    if (customFields.isEmpty()) {
-                        p(className = "text-base-content/50 italic text-sm mt-3") { +currentStrings.noCustomFieldsMessage }
-                    } else {
-                        div(className = "flex flex-col gap-4 mt-3") {
-                            customFields.forEachIndexed { index, field ->
-                                div(className = "flex gap-4 items-start p-4 bg-base-200/50 rounded-lg border border-base-300 relative") {
-                                    button(className = "btn btn-circle btn-ghost btn-xs absolute top-2 right-2 text-error") {
-                                        onClick { customFields = customFields.toMutableList().apply { removeAt(index) } }
-                                        span(className = "icon-[heroicons--trash] size-4")
-                                    }
-                                    div(className = "flex-1 grid grid-cols-1 md:grid-cols-2 gap-3") {
-                                        div(className = "form-control") {
-                                            label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldKeyLabel } }
-                                            text(value = field.key, className = "input input-sm input-bordered") {
-                                                onInput {
-                                                    val newKey = value ?: ""
-                                                    updateCustomField(index, when (field) {
-                                                        is TextFieldDefinition -> field.copy(key = newKey)
-                                                        is NumberFieldDefinition -> field.copy(key = newKey)
-                                                        is BooleanFieldDefinition -> field.copy(key = newKey)
-                                                        is TimeRangeFieldDefinition -> field.copy(key = newKey)
-                                                    })
-                                                }
-                                            }
-                                        }
-                                        div(className = "form-control") {
-                                            label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldLabelLabel } }
-                                            text(value = field.label, className = "input input-sm input-bordered") {
-                                                onInput {
-                                                    val newLabel = value ?: ""
-                                                    updateCustomField(index, when (field) {
-                                                        is TextFieldDefinition -> field.copy(label = newLabel)
-                                                        is NumberFieldDefinition -> field.copy(label = newLabel)
-                                                        is BooleanFieldDefinition -> field.copy(label = newLabel)
-                                                        is TimeRangeFieldDefinition -> field.copy(label = newLabel)
-                                                    })
-                                                }
-                                            }
-                                        }
-                                        div(className = "form-control md:col-span-2") {
-                                            label(className = "cursor-pointer label justify-start gap-2 py-1") {
-                                                checkBox(value = field.isRequired, className = "checkbox checkbox-xs") {
-                                                    onChange {
-                                                        val req = value
-                                                        updateCustomField(index, when (field) {
-                                                            is TextFieldDefinition -> field.copy(isRequired = req)
-                                                            is NumberFieldDefinition -> field.copy(isRequired = req)
-                                                            is BooleanFieldDefinition -> field.copy(isRequired = req)
-                                                            is TimeRangeFieldDefinition -> field.copy(isRequired = req)
-                                                        })
-                                                    }
-                                                }
-                                                span(className = "label-text text-xs") { +currentStrings.fieldRequired }
-                                                when (field) {
-                                                    is TextFieldDefinition -> span(className = "badge badge-neutral badge-sm ml-4") { +currentStrings.fieldTypeText }
-                                                    is NumberFieldDefinition -> span(className = "badge badge-neutral badge-sm ml-4") { +currentStrings.fieldTypeNumber }
-                                                    is BooleanFieldDefinition -> span(className = "badge badge-neutral badge-sm ml-4") { +currentStrings.fieldTypeBoolean }
-                                                    is TimeRangeFieldDefinition -> span(className = "badge badge-neutral badge-sm ml-4") { +currentStrings.fieldTypeTimeRange }
-                                                }
-                                            }
-                                        }
-
-                                        when (field) {
-                                            is TimeRangeFieldDefinition -> {
-                                                div(className = "form-control md:col-span-2") {
-                                                    label(className = "cursor-pointer label justify-start gap-2 py-1") {
-                                                        checkBox(value = field.priceModifier is PriceModifier.TimeMultiplier, className = "checkbox checkbox-xs checkbox-accent") {
-                                                            onChange {
-                                                                updateCustomField(index, field.copy(priceModifier = if (value) PriceModifier.TimeMultiplier else null))
-                                                            }
-                                                        }
-                                                        span(className = "label-text text-xs") { +currentStrings.fieldTimeMultiplierToggle }
-                                                    }
-                                                }
-                                            }
-                                            is BooleanFieldDefinition -> {
-                                                div(className = "form-control md:col-span-2") {
-                                                    label(className = "cursor-pointer label justify-start gap-2 py-1") {
-                                                        checkBox(value = field.priceModifier is PriceModifier.FixedAmount, className = "checkbox checkbox-xs checkbox-accent") {
-                                                            onChange {
-                                                                updateCustomField(index, field.copy(priceModifier = if (value) PriceModifier.FixedAmount(0.0) else null))
-                                                            }
-                                                        }
-                                                        span(className = "label-text text-xs") { +currentStrings.fieldPriceModifierEnabled }
-                                                    }
-                                                }
-                                                if (field.priceModifier is PriceModifier.FixedAmount) {
-                                                    val fixedAmount = field.priceModifier as PriceModifier.FixedAmount
-                                                    div(className = "form-control") {
-                                                        label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldFlatFeeLabel } }
-                                                        numeric(value = fixedAmount.amount.takeIf { it > 0 }, min = 0, className = "input input-sm input-bordered w-full") {
-                                                            onInput {
-                                                                updateCustomField(index, field.copy(priceModifier = PriceModifier.FixedAmount(value?.toDouble() ?: 0.0)))
-                                                            }
-                                                        }
-                                                        p(className = "text-xs text-base-content/50 mt-1") { +currentStrings.fieldFlatFeeFormula }
-                                                    }
-                                                }
-                                            }
-                                            is NumberFieldDefinition -> {
-                                                div(className = "form-control md:col-span-2") {
-                                                    label(className = "cursor-pointer label justify-start gap-2 py-1") {
-                                                        checkBox(value = field.priceModifier is PriceModifier.PerUnit, className = "checkbox checkbox-xs checkbox-accent") {
-                                                            onChange {
-                                                                updateCustomField(index, field.copy(priceModifier = if (value) PriceModifier.PerUnit(0.0) else null))
-                                                            }
-                                                        }
-                                                        span(className = "label-text text-xs") { +currentStrings.fieldPriceModifierEnabled }
-                                                    }
-                                                }
-                                                if (field.priceModifier is PriceModifier.PerUnit) {
-                                                    val perUnit = field.priceModifier as PriceModifier.PerUnit
-                                                    div(className = "form-control") {
-                                                        label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldPerUnitPriceLabel } }
-                                                        numeric(value = perUnit.pricePerUnit.takeIf { it > 0 }, min = 0, className = "input input-sm input-bordered w-full") {
-                                                            onInput {
-                                                                updateCustomField(index, field.copy(priceModifier = PriceModifier.PerUnit(value?.toDouble() ?: 0.0)))
-                                                            }
-                                                        }
-                                                        p(className = "text-xs text-base-content/50 mt-1") { +currentStrings.fieldPerUnitFormula }
-                                                    }
-                                                }
-                                            }
-                                            else -> {}
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        // Custom fields
+        CustomFieldsBuilderSection(customFields) { customFields = it }
 
         // Uzávěrka rezervací
         div(className = "card bg-base-100 shadow-sm border border-base-200") {
@@ -893,7 +726,7 @@ fun IComponent.AdminCreateEventScreen() {
                                     )
                                 ).onRight {
                                     toastData = ToastData(currentStrings.toastCourseCreated, ToastType.Success)
-                                    delay(500)
+                                    delay(500.milliseconds)
                                     router.navigate("/admin/events")
                                 }.onLeft { error ->
                                     toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
