@@ -36,6 +36,7 @@ object EnStrings : AppStrings {
     override val filter = "Filter"
     override val clearFilterTooltip = "Click to clear filter"
     override val filterIsActive: (String) -> String = { "Filter: $it" }
+    override val copyEventLink = "Copy link to event"
 
     // Cards
     override val course = "Course"

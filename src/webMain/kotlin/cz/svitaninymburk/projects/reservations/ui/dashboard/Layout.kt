@@ -34,6 +34,7 @@ fun IComponent.DashboardLayout(
     initialFilterId: String? = null,
     isSubmitting: Boolean = false,
     onSubmitReservation: (ReservationTarget, ReservationFormData) -> Unit,
+    onFilterChange: (Uuid?) -> Unit = {},
 ) {
     val currentStrings by strings
 
@@ -72,6 +73,7 @@ fun IComponent.DashboardLayout(
                         onClick {
                             activeTab = DashboardTab.CATALOG
                             selectedDefinitionId = null
+                            onFilterChange(null)
                         }
                         span(className = "icon-[heroicons--swatch] size-5 mr-2")
                         +currentStrings.catalog
@@ -85,6 +87,7 @@ fun IComponent.DashboardLayout(
                         DefinitionCard(def) {
                             selectedDefinitionId = def.id
                             activeTab = DashboardTab.SCHEDULE
+                            onFilterChange(def.id)
                         }
                     }
                 }
@@ -93,7 +96,7 @@ fun IComponent.DashboardLayout(
                     if (activeFilterName != null) {
                         div(className = "badge badge-primary gap-2 px-4 py-2 h-auto min-h-11 whitespace-normal text-left w-full sm:w-auto sm:max-w-md justify-start sm:justify-center cursor-pointer hover:badge-error hover:text-white transition-colors tooltip tooltip-bottom") {
                             attribute("data-tip", currentStrings.clearFilterTooltip)
-                            onClick { selectedDefinitionId = null }
+                            onClick { selectedDefinitionId = null; onFilterChange(null) }
                             span(className = "icon-[heroicons--funnel] size-4 shrink-0")
                             span(className = "flex-1") { +currentStrings.filterIsActive(activeFilterName) }
                             span(className = "icon-[heroicons--x-mark] size-4 shrink-0 ml-1")

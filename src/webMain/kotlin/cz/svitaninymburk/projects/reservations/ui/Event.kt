@@ -2,6 +2,11 @@ package cz.svitaninymburk.projects.reservations.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import cz.svitaninymburk.projects.reservations.copyToClipboard
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.util.humanReadable
@@ -12,10 +17,16 @@ import dev.kilua.html.h3
 import dev.kilua.html.p
 import dev.kilua.html.span
 import dev.kilua.html.progress
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import web.window.window
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
     val currentStrings by strings
+    val scope = rememberCoroutineScope()
+    var isCopied by remember { mutableStateOf(false) }
     val progressClass = if (event.isFull) "progress-error"
         else if (event.occupiedSpots.toDouble() / event.capacity > 0.8) "progress-warning"
         else "progress-success"
@@ -27,8 +38,24 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
             div {
                 div(className = "flex items-start justify-between gap-2") {
                     h3(className = "card-title text-base sm:text-lg font-bold") { +event.title }
-                    if (event.isCancelled) {
-                        div(className = "badge badge-error badge-sm shrink-0") { +currentStrings.cancelled }
+                    div(className = "flex items-center gap-1 shrink-0") {
+                        button(className = "btn btn-ghost btn-xs btn-square tooltip tooltip-left ${if (isCopied) "text-success" else "text-base-content/40 hover:text-base-content"}") {
+                            attribute("aria-label", currentStrings.copyEventLink)
+                            attribute("data-tip", if (isCopied) currentStrings.copied else currentStrings.copyEventLink)
+                            onClick {
+                                val url = "${window.location.origin}/?filter=${event.definitionId}"
+                                copyToClipboard(url)
+                                isCopied = true
+                                scope.launch {
+                                    delay(2.seconds)
+                                    isCopied = false
+                                }
+                            }
+                            span(className = if (isCopied) "icon-[heroicons--check] size-4" else "icon-[heroicons--link] size-4")
+                        }
+                        if (event.isCancelled) {
+                            div(className = "badge badge-error badge-sm") { +currentStrings.cancelled }
+                        }
                     }
                 }
                 if (event.seriesId != null) {

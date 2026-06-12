@@ -377,7 +377,7 @@ fun IComponent.MainLayout() {
                     }
                 }
             }
-            route("/") {
+            route("/") { context ->
                 view {
                     val router = Router.current
                     UserShell(
@@ -391,7 +391,7 @@ fun IComponent.MainLayout() {
                         onNavigateToDashboard = { router.navigate("/") },
                         onNavigateToAdmin = { router.navigate("/admin") },
                     ) {
-                        DashboardScreen(user = currentUser, walletCode = userWalletCode, initialFilterId = null)
+                        DashboardScreen(user = currentUser, walletCode = userWalletCode, initialFilterId = context.parameters?.map?.get("filter")?.firstOrNull())
                     }
                 }
             }
@@ -416,7 +416,7 @@ fun IComponent.MainLayout() {
                     LaunchedEffect(Unit) { router.navigate("/") }
                 }
             }
-            route("/") {
+            route("/") { context ->
                 view {
                     val router = Router.current
                     UserShell(
@@ -429,7 +429,7 @@ fun IComponent.MainLayout() {
                         onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
                         onNavigateToDashboard = { router.navigate("/") },
                     ) {
-                        DashboardScreen(user = currentUser, walletCode = userWalletCode, initialFilterId = null)
+                        DashboardScreen(user = currentUser, walletCode = userWalletCode, initialFilterId = context.parameters?.map?.get("filter")?.firstOrNull())
                     }
                 }
             }

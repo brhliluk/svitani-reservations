@@ -36,6 +36,7 @@ object CsStrings : AppStrings {
     override val filter = "Filtr"
     override val clearFilterTooltip = "Kliknutím zrušíte filtr"
     override val filterIsActive: (String) -> String = { "Filtr: $it" }
+    override val copyEventLink = "Kopírovat odkaz na událost"
 
     // Cards
     override val course = "Kroužek"

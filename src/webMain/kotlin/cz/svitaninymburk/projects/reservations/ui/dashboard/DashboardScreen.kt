@@ -95,7 +95,11 @@ fun IComponent.DashboardScreen(
             definitions = state.definitions,
             initialFilterId = initialFilterId,
             isSubmitting = isSubmitting,
-            onSubmitReservation = { target, formData -> scope.launch { submitReservation(target, formData) } }
+            onSubmitReservation = { target, formData -> scope.launch { submitReservation(target, formData) } },
+            onFilterChange = { id ->
+                if (id == null) router.navigate("/")
+                else router.navigate("/?filter=$id")
+            }
         )
         is DashboardUiState.Error -> {
             div(className = "min-h-screen flex items-center justify-center bg-base-200") {
