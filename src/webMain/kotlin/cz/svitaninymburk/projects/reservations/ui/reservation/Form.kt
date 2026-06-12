@@ -19,6 +19,7 @@ import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
 import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
 import cz.svitaninymburk.projects.reservations.event.hoursFromRange
 import cz.svitaninymburk.projects.reservations.i18n.strings
+import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.ui.components.CancellationPolicyBox
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -81,7 +82,7 @@ fun IComponent.ReservationModal(
         firstName.isNotBlank() &&
         lastName.isNotBlank() &&
         email.contains("@") &&
-        phone.length >= 9 &&
+        PhoneNumber.isValid(phone) &&
         seats > 0 &&
         (target?.customFields?.all { field ->
             (if (!field.isRequired) true
@@ -232,6 +233,9 @@ fun IComponent.ReservationModal(
                             placeholder(currentStrings.phoneHint)
                             attribute("aria-required", "true")
                             onInput { phone = value ?: "" }
+                            onEvent<Event>("blur") {
+                                if (phone.isNotBlank()) phone = PhoneNumber.format(phone)
+                            }
                         }
                         div(className = "label") {
                             span(className = "label-text-alt text-base-content/60") { +currentStrings.phoneHintAlt }
