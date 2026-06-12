@@ -1,4 +1,4 @@
-package cz.svitaninymburk.projects.reservations.ui
+package cz.svitaninymburk.projects.reservations.ui.events
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue

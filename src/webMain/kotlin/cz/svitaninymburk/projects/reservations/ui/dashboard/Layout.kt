@@ -10,10 +10,10 @@ import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
-import cz.svitaninymburk.projects.reservations.ui.CalendarView
-import cz.svitaninymburk.projects.reservations.ui.DefinitionCard
-import cz.svitaninymburk.projects.reservations.ui.Event
-import cz.svitaninymburk.projects.reservations.ui.SeriesCard
+import cz.svitaninymburk.projects.reservations.ui.events.CalendarView
+import cz.svitaninymburk.projects.reservations.ui.events.DefinitionCard
+import cz.svitaninymburk.projects.reservations.ui.events.Event
+import cz.svitaninymburk.projects.reservations.ui.events.SeriesCard
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormData
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationModal
 import cz.svitaninymburk.projects.reservations.user.User

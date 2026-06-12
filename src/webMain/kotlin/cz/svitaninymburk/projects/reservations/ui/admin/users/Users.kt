@@ -1,4 +1,4 @@
-package cz.svitaninymburk.projects.reservations.ui.admin
+package cz.svitaninymburk.projects.reservations.ui.admin.users
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue

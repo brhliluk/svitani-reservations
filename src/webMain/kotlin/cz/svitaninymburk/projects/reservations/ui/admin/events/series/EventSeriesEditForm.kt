@@ -1,4 +1,4 @@
-package cz.svitaninymburk.projects.reservations.ui.admin
+package cz.svitaninymburk.projects.reservations.ui.admin.events.series
 
 import androidx.compose.runtime.*
 import app.softwork.routingcompose.Router

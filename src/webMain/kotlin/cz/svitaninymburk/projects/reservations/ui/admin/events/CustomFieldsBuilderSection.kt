@@ -1,4 +1,4 @@
-package cz.svitaninymburk.projects.reservations.ui.admin
+package cz.svitaninymburk.projects.reservations.ui.admin.events
 
 import androidx.compose.runtime.*
 import cz.svitaninymburk.projects.reservations.event.*
