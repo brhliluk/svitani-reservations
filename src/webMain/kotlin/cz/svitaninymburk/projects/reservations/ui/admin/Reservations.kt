@@ -23,6 +23,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.form.check.checkBox
@@ -407,7 +408,7 @@ internal fun IComponent.ReservationExpandedDetails(
             if (!phone.isNullOrBlank()) {
                 div(className = "flex justify-between items-baseline gap-4") {
                     span(className = "text-xs uppercase font-bold tracking-wider text-base-content/60") { +currentStrings.phoneLabel }
-                    span(className = "font-medium text-base-content text-sm") { +phone }
+                    span(className = "font-medium text-base-content text-sm") { +PhoneNumber.format(phone) }
                 }
             }
             div(className = "flex justify-between items-baseline gap-4") {
