@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
+import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -266,7 +267,8 @@ class GmailEmailService(
         val email = setupEmail()
         email.addTo(lectorEmail)
         email.subject = s.lectorReservationSubject(eventTitle)
-        email.setTextMsg(s.lectorReservationBody(contactName, contactEmail, contactPhone, seatCount, eventTitle, occupiedSpots, capacity))
+        val formattedPhone = contactPhone?.let { PhoneNumber.format(it) }
+        email.setTextMsg(s.lectorReservationBody(contactName, contactEmail, formattedPhone, seatCount, eventTitle, occupiedSpots, capacity))
         catch({ email.send() }) { e: EmailException ->
             raise(EmailError.SendLectorReservationFailed(e.fullMessage()))
         }
@@ -454,7 +456,7 @@ class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService
         lectorEmail: String, contactName: String, contactEmail: String, contactPhone: String?,
         seatCount: Int, eventTitle: String, occupiedSpots: Int, capacity: Int, locale: String,
     ): Either<EmailError.SendLectorReservation, Unit> {
-        println("[LECTOR EMAIL] To: $lectorEmail | New booking for '$eventTitle' | Customer: $contactName ($contactEmail${if (contactPhone != null) ", $contactPhone" else ""}) | Seats: $seatCount | Occupancy: $occupiedSpots/$capacity")
+        println("[LECTOR EMAIL] To: $lectorEmail | New booking for '$eventTitle' | Customer: $contactName ($contactEmail${if (contactPhone != null) ", ${PhoneNumber.format(contactPhone)}" else ""}) | Seats: $seatCount | Occupancy: $occupiedSpots/$capacity")
         return Unit.right()
     }
 

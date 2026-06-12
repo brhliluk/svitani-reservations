@@ -13,6 +13,7 @@ import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
@@ -151,7 +152,7 @@ fun IComponent.AdminAttendanceScreen(eventId: String, isSeries: Boolean) {
                                                 td(className = "print:hidden") {
                                                     div(className = "font-bold") { +participant.contactName }
                                                     div(className = "text-xs text-base-content/50") {
-                                                        val contact = listOfNotNull(participant.contactEmail, participant.contactPhone).joinToString(" • ")
+                                                        val contact = listOfNotNull(participant.contactEmail, participant.contactPhone?.let { PhoneNumber.format(it) }).joinToString(" • ")
                                                         +contact
                                                     }
                                                 }
@@ -160,7 +161,7 @@ fun IComponent.AdminAttendanceScreen(eventId: String, isSeries: Boolean) {
                                                 td(className = "hidden print:table-cell font-bold") { +participant.contactName }
                                                 // Print only: phone
                                                 td(className = "hidden print:table-cell text-sm") {
-                                                    +(participant.contactPhone ?: "")
+                                                    +(participant.contactPhone?.let { PhoneNumber.format(it) } ?: "")
                                                 }
 
                                                 td { +"${participant.seatCount}" }

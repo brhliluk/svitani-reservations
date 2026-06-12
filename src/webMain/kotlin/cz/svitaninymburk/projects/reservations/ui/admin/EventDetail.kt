@@ -22,6 +22,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.form.form
@@ -302,7 +303,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                                 td {
                                                     div(className = "font-bold") { +participant.contactName }
                                                     div(className = "text-xs text-base-content/50") {
-                                                        +"${participant.contactEmail} • ${participant.contactPhone}"
+                                                        +"${participant.contactEmail} • ${participant.contactPhone?.let { PhoneNumber.format(it) } ?: ""}"
                                                     }
                                                 }
                                                 td { +"${participant.seatCount}" }

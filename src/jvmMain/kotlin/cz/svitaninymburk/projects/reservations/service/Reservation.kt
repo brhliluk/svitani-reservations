@@ -28,6 +28,7 @@ import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.util.currentCall
+import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
 import cz.svitaninymburk.projects.reservations.wallet.WalletInfo
 import cz.svitaninymburk.projects.reservations.wallet.WalletTransactionReason
@@ -157,7 +158,7 @@ open class ReservationService(
             seatCount = requestData.seatCount,
             contactName = requestData.contactName,
             contactEmail = requestData.contactEmail,
-            contactPhone = requestData.contactPhone,
+            contactPhone = PhoneNumber.normalize(requestData.contactPhone) ?: requestData.contactPhone,
             paymentType = requestData.paymentType,
             customValues = requestData.customValues,
             totalPrice = calculateTotalPrice(
