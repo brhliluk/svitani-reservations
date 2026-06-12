@@ -68,7 +68,6 @@ fun IComponent.AdminCreateEventScreen() {
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
     var showAttendeeCount by remember { mutableStateOf(true) }
-    var publishImmediately by remember { mutableStateOf(false) }
 
     // Single / Recurring fields
     var startDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()) }
@@ -284,14 +283,6 @@ fun IComponent.AdminCreateEventScreen() {
                         }
                     }
 
-                    div(className = "form-control w-full md:col-span-2") {
-                        label(className = "cursor-pointer label justify-start gap-3") {
-                            checkBox(value = publishImmediately, className = "checkbox checkbox-primary") {
-                                onChange { publishImmediately = value }
-                            }
-                            span(className = "label-text font-medium") { +currentStrings.publishImmediatelyLabel }
-                        }
-                    }
                 }
             }
         }
@@ -578,176 +569,179 @@ fun IComponent.AdminCreateEventScreen() {
         }
 
         // Submit
+        fun submitForm(isPublished: Boolean) {
+            if (title.isBlank()) {
+                toastData = ToastData(currentStrings.validationTitleRequired, ToastType.Error)
+                return
+            }
+            val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
+            if (validOwnerEmails.isEmpty()) {
+                toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error)
+                return
+            }
+
+            val allowedPayments = buildList {
+                if (allowBankTransfer) add(PaymentInfo.Type.BANK_TRANSFER)
+                if (allowOnSite) add(PaymentInfo.Type.ON_SITE)
+            }
+            val finalDuration = durationHours.hours + durationMinutes.minutes
+
+            fun computeDeadline(startDt: LocalDateTime): Duration? {
+                if (!deadlineEnabled) return null
+                return if (deadlineTypeIsHours) {
+                    deadlineHours.hours
+                } else {
+                    try {
+                        val tz = TimeZone.of("Europe/Prague")
+                        val deadlineDate = startDt.date.minus(deadlineDaysBefore, DateTimeUnit.DAY)
+                        val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(deadlineTimeStr))
+                        startDt.toInstant(tz) - deadlineDateTime.toInstant(tz)
+                    } catch (_: Exception) { null }
+                }
+            }
+
+            scope.launch {
+                when (eventType) {
+                    EventCreateType.SINGLE -> {
+                        if (startDate.isBlank() || startTime.isBlank()) {
+                            toastData = ToastData(currentStrings.validationDatesOrTimeRequired, ToastType.Error)
+                            return@launch
+                        }
+                        val dt = try {
+                            LocalDateTime.parse("${startDate}T${startTime}")
+                        } catch (_: Exception) {
+                            toastData = ToastData(currentStrings.validationDateTimeFormat, ToastType.Error)
+                            return@launch
+                        }
+                        adminService.createEventAndInstances(
+                            CreateEventAndInstancesRequest(
+                                title = title,
+                                description = description,
+                                ownerEmails = validOwnerEmails,
+                                defaultPrice = price?.toDouble() ?: 0.0,
+                                defaultCapacity = capacity,
+                                defaultDuration = finalDuration,
+                                allowedPaymentTypes = allowedPayments,
+                                customFields = customFields,
+                                showAttendeeCount = showAttendeeCount,
+                                dateTimes = listOf(dt),
+                                reservationDeadline = computeDeadline(dt),
+                                reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
+                                isPublished = isPublished,
+                            )
+                        ).onRight {
+                            toastData = ToastData(currentStrings.toastEventCreated, ToastType.Success)
+                            delay(500)
+                            router.navigate("/admin/events")
+                        }.onLeft { error ->
+                            toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
+                        }
+                    }
+
+                    EventCreateType.RECURRING -> {
+                        if (previewDates.isEmpty()) {
+                            toastData = ToastData(currentStrings.validationNoDates, ToastType.Error)
+                            return@launch
+                        }
+                        adminService.createEventAndInstances(
+                            CreateEventAndInstancesRequest(
+                                title = title,
+                                description = description,
+                                ownerEmails = validOwnerEmails,
+                                defaultPrice = price?.toDouble() ?: 0.0,
+                                defaultCapacity = capacity,
+                                defaultDuration = finalDuration,
+                                allowedPaymentTypes = allowedPayments,
+                                customFields = customFields,
+                                showAttendeeCount = showAttendeeCount,
+                                dateTimes = previewDates,
+                                reservationDeadline = previewDates.firstOrNull()?.let { computeDeadline(it) },
+                                reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
+                                isPublished = isPublished,
+                            )
+                        ).onRight {
+                            toastData = ToastData(currentStrings.toastEventsCreated(previewDates.size), ToastType.Success)
+                            delay(500)
+                            router.navigate("/admin/events")
+                        }.onLeft { error ->
+                            toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
+                        }
+                    }
+
+                    EventCreateType.COURSE -> {
+                        if (courseStartDate.isBlank()) {
+                            toastData = ToastData(currentStrings.validationCourseDatesRequired, ToastType.Error)
+                            return@launch
+                        }
+                        val parsedStart = try { LocalDate.parse(courseStartDate) } catch (_: Exception) {
+                            toastData = ToastData(currentStrings.validationStartDateFormat, ToastType.Error)
+                            return@launch
+                        }
+
+                        val lessonStartT = if (courseLessonStartTimeStr.isNotBlank()) try { LocalTime.parse(courseLessonStartTimeStr) } catch (_: Exception) { null } else null
+                        val finalCustomLessons: List<LessonConfig>? = if (lessonStartT != null && computedCourseDates.isNotEmpty()) {
+                            val endMinutes = (lessonStartT.hour * 60 + lessonStartT.minute + durationHours * 60 + durationMinutes) % (24 * 60)
+                            val lessonEndT = LocalTime(endMinutes / 60, endMinutes % 60)
+                            computedCourseDates.indices.map { i ->
+                                val dateStr = lessonDateOverrides[i] ?: computedCourseDates[i].toString()
+                                val date = try { LocalDate.parse(dateStr) } catch (_: Exception) { computedCourseDates[i] }
+                                LessonConfig(
+                                    startDateTime = LocalDateTime(date, lessonStartT),
+                                    endDateTime = LocalDateTime(date, lessonEndT),
+                                    isDropIn = lessonDropIn[i] ?: false,
+                                )
+                            }
+                        } else null
+
+                        val computedEndDate = computedCourseDates.lastOrNull()?.let {
+                            val overrideStr = lessonDateOverrides[computedCourseDates.size - 1]
+                            if (overrideStr != null) try { LocalDate.parse(overrideStr) } catch (_: Exception) { it } else it
+                        } ?: parsedStart
+
+                        val courseStartDt = LocalDateTime(parsedStart, if (courseLessonStartTimeStr.isNotBlank()) try { LocalTime.parse(courseLessonStartTimeStr) } catch (_: Exception) { LocalTime(0, 0) } else LocalTime(0, 0))
+                        adminService.createEventAndSeries(
+                            CreateEventAndSeriesRequest(
+                                title = title,
+                                description = description,
+                                ownerEmails = validOwnerEmails,
+                                defaultPrice = price?.toDouble() ?: 0.0,
+                                defaultCapacity = capacity,
+                                defaultDuration = finalDuration,
+                                allowedPaymentTypes = allowedPayments,
+                                customFields = customFields,
+                                startDate = parsedStart,
+                                endDate = computedEndDate,
+                                lessonCount = lessonCount,
+                                customLessons = finalCustomLessons,
+                                showAttendeeCount = showAttendeeCount,
+                                reservationDeadline = computeDeadline(courseStartDt),
+                                reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
+                                isPublished = isPublished,
+                            )
+                        ).onRight {
+                            toastData = ToastData(currentStrings.toastCourseCreated, ToastType.Success)
+                            delay(500.milliseconds)
+                            router.navigate("/admin/events")
+                        }.onLeft { error ->
+                            toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
+                        }
+                    }
+                }
+            }
+        }
+
         div(className = "flex justify-end gap-2 mt-4") {
             button(className = "btn") {
                 onClick { history.back() }
                 +currentStrings.cancel
             }
-
+            button(className = "btn btn-outline") {
+                onClick { submitForm(false) }
+                +currentStrings.saveDraftButton
+            }
             val btnClass = if (eventType == EventCreateType.COURSE) "btn btn-secondary" else "btn btn-primary"
             button(className = btnClass) {
-                onClick {
-                    if (title.isBlank()) {
-                        toastData = ToastData(currentStrings.validationTitleRequired, ToastType.Error)
-                        return@onClick
-                    }
-                    val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
-                    if (validOwnerEmails.isEmpty()) {
-                        toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error)
-                        return@onClick
-                    }
-
-                    val allowedPayments = buildList {
-                        if (allowBankTransfer) add(PaymentInfo.Type.BANK_TRANSFER)
-                        if (allowOnSite) add(PaymentInfo.Type.ON_SITE)
-                    }
-                    val finalDuration = durationHours.hours + durationMinutes.minutes
-
-                    fun computeDeadline(startDt: LocalDateTime): Duration? {
-                        if (!deadlineEnabled) return null
-                        return if (deadlineTypeIsHours) {
-                            deadlineHours.hours
-                        } else {
-                            try {
-                                val tz = TimeZone.of("Europe/Prague")
-                                val deadlineDate = startDt.date.minus(deadlineDaysBefore, DateTimeUnit.DAY)
-                                val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(deadlineTimeStr))
-                                startDt.toInstant(tz) - deadlineDateTime.toInstant(tz)
-                            } catch (_: Exception) { null }
-                        }
-                    }
-
-                    scope.launch {
-                        when (eventType) {
-                            EventCreateType.SINGLE -> {
-                                if (startDate.isBlank() || startTime.isBlank()) {
-                                    toastData = ToastData(currentStrings.validationDatesOrTimeRequired, ToastType.Error)
-                                    return@launch
-                                }
-                                val dt = try {
-                                    LocalDateTime.parse("${startDate}T${startTime}")
-                                } catch (_: Exception) {
-                                    toastData = ToastData(currentStrings.validationDateTimeFormat, ToastType.Error)
-                                    return@launch
-                                }
-                                adminService.createEventAndInstances(
-                                    CreateEventAndInstancesRequest(
-                                        title = title,
-                                        description = description,
-                                        ownerEmails = validOwnerEmails,
-                                        defaultPrice = price?.toDouble() ?: 0.0,
-                                        defaultCapacity = capacity,
-                                        defaultDuration = finalDuration,
-                                        allowedPaymentTypes = allowedPayments,
-                                        customFields = customFields,
-                                        showAttendeeCount = showAttendeeCount,
-                                        dateTimes = listOf(dt),
-                                        reservationDeadline = computeDeadline(dt),
-                                        reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
-                                        isPublished = publishImmediately,
-                                    )
-                                ).onRight {
-                                    toastData = ToastData(currentStrings.toastEventCreated, ToastType.Success)
-                                    delay(500)
-                                    router.navigate("/admin/events")
-                                }.onLeft { error ->
-                                    toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
-                                }
-                            }
-
-                            EventCreateType.RECURRING -> {
-                                if (previewDates.isEmpty()) {
-                                    toastData = ToastData(currentStrings.validationNoDates, ToastType.Error)
-                                    return@launch
-                                }
-                                adminService.createEventAndInstances(
-                                    CreateEventAndInstancesRequest(
-                                        title = title,
-                                        description = description,
-                                        ownerEmails = validOwnerEmails,
-                                        defaultPrice = price?.toDouble() ?: 0.0,
-                                        defaultCapacity = capacity,
-                                        defaultDuration = finalDuration,
-                                        allowedPaymentTypes = allowedPayments,
-                                        customFields = customFields,
-                                        showAttendeeCount = showAttendeeCount,
-                                        dateTimes = previewDates,
-                                        reservationDeadline = previewDates.firstOrNull()?.let { computeDeadline(it) },
-                                        reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
-                                        isPublished = publishImmediately,
-                                    )
-                                ).onRight {
-                                    toastData = ToastData(currentStrings.toastEventsCreated(previewDates.size), ToastType.Success)
-                                    delay(500)
-                                    router.navigate("/admin/events")
-                                }.onLeft { error ->
-                                    toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
-                                }
-                            }
-
-                            EventCreateType.COURSE -> {
-                                if (courseStartDate.isBlank()) {
-                                    toastData = ToastData(currentStrings.validationCourseDatesRequired, ToastType.Error)
-                                    return@launch
-                                }
-                                val parsedStart = try { LocalDate.parse(courseStartDate) } catch (_: Exception) {
-                                    toastData = ToastData(currentStrings.validationStartDateFormat, ToastType.Error)
-                                    return@launch
-                                }
-
-                                // Build customLessons if day+time are specified
-                                val lessonStartT = if (courseLessonStartTimeStr.isNotBlank()) try { LocalTime.parse(courseLessonStartTimeStr) } catch (_: Exception) { null } else null
-                                val finalCustomLessons: List<LessonConfig>? = if (lessonStartT != null && computedCourseDates.isNotEmpty()) {
-                                    val endMinutes = (lessonStartT.hour * 60 + lessonStartT.minute + durationHours * 60 + durationMinutes) % (24 * 60)
-                                    val lessonEndT = LocalTime(endMinutes / 60, endMinutes % 60)
-                                    computedCourseDates.indices.map { i ->
-                                        val dateStr = lessonDateOverrides[i] ?: computedCourseDates[i].toString()
-                                        val date = try { LocalDate.parse(dateStr) } catch (_: Exception) { computedCourseDates[i] }
-                                        LessonConfig(
-                                            startDateTime = LocalDateTime(date, lessonStartT),
-                                            endDateTime = LocalDateTime(date, lessonEndT),
-                                            isDropIn = lessonDropIn[i] ?: false,
-                                        )
-                                    }
-                                } else null
-
-                                // Compute end date: last lesson date or fallback to startDate
-                                val computedEndDate = computedCourseDates.lastOrNull()?.let {
-                                    val overrideStr = lessonDateOverrides[computedCourseDates.size - 1]
-                                    if (overrideStr != null) try { LocalDate.parse(overrideStr) } catch (_: Exception) { it } else it
-                                } ?: parsedStart
-
-                                val courseStartDt = LocalDateTime(parsedStart, if (courseLessonStartTimeStr.isNotBlank()) try { LocalTime.parse(courseLessonStartTimeStr) } catch (_: Exception) { LocalTime(0, 0) } else LocalTime(0, 0))
-                                adminService.createEventAndSeries(
-                                    CreateEventAndSeriesRequest(
-                                        title = title,
-                                        description = description,
-                                        ownerEmails = validOwnerEmails,
-                                        defaultPrice = price?.toDouble() ?: 0.0,
-                                        defaultCapacity = capacity,
-                                        defaultDuration = finalDuration,
-                                        allowedPaymentTypes = allowedPayments,
-                                        customFields = customFields,
-                                        startDate = parsedStart,
-                                        endDate = computedEndDate,
-                                        lessonCount = lessonCount,
-                                        customLessons = finalCustomLessons,
-                                        showAttendeeCount = showAttendeeCount,
-                                        reservationDeadline = computeDeadline(courseStartDt),
-                                        reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
-                                        isPublished = publishImmediately,
-                                    )
-                                ).onRight {
-                                    toastData = ToastData(currentStrings.toastCourseCreated, ToastType.Success)
-                                    delay(500.milliseconds)
-                                    router.navigate("/admin/events")
-                                }.onLeft { error ->
-                                    toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
-                                }
-                            }
-                        }
-                    }
-                }
+                onClick { submitForm(true) }
                 span(className = "icon-[heroicons--check] size-5")
                 +currentStrings.createEventButton
             }

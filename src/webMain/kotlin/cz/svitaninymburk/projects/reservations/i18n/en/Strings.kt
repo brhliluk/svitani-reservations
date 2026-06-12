@@ -306,6 +306,7 @@ object EnStrings : AppStrings {
 
     // Event publishing
     override val publishImmediatelyLabel = "Publish immediately"
+    override val saveDraftButton = "Save as draft"
     override val statusPublished = "Published"
     override val statusHidden = "Hidden"
     override val publishButton = "Publish"

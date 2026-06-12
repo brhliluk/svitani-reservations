@@ -306,6 +306,7 @@ object CsStrings : AppStrings {
 
     // Event publishing
     override val publishImmediatelyLabel = "Zveřejnit ihned"
+    override val saveDraftButton = "Uložit koncept"
     override val statusPublished = "Zveřejněno"
     override val statusHidden = "Skryté"
     override val publishButton = "Zveřejnit"

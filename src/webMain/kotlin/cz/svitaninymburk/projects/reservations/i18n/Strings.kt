@@ -323,6 +323,7 @@ interface AppStrings : ErrorStrings {
 
     // Event publishing
     val publishImmediatelyLabel: String
+    val saveDraftButton: String
     val statusPublished: String
     val statusHidden: String
     val publishButton: String

@@ -74,7 +74,6 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
     var showAttendeeCount by remember { mutableStateOf(true) }
-    var publishImmediately by remember { mutableStateOf(false) }
 
     var deadlineEnabled by remember { mutableStateOf(false) }
     var deadlineTypeIsHours by remember { mutableStateOf(true) }
@@ -371,14 +370,6 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                                 }
                             }
 
-                            div(className = "form-control w-full md:col-span-2") {
-                                label(className = "cursor-pointer label justify-start gap-3") {
-                                    checkBox(value = publishImmediately, className = "checkbox checkbox-primary") {
-                                        onChange { publishImmediately = value }
-                                    }
-                                    span(className = "label-text font-medium") { +currentStrings.publishImmediatelyLabel }
-                                }
-                            }
                         }
                     }
                 }
@@ -473,98 +464,103 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                 }
 
                 // --- ULOŽIT ---
+                fun submitForm(isPublished: Boolean) {
+                    if (startDate.isBlank() || startTime.isBlank()) {
+                        toastData = ToastData(currentStrings.validationDateTimeRequired, ToastType.Error)
+                        return
+                    }
+                    val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
+                    if (validOwnerEmails.isEmpty()) {
+                        toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error)
+                        return
+                    }
+
+                    val isoDateTimeString = "${startDate}T${startTime}"
+                    val parsedDateTime = try {
+                        LocalDateTime.parse(isoDateTimeString)
+                    } catch (e: Exception) {
+                        toastData = ToastData(currentStrings.validationDateTimeFormat, ToastType.Error)
+                        return
+                    }
+
+                    val allowedPayments = mutableListOf<PaymentInfo.Type>()
+                    if (allowBankTransfer) allowedPayments.add(PaymentInfo.Type.BANK_TRANSFER)
+                    if (allowOnSite) allowedPayments.add(PaymentInfo.Type.ON_SITE)
+
+                    val resolvedDeadline: Duration? = if (deadlineEnabled) {
+                        if (deadlineTypeIsHours) {
+                            deadlineHours.hours
+                        } else {
+                            try {
+                                val tz = TimeZone.of("Europe/Prague")
+                                val deadlineDate = parsedDateTime.date.minus(deadlineDaysBefore, DateTimeUnit.DAY)
+                                val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(deadlineTimeStr))
+                                parsedDateTime.toInstant(tz) - deadlineDateTime.toInstant(tz)
+                            } catch (_: Exception) { null }
+                        }
+                    } else null
+
+                    val baseRequest = CreateEventInstanceRequest(
+                        definitionId = Uuid.parse(selectedDefinitionId!!),
+                        startDateTime = parsedDateTime,
+                        title = titleOverride.takeIf { it.isNotBlank() },
+                        description = descriptionOverride.takeIf { it.isNotBlank() },
+                        duration = durationHours.hours + durationMinutes.minutes,
+                        price = priceOverride?.toDouble() ?: 0.0,
+                        capacity = capacityOverride,
+                        allowedPaymentTypes = allowedPayments,
+                        customFields = customFields,
+                        ownerEmails = validOwnerEmails,
+                        showAttendeeCount = showAttendeeCount,
+                        reservationDeadline = resolvedDeadline,
+                        reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
+                        isPublished = isPublished,
+                    )
+
+                    val dateTimes = if (isRecurring && previewDates.isNotEmpty()) previewDates else listOf(parsedDateTime)
+
+                    if (dateTimes.isEmpty()) {
+                        toastData = ToastData(currentStrings.validationNoDates, ToastType.Error)
+                        return
+                    }
+
+                    isSubmitting = true
+                    scope.launch {
+                        var failed = false
+                        for (dt in dateTimes) {
+                            authEventService.createEventInstance(baseRequest.copy(startDateTime = dt))
+                                .onLeft { error ->
+                                    isSubmitting = false
+                                    toastData = ToastData(currentStrings.toastInstanceCreateError(dt.toString(), error.localizedMessage(currentStrings)), ToastType.Error)
+                                    failed = true
+                                }
+                            if (failed) break
+                        }
+                        if (!failed) {
+                            isSubmitting = false
+                            toastData = ToastData(
+                                if (dateTimes.size > 1) currentStrings.toastInstancesCreated(dateTimes.size) else currentStrings.toastInstanceCreated,
+                                ToastType.Success
+                            )
+                            delay(500.milliseconds)
+                            router.navigate("/admin/events")
+                        }
+                    }
+                }
+
                 div(className = "flex justify-end gap-2 mt-4") {
                     button(className = "btn") {
                         onClick { history.back() }
                         +currentStrings.cancel
                     }
+                    button(className = "btn btn-outline") {
+                        disabled(isSubmitting)
+                        onClick { submitForm(false) }
+                        +currentStrings.saveDraftButton
+                    }
                     button(className = "btn btn-primary") {
                         disabled(isSubmitting)
-                        onClick {
-                            if (startDate.isBlank() || startTime.isBlank()) {
-                                toastData = ToastData(currentStrings.validationDateTimeRequired, ToastType.Error)
-                                return@onClick
-                            }
-                            val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
-                            if (validOwnerEmails.isEmpty()) {
-                                toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error)
-                                return@onClick
-                            }
-
-                            // Spojíme datum a čas do ISO formátu, který schroupne LocalDateTime
-                            val isoDateTimeString = "${startDate}T${startTime}"
-                            val parsedDateTime = try {
-                                LocalDateTime.parse(isoDateTimeString)
-                            } catch (e: Exception) {
-                                toastData = ToastData(currentStrings.validationDateTimeFormat, ToastType.Error)
-                                return@onClick
-                            }
-
-                            // Připravíme platby
-                            val allowedPayments = mutableListOf<PaymentInfo.Type>()
-                            if (allowBankTransfer) allowedPayments.add(PaymentInfo.Type.BANK_TRANSFER)
-                            if (allowOnSite) allowedPayments.add(PaymentInfo.Type.ON_SITE)
-
-                            val resolvedDeadline: Duration? = if (deadlineEnabled) {
-                                if (deadlineTypeIsHours) {
-                                    deadlineHours.hours
-                                } else {
-                                    try {
-                                        val tz = TimeZone.of("Europe/Prague")
-                                        val deadlineDate = parsedDateTime.date.minus(deadlineDaysBefore, DateTimeUnit.DAY)
-                                        val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(deadlineTimeStr))
-                                        parsedDateTime.toInstant(tz) - deadlineDateTime.toInstant(tz)
-                                    } catch (_: Exception) { null }
-                                }
-                            } else null
-
-                            val baseRequest = CreateEventInstanceRequest(
-                                definitionId = Uuid.parse(selectedDefinitionId!!),
-                                startDateTime = parsedDateTime,
-                                title = titleOverride.takeIf { it.isNotBlank() },
-                                description = descriptionOverride.takeIf { it.isNotBlank() },
-                                duration = durationHours.hours + durationMinutes.minutes,
-                                price = priceOverride?.toDouble() ?: 0.0,
-                                capacity = capacityOverride,
-                                allowedPaymentTypes = allowedPayments,
-                                customFields = customFields,
-                                ownerEmails = validOwnerEmails,
-                                showAttendeeCount = showAttendeeCount,
-                                reservationDeadline = resolvedDeadline,
-                                reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
-                                isPublished = publishImmediately,
-                            )
-
-                            val dateTimes = if (isRecurring && previewDates.isNotEmpty()) previewDates else listOf(parsedDateTime)
-
-                            if (dateTimes.isEmpty()) {
-                                toastData = ToastData(currentStrings.validationNoDates, ToastType.Error)
-                                return@onClick
-                            }
-
-                            isSubmitting = true
-                            scope.launch {
-                                var failed = false
-                                for (dt in dateTimes) {
-                                    authEventService.createEventInstance(baseRequest.copy(startDateTime = dt))
-                                        .onLeft { error ->
-                                            isSubmitting = false
-                                            toastData = ToastData(currentStrings.toastInstanceCreateError(dt.toString(), error.localizedMessage(currentStrings)), ToastType.Error)
-                                            failed = true
-                                        }
-                                    if (failed) break
-                                }
-                                if (!failed) {
-                                    isSubmitting = false
-                                    toastData = ToastData(
-                                        if (dateTimes.size > 1) currentStrings.toastInstancesCreated(dateTimes.size) else currentStrings.toastInstanceCreated,
-                                        ToastType.Success
-                                    )
-                                    delay(500.milliseconds)
-                                    router.navigate("/admin/events")
-                                }
-                            }
-                        }
+                        onClick { submitForm(true) }
                         if (isSubmitting) span(className = "loading loading-spinner loading-sm")
                         span(className = "icon-[heroicons--check] size-5")
                         +(if (isRecurring && previewDates.size > 1) currentStrings.createInstancesButton(previewDates.size) else currentStrings.createInstanceButton)

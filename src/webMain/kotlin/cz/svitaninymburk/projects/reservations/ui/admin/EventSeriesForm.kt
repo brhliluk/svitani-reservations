@@ -75,7 +75,6 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
     var showAttendeeCount by remember { mutableStateOf(true) }
-    var publishImmediately by remember { mutableStateOf(false) }
 
     var deadlineEnabled by remember { mutableStateOf(false) }
     var deadlineTypeIsHours by remember { mutableStateOf(true) }
@@ -431,14 +430,6 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 }
                             }
 
-                            div(className = "form-control w-full md:col-span-2") {
-                                label(className = "cursor-pointer label justify-start gap-3") {
-                                    checkBox(value = publishImmediately, className = "checkbox checkbox-primary") {
-                                        onChange { publishImmediately = value }
-                                    }
-                                    span(className = "label-text font-medium") { +currentStrings.publishImmediatelyLabel }
-                                }
-                            }
                         }
                     }
                 }
@@ -508,124 +499,131 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                 }
 
                 // --- ULOŽIT ---
+                fun submitForm(isPublished: Boolean) {
+                    if (startDate.isBlank() || endDate.isBlank()) {
+                        toastData = ToastData(currentStrings.validationDatesRequired, ToastType.Error)
+                        return
+                    }
+                    if (titleOverride.isBlank()) {
+                        toastData = ToastData(currentStrings.validationSeriesTitleRequired, ToastType.Error)
+                        return
+                    }
+                    val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
+                    if (validOwnerEmails.isEmpty()) {
+                        toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error)
+                        return
+                    }
+
+                    val parsedStartDate = try { LocalDate.parse(startDate) } catch (e: Exception) {
+                        toastData = ToastData(currentStrings.validationStartDateFormat, ToastType.Error)
+                        return
+                    }
+                    val parsedEndDate = try { LocalDate.parse(endDate) } catch (e: Exception) {
+                        toastData = ToastData(currentStrings.validationEndDateFormat, ToastType.Error)
+                        return
+                    }
+                    if (parsedEndDate < parsedStartDate) {
+                        toastData = ToastData(currentStrings.validationEndBeforeStart, ToastType.Error)
+                        return
+                    }
+
+                    val allowedPayments = mutableListOf<PaymentInfo.Type>()
+                    if (allowBankTransfer) allowedPayments.add(PaymentInfo.Type.BANK_TRANSFER)
+                    if (allowOnSite) allowedPayments.add(PaymentInfo.Type.ON_SITE)
+
+                    val parsedDay = lessonDayOfWeekOrdinal?.let { DayOfWeek(it) }
+                    val parsedStartTime = if (lessonStartTimeStr.isNotBlank()) {
+                        try { LocalTime.parse(lessonStartTimeStr) } catch (_: Exception) { null }
+                    } else null
+                    val selectedDef = definitions.find { it.id.toString() == selectedDefinitionId }
+                    val parsedEndTime = if (parsedStartTime != null && selectedDef != null) {
+                        val startMinutes = parsedStartTime.hour * 60 + parsedStartTime.minute
+                        val durationMinutes = selectedDef.defaultDuration.inWholeMinutes.toInt()
+                        val endMinutes = (startMinutes + durationMinutes) % (24 * 60)
+                        LocalTime(endMinutes / 60, endMinutes % 60)
+                    } else null
+
+                    val lessonStartT = if (lessonStartTimeStr.isNotBlank()) try { LocalTime.parse(lessonStartTimeStr) } catch (_: Exception) { null } else null
+                    val finalCustomLessons: List<LessonConfig>? = if (lessonStartT != null && computedSeriesDates.isNotEmpty() && selectedDef != null) {
+                        val endMinutes = (lessonStartT.hour * 60 + lessonStartT.minute + selectedDef.defaultDuration.inWholeMinutes.toInt()) % (24 * 60)
+                        val lessonEndT = LocalTime(endMinutes / 60, endMinutes % 60)
+                        computedSeriesDates.indices.map { i ->
+                            val dateStr = lessonDateOverrides[i] ?: computedSeriesDates[i].toString()
+                            val date = try { LocalDate.parse(dateStr) } catch (_: Exception) { computedSeriesDates[i] }
+                            LessonConfig(
+                                startDateTime = LocalDateTime(date, lessonStartT),
+                                endDateTime = LocalDateTime(date, lessonEndT),
+                                isDropIn = lessonDropIn[i] ?: false,
+                            )
+                        }
+                    } else null
+
+                    val resolvedDeadline: Duration? = if (deadlineEnabled) {
+                        if (deadlineTypeIsHours) {
+                            deadlineHours.hours
+                        } else {
+                            try {
+                                val tz = TimeZone.of("Europe/Prague")
+                                val startTime = if (lessonStartTimeStr.isNotBlank()) LocalTime.parse(lessonStartTimeStr) else LocalTime(0, 0)
+                                val effectiveStart = LocalDateTime(parsedStartDate, startTime)
+                                val deadlineDate = parsedStartDate.minus(deadlineDaysBefore, DateTimeUnit.DAY)
+                                val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(deadlineTimeStr))
+                                effectiveStart.toInstant(tz) - deadlineDateTime.toInstant(tz)
+                            } catch (_: Exception) { null }
+                        }
+                    } else null
+
+                    val request = CreateEventSeriesRequest(
+                        definitionId = Uuid.parse(selectedDefinitionId!!),
+                        title = titleOverride,
+                        description = descriptionOverride,
+                        ownerEmails = validOwnerEmails,
+                        price = priceOverride?.toDouble() ?: 0.0,
+                        capacity = capacityOverride,
+                        startDate = parsedStartDate,
+                        endDate = parsedEndDate,
+                        lessonCount = lessonCount,
+                        allowedPaymentTypes = allowedPayments,
+                        lessonDayOfWeek = parsedDay,
+                        lessonStartTime = parsedStartTime,
+                        lessonEndTime = parsedEndTime,
+                        customLessons = finalCustomLessons,
+                        customFields = customFields,
+                        showAttendeeCount = showAttendeeCount,
+                        reservationDeadline = resolvedDeadline,
+                        reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
+                        isPublished = isPublished,
+                    )
+
+                    isSubmitting = true
+                    scope.launch {
+                        adminService.createEventSeries(request)
+                            .onRight {
+                                isSubmitting = false
+                                toastData = ToastData(currentStrings.toastSeriesCreated, ToastType.Success)
+                                delay(500)
+                                router.navigate("/admin/events")
+                            }
+                            .onLeft { error ->
+                                isSubmitting = false
+                                toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
+                            }
+                    }
+                }
+
                 div(className = "flex justify-end gap-2 mt-4") {
                     button(className = "btn") {
                         onClick { history.back() }
                         +currentStrings.cancel
                     }
+                    button(className = "btn btn-outline") {
+                        disabled(isSubmitting)
+                        onClick { submitForm(false) }
+                        +currentStrings.saveDraftButton
+                    }
                     button(className = "btn btn-secondary") {
                         disabled(isSubmitting)
-                        onClick {
-                            if (startDate.isBlank() || endDate.isBlank()) {
-                                toastData = ToastData(currentStrings.validationDatesRequired, ToastType.Error)
-                                return@onClick
-                            }
-                            if (titleOverride.isBlank()) {
-                                toastData = ToastData(currentStrings.validationSeriesTitleRequired, ToastType.Error)
-                                return@onClick
-                            }
-                            val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
-                            if (validOwnerEmails.isEmpty()) {
-                                toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error)
-                                return@onClick
-                            }
-
-                            val parsedStartDate = try { LocalDate.parse(startDate) } catch (e: Exception) {
-                                toastData = ToastData(currentStrings.validationStartDateFormat, ToastType.Error)
-                                return@onClick
-                            }
-                            val parsedEndDate = try { LocalDate.parse(endDate) } catch (e: Exception) {
-                                toastData = ToastData(currentStrings.validationEndDateFormat, ToastType.Error)
-                                return@onClick
-                            }
-                            if (parsedEndDate < parsedStartDate) {
-                                toastData = ToastData(currentStrings.validationEndBeforeStart, ToastType.Error)
-                                return@onClick
-                            }
-
-                            val allowedPayments = mutableListOf<PaymentInfo.Type>()
-                            if (allowBankTransfer) allowedPayments.add(PaymentInfo.Type.BANK_TRANSFER)
-                            if (allowOnSite) allowedPayments.add(PaymentInfo.Type.ON_SITE)
-
-                            val parsedDay = lessonDayOfWeekOrdinal?.let { DayOfWeek(it) }
-                            val parsedStartTime = if (lessonStartTimeStr.isNotBlank()) {
-                                try { LocalTime.parse(lessonStartTimeStr) } catch (_: Exception) { null }
-                            } else null
-                            val selectedDef = definitions.find { it.id.toString() == selectedDefinitionId }
-                            val parsedEndTime = if (parsedStartTime != null && selectedDef != null) {
-                                val startMinutes = parsedStartTime.hour * 60 + parsedStartTime.minute
-                                val durationMinutes = selectedDef.defaultDuration.inWholeMinutes.toInt()
-                                val endMinutes = (startMinutes + durationMinutes) % (24 * 60)
-                                LocalTime(endMinutes / 60, endMinutes % 60)
-                            } else null
-
-                            val lessonStartT = if (lessonStartTimeStr.isNotBlank()) try { LocalTime.parse(lessonStartTimeStr) } catch (_: Exception) { null } else null
-                            val finalCustomLessons: List<LessonConfig>? = if (lessonStartT != null && computedSeriesDates.isNotEmpty() && selectedDef != null) {
-                                val endMinutes = (lessonStartT.hour * 60 + lessonStartT.minute + selectedDef.defaultDuration.inWholeMinutes.toInt()) % (24 * 60)
-                                val lessonEndT = LocalTime(endMinutes / 60, endMinutes % 60)
-                                computedSeriesDates.indices.map { i ->
-                                    val dateStr = lessonDateOverrides[i] ?: computedSeriesDates[i].toString()
-                                    val date = try { LocalDate.parse(dateStr) } catch (_: Exception) { computedSeriesDates[i] }
-                                    LessonConfig(
-                                        startDateTime = LocalDateTime(date, lessonStartT),
-                                        endDateTime = LocalDateTime(date, lessonEndT),
-                                        isDropIn = lessonDropIn[i] ?: false,
-                                    )
-                                }
-                            } else null
-
-                            val resolvedDeadline: Duration? = if (deadlineEnabled) {
-                                if (deadlineTypeIsHours) {
-                                    deadlineHours.hours
-                                } else {
-                                    try {
-                                        val tz = TimeZone.of("Europe/Prague")
-                                        val startTime = if (lessonStartTimeStr.isNotBlank()) LocalTime.parse(lessonStartTimeStr) else LocalTime(0, 0)
-                                        val effectiveStart = LocalDateTime(parsedStartDate, startTime)
-                                        val deadlineDate = parsedStartDate.minus(deadlineDaysBefore, DateTimeUnit.DAY)
-                                        val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(deadlineTimeStr))
-                                        effectiveStart.toInstant(tz) - deadlineDateTime.toInstant(tz)
-                                    } catch (_: Exception) { null }
-                                }
-                            } else null
-
-                            val request = CreateEventSeriesRequest(
-                                definitionId = Uuid.parse(selectedDefinitionId!!),
-                                title = titleOverride,
-                                description = descriptionOverride,
-                                ownerEmails = validOwnerEmails,
-                                price = priceOverride?.toDouble() ?: 0.0,
-                                capacity = capacityOverride,
-                                startDate = parsedStartDate,
-                                endDate = parsedEndDate,
-                                lessonCount = lessonCount,
-                                allowedPaymentTypes = allowedPayments,
-                                lessonDayOfWeek = parsedDay,
-                                lessonStartTime = parsedStartTime,
-                                lessonEndTime = parsedEndTime,
-                                customLessons = finalCustomLessons,
-                                customFields = customFields,
-                                showAttendeeCount = showAttendeeCount,
-                                reservationDeadline = resolvedDeadline,
-                                reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
-                                isPublished = publishImmediately,
-                            )
-
-                            isSubmitting = true
-                            scope.launch {
-                                adminService.createEventSeries(request)
-                                    .onRight {
-                                        isSubmitting = false
-                                        toastData = ToastData(currentStrings.toastSeriesCreated, ToastType.Success)
-                                        delay(500)
-                                        router.navigate("/admin/events")
-                                    }
-                                    .onLeft { error ->
-                                        isSubmitting = false
-                                        toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
-                                    }
-                            }
-                        }
+                        onClick { submitForm(true) }
                         if (isSubmitting) span(className = "loading loading-spinner loading-sm")
                         span(className = "icon-[heroicons--check] size-5")
                         +currentStrings.createSeriesButton
