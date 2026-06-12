@@ -61,11 +61,6 @@ fun IComponent.AdminDashboardScreen() {
                 div {
                     h1(className = "text-3xl font-bold text-base-content") { +currentStrings.dashboard }
                     p(className = "text-base-content/60 mt-1") { +currentStrings.dashboardWelcome }
-                    button(className = "btn btn-ghost btn-sm gap-2 mt-2") {
-                        onClick { showChangePassword = true }
-                        span(className = "icon-[heroicons--key] size-4")
-                        +currentStrings.changePassword
-                    }
                 }
 
                 // --- 1. KPI STATISTIKY ---
