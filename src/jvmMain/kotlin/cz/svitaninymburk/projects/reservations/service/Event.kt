@@ -110,6 +110,7 @@ class EventService(
                 .filter { it.endDate >= today }
                 .sortedBy { it.startDate }
             val definitions = definitions.getOrElse { raise(EventError.FailedToGetDefinitions) }
+                .filter { def -> instances.any { it.definitionId == def.id } || series.any { it.definitionId == def.id } }
 
             DashboardData(instances, series, definitions)
         }
