@@ -102,4 +102,11 @@ class PhoneNumberTest {
     fun isInvalidEmpty() {
         assertFalse(PhoneNumber.isValid(""))
     }
+
+    @Test
+    fun isInvalidForeignNumberNotAccepted() {
+        // Zahraniční čísla mimo CZ/SK validace nepodporuje
+        assertFalse(PhoneNumber.isValid("+16502530000"))
+        assertFalse(PhoneNumber.isValid("+447911123456"))
+    }
 }

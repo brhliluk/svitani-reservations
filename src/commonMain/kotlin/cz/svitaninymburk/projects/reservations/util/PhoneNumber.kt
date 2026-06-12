@@ -39,14 +39,11 @@ object PhoneNumber {
         val canonical = normalize(raw) ?: return false
         val digits = canonical.removePrefix("+")
         val (cc, national) = splitCountryCode(digits)
-        return when (cc) {
-            "420", "421" -> national.length == 9
-            else -> national.length in 6..14
-        }
+        return cc in listOf("420", "421") && national.length == 9
     }
 
     private fun withCountryCode(digits: String): String? {
-        if (digits.length < 8) return null
+        if (digits.length < 8) return null // odfiltruje kratší neúplné vstupy
         return "+$digits"
     }
 
