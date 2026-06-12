@@ -217,17 +217,7 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
                                 }
                             }
 
-                            div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") {
-                                    span(className = "label-text font-medium") { +currentStrings.showAttendeeCount }
-                                }
-                                label(className = "cursor-pointer label justify-start gap-3") {
-                                    checkBox(value = showAttendeeCount, className = "checkbox checkbox-primary") {
-                                        onChange { showAttendeeCount = value }
-                                    }
-                                    span(className = "label-text text-sm text-base-content/70") { +currentStrings.showAttendeeCountHint }
-                                }
-                            }
+                            ShowAttendeeCountCheckbox(value = showAttendeeCount) { showAttendeeCount = it }
                         }
                     }
                 }
