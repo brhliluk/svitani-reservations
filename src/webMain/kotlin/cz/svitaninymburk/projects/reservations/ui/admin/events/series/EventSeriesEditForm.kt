@@ -12,9 +12,15 @@ import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowedPaymentsField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuilderSection
+import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.ReservationDeadlineSection
+import cz.svitaninymburk.projects.reservations.ui.admin.events.ShowAttendeeCountCheckbox
 import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
-import dev.kilua.form.check.checkBox
 import dev.kilua.form.number.numeric
 import dev.kilua.form.select.select
 import dev.kilua.form.text.text
@@ -235,36 +241,8 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.descriptionLabel } }
                                 textArea(value = description, className = "textarea textarea-bordered h-24 w-full") { onInput { description = value ?: "" } }
                             }
-                            div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") {
-                                    span(className = "label-text font-medium") { +currentStrings.ownerEmailsLabel }
-                                }
-                                div(className = "flex flex-col gap-2") {
-                                    ownerEmails.forEachIndexed { index, email ->
-                                        div(className = "flex gap-2 items-center") {
-                                            text(value = email, className = "input input-bordered flex-1") {
-                                                placeholder(currentStrings.ownerEmailPlaceholder)
-                                                onInput {
-                                                    ownerEmails = ownerEmails.toMutableList().apply { set(index, value ?: "") }
-                                                }
-                                            }
-                                            if (ownerEmails.size > 1) {
-                                                button(className = "btn btn-ghost btn-sm btn-circle text-error") {
-                                                    onClick {
-                                                        ownerEmails = ownerEmails.toMutableList().apply { removeAt(index) }
-                                                    }
-                                                    span(className = "icon-[heroicons--x-mark] size-4")
-                                                }
-                                            }
-                                        }
-                                    }
-                                    button(className = "btn btn-outline btn-sm gap-2 self-start mt-1") {
-                                        onClick { ownerEmails = ownerEmails + "" }
-                                        span(className = "icon-[heroicons--plus] size-4")
-                                        +currentStrings.addOwnerEmailButton
-                                    }
-                                }
-                            }
+                            OwnerEmailsField(ownerEmails) { ownerEmails = it }
+
                             div(className = "form-control w-full") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.startDateLabel } }
                                 text(value = startDate, type = InputType.Date, className = "input input-bordered w-full") { onInput { startDate = value ?: "" } }
@@ -279,7 +257,6 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                                     attribute("step", "1"); onInput { lessonCount = value?.toInt() ?: 1 }
                                 }
                             }
-                            // Den lekce
                             div(className = "form-control w-full") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lessonDayLabel } }
                                 select(className = "select select-bordered w-full") {
@@ -297,120 +274,42 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                                     }
                                 }
                             }
-                            // Čas lekce
                             div(className = "form-control w-full") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lessonTimeLabel } }
                                 text(value = lessonStartTimeStr, type = InputType.Time, className = "input input-bordered w-full") {
                                     onInput { lessonStartTimeStr = value ?: "" }
                                 }
                             }
-                            div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.fullCoursePriceLabel } }
-                                div(className = "relative flex items-center") {
-                                    numeric(value = price, min = 0, className = "input input-bordered w-full pr-12") { onInput { price = value } }
-                                    span(className = "absolute right-4 text-base-content/50 font-medium") { +currentStrings.currency }
-                                }
-                            }
-                            div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.capacityPersonLabel } }
-                                div(className = "relative flex items-center") {
-                                    numeric(value = capacity, min = 1, decimals = 0, className = "input input-bordered w-full pr-12") {
-                                        attribute("step", "1"); onInput { capacity = value?.toInt() ?: 1 }
-                                    }
-                                    span(className = "absolute right-4 text-base-content/50") { span(className = "icon-[heroicons--users] size-5") }
-                                }
-                            }
-                            div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.allowedPaymentsLabel } }
-                                div(className = "flex gap-4 mt-2") {
-                                    label(className = "cursor-pointer label justify-start gap-2") {
-                                        checkBox(value = allowBankTransfer, className = "checkbox checkbox-primary") { onChange { allowBankTransfer = value } }
-                                        span(className = "label-text") { +currentStrings.bankTransfer }
-                                    }
-                                    label(className = "cursor-pointer label justify-start gap-2") {
-                                        checkBox(value = allowOnSite, className = "checkbox checkbox-primary") { onChange { allowOnSite = value } }
-                                        span(className = "label-text") { +currentStrings.paymentOnSite }
-                                    }
-                                }
-                            }
+
+                            PriceCurrencyField(currentStrings.fullCoursePriceLabel, price) { price = it }
+
+                            CapacityField(capacity) { capacity = it }
+
+                            AllowedPaymentsField(allowBankTransfer, allowOnSite, { allowBankTransfer = it }, { allowOnSite = it })
 
                             ShowAttendeeCountCheckbox(value = showAttendeeCount) { showAttendeeCount = it }
-                            div(className = "form-control w-full") {
-                                label(className = "label") {
-                                    span(className = "label-text font-medium") { +currentStrings.lessonRefundAmount }
-                                }
-                                div(className = "relative flex items-center") {
-                                    numeric(value = lessonRefundAmountInput, min = 0, className = "input input-bordered w-full pr-12") {
-                                        onInput { lessonRefundAmountInput = value }
-                                    }
-                                    span(className = "absolute right-4 text-base-content/50 font-medium") { +currentStrings.currency }
-                                }
-                            }
+
+                            PriceCurrencyField(currentStrings.lessonRefundAmount, lessonRefundAmountInput) { lessonRefundAmountInput = it }
                         }
                     }
                 }
                 // --- CUSTOM FIELDS BUILDER ---
                 CustomFieldsBuilderSection(customFields) { customFields = it }
 
-                div(className = "card bg-base-100 shadow-sm") {
-                    div(className = "card-body") {
-                        h2(className = "card-title text-lg mb-2") { +currentStrings.reservationDeadlineSection }
-                        label(className = "cursor-pointer label justify-start gap-3") {
-                            checkBox(value = deadlineEnabled, className = "checkbox checkbox-primary") {
-                                onChange { deadlineEnabled = value }
-                            }
-                            span(className = "label-text") { +currentStrings.reservationDeadlineActive }
-                        }
-                        if (deadlineEnabled) {
-                            div(className = "form-control w-full mt-2") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineTypeLabel } }
-                                select(className = "select select-bordered w-full") {
-                                    option(value = "hours", label = currentStrings.reservationDeadlineTypeHours) {
-                                        if (deadlineTypeIsHours) selected(true)
-                                    }
-                                    option(value = "time", label = currentStrings.reservationDeadlineTypeTime) {
-                                        if (!deadlineTypeIsHours) selected(true)
-                                    }
-                                    onChange { event ->
-                                        deadlineTypeIsHours = (event.target as? HTMLSelectElement)?.value == "hours"
-                                    }
-                                }
-                            }
-                            if (deadlineTypeIsHours) {
-                                div(className = "form-control w-full mt-2") {
-                                    label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineHoursLabel } }
-                                    numeric(value = deadlineHours, min = 0, decimals = 0, className = "input input-bordered w-full") {
-                                        attribute("step", "1")
-                                        onInput { deadlineHours = value?.toInt() ?: 0 }
-                                    }
-                                }
-                            } else {
-                                div(className = "grid grid-cols-2 gap-4 mt-2") {
-                                    div(className = "form-control w-full") {
-                                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineDaysBeforeLabel } }
-                                        numeric(value = deadlineDaysBefore, min = 0, decimals = 0, className = "input input-bordered w-full") {
-                                            attribute("step", "1")
-                                            onInput { deadlineDaysBefore = value?.toInt() ?: 0 }
-                                        }
-                                    }
-                                    div(className = "form-control w-full") {
-                                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineTimeOfDayLabel } }
-                                        text(value = deadlineTimeStr, type = InputType.Time, className = "input input-bordered w-full") {
-                                            onInput { deadlineTimeStr = value ?: "18:00" }
-                                        }
-                                    }
-                                }
-                            }
-                            div(className = "form-control w-full mt-2") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.reservationDeadlineMessageLabel } }
-                                text(value = deadlineMessage, className = "input input-bordered w-full") {
-                                    placeholder(currentStrings.reservationDeadlineMessagePlaceholder)
-                                    onInput { deadlineMessage = value ?: "" }
-                                }
-                            }
-                        }
-                    }
-                }
+                ReservationDeadlineSection(
+                    enabled = deadlineEnabled,
+                    typeIsHours = deadlineTypeIsHours,
+                    hours = deadlineHours,
+                    daysBefore = deadlineDaysBefore,
+                    timeStr = deadlineTimeStr,
+                    message = deadlineMessage,
+                    onEnabledChange = { deadlineEnabled = it },
+                    onTypeChange = { deadlineTypeIsHours = it },
+                    onHoursChange = { deadlineHours = it },
+                    onDaysBeforeChange = { deadlineDaysBefore = it },
+                    onTimeStrChange = { deadlineTimeStr = it },
+                    onMessageChange = { deadlineMessage = it },
+                )
                 div(className = "flex justify-end gap-2 mt-4") {
                     button(className = "btn") { onClick { history.back() }; +currentStrings.cancel }
                     button(className = "btn btn-primary") {

@@ -11,9 +11,14 @@ import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowedPaymentsField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuilderSection
+import cz.svitaninymburk.projects.reservations.ui.admin.events.DurationField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.ShowAttendeeCountCheckbox
 import dev.kilua.core.IComponent
-import dev.kilua.form.check.checkBox
-import dev.kilua.form.number.numeric
 import dev.kilua.form.text.text
 import dev.kilua.form.text.textArea
 import dev.kilua.html.*
@@ -88,113 +93,21 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                         }
                     }
 
-                    div(className = "form-control w-full md:col-span-2") {
-                        label(className = "label") {
-                            span(className = "label-text font-medium") { +currentStrings.ownerEmailsLabel }
-                        }
-                        div(className = "flex flex-col gap-2") {
-                            ownerEmails.forEachIndexed { index, email ->
-                                div(className = "flex gap-2 items-center") {
-                                    text(value = email, className = "input input-bordered flex-1") {
-                                        placeholder(currentStrings.ownerEmailPlaceholder)
-                                        onInput {
-                                            ownerEmails = ownerEmails.toMutableList().apply { set(index, value ?: "") }
-                                        }
-                                    }
-                                    if (ownerEmails.size > 1) {
-                                        button(className = "btn btn-ghost btn-sm btn-circle text-error") {
-                                            onClick {
-                                                ownerEmails = ownerEmails.toMutableList().apply { removeAt(index) }
-                                            }
-                                            span(className = "icon-[heroicons--x-mark] size-4")
-                                        }
-                                    }
-                                }
-                            }
-                            button(className = "btn btn-outline btn-sm gap-2 self-start mt-1") {
-                                onClick { ownerEmails = ownerEmails + "" }
-                                span(className = "icon-[heroicons--plus] size-4")
-                                +currentStrings.addOwnerEmailButton
-                            }
-                        }
-                    }
+                    OwnerEmailsField(ownerEmails) { ownerEmails = it }
 
-                    // Výchozí cena (s "Kč" uvnitř)
-                    div(className = "form-control w-full") {
-                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.defaultPriceLabel } }
-                        div(className = "relative flex items-center") {
-                            numeric(value = price, min = 0, className = "input input-bordered w-full pr-12") {
-                                onInput { price = value }
-                            }
-                            span(className = "absolute right-4 text-base-content/50 font-medium") { +currentStrings.currency }
-                        }
-                    }
+                    PriceCurrencyField(currentStrings.defaultPriceLabel, price) { price = it }
 
-                    // Výchozí kapacita (Jen celá čísla)
-                    div(className = "form-control w-full") {
-                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.capacityPersonLabel } }
-                        div(className = "relative flex items-center") {
-                            numeric(value = capacity, min = 1, decimals = 0, className = "input input-bordered w-full pr-12") {
-                                attribute("step", "1")
-                                onInput { capacity = value?.toInt() ?: 1 }
-                            }
-                            span(className = "absolute right-4 text-base-content/50") {
-                                span(className = "icon-[heroicons--users] size-5")
-                            }
-                        }
-                    }
+                    CapacityField(capacity) { capacity = it }
 
-                    // Výchozí délka (Hodiny a minuty)
-                    div(className = "form-control w-full") {
-                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.defaultDurationLabel } }
-                        div(className = "flex gap-2") {
-                            // Hodiny
-                            div(className = "relative flex-1 items-center flex") {
-                                numeric(value = durationHours, min = 0, decimals = 0, className = "input input-bordered w-full pr-8") {
-                                    attribute("step", "1")
-                                    onInput { durationHours = value?.toInt() ?: 0 }
-                                }
-                                span(className = "absolute right-3 text-base-content/50 text-sm") { +currentStrings.hours }
-                            }
-                            // Minuty
-                            div(className = "relative flex-1 items-center flex") {
-                                numeric(value = durationMinutes, min = 0, max = 59, decimals = 0, className = "input input-bordered w-full pr-12") {
-                                    attribute("step", "1")
-                                    onInput { durationMinutes = value?.toInt() ?: 0 }
-                                }
-                                span(className = "absolute right-3 text-base-content/50 text-sm") { +currentStrings.minutes }
-                            }
-                        }
-                    }
+                    DurationField(
+                        currentStrings.defaultDurationLabel,
+                        durationHours, durationMinutes,
+                        { durationHours = it }, { durationMinutes = it },
+                    )
 
-                    // Povolené platby
-                    div(className = "form-control w-full") {
-                        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.allowedPaymentsLabel } }
-                        div(className = "flex gap-4 mt-2") {
-                            label(className = "cursor-pointer label justify-start gap-2") {
-                                checkBox(value = allowBankTransfer, className = "checkbox checkbox-primary") {
-                                    onChange { allowBankTransfer = value }
-                                }
-                                span(className = "label-text") { +currentStrings.bankTransfer }
-                            }
-                            label(className = "cursor-pointer label justify-start gap-2") {
-                                checkBox(value = allowOnSite, className = "checkbox checkbox-primary") {
-                                    onChange { allowOnSite = value }
-                                }
-                                span(className = "label-text") { +currentStrings.paymentOnSite }
-                            }
-                        }
-                    }
+                    AllowedPaymentsField(allowBankTransfer, allowOnSite, { allowBankTransfer = it }, { allowOnSite = it })
 
-                    div(className = "form-control w-full md:col-span-2") {
-                        p(className = "label-text font-medium mb-1") { +currentStrings.showAttendeeCount }
-                        label(className = "cursor-pointer label justify-start gap-3") {
-                            checkBox(value = showAttendeeCount, className = "checkbox checkbox-primary") {
-                                onChange { showAttendeeCount = value }
-                            }
-                            span(className = "label-text text-sm text-base-content/70") { +currentStrings.showAttendeeCountHint }
-                        }
-                    }
+                    ShowAttendeeCountCheckbox(showAttendeeCount) { showAttendeeCount = it }
                 }
             }
         }

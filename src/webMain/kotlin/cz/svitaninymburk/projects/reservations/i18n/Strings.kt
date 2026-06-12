@@ -4,6 +4,7 @@ import androidx.compose.runtime.mutableStateOf
 import cz.svitaninymburk.projects.reservations.i18n.cs.CsStrings
 import cz.svitaninymburk.projects.reservations.i18n.en.EnStrings
 import web.navigator.navigator
+import kotlin.js.ExperimentalWasmJsInterop
 import kotlin.js.toList
 
 
@@ -12,6 +13,7 @@ private val supportedLanguages = mapOf(
     "en" to EnStrings
 )
 
+@OptIn(ExperimentalWasmJsInterop::class)
 private fun resolveStrings(): AppStrings {
     val languages = navigator.languages.toList().map { it.toString().substringBefore('-') }
     return supportedLanguages.firstNotNullOfOrNull { (key, value) -> languages.find { it == key }?.let { value } } ?: CsStrings
@@ -231,6 +233,12 @@ interface AppStrings : ErrorStrings {
     val showLess: String
     val showMore: (Int) -> String
     val loadingError: (String) -> String
+    val tooltipEditDefinition: String
+    val tooltipDeleteDefinition: String
+    val tooltipEditEvent: String
+    val tooltipPublish: String
+    val tooltipHide: String
+    val tooltipDeleteEvent: String
 
     // Reservation Deadline (Admin Form)
     val reservationDeadlineSection: String
@@ -558,6 +566,7 @@ interface AppStrings : ErrorStrings {
     val remainingToPay: String
     val walletCreditIssued: String
     val adminWallets: String
+    val tooltipViewWallet: String
     val adminWalletDetail: String
     val adminWalletAdjust: String
     val adminWalletAdjustNote: String

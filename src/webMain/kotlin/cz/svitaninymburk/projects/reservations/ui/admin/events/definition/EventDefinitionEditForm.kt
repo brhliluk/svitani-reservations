@@ -12,9 +12,15 @@ import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowedPaymentsField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuilderSection
+import cz.svitaninymburk.projects.reservations.ui.admin.events.DurationField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.ShowAttendeeCountCheckbox
 import dev.kilua.core.IComponent
 import dev.kilua.form.check.checkBox
-import dev.kilua.form.number.numeric
 import dev.kilua.form.text.text
 import dev.kilua.form.text.textArea
 import dev.kilua.html.*
@@ -140,82 +146,19 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.descriptionLabel } }
                                 textArea(value = description, className = "textarea textarea-bordered h-24 w-full") { onInput { description = value ?: "" } }
                             }
-                            div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") {
-                                    span(className = "label-text font-medium") { +currentStrings.ownerEmailsLabel }
-                                }
-                                div(className = "flex flex-col gap-2") {
-                                    ownerEmails.forEachIndexed { index, email ->
-                                        div(className = "flex gap-2 items-center") {
-                                            text(value = email, className = "input input-bordered flex-1") {
-                                                placeholder(currentStrings.ownerEmailPlaceholder)
-                                                onInput {
-                                                    ownerEmails = ownerEmails.toMutableList().apply { set(index, value ?: "") }
-                                                }
-                                            }
-                                            if (ownerEmails.size > 1) {
-                                                button(className = "btn btn-ghost btn-sm btn-circle text-error") {
-                                                    onClick {
-                                                        ownerEmails = ownerEmails.toMutableList().apply { removeAt(index) }
-                                                    }
-                                                    span(className = "icon-[heroicons--x-mark] size-4")
-                                                }
-                                            }
-                                        }
-                                    }
-                                    button(className = "btn btn-outline btn-sm gap-2 self-start mt-1") {
-                                        onClick { ownerEmails = ownerEmails + "" }
-                                        span(className = "icon-[heroicons--plus] size-4")
-                                        +currentStrings.addOwnerEmailButton
-                                    }
-                                }
-                            }
-                            div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.defaultPriceLabel } }
-                                div(className = "relative flex items-center") {
-                                    numeric(value = price, min = 0, className = "input input-bordered w-full pr-12") { onInput { price = value } }
-                                    span(className = "absolute right-4 text-base-content/50 font-medium") { +currentStrings.currency }
-                                }
-                            }
-                            div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.capacityPersonLabel } }
-                                div(className = "relative flex items-center") {
-                                    numeric(value = capacity, min = 1, decimals = 0, className = "input input-bordered w-full pr-12") {
-                                        attribute("step", "1"); onInput { capacity = value?.toInt() ?: 1 }
-                                    }
-                                    span(className = "absolute right-4 text-base-content/50") { span(className = "icon-[heroicons--users] size-5") }
-                                }
-                            }
-                            div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.defaultDurationLabel } }
-                                div(className = "flex gap-2") {
-                                    div(className = "relative flex-1 items-center flex") {
-                                        numeric(value = durationHours, min = 0, decimals = 0, className = "input input-bordered w-full pr-8") {
-                                            attribute("step", "1"); onInput { durationHours = value?.toInt() ?: 0 }
-                                        }
-                                        span(className = "absolute right-3 text-base-content/50 text-sm") { +currentStrings.hours }
-                                    }
-                                    div(className = "relative flex-1 items-center flex") {
-                                        numeric(value = durationMinutes, min = 0, max = 59, decimals = 0, className = "input input-bordered w-full pr-12") {
-                                            attribute("step", "1"); onInput { durationMinutes = value?.toInt() ?: 0 }
-                                        }
-                                        span(className = "absolute right-3 text-base-content/50 text-sm") { +currentStrings.minutes }
-                                    }
-                                }
-                            }
-                            div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.allowedPaymentsLabel } }
-                                div(className = "flex gap-4 mt-2") {
-                                    label(className = "cursor-pointer label justify-start gap-2") {
-                                        checkBox(value = allowBankTransfer, className = "checkbox checkbox-primary") { onChange { allowBankTransfer = value } }
-                                        span(className = "label-text") { +currentStrings.bankTransfer }
-                                    }
-                                    label(className = "cursor-pointer label justify-start gap-2") {
-                                        checkBox(value = allowOnSite, className = "checkbox checkbox-primary") { onChange { allowOnSite = value } }
-                                        span(className = "label-text") { +currentStrings.paymentOnSite }
-                                    }
-                                }
-                            }
+                            OwnerEmailsField(ownerEmails) { ownerEmails = it }
+
+                            PriceCurrencyField(currentStrings.defaultPriceLabel, price) { price = it }
+
+                            CapacityField(capacity) { capacity = it }
+
+                            DurationField(
+                                currentStrings.defaultDurationLabel,
+                                durationHours, durationMinutes,
+                                { durationHours = it }, { durationMinutes = it },
+                            )
+
+                            AllowedPaymentsField(allowBankTransfer, allowOnSite, { allowBankTransfer = it }, { allowOnSite = it })
 
                             ShowAttendeeCountCheckbox(value = showAttendeeCount) { showAttendeeCount = it }
                         }

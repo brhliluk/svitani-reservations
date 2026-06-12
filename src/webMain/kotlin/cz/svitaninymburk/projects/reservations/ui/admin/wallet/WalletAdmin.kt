@@ -144,7 +144,8 @@ fun IComponent.AdminWalletsScreen() {
                                                     }
                                                     // Actions
                                                     td(className = "text-right") {
-                                                        button(className = "btn btn-ghost btn-xs") {
+                                                        button(className = "btn btn-ghost btn-xs tooltip tooltip-left") {
+                                                            attribute("data-tip", currentStrings.tooltipViewWallet)
                                                             onClick { selectedWallet = wallet }
                                                             span(className = "icon-[heroicons--eye] size-4")
                                                         }

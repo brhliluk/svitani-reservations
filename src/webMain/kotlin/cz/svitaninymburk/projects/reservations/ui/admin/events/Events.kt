@@ -132,11 +132,13 @@ fun IComponent.AdminEventsScreen() {
                                                 +currentStrings.adminCourse
                                             }
                                         }
-                                        button(className = "btn btn-xs btn-ghost text-primary") {
+                                        button(className = "btn btn-xs btn-ghost text-primary tooltip tooltip-bottom") {
+                                            attribute("data-tip", currentStrings.tooltipEditDefinition)
                                             onClick { router.navigate("/admin/events/definition/${def.id}/edit") }
                                             span(className = "icon-[heroicons--pencil] size-3")
                                         }
-                                        button(className = "btn btn-xs btn-ghost text-error") {
+                                        button(className = "btn btn-xs btn-ghost text-error tooltip tooltip-bottom") {
+                                            attribute("data-tip", currentStrings.tooltipDeleteDefinition)
                                             onClick { deleteDefinitionPending = def }
                                             span(className = "icon-[heroicons--trash] size-3")
                                         }
@@ -200,7 +202,8 @@ fun IComponent.AdminEventsScreen() {
                                                         td(className = "font-medium text-base-content/80") { +item.priceString }
                                                         td(className = "text-right") {
                                                             div(className = "flex justify-end gap-1") {
-                                                                button(className = "btn btn-ghost btn-xs btn-circle") {
+                                                                button(className = "btn btn-ghost btn-xs btn-circle tooltip tooltip-left") {
+                                                                    attribute("data-tip", currentStrings.tooltipEditEvent)
                                                                     span(className = "icon-[heroicons--pencil] size-4 text-base-content/50")
                                                                     onClick {
                                                                         it.stopPropagation()
@@ -209,7 +212,8 @@ fun IComponent.AdminEventsScreen() {
                                                                     }
                                                                 }
                                                                 if (!item.isDefinitionOnly) {
-                                                                    button(className = "btn btn-ghost btn-xs btn-circle") {
+                                                                    button(className = "btn btn-ghost btn-xs btn-circle tooltip tooltip-left") {
+                                                                        attribute("data-tip", if (item.isPublished) currentStrings.tooltipHide else currentStrings.tooltipPublish)
                                                                         if (item.isPublished) {
                                                                             span(className = "icon-[heroicons--eye-slash] size-4 text-base-content/50")
                                                                         } else {
@@ -238,7 +242,8 @@ fun IComponent.AdminEventsScreen() {
                                                                         }
                                                                     }
                                                                 }
-                                                                button(className = "btn btn-ghost btn-xs btn-circle text-error") {
+                                                                button(className = "btn btn-ghost btn-xs btn-circle text-error tooltip tooltip-left") {
+                                                                    attribute("data-tip", currentStrings.tooltipDeleteEvent)
                                                                     span(className = "icon-[heroicons--trash] size-4")
                                                                     onClick {
                                                                         it.stopPropagation()

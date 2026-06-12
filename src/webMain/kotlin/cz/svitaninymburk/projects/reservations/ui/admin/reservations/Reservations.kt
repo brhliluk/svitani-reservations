@@ -7,23 +7,17 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
-import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
 import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
-import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
-import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
-import cz.svitaninymburk.projects.reservations.ui.reservation.CustomFieldsDisplay
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
-import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.form.check.checkBox
@@ -31,6 +25,8 @@ import dev.kilua.form.form
 import dev.kilua.form.text.text
 import dev.kilua.html.*
 import cz.svitaninymburk.projects.reservations.i18n.strings
+import cz.svitaninymburk.projects.reservations.ui.admin.events.AdminActionType
+import cz.svitaninymburk.projects.reservations.ui.admin.events.PendingAction
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
@@ -394,36 +390,3 @@ fun IComponent.AdminReservationsScreen() {
     )
 }
 
-@Composable
-internal fun IComponent.ReservationExpandedDetails(
-    phone: String?,
-    createdAtText: String,
-    customFields: List<CustomFieldDefinition>,
-    customValues: Map<String, CustomFieldValue>,
-) {
-    val currentStrings by strings
-
-    div(className = "grid grid-cols-1 md:grid-cols-2 gap-6") {
-        div(className = "flex flex-col gap-2") {
-            if (!phone.isNullOrBlank()) {
-                div(className = "flex justify-between items-baseline gap-4") {
-                    span(className = "text-xs uppercase font-bold tracking-wider text-base-content/60") { +currentStrings.phoneLabel }
-                    span(className = "font-medium text-base-content text-sm") { +PhoneNumber.format(phone) }
-                }
-            }
-            div(className = "flex justify-between items-baseline gap-4") {
-                span(className = "text-xs uppercase font-bold tracking-wider text-base-content/60") { +currentStrings.createdAt }
-                span(className = "font-medium text-base-content text-sm") { +createdAtText }
-            }
-        }
-
-        if (customFields.isNotEmpty()) {
-            div {
-                div(className = "text-xs uppercase font-bold tracking-wider text-base-content/60 mb-2") {
-                    +currentStrings.customFieldsHeading
-                }
-                CustomFieldsDisplay(customFields, customValues)
-            }
-        }
-    }
-}

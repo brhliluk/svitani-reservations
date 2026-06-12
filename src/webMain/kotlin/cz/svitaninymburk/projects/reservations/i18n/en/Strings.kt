@@ -214,6 +214,12 @@ object EnStrings : AppStrings {
     override val showLess = "Show less"
     override val showMore: (Int) -> String = { "Show $it more" }
     override val loadingError: (String) -> String = { "Loading error: $it" }
+    override val tooltipEditDefinition = "Edit template"
+    override val tooltipDeleteDefinition = "Delete template"
+    override val tooltipEditEvent = "Edit"
+    override val tooltipPublish = "Publish"
+    override val tooltipHide = "Hide"
+    override val tooltipDeleteEvent = "Delete"
 
     // Reservation Deadline (Admin Form)
     override val reservationDeadlineSection = "Reservation deadline"
@@ -509,6 +515,7 @@ object EnStrings : AppStrings {
     override val remainingToPay = "Remaining to pay"
     override val walletCreditIssued = "Credit was added to your wallet"
     override val adminWallets = "Wallets"
+    override val tooltipViewWallet = "View wallet detail"
     override val adminWalletDetail = "Wallet detail"
     override val adminWalletAdjust = "Manual balance adjustment"
     override val adminWalletAdjustNote = "Note (required)"

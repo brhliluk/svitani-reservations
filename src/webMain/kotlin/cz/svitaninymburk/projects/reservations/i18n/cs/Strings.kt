@@ -214,6 +214,12 @@ object CsStrings : AppStrings {
     override val showLess = "Zobrazit méně"
     override val showMore: (Int) -> String = { "Zobrazit dalších $it" }
     override val loadingError: (String) -> String = { "Chyba načítání: $it" }
+    override val tooltipEditDefinition = "Upravit šablonu"
+    override val tooltipDeleteDefinition = "Smazat šablonu"
+    override val tooltipEditEvent = "Upravit"
+    override val tooltipPublish = "Zveřejnit"
+    override val tooltipHide = "Skrýt"
+    override val tooltipDeleteEvent = "Smazat"
 
     // Reservation Deadline (Admin Form)
     override val reservationDeadlineSection = "Uzávěrka rezervací"
@@ -508,6 +514,7 @@ object CsStrings : AppStrings {
     override val remainingToPay = "Zbývá zaplatit"
     override val walletCreditIssued = "Kredit byl připsán do peněženky"
     override val adminWallets = "Peněženky"
+    override val tooltipViewWallet = "Zobrazit detail peněženky"
     override val adminWalletDetail = "Detail peněženky"
     override val adminWalletAdjust = "Ruční úprava kreditu"
     override val adminWalletAdjustNote = "Poznámka (povinná)"
