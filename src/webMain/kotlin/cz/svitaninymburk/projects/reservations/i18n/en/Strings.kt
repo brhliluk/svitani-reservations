@@ -246,6 +246,8 @@ object EnStrings : AppStrings {
     override val toastTemplatesLoadError: (String) -> String = { "Error loading templates: $it" }
     override val showAttendeeCount = "Show attendee count to public"
     override val showAttendeeCountHint = "When off, the number of registered participants is hidden from the public."
+    override val dropInLabel = "Show as drop-in class in overview"
+    override val dropInDescription = "The class will appear in the event overview as individually bookable with an assigned price."
 
     // Event Definition Form
     override val eventNameLabel = "Name (e.g. Yoga for Beginners)"

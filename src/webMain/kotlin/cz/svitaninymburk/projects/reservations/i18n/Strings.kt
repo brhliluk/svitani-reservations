@@ -263,6 +263,8 @@ interface AppStrings : ErrorStrings {
     val toastTemplatesLoadError: (String) -> String
     val showAttendeeCount: String
     val showAttendeeCountHint: String
+    val dropInLabel: String
+    val dropInDescription: String
 
     // Event Definition Form
     val eventNameLabel: String

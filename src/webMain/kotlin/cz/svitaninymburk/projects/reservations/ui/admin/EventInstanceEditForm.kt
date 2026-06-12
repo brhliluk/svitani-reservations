@@ -313,8 +313,8 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                                     onChange { isDropIn = value }
                                 }
                                 div {
-                                    span(className = "font-medium") { +"Zobrazit jako drop-in lekci v přehledu" }
-                                    p(className = "text-sm text-base-content/60 mt-1") { +"Lekce se zobrazí v přehledu akcí jako samostatně rezervovatelná s přiřazenou cenou." }
+                                    span(className = "font-medium") { +currentStrings.dropInLabel }
+                                    p(className = "text-sm text-base-content/60 mt-1") { +currentStrings.dropInDescription }
                                 }
                             }
                         }

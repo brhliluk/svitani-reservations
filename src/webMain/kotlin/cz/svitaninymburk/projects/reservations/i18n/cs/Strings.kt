@@ -246,6 +246,8 @@ object CsStrings : AppStrings {
     override val toastTemplatesLoadError: (String) -> String = { "Chyba při načítání šablon: $it" }
     override val showAttendeeCount = "Zobrazovat počet účastníků veřejnosti"
     override val showAttendeeCountHint = "Pokud je vypnuto, počet přihlášených účastníků nebude veřejně zobrazen."
+    override val dropInLabel = "Zobrazit jako drop-in lekci v přehledu"
+    override val dropInDescription = "Lekce se zobrazí v přehledu akcí jako samostatně rezervovatelná s přiřazenou cenou."
 
     // Event Definition Form
     override val eventNameLabel = "Název (např. Jóga pro začátečníky)"
