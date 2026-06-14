@@ -49,6 +49,7 @@ import cz.svitaninymburk.projects.reservations.android.util.toCzkString
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.wallet.WalletInfo
 import kotlin.uuid.Uuid
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -177,9 +178,7 @@ private fun FormBody(
             label = { Text(stringResource(R.string.reservation_form_email)) },
             singleLine = true,
             isError = emailInvalid,
-            supportingText = if (emailInvalid) {
-                { Text(stringResource(R.string.reservation_form_error_email)) }
-            } else null,
+            supportingText = if (emailInvalid) { { Text(stringResource(R.string.reservation_form_error_email)) } } else null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -207,23 +206,11 @@ private fun FormBody(
         }
 
         state.wallet?.let { wallet ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .toggleable(
-                        value = state.useWallet,
-                        role = Role.Switch,
-                        onValueChange = onUseWalletChange,
-                    ),
-            ) {
-                Text(
-                    stringResource(R.string.reservation_form_use_wallet, wallet.balance.toCzkString()),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Switch(checked = state.useWallet, onCheckedChange = null)
-            }
+            WalletToggleRow(
+                wallet = wallet,
+                useWallet = state.useWallet,
+                onUseWalletChange = onUseWalletChange,
+            )
         }
 
         if (state.submitError != null) {
@@ -240,17 +227,7 @@ private fun FormBody(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        Button(
-            onClick = onSubmit,
-            enabled = state.isValid && !state.isSubmitting,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (state.isSubmitting) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                Spacer(Modifier.width(8.dp))
-            }
-            Text(stringResource(R.string.reservation_form_submit))
-        }
+        ReserveButton(isValid = state.isValid, isSubmitting = state.isSubmitting, onSubmit = onSubmit)
     }
 }
 
@@ -325,6 +302,50 @@ private fun SeatCountRow(state: ReservationFormUiState, onSeatCountChange: (Int)
 }
 
 @Composable
+private fun WalletToggleRow(
+    wallet: WalletInfo,
+    useWallet: Boolean,
+    onUseWalletChange: (Boolean) -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = useWallet,
+                role = Role.Switch,
+                onValueChange = onUseWalletChange,
+            ),
+    ) {
+        Text(
+            stringResource(R.string.reservation_form_use_wallet, wallet.balance.toCzkString()),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Switch(checked = useWallet, onCheckedChange = null)
+    }
+}
+
+@Composable
+private fun ReserveButton(
+    isValid: Boolean,
+    isSubmitting: Boolean,
+    onSubmit: () -> Unit,
+) {
+    Button(
+        onClick = onSubmit,
+        enabled = isValid && !isSubmitting,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        if (isSubmitting) {
+            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            Spacer(Modifier.width(8.dp))
+        }
+        Text(stringResource(R.string.reservation_form_submit))
+    }
+}
+
+@Composable
 private fun PaymentTypeSelector(
     state: ReservationFormUiState,
     allowed: List<PaymentInfo.Type>,
@@ -347,6 +368,7 @@ private fun PaymentTypeSelector(
                     selected = state.paymentType == type,
                     onClick = null,
                 )
+                Spacer(Modifier.width(8.dp))
                 Text(
                     stringResource(
                         when (type) {
