@@ -20,6 +20,7 @@ interface EventDefinitionRepository {
 interface EventInstanceRepository {
     suspend fun get(id: Uuid): EventInstance?
     suspend fun getAll(eventIds: List<Uuid>?): List<EventInstance>
+    suspend fun getAllPublished(): List<EventInstance>
 
     suspend fun create(instance: EventInstance): EventInstance
     suspend fun update(instance: EventInstance): EventInstance
@@ -41,6 +42,7 @@ interface EventInstanceRepository {
 interface EventSeriesRepository {
     suspend fun get(id: Uuid): EventSeries?
     suspend fun getAll(seriesIds: List<Uuid>?): List<EventSeries>
+    suspend fun getAllPublished(): List<EventSeries>
 
     suspend fun create(series: EventSeries): EventSeries
     suspend fun update(series: EventSeries): EventSeries

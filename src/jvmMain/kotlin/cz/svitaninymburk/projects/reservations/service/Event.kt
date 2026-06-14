@@ -117,11 +117,11 @@ class EventService(
     }
 
     override suspend fun getAllInstances(): Either<EventError.GetInstances, List<EventInstance>> = either {
-        eventInstanceRepository.getAll(null).filter { it.isPublished }
+        eventInstanceRepository.getAllPublished()
     }
 
     override suspend fun getAllSeries(): Either<EventError.GetSeries, List<EventSeries>> = either {
-        eventSeriesRepository.getAll(null).filter { it.isPublished }
+        eventSeriesRepository.getAllPublished()
     }
 
     override suspend fun getAllDefinitions(): Either<EventError.GetDefinitions, List<EventDefinition>> = either {

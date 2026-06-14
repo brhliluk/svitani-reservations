@@ -41,6 +41,7 @@ import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import io.ktor.util.logging.KtorSimpleLogger
+import arrow.fx.coroutines.parZip
 import kotlin.reflect.jvm.jvmName
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DateTimeUnit
@@ -223,8 +224,17 @@ class AdminDashboardService(
         ensure(page >= 0) { AdminError.FailedToGetReservations("Neplatná stránka.") }
         ensure(pageSize in 1..200) { AdminError.FailedToGetReservations("Neplatná velikost stránky.") }
         try {
-            val reservations = reservationRepository.findAllPaged(searchQuery, page, pageSize, includeCancelled)
-            val totalCount = reservationRepository.countAll(searchQuery, includeCancelled)
+            val (reservations, totalCount) = parZip(
+                { reservationRepository.findAllPaged(searchQuery, page, pageSize, includeCancelled) },
+                { reservationRepository.countAll(searchQuery, includeCancelled) },
+            ) { r, c -> r to c }
+
+            val instanceIds = reservations.mapNotNull { (it.reference as? Reference.Instance)?.id }
+            val seriesIds = reservations.mapNotNull { (it.reference as? Reference.Series)?.id }
+            val (instancesById, seriesById) = parZip(
+                { eventInstanceRepository.getAll(instanceIds).associateBy { it.id } },
+                { eventSeriesRepository.getAll(seriesIds).associateBy { it.id } },
+            ) { i, s -> i to s }
 
             val items = reservations.map { res ->
                 var eventTitle = "Neznámá událost"
@@ -232,21 +242,15 @@ class AdminDashboardService(
                 var customFields: List<CustomFieldDefinition> = emptyList()
 
                 when (val ref = res.reference) {
-                    is Reference.Instance -> {
-                        val instance = eventInstanceRepository.get(ref.id)
-                        if (instance != null) {
-                            eventTitle = instance.title
-                            eventDate = instance.startDateTime.humanReadable
-                            customFields = instance.customFields
-                        }
+                    is Reference.Instance -> instancesById[ref.id]?.let { instance ->
+                        eventTitle = instance.title
+                        eventDate = instance.startDateTime.humanReadable
+                        customFields = instance.customFields
                     }
-                    is Reference.Series -> {
-                        val series = eventSeriesRepository.get(ref.id)
-                        if (series != null) {
-                            eventTitle = series.title
-                            eventDate = "Kurz (od ${series.startDate})"
-                            customFields = series.customFields
-                        }
+                    is Reference.Series -> seriesById[ref.id]?.let { series ->
+                        eventTitle = series.title
+                        eventDate = "Kurz (od ${series.startDate})"
+                        customFields = series.customFields
                     }
                 }
 
@@ -280,12 +284,16 @@ class AdminDashboardService(
         ensure(page >= 0) { AdminError.FailedToGetEvents("Neplatná stránka.") }
         ensure(pageSize in 1..200) { AdminError.FailedToGetEvents("Neplatná velikost stránky.") }
         try {
-            val totalDefinitionCount = eventDefinitionRepository.countAll()
-            val definitions = eventDefinitionRepository.findAllPaged(page, pageSize)
+            val (totalDefinitionCount, definitions) = parZip(
+                { eventDefinitionRepository.countAll() },
+                { eventDefinitionRepository.findAllPaged(page, pageSize) },
+            ) { count, defs -> count to defs }
             val definitionIds = definitions.map { it.id }
 
-            val series = eventSeriesRepository.getAllByDefinitionIds(definitionIds)
-            val allInstances = eventInstanceRepository.getAllByDefinitionIds(definitionIds)
+            val (series, allInstances) = parZip(
+                { eventSeriesRepository.getAllByDefinitionIds(definitionIds) },
+                { eventInstanceRepository.getAllByDefinitionIds(definitionIds) },
+            ) { s, i -> s to i }
 
             val seriesDtos = series.map { s ->
                 AdminEventListItem(
@@ -744,39 +752,40 @@ class AdminDashboardService(
         eventDefinitionRepository.update(updated)
 
         if (request.propagateToChildren) {
-            eventInstanceRepository.getAll(null)
-                .filter { it.definitionId == id }
-                .forEach { instance ->
-                    eventInstanceRepository.update(
-                        instance.copy(
-                            title = request.title,
-                            description = request.description,
-                            price = request.defaultPrice,
-                            capacity = request.defaultCapacity,
-                            allowedPaymentTypes = request.allowedPaymentTypes,
-                            customFields = request.customFields,
-                            ownerEmails = request.ownerEmails,
-                            showAttendeeCount = request.showAttendeeCount,
-                        )
-                    )
-                }
+            val (childInstances, childSeries) = parZip(
+                { eventInstanceRepository.getAllByDefinitionIds(listOf(id)) },
+                { eventSeriesRepository.getAllByDefinitionIds(listOf(id)) },
+            ) { i, s -> i to s }
 
-            eventSeriesRepository.getAll(null)
-                .filter { it.definitionId == id }
-                .forEach { series ->
-                    eventSeriesRepository.update(
-                        series.copy(
-                            title = request.title,
-                            description = request.description,
-                            price = request.defaultPrice,
-                            capacity = request.defaultCapacity,
-                            allowedPaymentTypes = request.allowedPaymentTypes,
-                            customFields = request.customFields,
-                            ownerEmails = request.ownerEmails,
-                            showAttendeeCount = request.showAttendeeCount,
-                        )
+            childInstances.forEach { instance ->
+                eventInstanceRepository.update(
+                    instance.copy(
+                        title = request.title,
+                        description = request.description,
+                        price = request.defaultPrice,
+                        capacity = request.defaultCapacity,
+                        allowedPaymentTypes = request.allowedPaymentTypes,
+                        customFields = request.customFields,
+                        ownerEmails = request.ownerEmails,
+                        showAttendeeCount = request.showAttendeeCount,
                     )
-                }
+                )
+            }
+
+            childSeries.forEach { series ->
+                eventSeriesRepository.update(
+                    series.copy(
+                        title = request.title,
+                        description = request.description,
+                        price = request.defaultPrice,
+                        capacity = request.defaultCapacity,
+                        allowedPaymentTypes = request.allowedPaymentTypes,
+                        customFields = request.customFields,
+                        ownerEmails = request.ownerEmails,
+                        showAttendeeCount = request.showAttendeeCount,
+                    )
+                )
+            }
         }
     }
 
@@ -811,8 +820,10 @@ class AdminDashboardService(
     override suspend fun deleteEventDefinition(id: Uuid): Either<AdminError.DeleteDefinition, Unit> = either {
         ensureNotNull(eventDefinitionRepository.get(id)) { AdminError.DefinitionNotFound(id) }
 
-        val childInstances = eventInstanceRepository.getAll(null).filter { it.definitionId == id }
-        val childSeries = eventSeriesRepository.getAll(null).filter { it.definitionId == id }
+        val (childInstances, childSeries) = parZip(
+            { eventInstanceRepository.getAllByDefinitionIds(listOf(id)) },
+            { eventSeriesRepository.getAllByDefinitionIds(listOf(id)) },
+        ) { i, s -> i to s }
 
         suspend fun cancelReservations(reference: Reference, eventTitle: String) {
             reservationRepository.findByReference(reference)

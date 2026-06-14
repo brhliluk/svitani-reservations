@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.android.api
 
+import cz.svitaninymburk.projects.reservations.android.BuildConfig
 import io.ktor.client.*
 import io.ktor.client.engine.android.*
 import io.ktor.client.plugins.*
@@ -16,5 +17,8 @@ fun provideHttpClient(): HttpClient = HttpClient(Android) {
     }
     defaultRequest {
         url("https://rezervace.svitaninymburk.cz")
+    }
+    if (BuildConfig.DEBUG) {
+        install(BenchmarkPlugin)
     }
 }

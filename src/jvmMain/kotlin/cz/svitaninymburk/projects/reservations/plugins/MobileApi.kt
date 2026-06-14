@@ -32,6 +32,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import arrow.fx.coroutines.parZip
 import kotlin.uuid.Uuid
 import org.koin.ktor.ext.inject
 
@@ -78,17 +79,20 @@ fun Route.mobileSecuredRoutes() {
 
         route("events") {
             get {
-                val instancesResult = eventService.getAllInstances()
-                val seriesResult = eventService.getAllSeries()
-                instancesResult.fold(
-                    ifLeft = { call.respondEither(instancesResult) },
-                    ifRight = { instance ->
-                        seriesResult.fold(
-                            ifLeft = { call.respondEither(seriesResult) },
-                            ifRight = { ser -> call.respond(HttpStatusCode.OK, EventsResponse(instance, ser)) },
-                        )
-                    },
-                )
+                parZip(
+                    { eventService.getAllInstances() },
+                    { eventService.getAllSeries() },
+                ) { instancesResult, seriesResult ->
+                    instancesResult.fold(
+                        ifLeft = { call.respondEither(instancesResult) },
+                        ifRight = { instances ->
+                            seriesResult.fold(
+                                ifLeft = { call.respondEither(seriesResult) },
+                                ifRight = { ser -> call.respond(HttpStatusCode.OK, EventsResponse(instances, ser)) },
+                            )
+                        },
+                    )
+                }
             }
 
             get("instances/{id}") {

@@ -325,6 +325,15 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
         rows.map { it.toEventSeries(emailsMap[it[EventSeriesTable.id]] ?: emptyList()) }
     }
 
+    override suspend fun getAllPublished(): List<EventSeries> = dbQuery {
+        val rows = EventSeriesTable.selectAll()
+            .where { EventSeriesTable.isPublished eq true }
+            .toList()
+        val ids = rows.map { it[EventSeriesTable.id] }
+        val emailsMap = getOwnerEmailsMap(EntityType.SERIES, ids)
+        rows.map { it.toEventSeries(emailsMap[it[EventSeriesTable.id]] ?: emptyList()) }
+    }
+
     override suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventSeries> {
         if (definitionIds.isEmpty()) return emptyList()
         return dbQuery {
@@ -449,6 +458,15 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             query.where { EventInstancesTable.id inList eventIds }
         }
         val rows = query.toList()
+        val ids = rows.map { it[EventInstancesTable.id] }
+        val emailsMap = getOwnerEmailsMap(EntityType.INSTANCE, ids)
+        rows.map { it.toEventInstance(emailsMap[it[EventInstancesTable.id]] ?: emptyList()) }
+    }
+
+    override suspend fun getAllPublished(): List<EventInstance> = dbQuery {
+        val rows = EventInstancesTable.selectAll()
+            .where { EventInstancesTable.isPublished eq true }
+            .toList()
         val ids = rows.map { it[EventInstancesTable.id] }
         val emailsMap = getOwnerEmailsMap(EntityType.INSTANCE, ids)
         rows.map { it.toEventInstance(emailsMap[it[EventInstancesTable.id]] ?: emptyList()) }

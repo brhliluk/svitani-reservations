@@ -59,6 +59,9 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
         else instances.filterKeys { it in eventIds }.values.toList()
     }
 
+    override suspend fun getAllPublished(): List<EventInstance> =
+        instances.values.filter { it.isPublished }.toList()
+
     override suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventInstance> =
         instances.values.filter { it.definitionId in definitionIds }.toList()
 
@@ -143,6 +146,9 @@ class InMemoryEventSeriesRepository : EventSeriesRepository {
         return if (seriesIds == null) instances.values.toList()
         else instances.filterKeys { it in seriesIds }.values.toList()
     }
+
+    override suspend fun getAllPublished(): List<EventSeries> =
+        instances.values.filter { it.isPublished }.toList()
 
     override suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventSeries> =
         instances.values.filter { it.definitionId in definitionIds }.toList()
