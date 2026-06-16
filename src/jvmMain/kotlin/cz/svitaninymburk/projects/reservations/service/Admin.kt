@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations.service
 
 import arrow.core.Either
+import arrow.core.left
 import arrow.core.raise.context.ensureNotNull
 import arrow.core.raise.either
 import arrow.core.raise.ensure
@@ -182,6 +183,7 @@ class AdminDashboardService(
         val capacity: Int
         val occupiedSpots: Int
         val customFields: List<CustomFieldDefinition>
+        var isCancelled = false
 
         if (isSeries) {
             val series = ensureNotNull(eventSeriesRepository.get(eventId)) { AdminError.EventSeriesNotFound(eventId) }
@@ -190,6 +192,7 @@ class AdminDashboardService(
             capacity = series.capacity
             occupiedSpots = series.occupiedSpots
             customFields = series.customFields
+            isCancelled = series.isCancelled
         } else {
             val instance = ensureNotNull(eventInstanceRepository.get(eventId)) { AdminError.EventInstanceNotFound(eventId) }
             title = instance.title
@@ -197,6 +200,7 @@ class AdminDashboardService(
             capacity = instance.capacity
             occupiedSpots = instance.occupiedSpots
             customFields = instance.customFields
+            isCancelled = instance.isCancelled
         }
 
         val reference = if (isSeries) Reference.Series(eventId) else Reference.Instance(eventId)
@@ -233,7 +237,8 @@ class AdminDashboardService(
             occupiedSpots = occupiedSpots,
             totalCollected = totalCollected,
             customFields = customFields,
-            participants = participants
+            participants = participants,
+            isCancelled = isCancelled,
         )
     }
 
@@ -323,6 +328,7 @@ class AdminDashboardService(
                     occupiedSpots = s.occupiedSpots,
                     priceString = "${s.price} Kč",
                     isPublished = s.isPublished,
+                    isCancelled = s.isCancelled,
                 )
             }
 
@@ -338,6 +344,7 @@ class AdminDashboardService(
                     occupiedSpots = i.occupiedSpots,
                     priceString = "${i.price} Kč",
                     isPublished = i.isPublished,
+                    isCancelled = i.isCancelled,
                 )
             }
 
@@ -883,6 +890,83 @@ class AdminDashboardService(
         }
 
         eventDefinitionRepository.delete(id)
+    }
+
+    override suspend fun cancelEventInstance(id: Uuid): Either<AdminError.CancelEvent, Unit> = either {
+        val instance = ensureNotNull(eventInstanceRepository.get(id)) {
+            AdminError.InstanceNotFoundForCancel(id)
+        }
+
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        ensure(instance.startDateTime >= now) {
+            AdminError.EventAlreadyPassed(id)
+        }
+
+        eventInstanceRepository.setCancelled(id)
+
+        reservationRepository.findByReference(Reference.Instance(id))
+            .filter { it.status != Reservation.Status.CANCELLED }
+            .forEach { res ->
+                reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
+                emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
+                    .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                if (res.paidAmount > 0.0) {
+                    try {
+                        refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                    } catch (e: Exception) {
+                        logger.error("Failed to refund reservation ${res.id}", e)
+                    }
+                }
+            }
+    }
+
+    override suspend fun cancelEventSeries(id: Uuid): Either<AdminError.CancelSeries, Unit> = either {
+        val series = ensureNotNull(eventSeriesRepository.get(id)) {
+            AdminError.SeriesNotFoundForCancel(id)
+        }
+
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val futureInstances = eventInstanceRepository.findBySeries(id)
+            .filter { it.startDateTime.date >= today }
+
+        ensure(futureInstances.isNotEmpty()) {
+            AdminError.EventAlreadyPassed(id)
+        }
+
+        eventSeriesRepository.setCancelled(id)
+
+        futureInstances.forEach { instance ->
+            eventInstanceRepository.setCancelled(instance.id)
+            reservationRepository.findByReference(Reference.Instance(instance.id))
+                .filter { it.status != Reservation.Status.CANCELLED }
+                .forEach { res ->
+                    reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
+                    emailService.sendCancellationNotice(res.contactEmail, series.title, res.id, res.locale)
+                        .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                    if (res.paidAmount > 0.0) {
+                        try {
+                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                        } catch (e: Exception) {
+                            logger.error("Failed to refund reservation ${res.id}", e)
+                        }
+                    }
+                }
+        }
+
+        reservationRepository.findByReference(Reference.Series(id))
+            .filter { it.status != Reservation.Status.CANCELLED }
+            .forEach { res ->
+                reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
+                emailService.sendCancellationNotice(res.contactEmail, series.title, res.id, res.locale)
+                    .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                if (res.paidAmount > 0.0) {
+                    try {
+                        refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                    } catch (e: Exception) {
+                        logger.error("Failed to refund reservation ${res.id}", e)
+                    }
+                }
+            }
     }
 
     override suspend fun getSeriesInstances(seriesId: Uuid, page: Int, pageSize: Int): Either<AdminError.GetInstances, SeriesInstancesPage> = either {

@@ -561,6 +561,14 @@ object CsStrings : AppStrings {
     override val toastEventDeleted = "Termín byl smazán."
     override val toastSeriesDeleted = "Kurz byl smazán."
     override val toastDefinitionDeleted = "Šablona a všechny její termíny byly smazány."
+    override val cancelEventLabel = "Zrušit událost"
+    override val cancelEventConfirmTitle = "Zrušit událost?"
+    override val cancelEventConfirmBody: (Int) -> String = { count ->
+        if (count > 0) "Událost zůstane viditelná jako zrušená. $count rezervací bude zrušeno a peníze vráceny."
+        else "Událost zůstane viditelná jako zrušená. Tuto akci nelze vrátit."
+    }
+    override val cancelEventSuccess = "Událost byla zrušena"
+    override val cancelEventError = "Nepodařilo se zrušit událost"
     override val editTemplateTitle = "Upravit šablonu"
     override val editInstanceTitle = "Upravit termín"
     override val editSeriesTitle = "Upravit kurz"
@@ -608,6 +616,7 @@ object CsStrings : AppStrings {
     override val errorAdminGetInstancesFailed = "Nepodařilo se získat lekce"
     override val errorAdminCancelLessonInstanceNotFound = "Lekce nenalezena"
     override val errorAdminCancelLessonFailed = "Nepodařilo se zrušit lekci"
+    override val errorAdminEventAlreadyPassed = "Událost již proběhla a nelze ji zrušit"
     override val errorAdminWalletOperationFailed = "Operace s peněženkou selhala"
 
     // Privacy Policy

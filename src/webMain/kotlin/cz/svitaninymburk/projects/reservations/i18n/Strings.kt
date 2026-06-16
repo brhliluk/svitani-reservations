@@ -529,6 +529,11 @@ interface AppStrings : ErrorStrings {
     val toastEventDeleted: String
     val toastSeriesDeleted: String
     val toastDefinitionDeleted: String
+    val cancelEventLabel: String
+    val cancelEventConfirmTitle: String
+    val cancelEventConfirmBody: (reservationCount: Int) -> String
+    val cancelEventSuccess: String
+    val cancelEventError: String
     val editTemplateTitle: String
     val editInstanceTitle: String
     val editSeriesTitle: String

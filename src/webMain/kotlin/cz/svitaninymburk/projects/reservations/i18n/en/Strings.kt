@@ -562,6 +562,14 @@ object EnStrings : AppStrings {
     override val toastEventDeleted = "Event deleted."
     override val toastSeriesDeleted = "Course deleted."
     override val toastDefinitionDeleted = "Template and all its instances deleted."
+    override val cancelEventLabel = "Cancel event"
+    override val cancelEventConfirmTitle = "Cancel event?"
+    override val cancelEventConfirmBody: (Int) -> String = { count ->
+        if (count > 0) "The event will remain visible as cancelled. $count reservations will be cancelled and payments returned."
+        else "The event will remain visible as cancelled. This action cannot be undone."
+    }
+    override val cancelEventSuccess = "Event cancelled"
+    override val cancelEventError = "Failed to cancel event"
     override val editTemplateTitle = "Edit template"
     override val editInstanceTitle = "Edit event"
     override val editSeriesTitle = "Edit course"
@@ -609,6 +617,7 @@ object EnStrings : AppStrings {
     override val errorAdminGetInstancesFailed = "Failed to get lessons"
     override val errorAdminCancelLessonInstanceNotFound = "Lesson not found"
     override val errorAdminCancelLessonFailed = "Failed to cancel lesson"
+    override val errorAdminEventAlreadyPassed = "Event has already passed and cannot be cancelled"
     override val errorAdminWalletOperationFailed = "Wallet operation failed"
 
     // Privacy Policy

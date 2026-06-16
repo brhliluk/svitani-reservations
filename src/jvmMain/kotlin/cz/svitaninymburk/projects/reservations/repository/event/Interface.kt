@@ -37,6 +37,7 @@ interface EventInstanceRepository {
     suspend fun findBySeriesPaged(seriesId: Uuid, page: Int, pageSize: Int): List<EventInstance>
     suspend fun findBySeries(seriesId: Uuid): List<EventInstance>
     suspend fun countBySeries(seriesId: Uuid): Long
+    suspend fun setCancelled(id: Uuid)
 }
 
 interface EventSeriesRepository {
@@ -51,4 +52,5 @@ interface EventSeriesRepository {
     suspend fun incrementOccupiedSpots(seriesId: Uuid, amount: Int): Int?
     suspend fun decrementOccupiedSpots(seriesId: Uuid, amount: Int): Int?
     suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventSeries>
+    suspend fun setCancelled(id: Uuid)
 }

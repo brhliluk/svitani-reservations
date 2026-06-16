@@ -18,6 +18,7 @@ data class AdminEventDetailData(
     val totalCollected: Double,
     val customFields: List<CustomFieldDefinition>,
     val participants: List<AdminParticipantRow>,
+    val isCancelled: Boolean = false,
 )
 
 @Serializable

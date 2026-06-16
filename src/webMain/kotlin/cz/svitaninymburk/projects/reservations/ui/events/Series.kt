@@ -29,6 +29,12 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                 h3(className = "card-title text-lg sm:text-xl font-bold text-base-content") {
                     +series.title
                 }
+                if (series.isCancelled) {
+                    div(className = "badge badge-error badge-sm gap-1 mt-1") {
+                        span(className = "icon-[heroicons--x-circle] size-3")
+                        +currentStrings.cancelled
+                    }
+                }
 
                 div(className = "flex gap-2 my-1") {
                     div(className = "badge badge-secondary badge-outline text-xs gap-1") {
@@ -79,15 +85,21 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                     }
 
                     div(className = "flex flex-col items-end gap-1") {
-                        val isDeadlinePassed = series.isDeadlinePassed
-                        button(className = "btn btn-primary rounded-full px-6 min-h-11 shadow-sm${if (isDeadlinePassed) " btn-disabled" else ""}") {
-                            span(className = "icon-[heroicons--pencil-square] size-5")
-                            +currentStrings.courseSignUp
-                            if (!isDeadlinePassed) onClick { onSignUpClick() }
-                        }
-                        if (isDeadlinePassed) {
-                            span(className = "text-xs text-base-content/60 text-right") {
-                                +(series.reservationDeadlineMessage ?: currentStrings.reservationClosed)
+                        if (series.isCancelled) {
+                            button(className = "btn btn-error btn-outline rounded-full px-6 min-h-11", disabled = true) {
+                                +currentStrings.cancelled
+                            }
+                        } else {
+                            val isDeadlinePassed = series.isDeadlinePassed
+                            button(className = "btn btn-primary rounded-full px-6 min-h-11 shadow-sm${if (isDeadlinePassed) " btn-disabled" else ""}") {
+                                span(className = "icon-[heroicons--pencil-square] size-5")
+                                +currentStrings.courseSignUp
+                                if (!isDeadlinePassed) onClick { onSignUpClick() }
+                            }
+                            if (isDeadlinePassed) {
+                                span(className = "text-xs text-base-content/60 text-right") {
+                                    +(series.reservationDeadlineMessage ?: currentStrings.reservationClosed)
+                                }
                             }
                         }
                     }

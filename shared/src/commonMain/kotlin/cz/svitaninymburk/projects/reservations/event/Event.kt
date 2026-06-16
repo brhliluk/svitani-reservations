@@ -50,6 +50,7 @@ data class EventSeries(
     val lessonRefundAmount: Double? = null,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
+    val isCancelled: Boolean = false,
 ) {
     val isFull: Boolean get() = occupiedSpots >= capacity
     val isDeadlinePassed: Boolean get() {

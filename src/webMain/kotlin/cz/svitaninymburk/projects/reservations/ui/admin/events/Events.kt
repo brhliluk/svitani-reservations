@@ -167,7 +167,12 @@ fun IComponent.AdminEventsScreen() {
                                                         td(className = "pl-8 font-medium") {
                                                             +item.title
                                                             if (!item.isDefinitionOnly) {
-                                                                if (item.isPublished) {
+                                                                if (item.isCancelled) {
+                                                                    div(className = "badge badge-error badge-sm gap-1 ml-2") {
+                                                                        span(className = "icon-[heroicons--x-circle] size-3")
+                                                                        +currentStrings.cancelled
+                                                                    }
+                                                                } else if (item.isPublished) {
                                                                     span(className = "badge badge-primary badge-sm ml-2") { +currentStrings.statusPublished }
                                                                 } else {
                                                                     span(className = "badge badge-ghost badge-sm ml-2") { +currentStrings.statusHidden }

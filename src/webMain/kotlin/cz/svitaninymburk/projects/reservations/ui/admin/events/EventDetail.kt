@@ -61,6 +61,8 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
 
     var isModalLoading by remember { mutableStateOf(false) }
     var isDeleteLoading by remember { mutableStateOf(false) }
+    var showCancelConfirm by remember { mutableStateOf(false) }
+    var isCancelLoading by remember { mutableStateOf(false) }
     var isCancelLessonLoading by remember { mutableStateOf(false) }
     var togglingDropInId by remember { mutableStateOf<kotlin.uuid.Uuid?>(null) }
 
@@ -136,6 +138,19 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                         span(className = "icon-[heroicons--pencil] size-4")
                         if (isSeries) +currentStrings.editSeries else +currentStrings.editEvent
                         onClick { router.navigate(editPath) }
+                    }
+                    val isCancelled = (uiState as? AdminEventDetailUiState.Success)?.data?.isCancelled ?: false
+                    if (isCancelled) {
+                        div(className = "badge badge-error gap-2") {
+                            span(className = "icon-[heroicons--x-circle] size-4")
+                            +currentStrings.cancelled
+                        }
+                    } else {
+                        button(className = "btn btn-outline btn-warning btn-sm gap-2") {
+                            span(className = "icon-[heroicons--x-circle] size-4")
+                            +currentStrings.cancelEventLabel
+                            onClick { showCancelConfirm = true }
+                        }
                     }
                     button(className = "btn btn-outline btn-error btn-sm gap-2") {
                         span(className = "icon-[heroicons--trash] size-4")
@@ -521,6 +536,52 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             }
             form(className = "modal-backdrop") {
                 button { onClick { showDeleteConfirm = false }; +currentStrings.close }
+            }
+        }
+    }
+
+    if (showCancelConfirm) {
+        val reservationCount = (uiState as? AdminEventDetailUiState.Success)?.data?.participants?.size ?: 0
+        div(className = "modal modal-open") {
+            div(className = "modal-box") {
+                h3(className = "font-bold text-lg text-warning") { +currentStrings.cancelEventConfirmTitle }
+                p(className = "py-4") { +currentStrings.cancelEventConfirmBody(reservationCount) }
+                div(className = "modal-action") {
+                    button(className = "btn") {
+                        disabled(isCancelLoading)
+                        onClick { showCancelConfirm = false }
+                        +currentStrings.modalBack
+                    }
+                    button(className = "btn btn-warning") {
+                        disabled(isCancelLoading)
+                        if (isCancelLoading) span(className = "loading loading-spinner loading-sm")
+                        onClick {
+                            isCancelLoading = true
+                            scope.launch {
+                                val uuid = Uuid.parse(eventId)
+                                val result = if (isSeries)
+                                    adminService.cancelEventSeries(uuid)
+                                else
+                                    adminService.cancelEventInstance(uuid)
+                                result
+                                    .onRight {
+                                        toastData = ToastData(currentStrings.cancelEventSuccess, ToastType.Success)
+                                        kotlinx.coroutines.delay(500)
+                                        router.navigate("/admin/events")
+                                    }
+                                    .onLeft {
+                                        toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error)
+                                        isCancelLoading = false
+                                        showCancelConfirm = false
+                                    }
+                            }
+                        }
+                        +currentStrings.cancelEventLabel
+                    }
+                }
+            }
+            form(className = "modal-backdrop") {
+                button { onClick { showCancelConfirm = false }; +currentStrings.close }
             }
         }
     }

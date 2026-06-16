@@ -122,6 +122,7 @@ object EventSeriesTable : Table("event_series") {
     val lessonRefundAmount = double("lesson_refund_amount").nullable()
     val reservationDeadlineMs = long("reservation_deadline_ms").nullable()
     val reservationDeadlineMessage = text("reservation_deadline_message").nullable()
+    val isCancelled = bool("is_cancelled").default(false)
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -148,6 +149,7 @@ fun ResultRow.toEventSeries(ownerEmails: List<String>): EventSeries = EventSerie
     reservationDeadline = this[EventSeriesTable.reservationDeadlineMs]?.milliseconds,
     reservationDeadlineMessage = this[EventSeriesTable.reservationDeadlineMessage],
     isPublished = this[EventSeriesTable.isPublished],
+    isCancelled = this[EventSeriesTable.isCancelled],
 )
 
 
@@ -437,6 +439,12 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
         }
         get(seriesId)?.occupiedSpots
     }
+
+    override suspend fun setCancelled(id: Uuid): Unit = dbQuery {
+        EventSeriesTable.update({ EventSeriesTable.id eq id }) {
+            it[isCancelled] = true
+        }
+    }
 }
 
 
@@ -613,5 +621,11 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             it.update(EventInstancesTable.occupiedSpots, EventInstancesTable.occupiedSpots - amount)
         }
         get(instanceId)?.occupiedSpots
+    }
+
+    override suspend fun setCancelled(id: Uuid): Unit = dbQuery {
+        EventInstancesTable.update({ EventInstancesTable.id eq id }) {
+            it[isCancelled] = true
+        }
     }
 }

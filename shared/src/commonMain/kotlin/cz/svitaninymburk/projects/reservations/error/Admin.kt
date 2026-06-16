@@ -26,6 +26,8 @@ import kotlin.uuid.Uuid
     @Serializable @SerialName("delete_series") sealed interface DeleteSeries : AdminError
     @Serializable @SerialName("get_payment_events") sealed interface GetPaymentEvents : AdminError
     @Serializable @SerialName("get_wallets") sealed interface GetWallets : AdminError
+    @Serializable @SerialName("cancel_event") sealed interface CancelEvent : AdminError
+    @Serializable @SerialName("cancel_series") sealed interface CancelSeries : AdminError
 
     @Serializable data class FailedToGetSummary(val message: String) : GetSummary
     @Serializable data class FailedToMarkReservationPaid(val message: String) : MarkReservationPaid
@@ -51,6 +53,9 @@ import kotlin.uuid.Uuid
     @Serializable data class FailedToDeleteEvent(val message: String) : DeleteEvent
     @Serializable data class FailedToDeleteSeries(val message: String) : DeleteSeries
     @Serializable data class FailedToGetPaymentEvents(val message: String) : GetPaymentEvents
+    @Serializable data class EventAlreadyPassed(val id: Uuid) : AdminError, CancelEvent, CancelSeries
+    @Serializable data class InstanceNotFoundForCancel(val id: Uuid) : AdminError, CancelEvent
+    @Serializable data class SeriesNotFoundForCancel(val id: Uuid) : AdminError, CancelSeries
 
     @Serializable @SerialName("get_instances") sealed interface GetInstances : AdminError {
         @Serializable @SerialName("failed") object Failed : GetInstances
@@ -97,4 +102,7 @@ fun AdminError.localizedMessage(strings: ErrorStrings): String = when (this) {
     is AdminError.CancelLesson.InstanceNotFound -> strings.errorAdminCancelLessonInstanceNotFound
     is AdminError.CancelLesson.Failed -> strings.errorAdminCancelLessonFailed
     is AdminError.WalletOperationFailed -> strings.errorAdminWalletOperationFailed
+    is AdminError.EventAlreadyPassed -> strings.errorAdminEventAlreadyPassed
+    is AdminError.InstanceNotFoundForCancel -> strings.errorAdminEventNotFound
+    is AdminError.SeriesNotFoundForCancel -> strings.errorAdminCourseNotFound
 }

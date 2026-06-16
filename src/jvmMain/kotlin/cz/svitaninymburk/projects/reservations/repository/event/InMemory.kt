@@ -136,6 +136,10 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
 
         return reservationSuccess
     }
+
+    override suspend fun setCancelled(id: Uuid) {
+        instances.computeIfPresent(id) { _, instance -> instance.copy(isCancelled = true) }
+    }
 }
 
 class InMemoryEventSeriesRepository : EventSeriesRepository {
@@ -199,5 +203,9 @@ class InMemoryEventSeriesRepository : EventSeriesRepository {
         return instances.computeIfPresent(seriesId) { _, currentInstance ->
             currentInstance.copy(occupiedSpots = currentInstance.occupiedSpots - amount)
         }?.occupiedSpots
+    }
+
+    override suspend fun setCancelled(id: Uuid) {
+        instances.computeIfPresent(id) { _, series -> series.copy(isCancelled = true) }
     }
 }

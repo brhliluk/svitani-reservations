@@ -53,6 +53,8 @@ interface AdminServiceInterface {
     suspend fun deleteEventDefinition(id: Uuid): Either<AdminError.DeleteDefinition, Unit>
     suspend fun deleteEventInstance(id: Uuid): Either<AdminError.DeleteEvent, Unit>
     suspend fun deleteEventSeries(id: Uuid): Either<AdminError.DeleteSeries, Unit>
+    suspend fun cancelEventInstance(id: Uuid): Either<AdminError.CancelEvent, Unit>
+    suspend fun cancelEventSeries(id: Uuid): Either<AdminError.CancelSeries, Unit>
     suspend fun getSeriesInstances(seriesId: Uuid, page: Int = 0, pageSize: Int = 10): Either<AdminError.GetInstances, SeriesInstancesPage>
     suspend fun cancelSeriesLesson(instanceId: Uuid): Either<AdminError.CancelLesson, Unit>
     suspend fun getPaymentEvents(page: Int, pageSize: Int): Either<AdminError.GetPaymentEvents, PaymentEventsPage>

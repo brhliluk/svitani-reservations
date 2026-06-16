@@ -43,6 +43,7 @@ object CsErrorStrings : ErrorStrings {
     override val errorAdminGetInstancesFailed = "Nepodařilo se získat lekce"
     override val errorAdminCancelLessonInstanceNotFound = "Lekce nenalezena"
     override val errorAdminCancelLessonFailed = "Nepodařilo se zrušit lekci"
+    override val errorAdminEventAlreadyPassed = "Událost již proběhla a nelze ji zrušit"
     override val errorAdminWalletOperationFailed = "Operace s peněženkou selhala"
 
     override val errorSettingsLoadFailed = "Nepodařilo se načíst nastavení"
