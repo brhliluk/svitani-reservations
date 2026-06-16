@@ -3,7 +3,7 @@ package cz.svitaninymburk.projects.reservations.service
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
-import cz.svitaninymburk.projects.reservations.error.ReservationError
+import cz.svitaninymburk.projects.reservations.error.WalletError
 import cz.svitaninymburk.projects.reservations.repository.wallet.NewWallet
 import cz.svitaninymburk.projects.reservations.repository.wallet.NewWalletTransaction
 import cz.svitaninymburk.projects.reservations.repository.wallet.WalletRepository
@@ -41,15 +41,15 @@ class WalletService(private val repo: WalletRepository) {
         code: String?,
         contactEmail: String,
         force: Boolean,
-    ): Either<ReservationError.CancelReservation, Wallet> {
+    ): Either<WalletError.ResolveAnonymous, Wallet> {
         if (code == null) {
             val newWallet = repo.create(NewWallet(code = generateUniqueCode(), ownerEmail = contactEmail))
             return newWallet.right()
         }
         val wallet = repo.findByCode(code)
-            ?: return ReservationError.WalletNotFound.left()
+            ?: return WalletError.NotFound.left()
         if (!force && !wallet.ownerEmail.equals(contactEmail, ignoreCase = true)) {
-            return ReservationError.WalletEmailMismatch.left()
+            return WalletError.EmailMismatch.left()
         }
         return wallet.right()
     }
@@ -58,10 +58,9 @@ class WalletService(private val repo: WalletRepository) {
      * Validate a wallet code for use during reservation creation.
      * Returns WalletNotFound or WalletEmpty if invalid.
      */
-    suspend fun validateForReservation(code: String): Either<ReservationError.CreateReservation, Wallet> {
-        val wallet = repo.findByCode(code)
-            ?: return ReservationError.WalletNotFound.left()
-        if (wallet.balance <= 0.0) return ReservationError.WalletEmpty.left()
+    suspend fun validateForReservation(code: String): Either<WalletError.ValidateForReservation, Wallet> {
+        val wallet = repo.findByCode(code) ?: return WalletError.NotFound.left()
+        if (wallet.balance <= 0.0) return WalletError.Empty.left()
         return wallet.right()
     }
 

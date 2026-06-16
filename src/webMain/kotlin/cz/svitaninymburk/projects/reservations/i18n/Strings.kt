@@ -305,6 +305,13 @@ interface AppStrings : ErrorStrings {
     val fieldFlatFeeFormula: String
     val fieldPerUnitPriceLabel: String
     val fieldPerUnitFormula: String
+    val fieldModifierNone: String
+    val fieldModifierPerUnit: String
+    val fieldModifierTiered: String
+    val fieldTieredAddTier: String
+    val fieldTieredCountLabel: String
+    val fieldTieredPriceLabel: String
+    val fieldTieredFallbackLabel: String
     val validationNameRequired: String
     val validationOwnerEmailRequired: String
     val validationRecurrenceEndRequired: String

@@ -19,7 +19,7 @@ fun calculateTotalPrice(
         }
     }
 
-    // Pass 2: additive modifiers (FixedAmount, PerUnit)
+    // Pass 2: additive modifiers (FixedAmount, PerUnit, TieredAmount)
     for ((key, value) in customValues) {
         val modifier = fieldMap[key]?.priceModifier ?: continue
         when (modifier) {
@@ -31,6 +31,16 @@ fun calculateTotalPrice(
                 total += modifier.pricePerUnit * n
             }
             is PriceModifier.TimeMultiplier -> Unit
+            is PriceModifier.TieredAmount -> {
+                val n = (value as? NumberValue)?.value?.toInt() ?: continue
+                val sortedTiers = modifier.tiers.sortedBy { it.count }
+                val matchingTier = sortedTiers.lastOrNull { it.count <= n }
+                if (matchingTier != null) {
+                    total += matchingTier.price + (n - matchingTier.count) * modifier.fallbackPerUnit
+                } else {
+                    total += n * modifier.fallbackPerUnit
+                }
+            }
         }
     }
 

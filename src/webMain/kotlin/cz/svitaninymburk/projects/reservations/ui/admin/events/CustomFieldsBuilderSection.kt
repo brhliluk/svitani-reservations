@@ -6,8 +6,10 @@ import cz.svitaninymburk.projects.reservations.i18n.strings
 import dev.kilua.core.IComponent
 import dev.kilua.form.check.checkBox
 import dev.kilua.form.number.numeric
+import dev.kilua.form.select.select
 import dev.kilua.form.text.text
 import dev.kilua.html.*
+import web.html.HTMLSelectElement
 
 /**
  * Sdílený builder pro custom fields — používán ve všech admin formulářích pro eventy.
@@ -187,16 +189,31 @@ fun IComponent.CustomFieldsBuilderSection(
                                         }
                                     }
                                     is NumberFieldDefinition -> {
+                                        // Modifier type selector
                                         div(className = "form-control md:col-span-2") {
-                                            label(className = "cursor-pointer label justify-start gap-2 py-1") {
-                                                checkBox(value = field.priceModifier is PriceModifier.PerUnit, className = "checkbox checkbox-xs checkbox-accent") {
-                                                    onChange {
-                                                        updateField(index, field.copy(priceModifier = if (value) PriceModifier.PerUnit(0.0) else null))
-                                                    }
+                                            label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldPriceModifierEnabled } }
+                                            select(className = "select select-sm select-bordered w-full") {
+                                                option(value = "", label = currentStrings.fieldModifierNone) {
+                                                    if (field.priceModifier == null) attribute("selected", "true")
                                                 }
-                                                span(className = "label-text text-xs") { +currentStrings.fieldPriceModifierEnabled }
+                                                option(value = "per_unit", label = currentStrings.fieldModifierPerUnit) {
+                                                    if (field.priceModifier is PriceModifier.PerUnit) attribute("selected", "true")
+                                                }
+                                                option(value = "tiered", label = currentStrings.fieldModifierTiered) {
+                                                    if (field.priceModifier is PriceModifier.TieredAmount) attribute("selected", "true")
+                                                }
+                                                onChange { event ->
+                                                    val selectedValue = (event.target as? HTMLSelectElement)?.value
+                                                    updateField(index, field.copy(priceModifier = when (selectedValue) {
+                                                        "per_unit" -> PriceModifier.PerUnit(0.0)
+                                                        "tiered" -> PriceModifier.TieredAmount(emptyList())
+                                                        else -> null
+                                                    }))
+                                                }
                                             }
                                         }
+
+                                        // PerUnit configuration (unchanged)
                                         if (field.priceModifier is PriceModifier.PerUnit) {
                                             val perUnit = field.priceModifier as PriceModifier.PerUnit
                                             div(className = "form-control") {
@@ -207,6 +224,65 @@ fun IComponent.CustomFieldsBuilderSection(
                                                     }
                                                 }
                                                 p(className = "text-xs text-base-content/50 mt-1") { +currentStrings.fieldPerUnitFormula }
+                                            }
+                                        }
+
+                                        // TieredAmount configuration
+                                        if (field.priceModifier is PriceModifier.TieredAmount) {
+                                            val tiered = field.priceModifier as PriceModifier.TieredAmount
+
+                                            div(className = "md:col-span-2") {
+                                                if (tiered.tiers.isNotEmpty()) {
+                                                    div(className = "flex gap-2 mb-1") {
+                                                        span(className = "label-text text-xs w-16") { +currentStrings.fieldTieredCountLabel }
+                                                        span(className = "label-text text-xs flex-1") { +currentStrings.fieldTieredPriceLabel }
+                                                    }
+                                                    tiered.tiers.forEachIndexed { tierIndex, tier ->
+                                                        div(className = "flex gap-2 items-center mb-1") {
+                                                            numeric(value = tier.count.toDouble(), min = 1, className = "input input-xs input-bordered w-16") {
+                                                                onInput {
+                                                                    val newTiers = tiered.tiers.toMutableList().apply {
+                                                                        set(tierIndex, tier.copy(count = value?.toInt() ?: 1))
+                                                                    }
+                                                                    updateField(index, field.copy(priceModifier = tiered.copy(tiers = newTiers)))
+                                                                }
+                                                            }
+                                                            numeric(value = tier.price.takeIf { it > 0 }, min = 0, className = "input input-xs input-bordered flex-1") {
+                                                                onInput {
+                                                                    val newTiers = tiered.tiers.toMutableList().apply {
+                                                                        set(tierIndex, tier.copy(price = value?.toDouble() ?: 0.0))
+                                                                    }
+                                                                    updateField(index, field.copy(priceModifier = tiered.copy(tiers = newTiers)))
+                                                                }
+                                                            }
+                                                            button(className = "btn btn-ghost btn-xs text-error") {
+                                                                onClick {
+                                                                    val newTiers = tiered.tiers.toMutableList().apply { removeAt(tierIndex) }
+                                                                    updateField(index, field.copy(priceModifier = tiered.copy(tiers = newTiers)))
+                                                                }
+                                                                span(className = "icon-[heroicons--x-mark] size-3")
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                button(className = "btn btn-xs btn-outline btn-secondary mt-1") {
+                                                    onClick {
+                                                        val nextCount = (tiered.tiers.maxOfOrNull { it.count } ?: 0) + 1
+                                                        val newTiers = tiered.tiers + PriceModifier.TieredAmount.Tier(nextCount, 0.0)
+                                                        updateField(index, field.copy(priceModifier = tiered.copy(tiers = newTiers)))
+                                                    }
+                                                    +currentStrings.fieldTieredAddTier
+                                                }
+                                            }
+
+                                            div(className = "form-control") {
+                                                label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldTieredFallbackLabel } }
+                                                numeric(value = tiered.fallbackPerUnit.takeIf { it > 0 }, min = 0, className = "input input-sm input-bordered w-full") {
+                                                    onInput {
+                                                        updateField(index, field.copy(priceModifier = tiered.copy(fallbackPerUnit = value?.toDouble() ?: 0.0)))
+                                                    }
+                                                }
                                             }
                                         }
                                     }

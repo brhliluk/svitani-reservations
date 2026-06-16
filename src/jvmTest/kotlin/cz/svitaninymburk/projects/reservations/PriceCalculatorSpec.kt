@@ -93,4 +93,52 @@ class PriceCalculatorSpec {
         )
         assertEquals(300.0, calculateTotalPrice(100.0, 1, fields, values))
     }
+
+    @Test
+    fun tieredAmountMatchesExactTier() {
+        // 100.0 × 1 seat + tier(count=2, price=200) = 300.0
+        val fields = listOf(
+            NumberFieldDefinition("children", "Children", priceModifier = PriceModifier.TieredAmount(
+                tiers = listOf(
+                    PriceModifier.TieredAmount.Tier(1, 150.0),
+                    PriceModifier.TieredAmount.Tier(2, 200.0)
+                ),
+                fallbackPerUnit = 0.0
+            ))
+        )
+        val values = mapOf("children" to NumberValue("children", 2f))
+        assertEquals(300.0, calculateTotalPrice(100.0, 1, fields, values))
+    }
+
+    @Test
+    fun tieredAmountBeyondLastTierUsesFallback() {
+        // 100.0 × 1 + tier(count=2, price=200) + (4-2) × 50.0 = 400.0
+        val fields = listOf(
+            NumberFieldDefinition("children", "Children", priceModifier = PriceModifier.TieredAmount(
+                tiers = listOf(
+                    PriceModifier.TieredAmount.Tier(1, 150.0),
+                    PriceModifier.TieredAmount.Tier(2, 200.0)
+                ),
+                fallbackPerUnit = 50.0
+            ))
+        )
+        val values = mapOf("children" to NumberValue("children", 4f))
+        assertEquals(400.0, calculateTotalPrice(100.0, 1, fields, values))
+    }
+
+    @Test
+    fun tieredAmountBeyondLastTierWithZeroFallback() {
+        // 100.0 × 1 + tier(count=3, price=250) + (5-3) × 0 = 350.0
+        val fields = listOf(
+            NumberFieldDefinition("children", "Children", priceModifier = PriceModifier.TieredAmount(
+                tiers = listOf(
+                    PriceModifier.TieredAmount.Tier(1, 150.0),
+                    PriceModifier.TieredAmount.Tier(3, 250.0)
+                ),
+                fallbackPerUnit = 0.0
+            ))
+        )
+        val values = mapOf("children" to NumberValue("children", 5f))
+        assertEquals(350.0, calculateTotalPrice(100.0, 1, fields, values))
+    }
 }

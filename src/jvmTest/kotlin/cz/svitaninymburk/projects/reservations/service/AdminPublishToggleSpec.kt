@@ -7,8 +7,11 @@ import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventIns
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.payment.InMemoryPaymentEventRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
+import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
+import cz.svitaninymburk.projects.reservations.settings.AppSettings
+import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -31,6 +34,17 @@ class AdminPublishToggleSpec {
         emailService = ConsoleEmailService(),
         paymentEventRepository = InMemoryPaymentEventRepository(),
         walletService = WalletService(InMemoryWalletRepository()),
+        refundService = RefundService(
+            walletService = WalletService(InMemoryWalletRepository()),
+            walletEmailService = ConsoleEmailService(),
+            appSettingsProvider = AppSettingsProvider.forTest(
+                AppSettings(
+                    bankAccountNumber = "", fioToken = "", senderEmail = "",
+                    gmailAppPassword = "", senderDisplayName = "",
+                )
+            ),
+        ),
+        seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
     )
 
     @Test

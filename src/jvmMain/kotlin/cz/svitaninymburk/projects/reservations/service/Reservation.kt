@@ -7,6 +7,7 @@ import arrow.core.raise.context.ensureNotNull
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import cz.svitaninymburk.projects.reservations.error.ReservationError
+import cz.svitaninymburk.projects.reservations.error.WalletError
 import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
@@ -63,6 +64,7 @@ open class ReservationService(
     private val walletService: WalletService,
     private val walletEmailService: WalletEmailService,
     private val appSettingsProvider: AppSettingsProvider,
+    private val refundService: RefundService = RefundService(walletService, walletEmailService, appSettingsProvider),
 ) : ReservationServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -337,20 +339,11 @@ open class ReservationService(
                 val wallet: Wallet = walletService.findOrCreateForRegisteredUser(
                     reservation.registeredUserId!!, reservation.contactEmail
                 )
-                val updatedWallet = walletService.credit(
-                    wallet.id, refundAmount, WalletTransactionReason.LESSON_OPT_OUT_REFUND, reservationId
+                val outcome = refundService.refundFixedAmount(
+                    wallet, reservation, refundAmount, WalletTransactionReason.LESSON_OPT_OUT_REFUND
                 )
-                val settings = appSettingsProvider.current
-                walletEmailService.sendWalletCredited(
-                    toEmail = reservation.contactEmail,
-                    walletCode = updatedWallet.code,
-                    creditedAmount = refundAmount,
-                    newBalance = updatedWallet.balance,
-                    resetMonth = settings.seasonResetMonth,
-                    resetDay = settings.seasonResetDay,
-                    locale = reservation.locale,
-                ).onLeft { captureEmailError(logger, "Failed to send wallet credited email to ${reservation.contactEmail}: $it") }
-                CancellationResult(walletCode = updatedWallet.code, walletCreditAmount = refundAmount)
+                if (outcome != null) CancellationResult(walletCode = outcome.walletCode, walletCreditAmount = outcome.creditedAmount)
+                else CancellationResult()
             } else {
                 CancellationResult()
             }
@@ -417,42 +410,20 @@ open class ReservationService(
                         walletService.findOrCreateForRegisteredUser(reservationRegisteredUserId, reservation.contactEmail)
                     } else {
                         val resolved = walletService.resolveAnonymousWallet(walletCode, reservation.contactEmail, force)
-                        when (val r = resolved) {
-                            is Either.Left -> raise(r.value)
-                            is Either.Right -> r.value
+                        .mapLeft { e ->
+                            when (e) {
+                                WalletError.NotFound -> ReservationError.WalletNotFound
+                                WalletError.EmailMismatch -> ReservationError.WalletEmailMismatch
+                            }
+                        }
+                        when (resolved) {
+                            is Either.Left -> raise(resolved.value)
+                            is Either.Right -> resolved.value
                         }
                     }
-
-                    var updatedWallet = wallet
-                    if (reservation.walletDeductedAmount > 0.0) {
-                        // Reverse the wallet debit first
-                        updatedWallet = walletService.credit(
-                            wallet.id, reservation.walletDeductedAmount,
-                            WalletTransactionReason.RESERVATION_DEBIT_REVERSAL, reservationId
-                        )
-                        // Refund the cash portion
-                        val cashPaid = paidAmount - reservation.walletDeductedAmount
-                        if (cashPaid > 0.0) {
-                            updatedWallet = walletService.credit(
-                                wallet.id, cashPaid, WalletTransactionReason.CANCELLATION_REFUND, reservationId
-                            )
-                        }
-                    } else {
-                        updatedWallet = walletService.credit(
-                            wallet.id, paidAmount, WalletTransactionReason.CANCELLATION_REFUND, reservationId
-                        )
-                    }
-                    val settings = appSettingsProvider.current
-                    walletEmailService.sendWalletCredited(
-                        toEmail = reservation.contactEmail,
-                        walletCode = updatedWallet.code,
-                        creditedAmount = paidAmount,
-                        newBalance = updatedWallet.balance,
-                        resetMonth = settings.seasonResetMonth,
-                        resetDay = settings.seasonResetDay,
-                        locale = reservation.locale,
-                    ).onLeft { captureEmailError(logger, "Failed to send wallet credited email to ${reservation.contactEmail}: $it") }
-                    CancellationResult(walletCode = updatedWallet.code, walletCreditAmount = paidAmount)
+                    val outcome = refundService.refundWholeReservation(wallet, reservation)
+                    if (outcome != null) CancellationResult(walletCode = outcome.walletCode, walletCreditAmount = outcome.creditedAmount)
+                    else CancellationResult()
                 } else {
                     CancellationResult()
                 }
