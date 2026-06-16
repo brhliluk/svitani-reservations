@@ -26,6 +26,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
+import dev.kilua.form.check.checkBox
 import dev.kilua.form.form
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
@@ -63,6 +64,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
     var isDeleteLoading by remember { mutableStateOf(false) }
     var showCancelConfirm by remember { mutableStateOf(false) }
     var isCancelLoading by remember { mutableStateOf(false) }
+    var refundMoney by remember { mutableStateOf(true) }
     var isCancelLessonLoading by remember { mutableStateOf(false) }
     var togglingDropInId by remember { mutableStateOf<kotlin.uuid.Uuid?>(null) }
 
@@ -149,13 +151,13 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                         button(className = "btn btn-outline btn-warning btn-sm gap-2") {
                             span(className = "icon-[heroicons--x-circle] size-4")
                             +currentStrings.cancelEventLabel
-                            onClick { showCancelConfirm = true }
+                            onClick { refundMoney = true; showCancelConfirm = true }
                         }
                     }
                     button(className = "btn btn-outline btn-error btn-sm gap-2") {
                         span(className = "icon-[heroicons--trash] size-4")
                         if (isSeries) +currentStrings.deleteSeriesLabel else +currentStrings.deleteEventLabel
-                        onClick { showDeleteConfirm = true }
+                        onClick { refundMoney = true; showDeleteConfirm = true }
                     }
                 }
 
@@ -502,6 +504,14 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             div(className = "modal-box") {
                 h3(className = "font-bold text-lg text-error") { +currentStrings.confirmDeleteTitle }
                 p(className = "py-4") { +currentStrings.deleteEventImpact(reservationCount) }
+                div(className = "form-control mt-2") {
+                    label(className = "label cursor-pointer justify-start gap-3") {
+                        checkBox(value = refundMoney, className = "toggle toggle-error") {
+                            onChange { refundMoney = value }
+                        }
+                        span(className = "label-text") { +currentStrings.refundOnCancelLabel }
+                    }
+                }
                 div(className = "modal-action") {
                     button(className = "btn") { disabled(isDeleteLoading); onClick { showDeleteConfirm = false }; +currentStrings.modalBack }
                     button(className = "btn btn-error") {
@@ -512,9 +522,9 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                             scope.launch {
                                 val uuid = Uuid.parse(eventId)
                                 val result = if (isSeries)
-                                    adminService.deleteEventSeries(uuid)
+                                    adminService.deleteEventSeries(uuid, refundMoney)
                                 else
-                                    adminService.deleteEventInstance(uuid)
+                                    adminService.deleteEventInstance(uuid, refundMoney)
                                 result
                                     .onRight {
                                         toastData = ToastData(
@@ -546,6 +556,14 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             div(className = "modal-box") {
                 h3(className = "font-bold text-lg text-warning") { +currentStrings.cancelEventConfirmTitle }
                 p(className = "py-4") { +currentStrings.cancelEventConfirmBody(reservationCount) }
+                div(className = "form-control mt-2") {
+                    label(className = "label cursor-pointer justify-start gap-3") {
+                        checkBox(value = refundMoney, className = "toggle toggle-warning") {
+                            onChange { refundMoney = value }
+                        }
+                        span(className = "label-text") { +currentStrings.refundOnCancelLabel }
+                    }
+                }
                 div(className = "modal-action") {
                     button(className = "btn") {
                         disabled(isCancelLoading)
@@ -560,9 +578,9 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                             scope.launch {
                                 val uuid = Uuid.parse(eventId)
                                 val result = if (isSeries)
-                                    adminService.cancelEventSeries(uuid)
+                                    adminService.cancelEventSeries(uuid, refundMoney)
                                 else
-                                    adminService.cancelEventInstance(uuid)
+                                    adminService.cancelEventInstance(uuid, refundMoney)
                                 result
                                     .onRight {
                                         toastData = ToastData(currentStrings.cancelEventSuccess, ToastType.Success)

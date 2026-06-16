@@ -21,6 +21,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import dev.kilua.core.IComponent
+import dev.kilua.form.check.checkBox
 import dev.kilua.form.form
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
@@ -50,6 +51,7 @@ fun IComponent.AdminEventsScreen() {
     var refreshTrigger by remember { mutableIntStateOf(0) }
     var deleteDefinitionPending by remember { mutableStateOf<AdminEventListItem?>(null) }
     var deleteItemPending by remember { mutableStateOf<AdminEventListItem?>(null) }
+    var refundMoney by remember { mutableStateOf(true) }
     var hideItemPending by remember { mutableStateOf<AdminEventListItem?>(null) }
 
     val uiState by produceState<AdminEventsUiState>(
@@ -252,6 +254,7 @@ fun IComponent.AdminEventsScreen() {
                                                                     span(className = "icon-[heroicons--trash] size-4")
                                                                     onClick {
                                                                         it.stopPropagation()
+                                                                        refundMoney = true
                                                                         deleteItemPending = item
                                                                     }
                                                                 }
@@ -388,6 +391,14 @@ fun IComponent.AdminEventsScreen() {
                         div(className = "modal-box") {
                             h3(className = "font-bold text-lg text-error") { +currentStrings.confirmDeleteTitle }
                             p(className = "py-4") { +currentStrings.deleteEventImpact(itemToDelete.occupiedSpots) }
+                            div(className = "form-control mt-2") {
+                                label(className = "label cursor-pointer justify-start gap-3") {
+                                    checkBox(value = refundMoney, className = "toggle toggle-error") {
+                                        onChange { refundMoney = value }
+                                    }
+                                    span(className = "label-text") { +currentStrings.refundOnCancelLabel }
+                                }
+                            }
                             div(className = "modal-action") {
                                 button(className = "btn") { onClick { deleteItemPending = null }; +currentStrings.modalBack }
                                 button(className = "btn btn-error") {
@@ -396,9 +407,9 @@ fun IComponent.AdminEventsScreen() {
                                         deleteItemPending = null
                                         scope.launch {
                                             val result = if (toDelete.isSeries)
-                                                adminService.deleteEventSeries(toDelete.id)
+                                                adminService.deleteEventSeries(toDelete.id, refundMoney)
                                             else
-                                                adminService.deleteEventInstance(toDelete.id)
+                                                adminService.deleteEventInstance(toDelete.id, refundMoney)
                                             result
                                                 .onRight {
                                                     val msg = if (toDelete.isSeries) currentStrings.toastSeriesDeleted else currentStrings.toastEventDeleted

@@ -569,6 +569,7 @@ object CsStrings : AppStrings {
     }
     override val cancelEventSuccess = "Událost byla zrušena"
     override val cancelEventError = "Nepodařilo se zrušit událost"
+    override val refundOnCancelLabel = "Vrátit peníze zákazníkům jako kredit"
     override val editTemplateTitle = "Upravit šablonu"
     override val editInstanceTitle = "Upravit termín"
     override val editSeriesTitle = "Upravit kurz"

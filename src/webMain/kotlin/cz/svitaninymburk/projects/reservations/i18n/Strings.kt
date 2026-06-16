@@ -534,6 +534,7 @@ interface AppStrings : ErrorStrings {
     val cancelEventConfirmBody: (reservationCount: Int) -> String
     val cancelEventSuccess: String
     val cancelEventError: String
+    val refundOnCancelLabel: String
     val editTemplateTitle: String
     val editInstanceTitle: String
     val editSeriesTitle: String

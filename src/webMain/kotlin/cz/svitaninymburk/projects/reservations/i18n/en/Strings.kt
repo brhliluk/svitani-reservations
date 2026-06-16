@@ -570,6 +570,7 @@ object EnStrings : AppStrings {
     }
     override val cancelEventSuccess = "Event cancelled"
     override val cancelEventError = "Failed to cancel event"
+    override val refundOnCancelLabel = "Refund customers as wallet credit"
     override val editTemplateTitle = "Edit template"
     override val editInstanceTitle = "Edit event"
     override val editSeriesTitle = "Edit course"

@@ -31,6 +31,7 @@ class AdminCancelTest {
         instanceRepo: InMemoryEventInstanceRepository,
         seriesRepo: InMemoryEventSeriesRepository,
         reservationRepo: InMemoryReservationRepository,
+        walletRepo: InMemoryWalletRepository = InMemoryWalletRepository(),
     ) = AdminDashboardService(
         eventDefinitionRepository = InMemoryEventDefinitionRepository(),
         eventSeriesRepository = seriesRepo,
@@ -39,9 +40,9 @@ class AdminCancelTest {
         userRepository = InMemoryUserRepository(),
         emailService = ConsoleEmailService(),
         paymentEventRepository = InMemoryPaymentEventRepository(),
-        walletService = WalletService(InMemoryWalletRepository()),
+        walletService = WalletService(walletRepo),
         refundService = RefundService(
-            walletService = WalletService(InMemoryWalletRepository()),
+            walletService = WalletService(walletRepo),
             walletEmailService = ConsoleEmailService(),
             appSettingsProvider = AppSettingsProvider.forTest(
                 AppSettings(
@@ -175,6 +176,35 @@ class AdminCancelTest {
         assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(res.id)?.status)
     }
 
+    @Test
+    fun `cancelEventInstance with refund=false still cancels reservations`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val instance = futureInstance()
+        instanceRepo.create(instance)
+        val reservation = saveReservation(reservationRepo, Reference.Instance(instance.id), paidAmount = 100.0)
+
+        service(instanceRepo, InMemoryEventSeriesRepository(), reservationRepo)
+            .cancelEventInstance(instance.id, refund = false)
+
+        assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(reservation.id)?.status)
+    }
+
+    @Test
+    fun `cancelEventInstance with refund=false does not credit any wallet`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+        val instance = futureInstance()
+        instanceRepo.create(instance)
+        saveReservation(reservationRepo, Reference.Instance(instance.id), paidAmount = 100.0)
+
+        service(instanceRepo, InMemoryEventSeriesRepository(), reservationRepo, walletRepo)
+            .cancelEventInstance(instance.id, refund = false)
+
+        assertEquals(emptyList(), walletRepo.findAllWithPositiveBalance())
+    }
+
     // --- cancelEventSeries ---
 
     @Test
@@ -250,5 +280,38 @@ class AdminCancelTest {
         service(instanceRepo, seriesRepo, reservationRepo).cancelEventSeries(series.id)
 
         assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(seriesReservation.id)?.status)
+    }
+
+    @Test
+    fun `cancelEventSeries with refund=false still cancels reservations`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val series = eventSeries()
+        seriesRepo.create(series)
+        instanceRepo.create(futureInstance(seriesId = series.id))
+        val reservation = saveReservation(reservationRepo, Reference.Series(series.id), paidAmount = 100.0)
+
+        service(instanceRepo, seriesRepo, reservationRepo)
+            .cancelEventSeries(series.id, refund = false)
+
+        assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(reservation.id)?.status)
+    }
+
+    @Test
+    fun `cancelEventSeries with refund=false does not credit any wallet`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+        val series = eventSeries()
+        seriesRepo.create(series)
+        instanceRepo.create(futureInstance(seriesId = series.id))
+        saveReservation(reservationRepo, Reference.Series(series.id), paidAmount = 100.0)
+
+        service(instanceRepo, seriesRepo, reservationRepo, walletRepo)
+            .cancelEventSeries(series.id, refund = false)
+
+        assertEquals(emptyList(), walletRepo.findAllWithPositiveBalance())
     }
 }

@@ -51,10 +51,10 @@ interface AdminServiceInterface {
     suspend fun setInstancePublished(id: Uuid, published: Boolean): Either<AdminError.UpdateEvent, Unit>
     suspend fun setSeriesPublished(id: Uuid, published: Boolean): Either<AdminError.UpdateSeries, Unit>
     suspend fun deleteEventDefinition(id: Uuid): Either<AdminError.DeleteDefinition, Unit>
-    suspend fun deleteEventInstance(id: Uuid): Either<AdminError.DeleteEvent, Unit>
-    suspend fun deleteEventSeries(id: Uuid): Either<AdminError.DeleteSeries, Unit>
-    suspend fun cancelEventInstance(id: Uuid): Either<AdminError.CancelEvent, Unit>
-    suspend fun cancelEventSeries(id: Uuid): Either<AdminError.CancelSeries, Unit>
+    suspend fun deleteEventInstance(id: Uuid, refund: Boolean = true): Either<AdminError.DeleteEvent, Unit>
+    suspend fun deleteEventSeries(id: Uuid, refund: Boolean = true): Either<AdminError.DeleteSeries, Unit>
+    suspend fun cancelEventInstance(id: Uuid, refund: Boolean = true): Either<AdminError.CancelEvent, Unit>
+    suspend fun cancelEventSeries(id: Uuid, refund: Boolean = true): Either<AdminError.CancelSeries, Unit>
     suspend fun getSeriesInstances(seriesId: Uuid, page: Int = 0, pageSize: Int = 10): Either<AdminError.GetInstances, SeriesInstancesPage>
     suspend fun cancelSeriesLesson(instanceId: Uuid): Either<AdminError.CancelLesson, Unit>
     suspend fun getPaymentEvents(page: Int, pageSize: Int): Either<AdminError.GetPaymentEvents, PaymentEventsPage>

@@ -813,7 +813,7 @@ class AdminDashboardService(
         }
     }
 
-    override suspend fun deleteEventInstance(id: Uuid): Either<AdminError.DeleteEvent, Unit> = either {
+    override suspend fun deleteEventInstance(id: Uuid, refund: Boolean): Either<AdminError.DeleteEvent, Unit> = either {
         val instance = ensureNotNull(eventInstanceRepository.get(id)) { AdminError.InstanceNotFoundForEdit(id) }
 
         reservationRepository.findByReference(Reference.Instance(id))
@@ -822,7 +822,7 @@ class AdminDashboardService(
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
                 emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
                     .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
-                if (res.paidAmount > 0.0) {
+                if (refund && res.paidAmount > 0.0) {
                     try {
                         refundService.refundWholeReservation(resolveWalletForRefund(res), res)
                     } catch (e: Exception) {
@@ -834,7 +834,7 @@ class AdminDashboardService(
         eventInstanceRepository.delete(id)
     }
 
-    override suspend fun deleteEventSeries(id: Uuid): Either<AdminError.DeleteSeries, Unit> = either {
+    override suspend fun deleteEventSeries(id: Uuid, refund: Boolean): Either<AdminError.DeleteSeries, Unit> = either {
         val series = ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
 
         reservationRepository.findByReference(Reference.Series(id))
@@ -843,7 +843,7 @@ class AdminDashboardService(
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
                 emailService.sendCancellationNotice(res.contactEmail, series.title, res.id, res.locale)
                     .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
-                if (res.paidAmount > 0.0) {
+                if (refund && res.paidAmount > 0.0) {
                     try {
                         refundService.refundWholeReservation(resolveWalletForRefund(res), res)
                     } catch (e: Exception) {
@@ -892,7 +892,7 @@ class AdminDashboardService(
         eventDefinitionRepository.delete(id)
     }
 
-    override suspend fun cancelEventInstance(id: Uuid): Either<AdminError.CancelEvent, Unit> = either {
+    override suspend fun cancelEventInstance(id: Uuid, refund: Boolean): Either<AdminError.CancelEvent, Unit> = either {
         val instance = ensureNotNull(eventInstanceRepository.get(id)) {
             AdminError.InstanceNotFoundForCancel(id)
         }
@@ -910,7 +910,7 @@ class AdminDashboardService(
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
                 emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
                     .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
-                if (res.paidAmount > 0.0) {
+                if (refund && res.paidAmount > 0.0) {
                     try {
                         refundService.refundWholeReservation(resolveWalletForRefund(res), res)
                     } catch (e: Exception) {
@@ -920,7 +920,7 @@ class AdminDashboardService(
             }
     }
 
-    override suspend fun cancelEventSeries(id: Uuid): Either<AdminError.CancelSeries, Unit> = either {
+    override suspend fun cancelEventSeries(id: Uuid, refund: Boolean): Either<AdminError.CancelSeries, Unit> = either {
         val series = ensureNotNull(eventSeriesRepository.get(id)) {
             AdminError.SeriesNotFoundForCancel(id)
         }
@@ -943,7 +943,7 @@ class AdminDashboardService(
                     reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
                     emailService.sendCancellationNotice(res.contactEmail, series.title, res.id, res.locale)
                         .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
-                    if (res.paidAmount > 0.0) {
+                    if (refund && res.paidAmount > 0.0) {
                         try {
                             refundService.refundWholeReservation(resolveWalletForRefund(res), res)
                         } catch (e: Exception) {
@@ -959,7 +959,7 @@ class AdminDashboardService(
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
                 emailService.sendCancellationNotice(res.contactEmail, series.title, res.id, res.locale)
                     .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
-                if (res.paidAmount > 0.0) {
+                if (refund && res.paidAmount > 0.0) {
                     try {
                         refundService.refundWholeReservation(resolveWalletForRefund(res), res)
                     } catch (e: Exception) {
