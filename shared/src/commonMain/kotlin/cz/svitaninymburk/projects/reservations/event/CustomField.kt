@@ -14,6 +14,15 @@ sealed interface PriceModifier {
 
     @Serializable @SerialName("per_unit")
     data class PerUnit(val pricePerUnit: Double) : PriceModifier
+
+    @Serializable @SerialName("tiered_amount")
+    data class TieredAmount(
+        val tiers: List<Tier>,
+        val fallbackPerUnit: Double = 0.0
+    ) : PriceModifier {
+        @Serializable
+        data class Tier(val count: Int, val price: Double)
+    }
 }
 
 @Serializable
