@@ -27,6 +27,7 @@ import cz.svitaninymburk.projects.reservations.reservation.SeriesReservationDeta
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
+import cz.svitaninymburk.projects.reservations.util.captureEmailError
 import cz.svitaninymburk.projects.reservations.util.currentCall
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
@@ -199,7 +200,7 @@ open class ReservationService(
                         deductedAmount = deductAmount,
                         remainingBalance = wallet.balance - deductAmount,
                         locale = reservation.locale,
-                    ).onLeft { logger.error("Failed to send wallet applied email to ${reservation.contactEmail}: $it") }
+                    ).onLeft { captureEmailError(logger, "Failed to send wallet applied email to ${reservation.contactEmail}: $it") }
                 }
             }
             // If wallet validation fails (not found / empty), silently ignore and proceed without wallet
@@ -221,7 +222,7 @@ open class ReservationService(
             bankAccount = qrCodeService.accountNumber,
             qrCodeImage = qrImage,
             icalBytes = icalBytes,
-        ).onLeft { logger.error("Failed to send confirmation email for reservation ${savedReservation.id}: $it") }
+        ).onLeft { captureEmailError(logger, "Failed to send confirmation email for reservation ${savedReservation.id}: $it") }
 
         val ownerEmails = resolveOwnerEmails(target)
         if (ownerEmails.isNotEmpty()) {
@@ -244,7 +245,7 @@ open class ReservationService(
                     occupiedSpots = newOccupiedSpots,
                     capacity = capacity,
                     locale = savedReservation.locale,
-                ).onLeft { logger.error("Failed to send owner reservation email to $email: $it") }
+                ).onLeft { captureEmailError(logger, "Failed to send owner reservation email to $email: $it") }
             }
         }
 
@@ -308,7 +309,7 @@ open class ReservationService(
                 lessonDate = instance.startDateTime.date,
                 isLateCancellation = isLate,
                 locale = reservation.locale,
-            ).onLeft { logger.error("Failed to send opt-out email to ${reservation.contactEmail}: $it") }
+            ).onLeft { captureEmailError(logger, "Failed to send opt-out email to ${reservation.contactEmail}: $it") }
 
             val ownerEmails = instance.ownerEmails
             ownerEmails.forEach { ownerEmail ->
@@ -319,7 +320,7 @@ open class ReservationService(
                     lessonDate = instance.startDateTime.date,
                     isLateCancellation = isLate,
                     locale = reservation.locale,
-                ).onLeft { logger.error("Failed to send owner opt-out email to $ownerEmail: $it") }
+                ).onLeft { captureEmailError(logger, "Failed to send owner opt-out email to $ownerEmail: $it") }
             }
 
             // Wallet credit for lesson opt-out
@@ -348,7 +349,7 @@ open class ReservationService(
                     resetMonth = settings.seasonResetMonth,
                     resetDay = settings.seasonResetDay,
                     locale = reservation.locale,
-                ).onLeft { println("⚠️ Failed to send wallet credited email to ${reservation.contactEmail}: $it") }
+                ).onLeft { captureEmailError(logger, "Failed to send wallet credited email to ${reservation.contactEmail}: $it") }
                 CancellationResult(walletCode = updatedWallet.code, walletCreditAmount = refundAmount)
             } else {
                 CancellationResult()
@@ -379,8 +380,7 @@ open class ReservationService(
                     is ReservationTarget.Series -> (target.series.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
                 }
 
-                emailService.sendCancellationNotice(cancelledReservation.contactEmail, target.title, cancelledReservation.id, cancelledReservation.locale)
-                    .mapLeft { ReservationError.FailedToSendCancellationEmail(it) }.bind()
+                val customerEmailResult = emailService.sendCancellationNotice(cancelledReservation.contactEmail, target.title, cancelledReservation.id, cancelledReservation.locale)
 
                 val ownerEmails = resolveOwnerEmails(target)
                 if (ownerEmails.isNotEmpty()) {
@@ -397,9 +397,11 @@ open class ReservationService(
                             occupiedSpots = updatedSpots,
                             capacity = capacity,
                             locale = cancelledReservation.locale,
-                        ).onLeft { logger.error("Failed to send owner cancellation email to $email: $it") }
+                        ).onLeft { captureEmailError(logger, "Failed to send owner cancellation email to $email: $it") }
                     }
                 }
+
+                customerEmailResult.mapLeft { ReservationError.FailedToSendCancellationEmail(it) }.bind()
 
                 // Wallet credit for whole-reservation cancellation — only within the deadline (18:00 day before)
                 val paidAmount = reservation.paidAmount
@@ -449,7 +451,7 @@ open class ReservationService(
                         resetMonth = settings.seasonResetMonth,
                         resetDay = settings.seasonResetDay,
                         locale = reservation.locale,
-                    ).onLeft { logger.error("Failed to send wallet credited email to ${reservation.contactEmail}: $it") }
+                    ).onLeft { captureEmailError(logger, "Failed to send wallet credited email to ${reservation.contactEmail}: $it") }
                     CancellationResult(walletCode = updatedWallet.code, walletCreditAmount = paidAmount)
                 } else {
                     CancellationResult()
