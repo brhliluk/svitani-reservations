@@ -91,6 +91,7 @@ val appModule = module {
     // Wallets
     single<WalletRepository> { ExposedWalletRepository() }
     single { WalletService(get()) }
+    single { RefundService(get(), get(), get()) }
 
     // Attendance
     single<AttendanceRepository> { ExposedAttendanceRepository() }
@@ -119,6 +120,6 @@ val appModule = module {
     single { AuthenticatedReservationService(get(), get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
     single { PaymentPairingService(get(), get(), get(), get(), get(), get()) }
     single { AdminService(get()) }
-    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get()) } bind AdminServiceInterface::class
+    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get(), refundService = get(), seriesLessonOptOutRepository = get()) } bind AdminServiceInterface::class
     single { UserService(get(), get()) }
 }

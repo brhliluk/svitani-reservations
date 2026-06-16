@@ -1,6 +1,6 @@
 package cz.svitaninymburk.projects.reservations
 
-import cz.svitaninymburk.projects.reservations.error.ReservationError
+import cz.svitaninymburk.projects.reservations.error.WalletError
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
 import cz.svitaninymburk.projects.reservations.service.WalletService
 import cz.svitaninymburk.projects.reservations.wallet.WalletTransactionReason
@@ -91,7 +91,7 @@ class WalletServiceSpec {
         val wallet = svc.findOrCreateForRegisteredUser(Uuid.random(), "owner@test.com")
         val result = svc.resolveAnonymousWallet(wallet.code, "other@test.com", force = false)
         assertTrue(result.isLeft())
-        result.onLeft { assertEquals(ReservationError.WalletEmailMismatch, it) }
+        result.onLeft { assertEquals(WalletError.EmailMismatch, it) }
         Unit
     }
 

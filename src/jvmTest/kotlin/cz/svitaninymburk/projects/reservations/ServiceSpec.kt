@@ -13,7 +13,11 @@ import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.service.AdminDashboardService
+import cz.svitaninymburk.projects.reservations.service.RefundService
 import cz.svitaninymburk.projects.reservations.service.WalletService
+import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
+import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
+import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
 import cz.svitaninymburk.projects.reservations.service.QrCodeGeneratorService
 import cz.svitaninymburk.projects.reservations.service.ConsoleEmailService
@@ -50,6 +54,17 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.uuid.Uuid
 
+private fun stubRefundService() = RefundService(
+    walletService = WalletService(InMemoryWalletRepository()),
+    walletEmailService = ConsoleEmailService(),
+    appSettingsProvider = AppSettingsProvider.forTest(
+        AppSettings(
+            bankAccountNumber = "", fioToken = "", senderEmail = "",
+            gmailAppPassword = "", senderDisplayName = "",
+        )
+    ),
+)
+
 class ServiceSpec {
     @Test
     fun dummy() {
@@ -64,16 +79,33 @@ class AdminEditDeleteSpec {
         instanceRepo: InMemoryEventInstanceRepository = InMemoryEventInstanceRepository(),
         seriesRepo: InMemoryEventSeriesRepository = InMemoryEventSeriesRepository(),
         reservationRepo: InMemoryReservationRepository = InMemoryReservationRepository(),
-    ) = AdminDashboardService(
-        eventDefinitionRepository = defRepo,
-        eventSeriesRepository = seriesRepo,
-        eventInstanceRepository = instanceRepo,
-        reservationRepository = reservationRepo,
-        userRepository = InMemoryUserRepository(),
-        emailService = ConsoleEmailService(),
-        paymentEventRepository = InMemoryPaymentEventRepository(),
-        walletService = WalletService(InMemoryWalletRepository()),
-    )
+        walletRepo: InMemoryWalletRepository = InMemoryWalletRepository(),
+        optOutRepo: InMemorySeriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
+    ): AdminDashboardService {
+        val walletService = WalletService(walletRepo)
+        val refundService = RefundService(
+            walletService = walletService,
+            walletEmailService = ConsoleEmailService(),
+            appSettingsProvider = AppSettingsProvider.forTest(
+                AppSettings(
+                    bankAccountNumber = "", fioToken = "", senderEmail = "",
+                    gmailAppPassword = "", senderDisplayName = "",
+                )
+            ),
+        )
+        return AdminDashboardService(
+            eventDefinitionRepository = defRepo,
+            eventSeriesRepository = seriesRepo,
+            eventInstanceRepository = instanceRepo,
+            reservationRepository = reservationRepo,
+            userRepository = InMemoryUserRepository(),
+            emailService = ConsoleEmailService(),
+            paymentEventRepository = InMemoryPaymentEventRepository(),
+            walletService = walletService,
+            refundService = refundService,
+            seriesLessonOptOutRepository = optOutRepo,
+        )
+    }
 
     private fun makeDefinition(id: Uuid = Uuid.random()) = EventDefinition(
         id = id,
@@ -386,6 +418,233 @@ class AdminEditDeleteSpec {
         assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(instanceRes.id)?.status)
         assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(seriesRes.id)?.status)
     }
+
+    // --- delete refunds ---
+
+    @Test
+    fun `deleteEventInstance refunds registered user's paid amount to wallet`() = runBlocking {
+        val defId = Uuid.random()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+
+        val instance = makeInstance(defId)
+        instanceRepo.create(instance)
+        val userId = Uuid.random()
+        val res = makeReservation(Reference.Instance(instance.id))
+            .copy(registeredUserId = userId, paidAmount = 100.0)
+        reservationRepo.save(res)
+
+        val result = makeService(
+            instanceRepo = instanceRepo, reservationRepo = reservationRepo, walletRepo = walletRepo,
+        ).deleteEventInstance(instance.id)
+        assertTrue(result.isRight())
+
+        val wallet = walletRepo.findByRegisteredUserId(userId)
+        assertNotNull(wallet)
+        assertEquals(100.0, wallet.balance)
+    }
+
+    @Test
+    fun `deleteEventInstance refunds anonymous reservation into a new wallet`() = runBlocking {
+        val defId = Uuid.random()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+
+        val instance = makeInstance(defId)
+        instanceRepo.create(instance)
+        val res = makeReservation(Reference.Instance(instance.id)).copy(paidAmount = 100.0)
+        reservationRepo.save(res)
+
+        makeService(
+            instanceRepo = instanceRepo, reservationRepo = reservationRepo, walletRepo = walletRepo,
+        ).deleteEventInstance(instance.id)
+
+        val wallets = walletRepo.findAll(0, 10)
+        assertEquals(1, wallets.size)
+        assertEquals(100.0, wallets.first().balance)
+        assertEquals("jan@test.com", wallets.first().ownerEmail)
+    }
+
+    @Test
+    fun `deleteEventInstance does not create a wallet for unpaid reservation`() = runBlocking {
+        val defId = Uuid.random()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+
+        val instance = makeInstance(defId)
+        instanceRepo.create(instance)
+        reservationRepo.save(makeReservation(Reference.Instance(instance.id)))
+
+        makeService(
+            instanceRepo = instanceRepo, reservationRepo = reservationRepo, walletRepo = walletRepo,
+        ).deleteEventInstance(instance.id)
+
+        assertEquals(0, walletRepo.findAll(0, 10).size)
+    }
+
+    @Test
+    fun `deleteEventSeries refunds paid reservations to wallets`() = runBlocking {
+        val defId = Uuid.random()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+
+        val series = makeSeries(defId)
+        seriesRepo.create(series)
+        val userId = Uuid.random()
+        val res = makeReservation(Reference.Series(series.id))
+            .copy(registeredUserId = userId, paidAmount = 100.0)
+        reservationRepo.save(res)
+
+        val result = makeService(
+            seriesRepo = seriesRepo, reservationRepo = reservationRepo, walletRepo = walletRepo,
+        ).deleteEventSeries(series.id)
+        assertTrue(result.isRight())
+
+        val wallet = walletRepo.findByRegisteredUserId(userId)
+        assertNotNull(wallet)
+        assertEquals(100.0, wallet.balance)
+    }
+
+    private fun makeSeriesInstance(seriesId: Uuid, id: Uuid = Uuid.random()) = EventInstance(
+        id = id,
+        definitionId = Uuid.random(),
+        title = "Lesson",
+        description = "desc",
+        startDateTime = LocalDateTime(2026, 6, 10, 10, 0),
+        endDateTime = LocalDateTime(2026, 6, 10, 11, 0),
+        price = 100.0,
+        capacity = 10,
+        seriesId = seriesId,
+    )
+
+    @Test
+    fun `deleteEventDefinition refunds paid reservations across child instances and series`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+
+        val def = makeDefinition()
+        defRepo.create(def)
+        val instance = makeInstance(def.id)
+        instanceRepo.create(instance)
+        val series = makeSeries(def.id)
+        seriesRepo.create(series)
+
+        val userId1 = Uuid.random()
+        val userId2 = Uuid.random()
+        val instanceRes = makeReservation(Reference.Instance(instance.id))
+            .copy(registeredUserId = userId1, paidAmount = 100.0)
+        val seriesRes = makeReservation(Reference.Series(series.id))
+            .copy(registeredUserId = userId2, paidAmount = 200.0)
+        reservationRepo.save(instanceRes)
+        reservationRepo.save(seriesRes)
+
+        val result = makeService(
+            defRepo = defRepo,
+            instanceRepo = instanceRepo,
+            seriesRepo = seriesRepo,
+            reservationRepo = reservationRepo,
+            walletRepo = walletRepo,
+        ).deleteEventDefinition(def.id)
+        assertTrue(result.isRight())
+
+        assertEquals(100.0, walletRepo.findByRegisteredUserId(userId1)?.balance)
+        assertEquals(200.0, walletRepo.findByRegisteredUserId(userId2)?.balance)
+    }
+
+    // --- cancelSeriesLesson refunds ---
+
+    @Test
+    fun `cancelSeriesLesson refunds lessonRefundAmount to active enrollees`() = runBlocking {
+        val defId = Uuid.random()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+
+        val series = makeSeries(defId).copy(lessonRefundAmount = 60.0)
+        seriesRepo.create(series)
+        val lesson = makeSeriesInstance(series.id)
+        instanceRepo.create(lesson)
+        val userId = Uuid.random()
+        val res = makeReservation(Reference.Series(series.id))
+            .copy(registeredUserId = userId, paidAmount = 500.0)
+        reservationRepo.save(res)
+
+        val result = makeService(
+            instanceRepo = instanceRepo, seriesRepo = seriesRepo,
+            reservationRepo = reservationRepo, walletRepo = walletRepo,
+        ).cancelSeriesLesson(lesson.id)
+        assertTrue(result.isRight())
+
+        assertEquals(60.0, walletRepo.findByRegisteredUserId(userId)?.balance)
+    }
+
+    @Test
+    fun `cancelSeriesLesson does not refund enrollee who already opted out of that lesson`() = runBlocking {
+        val defId = Uuid.random()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+        val optOutRepo = InMemorySeriesLessonOptOutRepository()
+
+        val series = makeSeries(defId).copy(lessonRefundAmount = 60.0)
+        seriesRepo.create(series)
+        val lesson = makeSeriesInstance(series.id)
+        instanceRepo.create(lesson)
+        val userId = Uuid.random()
+        val res = makeReservation(Reference.Series(series.id))
+            .copy(registeredUserId = userId, paidAmount = 500.0)
+        reservationRepo.save(res)
+        optOutRepo.save(
+            SeriesLessonOptOut(
+                id = Uuid.random(),
+                reservationId = res.id,
+                instanceId = lesson.id,
+                optedOutAt = Clock.System.now(),
+                isLateCancellation = false,
+            )
+        )
+
+        makeService(
+            instanceRepo = instanceRepo, seriesRepo = seriesRepo,
+            reservationRepo = reservationRepo, walletRepo = walletRepo, optOutRepo = optOutRepo,
+        ).cancelSeriesLesson(lesson.id)
+
+        assertNull(walletRepo.findByRegisteredUserId(userId))
+    }
+
+    @Test
+    fun `cancelSeriesLesson does not refund when series has no lessonRefundAmount`() = runBlocking {
+        val defId = Uuid.random()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+
+        val series = makeSeries(defId) // lessonRefundAmount defaults to null
+        seriesRepo.create(series)
+        val lesson = makeSeriesInstance(series.id)
+        instanceRepo.create(lesson)
+        val userId = Uuid.random()
+        val res = makeReservation(Reference.Series(series.id))
+            .copy(registeredUserId = userId, paidAmount = 500.0)
+        reservationRepo.save(res)
+
+        makeService(
+            instanceRepo = instanceRepo, seriesRepo = seriesRepo,
+            reservationRepo = reservationRepo, walletRepo = walletRepo,
+        ).cancelSeriesLesson(lesson.id)
+
+        assertNull(walletRepo.findByRegisteredUserId(userId))
+    }
 }
 
 class ICalGeneratorSpec {
@@ -549,6 +808,8 @@ class PaymentEventSpec {
             emailService = ConsoleEmailService(),
             paymentEventRepository = paymentRepo,
             walletService = WalletService(InMemoryWalletRepository()),
+            refundService = stubRefundService(),
+            seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
         )
 
         val result = service.markReservationAsPaid(reservation.id)
@@ -577,6 +838,8 @@ class PaymentEventSpec {
             emailService = ConsoleEmailService(),
             paymentEventRepository = paymentRepo,
             walletService = WalletService(InMemoryWalletRepository()),
+            refundService = stubRefundService(),
+            seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
         )
 
         val result = service.getPaymentEvents(page = 0, pageSize = 10)
@@ -606,6 +869,8 @@ class PaymentEventSpec {
             emailService = ConsoleEmailService(),
             paymentEventRepository = paymentRepo,
             walletService = WalletService(InMemoryWalletRepository()),
+            refundService = stubRefundService(),
+            seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
         )
 
         val page0 = service.getPaymentEvents(page = 0, pageSize = 3)
@@ -635,6 +900,8 @@ class PaginationSpec {
         emailService = ConsoleEmailService(),
         paymentEventRepository = InMemoryPaymentEventRepository(),
         walletService = WalletService(InMemoryWalletRepository()),
+        refundService = stubRefundService(),
+        seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
     )
 
     private fun makeDefinition(title: String = "Def", id: Uuid = Uuid.random()) = EventDefinition(

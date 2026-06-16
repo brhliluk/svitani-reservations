@@ -9,6 +9,7 @@ import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepos
 import cz.svitaninymburk.projects.reservations.repository.payment.NewPaymentEvent
 import cz.svitaninymburk.projects.reservations.repository.payment.PaymentEventRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
+import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.error.AdminError
 import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
@@ -35,10 +36,12 @@ import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
 import cz.svitaninymburk.projects.reservations.wallet.WalletTransaction
+import cz.svitaninymburk.projects.reservations.wallet.WalletTransactionReason
 import cz.svitaninymburk.projects.reservations.wallet.WalletsPage
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.user.User
+import cz.svitaninymburk.projects.reservations.util.captureEmailError
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import io.ktor.util.logging.KtorSimpleLogger
 import arrow.fx.coroutines.parZip
@@ -64,9 +67,23 @@ class AdminDashboardService(
     private val emailService: EmailService,
     private val paymentEventRepository: PaymentEventRepository,
     private val walletService: WalletService,
+    private val refundService: RefundService,
+    private val seriesLessonOptOutRepository: SeriesLessonOptOutRepository,
 ): AdminServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
+
+    /** Resolve the wallet to refund into: existing for registered users, a fresh one for anonymous. */
+    private suspend fun resolveWalletForRefund(reservation: Reservation): Wallet {
+        val registeredUserId = reservation.registeredUserId
+        return if (registeredUserId != null) {
+            walletService.findOrCreateForRegisteredUser(registeredUserId, reservation.contactEmail)
+        } else {
+            // code = null always creates a fresh wallet (always Right); the code is emailed to the user.
+            walletService.resolveAnonymousWallet(code = null, contactEmail = reservation.contactEmail, force = true)
+                .getOrNull() ?: error("resolveAnonymousWallet(null) must create a wallet")
+        }
+    }
 
     override suspend fun getDashboardSummary(): Either<AdminError.GetSummary, AdminDashboardData> = either {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -156,7 +173,7 @@ class AdminDashboardService(
         }
 
         emailService.sendPaymentReceivedConfirmation(reservation)
-            .onLeft { logger.error("Failed to send payment-received email for reservation ${reservation.id}: $it") }
+            .onLeft { captureEmailError(logger, "Failed to send payment-received email for reservation ${reservation.id}: $it") }
     }
 
     override suspend fun getEventDetail(eventId: Uuid, isSeries: Boolean): Either<AdminError.GetEventDetail, AdminEventDetailData> = either {
@@ -696,7 +713,7 @@ class AdminDashboardService(
                         oldDateTime = existing.startDateTime,
                         newDateTime = request.startDateTime,
                         locale = res.locale,
-                    ).onLeft { logger.error("Failed to send reschedule email for ${res.id}: $it") }
+                    ).onLeft { captureEmailError(logger, "Failed to send reschedule email for ${res.id}: $it") }
                 }
         }
     }
@@ -797,7 +814,14 @@ class AdminDashboardService(
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
                 emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
-                    .onLeft { logger.error("Failed to send cancellation email for ${res.id}: $it") }
+                    .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                if (res.paidAmount > 0.0) {
+                    try {
+                        refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                    } catch (e: Exception) {
+                        logger.error("Failed to refund reservation ${res.id}", e)
+                    }
+                }
             }
 
         eventInstanceRepository.delete(id)
@@ -811,7 +835,14 @@ class AdminDashboardService(
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
                 emailService.sendCancellationNotice(res.contactEmail, series.title, res.id, res.locale)
-                    .onLeft { logger.error("Failed to send cancellation email for ${res.id}: $it") }
+                    .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                if (res.paidAmount > 0.0) {
+                    try {
+                        refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                    } catch (e: Exception) {
+                        logger.error("Failed to refund reservation ${res.id}", e)
+                    }
+                }
             }
 
         eventSeriesRepository.delete(id)
@@ -831,7 +862,14 @@ class AdminDashboardService(
                 .forEach { res ->
                     reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
                     emailService.sendCancellationNotice(res.contactEmail, eventTitle, res.id, res.locale)
-                        .onLeft { logger.error("Failed to send cancellation email for ${res.id}: $it") }
+                        .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                    if (res.paidAmount > 0.0) {
+                        try {
+                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                        } catch (e: Exception) {
+                            logger.error("Failed to refund reservation ${res.id}", e)
+                        }
+                    }
                 }
         }
 
@@ -868,8 +906,9 @@ class AdminDashboardService(
             // Mark instance as cancelled
             eventInstanceRepository.update(instance.copy(isCancelled = true))
 
-            // Notify all active series enrollees
+            // Notify all active series enrollees + refund the lesson amount
             val series = eventSeriesRepository.get(seriesId)
+            val refundAmount = series?.lessonRefundAmount ?: 0.0
             reservationRepository.findByReference(Reference.Series(seriesId))
                 .filter { it.status != Reservation.Status.CANCELLED }
                 .forEach { res ->
@@ -879,7 +918,20 @@ class AdminDashboardService(
                         seriesTitle = series?.title ?: instance.title,
                         lessonDateTime = instance.startDateTime,
                         locale = res.locale,
-                    ).onLeft { logger.error("Failed to send lesson-cancelled email for ${res.id}: $it") }
+                    ).onLeft { captureEmailError(logger, "Failed to send lesson-cancelled email for ${res.id}: $it") }
+
+                    val alreadyOptedOut = seriesLessonOptOutRepository
+                        .findByReservationAndInstance(res.id, instanceId) != null
+                    if (refundAmount > 0.0 && res.paidAmount > 0.0 && !alreadyOptedOut) {
+                        try {
+                            refundService.refundFixedAmount(
+                                resolveWalletForRefund(res), res, refundAmount,
+                                WalletTransactionReason.LESSON_OPT_OUT_REFUND,
+                            )
+                        } catch (e: Exception) {
+                            logger.error("Failed to refund reservation ${res.id}", e)
+                        }
+                    }
                 }
         } catch (e: Exception) {
             e.printStackTrace()
