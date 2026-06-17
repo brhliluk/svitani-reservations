@@ -53,13 +53,15 @@ fun IComponent.AdminEventsScreen() {
     var deleteItemPending by remember { mutableStateOf<AdminEventListItem?>(null) }
     var refundMoney by remember { mutableStateOf(true) }
     var hideItemPending by remember { mutableStateOf<AdminEventListItem?>(null) }
+    var includePast by remember { mutableStateOf(false) }
 
     val uiState by produceState<AdminEventsUiState>(
         initialValue = AdminEventsUiState.Loading,
         key1 = refreshTrigger,
         key2 = definitionsPage,
+        key3 = includePast,
     ) {
-        adminService.getAllEvents(definitionsPage, DEFINITIONS_PAGE_SIZE)
+        adminService.getAllEvents(definitionsPage, DEFINITIONS_PAGE_SIZE, includePast)
             .onRight { value = AdminEventsUiState.Success(it) }
             .onLeft { value = AdminEventsUiState.Error(it.localizedMessage(currentStrings)) }
     }
@@ -73,10 +75,21 @@ fun IComponent.AdminEventsScreen() {
                 p(className = "text-base-content/60 mt-1") { +currentStrings.adminEventsSubtitle }
             }
 
-            button(className = "btn btn-primary") {
-                span(className = "icon-[heroicons--plus] size-5")
-                +currentStrings.createNew
+            div(className = "flex items-center gap-4") {
+                label(className = "label cursor-pointer gap-2") {
+                    span(className = "label-text text-sm") { +currentStrings.showPastLabel }
+                    checkBox(value = includePast, className = "toggle toggle-sm toggle-primary") {
+                        onChange {
+                            includePast = value
+                            definitionsPage = 0
+                        }
+                    }
+                }
+                button(className = "btn btn-primary") {
+                    span(className = "icon-[heroicons--plus] size-5")
+                    +currentStrings.createNew
                     onClick { router.navigate("/admin/events/new") }
+                }
             }
         }
 
@@ -161,7 +174,7 @@ fun IComponent.AdminEventsScreen() {
                                         table(className = "table table-sm w-full") {
                                             tbody {
                                                 visibleChildren.forEach { item ->
-                                                    tr(className = "hover cursor-pointer") {
+                                                    tr(className = "hover cursor-pointer" + if (item.isPast) " opacity-50" else "") {
                                                         onClick {
                                                             val typePath = if (item.isSeries) "series" else "instance"
                                                             router.navigate("/admin/events/$typePath/${item.id}")
@@ -178,6 +191,9 @@ fun IComponent.AdminEventsScreen() {
                                                                     span(className = "badge badge-primary badge-sm ml-2") { +currentStrings.statusPublished }
                                                                 } else {
                                                                     span(className = "badge badge-ghost badge-sm ml-2") { +currentStrings.statusHidden }
+                                                                }
+                                                                if (item.isPast) {
+                                                                    span(className = "badge badge-ghost badge-sm ml-2") { +currentStrings.badgePast }
                                                                 }
                                                             }
                                                         }

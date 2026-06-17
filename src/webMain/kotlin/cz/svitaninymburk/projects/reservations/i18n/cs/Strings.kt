@@ -202,6 +202,8 @@ object CsStrings : AppStrings {
 
     // Admin Events Screen
     override val adminEventsSubtitle = "Správa katalogu a otevírání nových termínů"
+    override val showPastLabel = "Zobrazit proběhlé"
+    override val badgePast = "Proběhlo"
     override val createNew = "Vytvořit novou"
     override val emptyTemplates = "Zatím tu nic není. Vytvořte první šablonu!"
     override val noDates = "Bez termínů"

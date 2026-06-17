@@ -18,12 +18,16 @@ class InMemoryEventDefinitionRepository : EventDefinitionRepository {
         else events.filterKeys { it in definitionIds }.values.toList()
     }
 
-    override suspend fun findAllPaged(page: Int, pageSize: Int): List<EventDefinition> =
-        events.values.sortedBy { it.title }
+    override suspend fun findAllPaged(page: Int, pageSize: Int, excludeIds: Set<Uuid>): List<EventDefinition> =
+        events.values.asSequence()
+                     .filter { it.id !in excludeIds }
+                     .sortedBy { it.title }
                      .drop(page * pageSize)
                      .take(pageSize)
+                     .toList()
 
-    override suspend fun countAll(): Long = events.size.toLong()
+    override suspend fun countAll(excludeIds: Set<Uuid>): Long =
+        events.values.count { it.id !in excludeIds }.toLong()
 
     override suspend fun create(event: EventDefinition): EventDefinition {
         val id = event.id

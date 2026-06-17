@@ -202,6 +202,8 @@ object EnStrings : AppStrings {
 
     // Admin Events Screen
     override val adminEventsSubtitle = "Manage catalog and open new dates"
+    override val showPastLabel = "Show past"
+    override val badgePast = "Past"
     override val createNew = "Create new"
     override val emptyTemplates = "Nothing here yet. Create your first template!"
     override val noDates = "No dates"

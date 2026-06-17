@@ -221,6 +221,8 @@ interface AppStrings : ErrorStrings {
 
     // Admin Events Screen
     val adminEventsSubtitle: String
+    val showPastLabel: String
+    val badgePast: String
     val createNew: String
     val emptyTemplates: String
     val noDates: String

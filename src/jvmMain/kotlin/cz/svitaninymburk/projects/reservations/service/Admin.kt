@@ -302,51 +302,74 @@ class AdminDashboardService(
         }
     }
 
-    override suspend fun getAllEvents(page: Int, pageSize: Int): Either<AdminError.GetEvents, EventsPage> = either {
+    override suspend fun getAllEvents(page: Int, pageSize: Int, includePast: Boolean): Either<AdminError.GetEvents, EventsPage> = either {
         ensure(page >= 0) { AdminError.FailedToGetEvents("Neplatná stránka.") }
         ensure(pageSize in 1..200) { AdminError.FailedToGetEvents("Neplatná velikost stránky.") }
         try {
+            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val today = now.date
+
+            fun isInstancePast(i: EventInstance) = i.endDateTime < now
+            fun isSeriesPast(s: EventSeries) = s.endDate < today
+
+            // Načteme všechny děti, abychom zjistili, které definice mají jen proběhlé termíny.
+            val (allInstances, allSeries) = parZip(
+                { eventInstanceRepository.getAll(null) },
+                { eventSeriesRepository.getAll(null) },
+            ) { i, s -> i to s }
+
+            val excludeDefinitionIds: Set<Uuid> = if (includePast) {
+                emptySet()
+            } else {
+                val pastDefIds = (allInstances.filter { isInstancePast(it) }.map { it.definitionId } +
+                    allSeries.filter { isSeriesPast(it) }.map { it.definitionId }).toSet()
+                val upcomingDefIds = (allInstances.filter { !isInstancePast(it) }.map { it.definitionId } +
+                    allSeries.filter { !isSeriesPast(it) }.map { it.definitionId }).toSet()
+                // Definice, které mají děti, ale žádnou nadcházející. Definice bez dětí zůstávají.
+                pastDefIds - upcomingDefIds
+            }
+
             val (totalDefinitionCount, definitions) = parZip(
-                { eventDefinitionRepository.countAll() },
-                { eventDefinitionRepository.findAllPaged(page, pageSize) },
+                { eventDefinitionRepository.countAll(excludeDefinitionIds) },
+                { eventDefinitionRepository.findAllPaged(page, pageSize, excludeDefinitionIds) },
             ) { count, defs -> count to defs }
-            val definitionIds = definitions.map { it.id }
+            val definitionIds = definitions.map { it.id }.toSet()
 
-            val (series, allInstances) = parZip(
-                { eventSeriesRepository.getAllByDefinitionIds(definitionIds) },
-                { eventInstanceRepository.getAllByDefinitionIds(definitionIds) },
-            ) { s, i -> s to i }
+            val seriesDtos = allSeries
+                .filter { it.definitionId in definitionIds && (includePast || !isSeriesPast(it)) }
+                .map { s ->
+                    AdminEventListItem(
+                        id = s.id,
+                        definitionId = s.definitionId,
+                        title = s.title,
+                        isSeries = true,
+                        dateInfo = "Od ${s.startDate.humanReadable} (${s.lessonCount} lekcí)",
+                        capacity = s.capacity,
+                        occupiedSpots = s.occupiedSpots,
+                        priceString = "${s.price} Kč",
+                        isPublished = s.isPublished,
+                        isCancelled = s.isCancelled,
+                        isPast = isSeriesPast(s),
+                    )
+                }
 
-            val seriesDtos = series.map { s ->
-                AdminEventListItem(
-                    id = s.id,
-                    definitionId = s.definitionId,
-                    title = s.title,
-                    isSeries = true,
-                    dateInfo = "Od ${s.startDate.humanReadable} (${s.lessonCount} lekcí)",
-                    capacity = s.capacity,
-                    occupiedSpots = s.occupiedSpots,
-                    priceString = "${s.price} Kč",
-                    isPublished = s.isPublished,
-                    isCancelled = s.isCancelled,
-                )
-            }
-
-            val instances = allInstances.filter { it.seriesId == null }
-            val instanceDtos = instances.map { i ->
-                AdminEventListItem(
-                    id = i.id,
-                    definitionId = i.definitionId,
-                    title = i.title,
-                    isSeries = false,
-                    dateInfo = i.startDateTime.humanReadable,
-                    capacity = i.capacity,
-                    occupiedSpots = i.occupiedSpots,
-                    priceString = "${i.price} Kč",
-                    isPublished = i.isPublished,
-                    isCancelled = i.isCancelled,
-                )
-            }
+            val instanceDtos = allInstances
+                .filter { it.seriesId == null && it.definitionId in definitionIds && (includePast || !isInstancePast(it)) }
+                .map { i ->
+                    AdminEventListItem(
+                        id = i.id,
+                        definitionId = i.definitionId,
+                        title = i.title,
+                        isSeries = false,
+                        dateInfo = i.startDateTime.humanReadable,
+                        capacity = i.capacity,
+                        occupiedSpots = i.occupiedSpots,
+                        priceString = "${i.price} Kč",
+                        isPublished = i.isPublished,
+                        isCancelled = i.isCancelled,
+                        isPast = isInstancePast(i),
+                    )
+                }
 
             val definitionDtos = definitions.map { d ->
                 AdminEventListItem(

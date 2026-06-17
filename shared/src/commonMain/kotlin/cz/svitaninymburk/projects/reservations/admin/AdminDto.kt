@@ -72,6 +72,7 @@ data class AdminEventListItem(
     val isDefinitionOnly: Boolean = false,
     val isPublished: Boolean = true,
     val isCancelled: Boolean = false,
+    val isPast: Boolean = false,
 )
 
 @Serializable

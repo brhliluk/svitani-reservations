@@ -13,8 +13,8 @@ interface EventDefinitionRepository {
     suspend fun create(event: EventDefinition): EventDefinition
     suspend fun update(event: EventDefinition): EventDefinition
     suspend fun delete(id: Uuid): Boolean
-    suspend fun findAllPaged(page: Int, pageSize: Int): List<EventDefinition>
-    suspend fun countAll(): Long
+    suspend fun findAllPaged(page: Int, pageSize: Int, excludeIds: Set<Uuid> = emptySet()): List<EventDefinition>
+    suspend fun countAll(excludeIds: Set<Uuid> = emptySet()): Long
 }
 
 interface EventInstanceRepository {

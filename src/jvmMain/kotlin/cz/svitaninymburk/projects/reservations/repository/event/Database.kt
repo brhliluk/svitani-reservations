@@ -229,8 +229,12 @@ class ExposedEventDefinitionRepository : EventDefinitionRepository {
         rows.map { it.toEventDefinition(emailsMap[it[EventDefinitionsTable.id]] ?: emptyList()) }
     }
 
-    override suspend fun findAllPaged(page: Int, pageSize: Int): List<EventDefinition> = dbQuery {
-        val rows = EventDefinitionsTable.selectAll()
+    override suspend fun findAllPaged(page: Int, pageSize: Int, excludeIds: Set<Uuid>): List<EventDefinition> = dbQuery {
+        var query = EventDefinitionsTable.selectAll()
+        if (excludeIds.isNotEmpty()) {
+            query = query.where { EventDefinitionsTable.id notInList excludeIds.toList() }
+        }
+        val rows = query
             .orderBy(EventDefinitionsTable.title, SortOrder.ASC)
             .limit(pageSize)
             .offset(page.toLong() * pageSize)
@@ -240,8 +244,12 @@ class ExposedEventDefinitionRepository : EventDefinitionRepository {
         rows.map { it.toEventDefinition(emailsMap[it[EventDefinitionsTable.id]] ?: emptyList()) }
     }
 
-    override suspend fun countAll(): Long = dbQuery {
-        EventDefinitionsTable.selectAll().count()
+    override suspend fun countAll(excludeIds: Set<Uuid>): Long = dbQuery {
+        var query = EventDefinitionsTable.selectAll()
+        if (excludeIds.isNotEmpty()) {
+            query = query.where { EventDefinitionsTable.id notInList excludeIds.toList() }
+        }
+        query.count()
     }
 
     override suspend fun create(event: EventDefinition): EventDefinition = dbQuery {
