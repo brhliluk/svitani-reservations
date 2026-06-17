@@ -411,6 +411,61 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                         }
                     }
                 }
+
+                // --- 5. WAITLIST ---
+                if (data.waitlistCapacity > 0) {
+                    div(className = "card bg-base-100 shadow-sm mt-4") {
+                        div(className = "card-body p-0") {
+                            div(className = "px-4 pt-4 pb-2 flex items-center gap-2") {
+                                span(className = "icon-[heroicons--users] size-5 text-secondary")
+                                h2(className = "font-bold text-lg") { +currentStrings.substitutesSectionTitle }
+                                span(className = "text-sm text-base-content/60") {
+                                    +"(${data.waitlist.size} / ${data.waitlistCapacity})"
+                                }
+                            }
+                            if (data.waitlist.isEmpty()) {
+                                div(className = "px-4 pb-4") {
+                                    p(className = "text-base-content/50 italic text-sm") { +currentStrings.noParticipants }
+                                }
+                            } else {
+                                div(className = "overflow-x-auto") {
+                                    table(className = "table table-sm w-full") {
+                                        thead {
+                                            tr {
+                                                th { +currentStrings.tableHeaderParticipant }
+                                                th { +currentStrings.tableHeaderSeats }
+                                                th(className = "text-right") { +currentStrings.tableHeaderActions }
+                                            }
+                                        }
+                                        tbody {
+                                            data.waitlist.forEach { participant ->
+                                                tr {
+                                                    td {
+                                                        div(className = "font-medium") { +participant.contactName }
+                                                        div(className = "text-xs text-base-content/60") { +participant.contactEmail }
+                                                    }
+                                                    td { +"${participant.seatCount}" }
+                                                    td(className = "text-right") {
+                                                        button(className = "btn btn-ghost btn-xs btn-error") {
+                                                            +currentStrings.cancelReservation
+                                                            onClick {
+                                                                pendingAction = PendingAction(
+                                                                    type = AdminActionType.CANCEL_RESERVATION,
+                                                                    reservationId = participant.reservationId,
+                                                                    participantName = participant.contactName,
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

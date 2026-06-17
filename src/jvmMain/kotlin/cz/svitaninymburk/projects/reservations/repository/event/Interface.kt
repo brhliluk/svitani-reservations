@@ -33,6 +33,8 @@ interface EventInstanceRepository {
     suspend fun decrementOccupiedSpots(instanceId: Uuid, amount: Int): Int?
 
     suspend fun attemptToReserveSpots(instanceId: Uuid, amount: Int): Boolean
+    suspend fun attemptToReserveWaitlistSpot(instanceId: Uuid): Boolean
+    suspend fun decrementOccupiedWaitlist(instanceId: Uuid, amount: Int): Int?
     suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventInstance>
     suspend fun findBySeriesPaged(seriesId: Uuid, page: Int, pageSize: Int): List<EventInstance>
     suspend fun findBySeries(seriesId: Uuid): List<EventInstance>
@@ -49,6 +51,8 @@ interface EventSeriesRepository {
     suspend fun update(series: EventSeries): EventSeries
     suspend fun delete(id: Uuid): Boolean
     suspend fun attemptToReserveSpots(seriesId: Uuid, amount: Int): Boolean
+    suspend fun attemptToReserveWaitlistSpot(seriesId: Uuid): Boolean
+    suspend fun decrementOccupiedWaitlist(seriesId: Uuid, amount: Int): Int?
     suspend fun incrementOccupiedSpots(seriesId: Uuid, amount: Int): Int?
     suspend fun decrementOccupiedSpots(seriesId: Uuid, amount: Int): Int?
     suspend fun getAllByDefinitionIds(definitionIds: List<Uuid>): List<EventSeries>

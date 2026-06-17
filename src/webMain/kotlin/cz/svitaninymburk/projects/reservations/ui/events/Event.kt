@@ -23,7 +23,7 @@ import web.window.window
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
-fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
+fun IComponent.Event(event: EventInstance, onClick: () -> Unit, onWaitlistClick: (() -> Unit)? = null) {
     val currentStrings by strings
     val scope = rememberCoroutineScope()
     var isCopied by remember { mutableStateOf(false) }
@@ -103,11 +103,19 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit) {
                     }
                 }
                 // Right: reserve button or deadline message
+                val canJoinWaitlist = event.isFull && event.hasWaitlist && !event.isWaitlistFull && !event.isCancelled && !event.isDeadlinePassed
                 val isDisabled = event.isCancelled || event.isFull || event.isDeadlinePassed
                 div(className = "flex flex-col items-end gap-1") {
-                    button(className = "btn btn-primary rounded-full px-6 min-h-11${if (isDisabled) " btn-disabled" else ""}") {
-                        +currentStrings.reserve
-                        if (!isDisabled) onClick { onClick() }
+                    if (canJoinWaitlist && onWaitlistClick != null) {
+                        button(className = "btn btn-outline btn-secondary rounded-full px-6 min-h-11") {
+                            +currentStrings.registerAsSubstitute
+                            onClick { onWaitlistClick() }
+                        }
+                    } else {
+                        button(className = "btn btn-primary rounded-full px-6 min-h-11${if (isDisabled) " btn-disabled" else ""}") {
+                            +currentStrings.reserve
+                            if (!isDisabled) onClick { onClick() }
+                        }
                     }
                     if (event.isDeadlinePassed) {
                         span(className = "text-xs text-base-content/60 text-right") {

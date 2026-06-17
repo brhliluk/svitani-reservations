@@ -18,6 +18,8 @@ data class AdminEventDetailData(
     val totalCollected: Double,
     val customFields: List<CustomFieldDefinition>,
     val participants: List<AdminParticipantRow>,
+    val waitlist: List<AdminParticipantRow> = emptyList(),
+    val waitlistCapacity: Int = 0,
     val isCancelled: Boolean = false,
 )
 

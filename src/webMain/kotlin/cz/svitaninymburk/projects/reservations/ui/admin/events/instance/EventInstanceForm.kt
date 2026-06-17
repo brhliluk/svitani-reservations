@@ -13,6 +13,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowedPaymentsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.WaitlistCapacityField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuilderSection
 import cz.svitaninymburk.projects.reservations.ui.admin.events.DurationField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
@@ -75,6 +76,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
     var ownerEmails by remember { mutableStateOf(listOf("")) }
     var priceOverride by remember { mutableStateOf<Number?>(0) }
     var capacityOverride by remember { mutableIntStateOf(10) }
+    var waitlistCapacityOverride by remember { mutableIntStateOf(0) }
     var durationHours by remember { mutableIntStateOf(1) }
     var durationMinutes by remember { mutableIntStateOf(0) }
     var allowBankTransfer by remember { mutableStateOf(true) }
@@ -275,6 +277,8 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
 
                             CapacityField(capacityOverride) { capacityOverride = it }
 
+                            WaitlistCapacityField(waitlistCapacityOverride) { waitlistCapacityOverride = it }
+
                             DurationField(
                                 currentStrings.durationLabel,
                                 durationHours, durationMinutes,
@@ -378,6 +382,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                         duration = durationHours.hours + durationMinutes.minutes,
                         price = priceOverride?.toDouble() ?: 0.0,
                         capacity = capacityOverride,
+                        waitlistCapacity = waitlistCapacityOverride,
                         allowedPaymentTypes = allowedPayments,
                         customFields = customFields,
                         ownerEmails = validOwnerEmails,

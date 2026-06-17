@@ -249,6 +249,17 @@ private fun getReservationUiState(reservation: Reservation, reservationTarget: R
             showPaymentInfo = false, // Rozhodně neukazovat QR kód
             canBeCancelled = false
         )
+        Reservation.Status.WAITLISTED -> ReservationUiState(
+            title = strings.waitlistedStatus,
+            subtitle = strings.substituteInfoNote,
+            statusLabel = strings.waitlistedStatus,
+            headerBgClass = "bg-secondary/10",
+            iconBgClass = "bg-secondary/20 text-secondary",
+            iconClass = "icon-[heroicons--clock] text-secondary",
+            textColorClass = "text-secondary",
+            showPaymentInfo = false,
+            canBeCancelled = canCancel
+        )
     }
 }
 

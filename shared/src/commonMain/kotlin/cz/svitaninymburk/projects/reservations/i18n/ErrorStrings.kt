@@ -29,6 +29,9 @@ interface ErrorStrings {
     val errorWalletEmpty: String
     val errorWalletEmailMismatch: String
     val errorReservationDeadlinePassed: String
+    val errorEventNotFull: String
+    val errorWaitlistNotAvailable: String
+    val errorWaitlistFull: String
 
     // Event errors
     fun errorEventInstanceNotFoundId(id: String): String

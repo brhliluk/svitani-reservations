@@ -630,4 +630,15 @@ interface AppStrings : ErrorStrings {
     val privacyContactBody: String
     val privacyPolicyLink: String
     val registrationPrivacyNote: String
+
+    // Waitlist
+    val registerAsSubstitute: String
+    val substituteFormHeading: String
+    val waitlistFullMessage: String
+    val waitlistedStatus: String
+    val substituteInfoNote: String
+    val joinedWaitlistToast: String
+    val substitutesSectionTitle: String
+    val waitlistCapacityLabel: String
+    val substitutesCount: String
 }

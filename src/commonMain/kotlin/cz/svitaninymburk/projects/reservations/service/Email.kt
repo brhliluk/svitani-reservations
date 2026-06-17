@@ -53,6 +53,23 @@ interface EmailService {
         locale: String,
     ): Either<EmailError.SendCancellation, Unit>
 
+    suspend fun sendWaitlistConfirmation(
+        toEmail: String,
+        eventTitle: String,
+        contactName: String,
+        reservationId: Uuid,
+        locale: String,
+    ): Either<EmailError.SendWaitlistConfirmation, Unit>
+
+    suspend fun sendWaitlistPromotion(
+        toEmail: String,
+        reservation: Reservation,
+        target: ReservationTarget,
+        bankAccount: String,
+        qrCodeImage: ByteArray?,
+        icalBytes: ByteArray,
+    ): Either<EmailError.SendWaitlistPromotion, Unit>
+
 }
 
 interface LectorEmailService {

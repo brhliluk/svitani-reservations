@@ -89,6 +89,26 @@ fun IComponent.CapacityField(
 }
 
 @Composable
+fun IComponent.WaitlistCapacityField(
+    value: Int,
+    onChange: (Int) -> Unit,
+) {
+    val currentStrings by strings
+    div(className = "form-control w-full") {
+        label(className = "label") { span(className = "label-text font-medium") { +currentStrings.waitlistCapacityLabel } }
+        div(className = "relative flex items-center") {
+            numeric(value = value, min = 0, decimals = 0, className = "input input-bordered w-full pr-12") {
+                attribute("step", "1")
+                onInput { onChange(this.value?.toInt() ?: 0) }
+            }
+            span(className = "absolute right-4 text-base-content/50") {
+                span(className = "icon-[heroicons--user-plus] size-5")
+            }
+        }
+    }
+}
+
+@Composable
 fun IComponent.DurationField(
     label: String,
     hours: Int,

@@ -144,6 +144,25 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
     override suspend fun setCancelled(id: Uuid) {
         instances.computeIfPresent(id) { _, instance -> instance.copy(isCancelled = true) }
     }
+
+    override suspend fun attemptToReserveWaitlistSpot(instanceId: Uuid): Boolean {
+        var success = false
+        instances.computeIfPresent(instanceId) { _, current ->
+            if (current.occupiedWaitlist + 1 <= current.waitlistCapacity) {
+                success = true
+                current.copy(occupiedWaitlist = current.occupiedWaitlist + 1)
+            } else {
+                success = false
+                current
+            }
+        }
+        return success
+    }
+
+    override suspend fun decrementOccupiedWaitlist(instanceId: Uuid, amount: Int): Int? =
+        instances.computeIfPresent(instanceId) { _, current ->
+            current.copy(occupiedWaitlist = current.occupiedWaitlist - amount)
+        }?.occupiedWaitlist
 }
 
 class InMemoryEventSeriesRepository : EventSeriesRepository {
@@ -212,4 +231,23 @@ class InMemoryEventSeriesRepository : EventSeriesRepository {
     override suspend fun setCancelled(id: Uuid) {
         instances.computeIfPresent(id) { _, series -> series.copy(isCancelled = true) }
     }
+
+    override suspend fun attemptToReserveWaitlistSpot(seriesId: Uuid): Boolean {
+        var success = false
+        instances.computeIfPresent(seriesId) { _, current ->
+            if (current.occupiedWaitlist + 1 <= current.waitlistCapacity) {
+                success = true
+                current.copy(occupiedWaitlist = current.occupiedWaitlist + 1)
+            } else {
+                success = false
+                current
+            }
+        }
+        return success
+    }
+
+    override suspend fun decrementOccupiedWaitlist(seriesId: Uuid, amount: Int): Int? =
+        instances.computeIfPresent(seriesId) { _, current ->
+            current.copy(occupiedWaitlist = current.occupiedWaitlist - amount)
+        }?.occupiedWaitlist
 }

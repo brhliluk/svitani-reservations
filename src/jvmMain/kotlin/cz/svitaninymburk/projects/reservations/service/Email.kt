@@ -30,6 +30,7 @@ import org.apache.commons.mail.DefaultAuthenticator
 import org.apache.commons.mail.EmailException
 import org.apache.commons.mail.HtmlEmail
 import javax.mail.util.ByteArrayDataSource
+import kotlin.uuid.Uuid
 
 
 class GmailEmailService(
@@ -386,6 +387,76 @@ class GmailEmailService(
             raise(EmailError.SendWalletFailed(e.fullMessage()))
         }
     } }
+
+    override suspend fun sendWaitlistConfirmation(
+        toEmail: String,
+        eventTitle: String,
+        contactName: String,
+        reservationId: Uuid,
+        locale: String,
+    ): Either<EmailError.SendWaitlistConfirmation, Unit> = either { withContext(Dispatchers.IO) {
+        val s = emailStringsFor(locale)
+        val email = setupEmail()
+        email.addTo(toEmail)
+        email.subject = s.waitlistConfirmationSubject(eventTitle)
+        val url = "$appBaseUrl/reservation/$reservationId"
+        email.setHtmlMsg(buildString { appendHTML().html { body {
+            h1 { +s.waitlistConfirmationHeading }
+            p { +s.waitlistConfirmationBody(eventTitle, contactName) }
+            p { +s.reservationViewLink(url) }
+        } } })
+        email.setTextMsg(s.waitlistConfirmationBody(eventTitle, contactName) + "\n" + s.reservationViewLink(url))
+        catch({ email.send() }) { e: EmailException ->
+            raise(EmailError.SendWaitlistConfirmationFailed(e.fullMessage()))
+        }
+    } }
+
+    override suspend fun sendWaitlistPromotion(
+        toEmail: String,
+        reservation: Reservation,
+        target: ReservationTarget,
+        bankAccount: String,
+        qrCodeImage: ByteArray?,
+        icalBytes: ByteArray,
+    ): Either<EmailError.SendWaitlistPromotion, Unit> = either { withContext(Dispatchers.IO) {
+        val email = setupEmail()
+        val s = emailStringsFor(reservation.locale)
+        email.addTo(toEmail)
+        val eventDate = target.startDateTime.humanReadable
+        email.subject = s.waitlistPromotionSubject(target.title, eventDate)
+
+        val cid: String? = if (qrCodeImage != null) {
+            email.embed(ByteArrayDataSource(qrCodeImage, "image/png"), "qr-code-platba")
+        } else null
+        email.attach(ByteArrayDataSource(icalBytes, "text/calendar; charset=UTF-8; method=REQUEST"), "rezervace.ics", "Rezervace do kalendáře")
+
+        val htmlMessage = buildString { appendHTML().html { body {
+            h1 { +s.waitlistPromotionHeading }
+            p { +s.waitlistPromotionIntro(reservation.contactName, target.title) }
+            p { +s.reservationConfirmationBody(
+                eventTitle = target.title,
+                eventDate = eventDate,
+                contactName = reservation.contactName,
+                seatCount = reservation.seatCount,
+                totalPrice = reservation.totalPrice,
+            ) }
+            if (qrCodeImage != null && cid != null) {
+                p { +s.reservationPaymentQrPrompt }
+                img { src = "cid:$cid"; alt = s.reservationQrAlt; width = "200"; height = "200"; attributes["style"] = "background:white;padding:8px;" }
+                br
+                p { +s.reservationBankTransfer(bankAccount, reservation.variableSymbol) }
+                p { +s.reservationPaymentProcessingNote }
+            } else if (reservation.paymentType == PaymentInfo.Type.ON_SITE) {
+                p { +s.reservationOnSiteNote }
+            }
+            p { +s.reservationViewLink("$appBaseUrl/reservation/${reservation.id}") }
+        } } }
+        email.setHtmlMsg(htmlMessage)
+        email.setTextMsg(s.reservationHtmlFallback)
+        catch({ email.send() }) { e: EmailException ->
+            raise(EmailError.SendWaitlistPromotionFailed(e.fullMessage()))
+        }
+    } }
 }
 
 class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService {
@@ -511,6 +582,16 @@ class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService
         resetMonth: Int, resetDay: Int, locale: String,
     ): Either<EmailError.SendWallet, Unit> {
         println("[EMAIL] Wallet reset warning: $walletCode balance: $currentBalance")
+        return Unit.right()
+    }
+
+    override suspend fun sendWaitlistConfirmation(toEmail: String, eventTitle: String, contactName: String, reservationId: Uuid, locale: String): Either<EmailError.SendWaitlistConfirmation, Unit> {
+        println("📧 [MOCK] Waitlist confirmation → $toEmail | $eventTitle")
+        return Unit.right()
+    }
+
+    override suspend fun sendWaitlistPromotion(toEmail: String, reservation: Reservation, target: ReservationTarget, bankAccount: String, qrCodeImage: ByteArray?, icalBytes: ByteArray): Either<EmailError.SendWaitlistPromotion, Unit> {
+        println("📧 [MOCK] Waitlist promotion → $toEmail | ${target.title}")
         return Unit.right()
     }
 }

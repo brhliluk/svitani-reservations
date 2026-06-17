@@ -14,6 +14,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowedPaymentsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.WaitlistCapacityField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuilderSection
 import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyField
@@ -79,6 +80,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     var ownerEmails by remember { mutableStateOf(listOf("")) }
     var priceOverride by remember { mutableStateOf<Number?>(0) }
     var capacityOverride by remember { mutableIntStateOf(10) }
+    var waitlistCapacityOverride by remember { mutableIntStateOf(0) }
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
     var showAttendeeCount by remember { mutableStateOf(true) }
@@ -359,6 +361,8 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
 
                             CapacityField(capacityOverride) { capacityOverride = it }
 
+                            WaitlistCapacityField(waitlistCapacityOverride) { waitlistCapacityOverride = it }
+
                             AllowedPaymentsField(allowBankTransfer, allowOnSite, { allowBankTransfer = it }, { allowOnSite = it })
 
                             ShowAttendeeCountCheckbox(value = showAttendeeCount) { showAttendeeCount = it }
@@ -468,6 +472,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                         ownerEmails = validOwnerEmails,
                         price = priceOverride?.toDouble() ?: 0.0,
                         capacity = capacityOverride,
+                        waitlistCapacity = waitlistCapacityOverride,
                         startDate = parsedStartDate,
                         endDate = parsedEndDate,
                         lessonCount = lessonCount,

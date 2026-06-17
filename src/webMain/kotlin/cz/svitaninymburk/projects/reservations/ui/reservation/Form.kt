@@ -52,6 +52,7 @@ fun IComponent.ReservationModal(
     user: User?,
     initialWalletCode: String? = null,
     isSubmitting: Boolean = false,
+    asWaitlist: Boolean = false,
     onClose: () -> Unit,
     onSubmit: (ReservationTarget, ReservationFormData) -> Unit
 ) {
@@ -108,7 +109,13 @@ fun IComponent.ReservationModal(
                 // --- HLAVIČKA ---
                 h3(className = "font-bold text-lg flex items-center gap-2") {
                     span(className = "icon-[heroicons--ticket] size-6 text-primary")
-                    +currentStrings.reservationFor(target.title)
+                    if (asWaitlist) +currentStrings.substituteFormHeading
+                    else +currentStrings.reservationFor(target.title)
+                }
+                if (asWaitlist) {
+                    p(className = "text-sm text-base-content/70 mt-1 mb-2") {
+                        +currentStrings.substituteInfoNote
+                    }
                 }
 
                 // Cena info
@@ -377,7 +384,7 @@ fun IComponent.ReservationModal(
                                 val effectivePaymentType = if (wd == t) PaymentInfo.Type.FREE else paymentType
                                 onSubmit(
                                     target,
-                                    ReservationFormData(firstName, lastName, email, phone, seats, effectivePaymentType, customValuesState, currentStrings.locale, walletCode.ifBlank { null })
+                                    ReservationFormData(firstName, lastName, email, phone, if (asWaitlist) 1 else seats, effectivePaymentType, customValuesState, currentStrings.locale, walletCode.ifBlank { null }, asWaitlist)
                                 )
                             }
                         }

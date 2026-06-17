@@ -144,6 +144,149 @@ open class ReservationService(
         )
     }
 
+    override suspend fun joinWaitlistInstance(
+        request: CreateInstanceReservationRequest,
+        userId: Uuid?,
+    ): Either<ReservationError.CreateReservation, Reservation> = either {
+        val instance = ensureNotNull(eventInstanceRepository.get(request.eventInstanceId)) { ReservationError.ReservationNotFound }
+        ensure(instance.isPublished) { ReservationError.ReservationNotFound }
+        ensure(!instance.isCancelled) { ReservationError.EventCancelled }
+
+        ensure(instance.isFull) { ReservationError.EventNotFull }
+        ensure(instance.hasWaitlist) { ReservationError.WaitlistNotAvailable }
+
+        val claimed = eventInstanceRepository.attemptToReserveWaitlistSpot(instance.id)
+        ensure(claimed) { ReservationError.WaitlistFull }
+
+        joinWaitlistFlow(
+            reference = Reference.Instance(instance.id),
+            userId = userId,
+            requestData = request,
+            pricePerSeat = instance.price,
+            target = ReservationTarget.Instance(instance),
+        )
+    }
+
+    override suspend fun joinWaitlistSeries(
+        request: CreateSeriesReservationRequest,
+        userId: Uuid?,
+    ): Either<ReservationError.CreateReservation, Reservation> = either {
+        val series = ensureNotNull(eventSeriesRepository.get(request.eventSeriesId)) { ReservationError.ReservationNotFound }
+        ensure(series.isPublished) { ReservationError.ReservationNotFound }
+
+        ensure(series.isFull) { ReservationError.EventNotFull }
+        ensure(series.hasWaitlist) { ReservationError.WaitlistNotAvailable }
+
+        val claimed = eventSeriesRepository.attemptToReserveWaitlistSpot(series.id)
+        ensure(claimed) { ReservationError.WaitlistFull }
+
+        joinWaitlistFlow(
+            reference = Reference.Series(series.id),
+            userId = userId,
+            requestData = request,
+            pricePerSeat = series.price,
+            target = ReservationTarget.Series(series),
+        )
+    }
+
+    private suspend fun Raise<ReservationError.CreateReservation>.joinWaitlistFlow(
+        reference: Reference,
+        userId: Uuid?,
+        requestData: ReservationRequestData,
+        pricePerSeat: Double,
+        target: ReservationTarget,
+    ): Reservation {
+        val reservation = Reservation(
+            id = Uuid.random(),
+            reference = reference,
+            registeredUserId = userId,
+            seatCount = requestData.seatCount,
+            contactName = requestData.contactName,
+            contactEmail = requestData.contactEmail,
+            contactPhone = PhoneNumber.normalize(requestData.contactPhone) ?: requestData.contactPhone,
+            paymentType = requestData.paymentType,
+            customValues = requestData.customValues,
+            totalPrice = calculateTotalPrice(
+                basePrice = pricePerSeat,
+                seatCount = requestData.seatCount,
+                customFields = target.customFields,
+                customValues = requestData.customValues,
+            ),
+            status = Reservation.Status.WAITLISTED,
+            createdAt = Clock.System.now(),
+            variableSymbol = null,
+            locale = requestData.locale,
+        )
+
+        val saved = reservationRepository.save(reservation)
+
+        emailService.sendWaitlistConfirmation(
+            toEmail = saved.contactEmail,
+            eventTitle = target.title,
+            contactName = saved.contactName,
+            reservationId = saved.id,
+            locale = saved.locale,
+        ).onLeft { captureEmailError(logger, "Failed to send waitlist confirmation email for reservation ${saved.id}: $it") }
+
+        return saved
+    }
+
+    private suspend fun promoteFromWaitlist(reference: Reference, freedSeats: Int) {
+        val waitlisted = reservationRepository.findByReference(reference)
+            .filter { it.status == Reservation.Status.WAITLISTED }
+            .sortedBy { it.createdAt }
+
+        var slotsLeft = freedSeats
+        for (candidate in waitlisted) {
+            if (slotsLeft <= 0) break
+
+            val acquired = when (reference) {
+                is Reference.Instance -> eventInstanceRepository.attemptToReserveSpots(reference.id, candidate.seatCount)
+                is Reference.Series -> eventSeriesRepository.attemptToReserveSpots(reference.id, candidate.seatCount)
+            }
+            if (!acquired) break
+
+            when (reference) {
+                is Reference.Instance -> eventInstanceRepository.decrementOccupiedWaitlist(reference.id, candidate.seatCount)
+                is Reference.Series -> eventSeriesRepository.decrementOccupiedWaitlist(reference.id, candidate.seatCount)
+            }
+
+            val variableSymbol = generateUniqueVariableSymbol()
+            val promoted = candidate.copy(
+                status = Reservation.Status.PENDING_PAYMENT,
+                variableSymbol = variableSymbol,
+            )
+            reservationRepository.save(promoted)
+
+            val target: ReservationTarget? = when (reference) {
+                is Reference.Instance -> eventInstanceRepository.get(reference.id)?.let { ReservationTarget.Instance(it) }
+                is Reference.Series -> eventSeriesRepository.get(reference.id)?.let { ReservationTarget.Series(it) }
+            }
+
+            if (target != null) {
+                val qrImage: ByteArray? = if (promoted.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
+                    qrCodeService.generateQrPng(promoted)
+                } else null
+
+                val icalBytes = when (target) {
+                    is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, promoted.id, appBaseUrl)
+                    is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, promoted.id, appBaseUrl)
+                }.toByteArray(Charsets.UTF_8)
+
+                emailService.sendWaitlistPromotion(
+                    toEmail = promoted.contactEmail,
+                    reservation = promoted,
+                    target = target,
+                    bankAccount = qrCodeService.accountNumber,
+                    qrCodeImage = qrImage,
+                    icalBytes = icalBytes,
+                ).onLeft { captureEmailError(logger, "Failed to send waitlist promotion email for reservation ${promoted.id}: $it") }
+            }
+
+            slotsLeft -= candidate.seatCount
+        }
+    }
+
     private suspend fun Raise<ReservationError.CreateReservation>.createReservationFlow(
         reference: Reference,
         userId: Uuid?,
@@ -153,6 +296,7 @@ open class ReservationService(
         walletCode: String? = null,
     ): Reservation {
         val variableSymbol = generateUniqueVariableSymbol()
+            ?: raise(ReservationError.SystemError("Unable to generate unique Variable Symbol"))
 
         val reservation = Reservation(
             id = Uuid.random(),
@@ -373,6 +517,8 @@ open class ReservationService(
                     is ReservationTarget.Series -> (target.series.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
                 }
 
+                promoteFromWaitlist(reservation.reference, freedSeats = reservation.seatCount)
+
                 val customerEmailResult = emailService.sendCancellationNotice(cancelledReservation.contactEmail, target.title, cancelledReservation.id, cancelledReservation.locale)
 
                 val ownerEmails = resolveOwnerEmails(target)
@@ -462,12 +608,12 @@ open class ReservationService(
         return emails.filter { it.isNotBlank() }
     }
 
-    private suspend fun Raise<ReservationError.CreateReservation>.generateUniqueVariableSymbol(): String {
+    private suspend fun generateUniqueVariableSymbol(): String? {
         var attempts = 0
         var vs: String
 
         do {
-            if (attempts > 10) { raise(ReservationError.SystemError("Unable to generate unique Variable Symbol")) }
+            if (attempts > 10) return null
             vs = generateCandidateVS()
             val exists = reservationRepository.existsByVariableSymbol(vs)
             attempts++

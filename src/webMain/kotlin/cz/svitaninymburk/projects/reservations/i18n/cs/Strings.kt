@@ -603,6 +603,9 @@ object CsStrings : AppStrings {
     override val errorWalletEmpty = "Peněženka nemá žádný zůstatek."
     override val errorWalletEmailMismatch = "Peněženka je přiřazena k jinému emailu."
     override val errorReservationDeadlinePassed = "Uzávěrka rezervací pro tuto událost již proběhla."
+    override val errorEventNotFull = "Na akci jsou ještě volná místa, registrace náhradníka není možná."
+    override val errorWaitlistNotAvailable = "U této akce není čekací listina k dispozici."
+    override val errorWaitlistFull = "Čekací listina je plná."
 
     override fun errorEventInstanceNotFoundId(id: String) = "Událost s id $id nenalezena"
     override fun errorEventDefinitionNotFoundId(id: String) = "Šablona události s id $id nenalezena"
@@ -687,4 +690,15 @@ object CsStrings : AppStrings {
     override val errorWrongOldPassword = "Zadané heslo není správné"
     override val errorNotEmailUser = "Tento účet je přihlášen přes Google a nemá heslo"
     override val errorPasswordTooWeak = "Heslo musí mít alespoň 6 znaků"
+
+    // Waitlist
+    override val registerAsSubstitute = "Přihlásit se jako náhradník"
+    override val substituteFormHeading = "Přihlášení jako náhradník"
+    override val waitlistFullMessage = "Seznam náhradníků je plný"
+    override val waitlistedStatus = "Náhradník"
+    override val substituteInfoNote = "Budete zařazeni do pořadníku. Pokud se uvolní místo, dostanete e-mail s platebními informacemi."
+    override val joinedWaitlistToast = "Byli jste přidáni do pořadníku náhradníků."
+    override val substitutesSectionTitle = "Náhradníci"
+    override val waitlistCapacityLabel = "Max. náhradníků"
+    override val substitutesCount = "Náhradníci"
 }

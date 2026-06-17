@@ -45,6 +45,7 @@ data class Reservation(
         CONFIRMED,
         CANCELLED,
         REJECTED,
+        WAITLISTED,
     }
 }
 

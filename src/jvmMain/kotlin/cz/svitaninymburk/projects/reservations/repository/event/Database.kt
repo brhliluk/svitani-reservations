@@ -72,6 +72,7 @@ object EventDefinitionsTable : Table("event_definitions") {
     val description = text("description")
     val defaultPrice = double("default_price")
     val defaultCapacity = integer("default_capacity")
+    val defaultWaitlistCapacity = integer("default_waitlist_capacity").default(0)
     val defaultDurationMs = long("default_duration_ms")
 
     val allowedPaymentTypes = json<List<PaymentInfo.Type>>("allowed_payment_types", Json)
@@ -87,6 +88,7 @@ fun ResultRow.toEventDefinition(ownerEmails: List<String>): EventDefinition = Ev
     description = this[EventDefinitionsTable.description],
     defaultPrice = this[EventDefinitionsTable.defaultPrice],
     defaultCapacity = this[EventDefinitionsTable.defaultCapacity],
+    defaultWaitlistCapacity = this[EventDefinitionsTable.defaultWaitlistCapacity],
     defaultDuration = this[EventDefinitionsTable.defaultDurationMs].milliseconds,
     allowedPaymentTypes = this[EventDefinitionsTable.allowedPaymentTypes],
     customFields = this[EventDefinitionsTable.customFields],
@@ -108,6 +110,8 @@ object EventSeriesTable : Table("event_series") {
     val price = double("price")
     val capacity = integer("capacity")
     val occupiedSpots = integer("occupied_spots").default(0)
+    val waitlistCapacity = integer("waitlist_capacity").default(0)
+    val occupiedWaitlist = integer("occupied_waitlist").default(0)
     val isPublished = bool("is_published").default(false)
     val startDate = date("start_date")
     val endDate = date("end_date")
@@ -135,6 +139,8 @@ fun ResultRow.toEventSeries(ownerEmails: List<String>): EventSeries = EventSerie
     price = this[EventSeriesTable.price],
     capacity = this[EventSeriesTable.capacity],
     occupiedSpots = this[EventSeriesTable.occupiedSpots],
+    waitlistCapacity = this[EventSeriesTable.waitlistCapacity],
+    occupiedWaitlist = this[EventSeriesTable.occupiedWaitlist],
     startDate = this[EventSeriesTable.startDate],
     endDate = this[EventSeriesTable.endDate],
     lessonCount = this[EventSeriesTable.lessonCount],
@@ -173,6 +179,8 @@ object EventInstancesTable : Table("event_instances") {
     val price = double("price")
     val capacity = integer("capacity")
     val occupiedSpots = integer("occupied_spots").default(0)
+    val waitlistCapacity = integer("waitlist_capacity").default(0)
+    val occupiedWaitlist = integer("occupied_waitlist").default(0)
     val isCancelled = bool("is_cancelled").default(false)
     val isPublished = bool("is_published").default(false)
 
@@ -197,6 +205,8 @@ fun ResultRow.toEventInstance(ownerEmails: List<String>): EventInstance = EventI
     price = this[EventInstancesTable.price],
     capacity = this[EventInstancesTable.capacity],
     occupiedSpots = this[EventInstancesTable.occupiedSpots],
+    waitlistCapacity = this[EventInstancesTable.waitlistCapacity],
+    occupiedWaitlist = this[EventInstancesTable.occupiedWaitlist],
     isCancelled = this[EventInstancesTable.isCancelled],
     allowedPaymentTypes = this[EventInstancesTable.allowedPaymentTypes],
     customFields = this[EventInstancesTable.customFields],
@@ -259,6 +269,7 @@ class ExposedEventDefinitionRepository : EventDefinitionRepository {
             row[description] = event.description
             row[defaultPrice] = event.defaultPrice
             row[defaultCapacity] = event.defaultCapacity
+            row[defaultWaitlistCapacity] = event.defaultWaitlistCapacity
             row[defaultDurationMs] = event.defaultDuration.inWholeMilliseconds
             row[allowedPaymentTypes] = event.allowedPaymentTypes
             row[customFields] = event.customFields
@@ -274,6 +285,7 @@ class ExposedEventDefinitionRepository : EventDefinitionRepository {
             row[description] = event.description
             row[defaultPrice] = event.defaultPrice
             row[defaultCapacity] = event.defaultCapacity
+            row[defaultWaitlistCapacity] = event.defaultWaitlistCapacity
             row[defaultDurationMs] = event.defaultDuration.inWholeMilliseconds
             row[allowedPaymentTypes] = event.allowedPaymentTypes
             row[customFields] = event.customFields
@@ -365,6 +377,8 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[price] = series.price
             row[capacity] = series.capacity
             row[occupiedSpots] = series.occupiedSpots
+            row[waitlistCapacity] = series.waitlistCapacity
+            row[occupiedWaitlist] = series.occupiedWaitlist
             row[isPublished] = series.isPublished
             row[startDate] = series.startDate
             row[endDate] = series.endDate
@@ -389,6 +403,7 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[description] = series.description
             row[price] = series.price
             row[capacity] = series.capacity
+            row[waitlistCapacity] = series.waitlistCapacity
             row[isPublished] = series.isPublished
             row[startDate] = series.startDate
             row[endDate] = series.endDate
@@ -452,6 +467,23 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
         EventSeriesTable.update({ EventSeriesTable.id eq id }) {
             it[isCancelled] = true
         }
+    }
+
+    override suspend fun attemptToReserveWaitlistSpot(seriesId: Uuid): Boolean = dbQuery {
+        val updatedRows = EventSeriesTable.update({
+            (EventSeriesTable.id eq seriesId) and
+                    (EventSeriesTable.occupiedWaitlist.plus(1) lessEq EventSeriesTable.waitlistCapacity)
+        }) {
+            it.update(EventSeriesTable.occupiedWaitlist, EventSeriesTable.occupiedWaitlist + 1)
+        }
+        updatedRows > 0
+    }
+
+    override suspend fun decrementOccupiedWaitlist(seriesId: Uuid, amount: Int): Int? = dbQuery {
+        EventSeriesTable.update({ EventSeriesTable.id eq seriesId }) {
+            it.update(EventSeriesTable.occupiedWaitlist, EventSeriesTable.occupiedWaitlist - amount)
+        }
+        get(seriesId)?.occupiedWaitlist
     }
 }
 
@@ -540,6 +572,8 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[price] = instance.price
             row[capacity] = instance.capacity
             row[occupiedSpots] = instance.occupiedSpots
+            row[waitlistCapacity] = instance.waitlistCapacity
+            row[occupiedWaitlist] = instance.occupiedWaitlist
             row[isCancelled] = instance.isCancelled
             row[isPublished] = instance.isPublished
             row[allowedPaymentTypes] = instance.allowedPaymentTypes
@@ -564,6 +598,8 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[price] = instance.price
             row[capacity] = instance.capacity
             row[occupiedSpots] = instance.occupiedSpots
+            row[waitlistCapacity] = instance.waitlistCapacity
+            row[occupiedWaitlist] = instance.occupiedWaitlist
             row[isCancelled] = instance.isCancelled
             row[isPublished] = instance.isPublished
             row[allowedPaymentTypes] = instance.allowedPaymentTypes
@@ -635,5 +671,22 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
         EventInstancesTable.update({ EventInstancesTable.id eq id }) {
             it[isCancelled] = true
         }
+    }
+
+    override suspend fun attemptToReserveWaitlistSpot(instanceId: Uuid): Boolean = dbQuery {
+        val updatedRows = EventInstancesTable.update({
+            (EventInstancesTable.id eq instanceId) and
+                    (EventInstancesTable.occupiedWaitlist.plus(1) lessEq EventInstancesTable.waitlistCapacity)
+        }) {
+            it.update(EventInstancesTable.occupiedWaitlist, EventInstancesTable.occupiedWaitlist + 1)
+        }
+        updatedRows > 0
+    }
+
+    override suspend fun decrementOccupiedWaitlist(instanceId: Uuid, amount: Int): Int? = dbQuery {
+        EventInstancesTable.update({ EventInstancesTable.id eq instanceId }) {
+            it.update(EventInstancesTable.occupiedWaitlist, EventInstancesTable.occupiedWaitlist - amount)
+        }
+        get(instanceId)?.occupiedWaitlist
     }
 }

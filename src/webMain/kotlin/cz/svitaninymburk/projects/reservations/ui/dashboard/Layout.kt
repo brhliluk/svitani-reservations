@@ -39,6 +39,7 @@ fun IComponent.DashboardLayout(
     val currentStrings by strings
 
     var reservationTarget by remember { mutableStateOf<ReservationTarget?>(null) }
+    var isWaitlistSignup by remember { mutableStateOf(false) }
     var activeTab by remember { mutableStateOf(DashboardTab.SCHEDULE) }
     var selectedDefinitionId by remember { mutableStateOf(initialFilterId?.let { Uuid.parse(it) }) }
     var viewMode by remember { mutableStateOf(ViewMode.LIST) }
@@ -152,14 +153,18 @@ fun IComponent.DashboardLayout(
                                         }
                                     }
                                     filteredEvents.forEach { eventItem ->
-                                        Event(eventItem) { reservationTarget = ReservationTarget.Instance(eventItem) }
+                                        Event(
+                                            event = eventItem,
+                                            onClick = { isWaitlistSignup = false; reservationTarget = ReservationTarget.Instance(eventItem) },
+                                            onWaitlistClick = { isWaitlistSignup = true; reservationTarget = ReservationTarget.Instance(eventItem) },
+                                        )
                                     }
                                 }
                             }
                         }
                     }
                 } else {
-                    CalendarView(filteredEvents) { reservationTarget = ReservationTarget.Instance(it) }
+                    CalendarView(filteredEvents) { isWaitlistSignup = false; reservationTarget = ReservationTarget.Instance(it) }
                 }
             }
         }
@@ -169,7 +174,8 @@ fun IComponent.DashboardLayout(
             user = user,
             initialWalletCode = walletCode,
             isSubmitting = isSubmitting,
-            onClose = { reservationTarget = null },
+            asWaitlist = isWaitlistSignup,
+            onClose = { reservationTarget = null; isWaitlistSignup = false },
             onSubmit = { target, data ->
                 onSubmitReservation(target, data)
             }

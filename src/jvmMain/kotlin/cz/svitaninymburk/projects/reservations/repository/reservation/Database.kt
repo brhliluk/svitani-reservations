@@ -148,7 +148,8 @@ class ExposedReservationRepository : ReservationRepository {
             .where {
                 (ReservationsTable.referenceId eq id) and
                         (ReservationsTable.status neq Reservation.Status.CANCELLED) and
-                        (ReservationsTable.status neq Reservation.Status.REJECTED)
+                        (ReservationsTable.status neq Reservation.Status.REJECTED) and
+                        (ReservationsTable.status neq Reservation.Status.WAITLISTED)
             }
             .firstOrNull()
 

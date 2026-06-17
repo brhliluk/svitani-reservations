@@ -62,13 +62,21 @@ fun IComponent.DashboardScreen(
     suspend fun submitReservation(target: ReservationTarget, formData: ReservationFormData) {
         isSubmitting = true
 
-        val result = when (target) {
-            is ReservationTarget.Instance -> reservationService.reserveInstance(
+        val result = when {
+            formData.asWaitlist && target is ReservationTarget.Instance -> reservationService.joinWaitlistInstance(
                 request = formData.toCreateInstanceReservationRequest(target.id),
                 userId = user?.id
             )
-            is ReservationTarget.Series -> reservationService.reserveSeries(
+            formData.asWaitlist && target is ReservationTarget.Series -> reservationService.joinWaitlistSeries(
                 request = formData.toCreateSeriesReservationRequest(target.id),
+                userId = user?.id
+            )
+            target is ReservationTarget.Instance -> reservationService.reserveInstance(
+                request = formData.toCreateInstanceReservationRequest(target.id),
+                userId = user?.id
+            )
+            else -> reservationService.reserveSeries(
+                request = formData.toCreateSeriesReservationRequest((target as ReservationTarget.Series).id),
                 userId = user?.id
             )
         }

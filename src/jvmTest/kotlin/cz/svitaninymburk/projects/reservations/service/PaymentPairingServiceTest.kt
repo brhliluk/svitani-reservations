@@ -91,6 +91,23 @@ class PaymentPairingServiceTest {
             isLateCancellation: Boolean,
             locale: String
         ): Either<EmailError.SendCancellation, Unit> = Unit.right()
+
+        override suspend fun sendWaitlistConfirmation(
+            toEmail: String,
+            eventTitle: String,
+            contactName: String,
+            reservationId: Uuid,
+            locale: String,
+        ): Either<EmailError.SendWaitlistConfirmation, Unit> = Unit.right()
+
+        override suspend fun sendWaitlistPromotion(
+            toEmail: String,
+            reservation: Reservation,
+            target: ReservationTarget,
+            bankAccount: String,
+            qrCodeImage: ByteArray?,
+            icalBytes: ByteArray,
+        ): Either<EmailError.SendWaitlistPromotion, Unit> = Unit.right()
     }
 
     class StubQrCodeGenerator : QrCodeGeneratorService {

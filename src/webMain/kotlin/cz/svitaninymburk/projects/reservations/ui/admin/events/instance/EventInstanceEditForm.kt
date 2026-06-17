@@ -14,6 +14,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowedPaymentsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.WaitlistCapacityField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuilderSection
 import cz.svitaninymburk.projects.reservations.ui.admin.events.DurationField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
@@ -68,6 +69,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
     var durationMinutes by remember { mutableIntStateOf(0) }
     var price by remember { mutableStateOf<Number?>(0) }
     var capacity by remember { mutableIntStateOf(10) }
+    var waitlistCapacity by remember { mutableIntStateOf(0) }
     var occupiedSpots by remember { mutableIntStateOf(0) }
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
@@ -99,6 +101,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                 durationMinutes = (dur.inWholeMinutes % 60).toInt()
                 price = inst.price
                 capacity = inst.capacity
+                waitlistCapacity = inst.waitlistCapacity
                 occupiedSpots = inst.occupiedSpots
                 allowBankTransfer = inst.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
                 allowOnSite = inst.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
@@ -147,7 +150,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
         val request = UpdateEventInstanceRequest(
             title = title, description = description,
             startDateTime = startDt, endDateTime = endDt,
-            price = price?.toDouble() ?: 0.0, capacity = capacity,
+            price = price?.toDouble() ?: 0.0, capacity = capacity, waitlistCapacity = waitlistCapacity,
             allowedPaymentTypes = allowedPayments, customFields = customFields,
             isDropIn = isDropIn,
             ownerEmails = ownerEmails.filter { it.isNotBlank() },
@@ -242,6 +245,8 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                             PriceCurrencyField(currentStrings.defaultPriceLabel, price) { price = it }
 
                             CapacityField(capacity) { capacity = it }
+
+                            WaitlistCapacityField(waitlistCapacity) { waitlistCapacity = it }
 
                             AllowedPaymentsField(allowBankTransfer, allowOnSite, { allowBankTransfer = it }, { allowOnSite = it })
 

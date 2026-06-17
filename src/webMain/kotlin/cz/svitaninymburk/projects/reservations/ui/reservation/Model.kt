@@ -17,6 +17,7 @@ data class ReservationFormData(
     val customValues: Map<String, CustomFieldValue>,
     val locale: String = "cs",
     val walletCode: String? = null,
+    val asWaitlist: Boolean = false,
 ) {
     fun toCreateInstanceReservationRequest(id: Uuid): CreateInstanceReservationRequest = CreateInstanceReservationRequest(
         eventInstanceId = id,

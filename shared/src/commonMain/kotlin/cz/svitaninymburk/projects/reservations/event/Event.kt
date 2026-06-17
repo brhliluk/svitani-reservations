@@ -20,6 +20,7 @@ data class EventDefinition(
     val description: String,
     val defaultPrice: Double,
     val defaultCapacity: Int,
+    val defaultWaitlistCapacity: Int = 0,
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
@@ -36,6 +37,8 @@ data class EventSeries(
     val price: Double,
     val capacity: Int,
     val occupiedSpots: Int = 0,
+    val waitlistCapacity: Int = 0,
+    val occupiedWaitlist: Int = 0,
     val isPublished: Boolean = false,
     val startDate: LocalDate,
     val endDate: LocalDate,
@@ -53,6 +56,8 @@ data class EventSeries(
     val isCancelled: Boolean = false,
 ) {
     val isFull: Boolean get() = occupiedSpots >= capacity
+    val hasWaitlist: Boolean get() = waitlistCapacity > 0
+    val isWaitlistFull: Boolean get() = occupiedWaitlist >= waitlistCapacity
     val isDeadlinePassed: Boolean get() {
         val deadline = reservationDeadline ?: return false
         val tz = TimeZone.of("Europe/Prague")
@@ -74,6 +79,8 @@ data class EventInstance(
     val price: Double,
     val capacity: Int,
     val occupiedSpots: Int = 0,
+    val waitlistCapacity: Int = 0,
+    val occupiedWaitlist: Int = 0,
     val isCancelled: Boolean = false,
     val isPublished: Boolean = false,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
@@ -87,6 +94,8 @@ data class EventInstance(
     val currentTimeZone get() = TimeZone.currentSystemDefault()
     val isFull: Boolean
         get() = occupiedSpots >= capacity
+    val hasWaitlist: Boolean get() = waitlistCapacity > 0
+    val isWaitlistFull: Boolean get() = occupiedWaitlist >= waitlistCapacity
     val duration: Duration
         get() = endDateTime.toInstant(currentTimeZone) - startDateTime.toInstant(currentTimeZone)
     val isSeries: Boolean
@@ -110,6 +119,7 @@ data class CreateEventDefinitionRequest(
     val description: String,
     val defaultPrice: Double,
     val defaultCapacity: Int,
+    val defaultWaitlistCapacity: Int = 0,
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
@@ -123,6 +133,7 @@ data class CreateEventAndInstancesRequest(
     val description: String,
     val defaultPrice: Double,
     val defaultCapacity: Int,
+    val defaultWaitlistCapacity: Int = 0,
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
@@ -140,6 +151,7 @@ data class CreateEventAndSeriesRequest(
     val description: String,
     val defaultPrice: Double,
     val defaultCapacity: Int,
+    val defaultWaitlistCapacity: Int = 0,
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
@@ -168,6 +180,7 @@ data class CreateEventSeriesRequest(
     val description: String,
     val price: Double,
     val capacity: Int,
+    val waitlistCapacity: Int = 0,
     val startDate: LocalDate,
     val endDate: LocalDate,
     val lessonCount: Int,
@@ -194,6 +207,7 @@ data class CreateEventInstanceRequest(
     val duration: Duration? = null,
     val price: Double? = null,
     val capacity: Int? = null,
+    val waitlistCapacity: Int = 0,
     val allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
     val customFields: List<CustomFieldDefinition> = emptyList(),
     val ownerEmails: List<String> = emptyList(),
@@ -216,6 +230,7 @@ data class UpdateEventDefinitionRequest(
     val description: String,
     val defaultPrice: Double,
     val defaultCapacity: Int,
+    val defaultWaitlistCapacity: Int = 0,
     val defaultDuration: Duration,
     val allowedPaymentTypes: List<PaymentInfo.Type>,
     val customFields: List<CustomFieldDefinition>,
@@ -232,6 +247,7 @@ data class UpdateEventInstanceRequest(
     val endDateTime: LocalDateTime,
     val price: Double,
     val capacity: Int,
+    val waitlistCapacity: Int = 0,
     val allowedPaymentTypes: List<PaymentInfo.Type>,
     val customFields: List<CustomFieldDefinition>,
     val ownerEmails: List<String> = emptyList(),
@@ -247,6 +263,7 @@ data class UpdateEventSeriesRequest(
     val description: String,
     val price: Double,
     val capacity: Int,
+    val waitlistCapacity: Int = 0,
     val startDate: LocalDate,
     val endDate: LocalDate,
     val lessonCount: Int,

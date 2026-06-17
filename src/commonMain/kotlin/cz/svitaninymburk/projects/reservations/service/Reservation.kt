@@ -20,6 +20,8 @@ interface ReservationServiceInterface {
     suspend fun getDetail(id: Uuid): Either<ReservationError.GetDetail, ReservationDetail>
     suspend fun reserveInstance(request: CreateInstanceReservationRequest, userId: Uuid?): Either<ReservationError.CreateReservation, Reservation>
     suspend fun reserveSeries(request: CreateSeriesReservationRequest, userId: Uuid?): Either<ReservationError.CreateReservation, Reservation>
+    suspend fun joinWaitlistInstance(request: CreateInstanceReservationRequest, userId: Uuid?): Either<ReservationError.CreateReservation, Reservation>
+    suspend fun joinWaitlistSeries(request: CreateSeriesReservationRequest, userId: Uuid?): Either<ReservationError.CreateReservation, Reservation>
     suspend fun cancelReservation(
         reservationId: Uuid,
         instanceId: Uuid? = null,

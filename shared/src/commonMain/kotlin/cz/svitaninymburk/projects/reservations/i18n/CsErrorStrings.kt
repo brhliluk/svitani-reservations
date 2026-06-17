@@ -27,6 +27,9 @@ object CsErrorStrings : ErrorStrings {
     override val errorWalletEmpty = "Peněženka nemá žádný zůstatek"
     override val errorWalletEmailMismatch = "Peněženka je přiřazena k jinému emailu"
     override val errorReservationDeadlinePassed = "Uzávěrka rezervací pro tuto událost již proběhla"
+    override val errorEventNotFull = "Na akci jsou ještě volná místa, registrace náhradníka není možná."
+    override val errorWaitlistNotAvailable = "U této akce není čekací listina k dispozici."
+    override val errorWaitlistFull = "Čekací listina je plná."
 
     override fun errorEventInstanceNotFoundId(id: String) = "Událost s id $id nenalezena"
     override fun errorEventDefinitionNotFoundId(id: String) = "Šablona události s id $id nenalezena"

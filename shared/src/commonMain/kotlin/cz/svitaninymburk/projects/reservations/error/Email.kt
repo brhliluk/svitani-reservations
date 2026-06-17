@@ -15,6 +15,8 @@ import kotlinx.serialization.Serializable
     @Serializable @SerialName("lector_reservation") sealed interface SendLectorReservation : EmailError
     @Serializable @SerialName("lector_cancellation") sealed interface SendLectorCancellation : EmailError
     @Serializable @SerialName("send_wallet") sealed interface SendWallet : EmailError
+    @Serializable @SerialName("waitlist_confirmation") sealed interface SendWaitlistConfirmation : EmailError
+    @Serializable @SerialName("waitlist_promotion") sealed interface SendWaitlistPromotion : EmailError
 
     @Serializable data class SendReservationConfirmationFailed(val message: String) : SendReservationConfirmation
     @Serializable data class SendCancellationFailed(val message: String) : SendCancellation
@@ -26,6 +28,8 @@ import kotlinx.serialization.Serializable
     @Serializable data class SendLectorReservationFailed(val message: String) : SendLectorReservation
     @Serializable data class SendLectorCancellationFailed(val message: String) : SendLectorCancellation
     @Serializable data class SendWalletFailed(val message: String) : SendWallet
+    @Serializable data class SendWaitlistConfirmationFailed(val message: String) : SendWaitlistConfirmation
+    @Serializable data class SendWaitlistPromotionFailed(val message: String) : SendWaitlistPromotion
 }
 
 val EmailError.localizedMessage: String get() = when (this) {
@@ -39,4 +43,6 @@ val EmailError.localizedMessage: String get() = when (this) {
     is EmailError.SendLectorReservationFailed -> message
     is EmailError.SendLectorCancellationFailed -> message
     is EmailError.SendWalletFailed -> message
+    is EmailError.SendWaitlistConfirmationFailed -> message
+    is EmailError.SendWaitlistPromotionFailed -> message
 }

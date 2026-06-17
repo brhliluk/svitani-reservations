@@ -14,6 +14,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowedPaymentsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.WaitlistCapacityField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuilderSection
 import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyField
@@ -65,6 +66,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
     var description by remember { mutableStateOf("") }
     var price by remember { mutableStateOf<Number?>(0) }
     var capacity by remember { mutableIntStateOf(10) }
+    var waitlistCapacity by remember { mutableIntStateOf(0) }
     var occupiedSpots by remember { mutableIntStateOf(0) }
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
@@ -96,6 +98,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                 description = s.description
                 price = s.price
                 capacity = s.capacity
+                waitlistCapacity = s.waitlistCapacity
                 occupiedSpots = s.occupiedSpots
                 startDate = s.startDate.toString()
                 endDate = s.endDate.toString()
@@ -161,7 +164,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
         } else null
         val request = UpdateEventSeriesRequest(
             title = title, description = description,
-            price = price?.toDouble() ?: 0.0, capacity = capacity,
+            price = price?.toDouble() ?: 0.0, capacity = capacity, waitlistCapacity = waitlistCapacity,
             startDate = parsedStart, endDate = parsedEnd,
             lessonCount = lessonCount, allowedPaymentTypes = allowedPayments,
             customFields = customFields,
@@ -284,6 +287,8 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                             PriceCurrencyField(currentStrings.fullCoursePriceLabel, price) { price = it }
 
                             CapacityField(capacity) { capacity = it }
+
+                            WaitlistCapacityField(waitlistCapacity) { waitlistCapacity = it }
 
                             AllowedPaymentsField(allowBankTransfer, allowOnSite, { allowBankTransfer = it }, { allowOnSite = it })
 

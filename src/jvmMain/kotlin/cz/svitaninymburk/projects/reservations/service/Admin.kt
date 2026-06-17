@@ -102,7 +102,7 @@ class AdminDashboardService(
         val todaysInstanceIds = todaysInstances.map { it.id }.toSet()
 
         val todayParticipantsCount = allReservations
-            .filter { it.status != Reservation.Status.CANCELLED }
+            .filter { it.status != Reservation.Status.CANCELLED && it.status != Reservation.Status.WAITLISTED }
             .filter { it.reference is Reference.Instance && it.reference.id in todaysInstanceIds }
             .sumOf { it.seatCount }
 
@@ -182,6 +182,7 @@ class AdminDashboardService(
         val subtitle: String
         val capacity: Int
         val occupiedSpots: Int
+        val waitlistCapacity: Int
         val customFields: List<CustomFieldDefinition>
         var isCancelled = false
 
@@ -191,6 +192,7 @@ class AdminDashboardService(
             subtitle = "Kurz (${series.lessonCount} lekcí) • Od ${series.startDate}"
             capacity = series.capacity
             occupiedSpots = series.occupiedSpots
+            waitlistCapacity = series.waitlistCapacity
             customFields = series.customFields
             isCancelled = series.isCancelled
         } else {
@@ -199,6 +201,7 @@ class AdminDashboardService(
             subtitle = "Jednorázová událost • ${instance.startDateTime.humanReadable}"
             capacity = instance.capacity
             occupiedSpots = instance.occupiedSpots
+            waitlistCapacity = instance.waitlistCapacity
             customFields = instance.customFields
             isCancelled = instance.isCancelled
         }
@@ -212,22 +215,28 @@ class AdminDashboardService(
             .filter { it.status == Reservation.Status.CONFIRMED }
             .sumOf { it.totalPrice }
 
+        fun toRow(res: cz.svitaninymburk.projects.reservations.reservation.Reservation) = AdminParticipantRow(
+            reservationId = res.id,
+            contactName = res.contactName,
+            contactEmail = res.contactEmail,
+            contactPhone = res.contactPhone,
+            seatCount = res.seatCount,
+            totalPrice = res.totalPrice,
+            status = res.status,
+            paymentType = res.paymentType,
+            createdAt = res.createdAt,
+            customValues = res.customValues,
+        )
+
         val participants = activeReservations
+            .filter { it.status != Reservation.Status.WAITLISTED }
             .sortedBy { it.createdAt }
-            .map { res ->
-                AdminParticipantRow(
-                    reservationId = res.id,
-                    contactName = res.contactName,
-                    contactEmail = res.contactEmail,
-                    contactPhone = res.contactPhone,
-                    seatCount = res.seatCount,
-                    totalPrice = res.totalPrice,
-                    status = res.status,
-                    paymentType = res.paymentType,
-                    createdAt = res.createdAt,
-                    customValues = res.customValues,
-                )
-            }
+            .map { toRow(it) }
+
+        val waitlist = activeReservations
+            .filter { it.status == Reservation.Status.WAITLISTED }
+            .sortedBy { it.createdAt }
+            .map { toRow(it) }
 
         AdminEventDetailData(
             eventId = eventId,
@@ -238,6 +247,8 @@ class AdminDashboardService(
             totalCollected = totalCollected,
             customFields = customFields,
             participants = participants,
+            waitlist = waitlist,
+            waitlistCapacity = waitlistCapacity,
             isCancelled = isCancelled,
         )
     }
@@ -430,6 +441,7 @@ class AdminDashboardService(
                 description = request.description,
                 price = request.price,
                 capacity = request.capacity,
+                waitlistCapacity = request.waitlistCapacity,
                 startDate = request.startDate,
                 endDate = request.endDate,
                 lessonCount = request.lessonCount,
@@ -538,6 +550,7 @@ class AdminDashboardService(
                         endDateTime = (startDateTime.toInstant(tz) + newDefinition.defaultDuration).toLocalDateTime(tz),
                         price = newDefinition.defaultPrice,
                         capacity = newDefinition.defaultCapacity,
+                        waitlistCapacity = request.defaultWaitlistCapacity,
                         allowedPaymentTypes = newDefinition.allowedPaymentTypes,
                         customFields = newDefinition.customFields,
                         ownerEmails = newDefinition.ownerEmails,
@@ -720,6 +733,7 @@ class AdminDashboardService(
                 endDateTime = request.endDateTime,
                 price = request.price,
                 capacity = request.capacity,
+                waitlistCapacity = request.waitlistCapacity,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
                 ownerEmails = request.ownerEmails,
@@ -766,6 +780,7 @@ class AdminDashboardService(
                 description = request.description,
                 price = request.price,
                 capacity = request.capacity,
+                waitlistCapacity = request.waitlistCapacity,
                 startDate = request.startDate,
                 endDate = request.endDate,
                 lessonCount = request.lessonCount,

@@ -604,6 +604,9 @@ object EnStrings : AppStrings {
     override val errorWalletEmpty = "Wallet has no balance."
     override val errorWalletEmailMismatch = "This wallet belongs to a different email address."
     override val errorReservationDeadlinePassed = "The reservation deadline for this event has passed."
+    override val errorEventNotFull = "The event still has free spots; substitute registration is not available."
+    override val errorWaitlistNotAvailable = "This event has no waitlist."
+    override val errorWaitlistFull = "The waitlist is full."
 
     override fun errorEventInstanceNotFoundId(id: String) = "Event with id $id not found"
     override fun errorEventDefinitionNotFoundId(id: String) = "Event template with id $id not found"
@@ -688,4 +691,15 @@ object EnStrings : AppStrings {
     override val errorWrongOldPassword = "The current password is incorrect"
     override val errorNotEmailUser = "This account is linked with Google and has no password"
     override val errorPasswordTooWeak = "Password must be at least 6 characters"
+
+    // Waitlist
+    override val registerAsSubstitute = "Join waitlist"
+    override val substituteFormHeading = "Join the waitlist"
+    override val waitlistFullMessage = "The waitlist is full"
+    override val waitlistedStatus = "Waitlisted"
+    override val substituteInfoNote = "You will be added to the waitlist. If a spot opens up, you will receive an email with payment details."
+    override val joinedWaitlistToast = "You have been added to the waitlist."
+    override val substitutesSectionTitle = "Waitlist"
+    override val waitlistCapacityLabel = "Max. substitutes"
+    override val substitutesCount = "Substitutes"
 }

@@ -56,6 +56,14 @@ interface EmailStrings {
     fun lectorLessonOptOutSubject(eventTitle: String): String
     fun lectorLessonOptOutBody(contactName: String, eventTitle: String, lessonDate: LocalDate, isLate: Boolean): String
 
+    // Waitlist
+    fun waitlistConfirmationSubject(eventTitle: String): String
+    val waitlistConfirmationHeading: String
+    fun waitlistConfirmationBody(eventTitle: String, contactName: String): String
+    fun waitlistPromotionSubject(eventTitle: String, eventDate: String): String
+    val waitlistPromotionHeading: String
+    fun waitlistPromotionIntro(contactName: String, eventTitle: String): String
+
     // Wallet notifications
     fun walletCreditedSubject(amount: String): String
     fun walletCreditedBody(walletCode: String, creditedAmount: String, newBalance: String, resetDate: String, walletLink: String): String
@@ -124,6 +132,16 @@ object CsEmailStrings : EmailStrings {
         val lateNote = if (isLate) " (pozdní odhlášení)" else ""
         return "$contactName se odhlásil/a z lekce kurzu \"$eventTitle\" dne $lessonDate$lateNote."
     }
+    override fun waitlistConfirmationSubject(eventTitle: String) = "Jste náhradník: $eventTitle"
+    override val waitlistConfirmationHeading = "Jste na čekací listině"
+    override fun waitlistConfirmationBody(eventTitle: String, contactName: String) =
+        "Dobrý den $contactName,\n\nbyl/a jste zařazen/a jako náhradník na akci $eventTitle. Jakmile se uvolní místo, automaticky vás posuneme mezi účastníky a pošleme vám platební údaje. Do té doby nic neplatíte."
+    override fun waitlistPromotionSubject(eventTitle: String, eventDate: String) =
+        "Uvolnilo se místo: $eventTitle – $eventDate"
+    override val waitlistPromotionHeading = "Postoupil/a jste z čekací listiny!"
+    override fun waitlistPromotionIntro(contactName: String, eventTitle: String) =
+        "Dobrý den $contactName,\n\nuvolnilo se místo na akci $eventTitle a vy jste nyní mezi účastníky. Prosíme o úhradu platebních údajů níže."
+
     override fun walletCreditedSubject(amount: String) = "Kredit $amount Kč připsán do peněženky"
     override fun walletCreditedBody(walletCode: String, creditedAmount: String, newBalance: String, resetDate: String, walletLink: String) = """
         <p>Na Vaši peněženku byl připsán kredit <strong>$creditedAmount Kč</strong>.</p>
@@ -204,6 +222,16 @@ object EnEmailStrings : EmailStrings {
         val lateNote = if (isLate) " (late cancellation)" else ""
         return "$contactName unsubscribed from a lesson of \"$eventTitle\" on $lessonDate$lateNote."
     }
+    override fun waitlistConfirmationSubject(eventTitle: String) = "You are a substitute: $eventTitle"
+    override val waitlistConfirmationHeading = "You are on the waitlist"
+    override fun waitlistConfirmationBody(eventTitle: String, contactName: String) =
+        "Hello $contactName,\n\nyou have been added as a substitute for $eventTitle. As soon as a spot frees up we will move you to the participants and send payment details. Until then you pay nothing."
+    override fun waitlistPromotionSubject(eventTitle: String, eventDate: String) =
+        "A spot opened up: $eventTitle – $eventDate"
+    override val waitlistPromotionHeading = "You moved up from the waitlist!"
+    override fun waitlistPromotionIntro(contactName: String, eventTitle: String) =
+        "Hello $contactName,\n\na spot opened up for $eventTitle and you are now a participant. Please pay using the details below."
+
     override fun walletCreditedSubject(amount: String) = "Wallet credit of $amount CZK added"
     override fun walletCreditedBody(walletCode: String, creditedAmount: String, newBalance: String, resetDate: String, walletLink: String) = """
         <p>A credit of <strong>$creditedAmount CZK</strong> has been added to your wallet.</p>
