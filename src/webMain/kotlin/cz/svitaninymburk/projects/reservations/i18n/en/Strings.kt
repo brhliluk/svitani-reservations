@@ -576,6 +576,10 @@ object EnStrings : AppStrings {
     override val editTemplateTitle = "Edit template"
     override val editInstanceTitle = "Edit event"
     override val editSeriesTitle = "Edit course"
+    override val viewAsCustomer = "View as customer"
+    override val previewBannerUnpublished = "Preview — this event is not published"
+    override val previewBannerPublished = "Preview — this event is published"
+    override val backToAdmin = "Back to admin"
 
     // ErrorStrings
     override val errorInvalidCredentials = "Invalid credentials"

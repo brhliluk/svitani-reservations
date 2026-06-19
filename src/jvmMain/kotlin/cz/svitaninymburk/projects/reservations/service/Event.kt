@@ -8,6 +8,10 @@ import arrow.core.raise.ensureNotNull
 import arrow.fx.coroutines.parZip
 import cz.svitaninymburk.projects.reservations.api.SeriesDetailResponse
 import cz.svitaninymburk.projects.reservations.error.EventError
+import cz.svitaninymburk.projects.reservations.user.User
+import cz.svitaninymburk.projects.reservations.util.currentCall
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventInstanceRequest
 import cz.svitaninymburk.projects.reservations.event.DashboardData
@@ -94,6 +98,11 @@ class EventService(
     private val eventInstanceRepository: EventInstanceRepository,
     private val eventSeriesRepository: EventSeriesRepository,
 ): EventServiceInterface {
+    private suspend fun isAdminCaller(): Boolean {
+        val role = currentCall()?.principal<JWTPrincipal>()?.payload?.getClaim("role")?.asString()
+        return role == User.Role.ADMIN.name
+    }
+
     override suspend fun getDashboardData(): Either<EventError.GetDashboardData, DashboardData> = either {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         val today = now.date
@@ -130,13 +139,17 @@ class EventService(
 
     override suspend fun getInstance(id: Uuid): Either<EventError.GetInstance, EventInstance> = either {
         val instance = ensureNotNull(eventInstanceRepository.get(id)) { EventError.EventInstanceNotFound(id.toString()) }
-        ensure(instance.isPublished) { EventError.EventInstanceNotFound(id.toString()) }
+        if (!isAdminCaller()) {
+            ensure(instance.isPublished) { EventError.EventInstanceNotFound(id.toString()) }
+        }
         instance
     }
 
     override suspend fun getSeriesDetail(id: Uuid): Either<EventError.GetSeriesDetail, SeriesDetailResponse> = either {
         val series = ensureNotNull(eventSeriesRepository.get(id)) { EventError.EventSeriesNotFound(id.toString()) }
-        ensure(series.isPublished) { EventError.EventSeriesNotFound(id.toString()) }
+        if (!isAdminCaller()) {
+            ensure(series.isPublished) { EventError.EventSeriesNotFound(id.toString()) }
+        }
         val lessons = eventInstanceRepository.findBySeries(id).sortedBy { it.startDateTime }
         SeriesDetailResponse(series, lessons)
     }

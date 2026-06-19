@@ -575,6 +575,10 @@ object CsStrings : AppStrings {
     override val editTemplateTitle = "Upravit šablonu"
     override val editInstanceTitle = "Upravit termín"
     override val editSeriesTitle = "Upravit kurz"
+    override val viewAsCustomer = "Zobrazit jako zákazník"
+    override val previewBannerUnpublished = "Náhled — tato událost není zveřejněna"
+    override val previewBannerPublished = "Náhled — tato událost je zveřejněna"
+    override val backToAdmin = "Zpět do administrace"
 
     // ErrorStrings
     override val errorInvalidCredentials = "Neplatné přihlašovací údaje"

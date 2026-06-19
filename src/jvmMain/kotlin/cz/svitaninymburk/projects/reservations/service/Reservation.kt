@@ -28,6 +28,7 @@ import cz.svitaninymburk.projects.reservations.reservation.SeriesReservationDeta
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
+import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.util.captureEmailError
 import cz.svitaninymburk.projects.reservations.util.currentCall
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
@@ -77,6 +78,14 @@ open class ReservationService(
             ?: return null
         return runCatching { Uuid.parse(idString) }.getOrNull()
     }
+
+    private suspend fun isAdminCaller(): Boolean {
+        val role = currentCall()
+            ?.principal<JWTPrincipal>()
+            ?.payload?.getClaim("role")?.asString()
+        return role == User.Role.ADMIN.name
+    }
+
     override suspend fun get(id: Uuid): Either<ReservationError.Get, Reservation> = either {
         reservationRepository.findById(id) ?: raise(ReservationError.ReservationNotFound)
     }
@@ -104,7 +113,7 @@ open class ReservationService(
     override suspend fun reserveInstance(request: CreateInstanceReservationRequest, userId: Uuid?): Either<ReservationError.CreateReservation, Reservation> = either {
 
         val instance = ensureNotNull(eventInstanceRepository.get(request.eventInstanceId)) { ReservationError.ReservationNotFound }
-        ensure(instance.isPublished) { ReservationError.ReservationNotFound }
+        if (!isAdminCaller()) ensure(instance.isPublished) { ReservationError.ReservationNotFound }
 
         ensure(!instance.isCancelled) { ReservationError.EventCancelled }
         ensure(instance.endDateTime > Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) { ReservationError.EventAlreadyFinished }
@@ -133,7 +142,7 @@ open class ReservationService(
     ): Either<ReservationError.CreateReservation, Reservation> = either {
 
         val series = ensureNotNull(eventSeriesRepository.get(request.eventSeriesId)) { ReservationError.ReservationNotFound }
-        ensure(series.isPublished) { ReservationError.ReservationNotFound }
+        if (!isAdminCaller()) ensure(series.isPublished) { ReservationError.ReservationNotFound }
 
         ensure(!series.isDeadlinePassed) { ReservationError.ReservationDeadlinePassed }
 
@@ -157,7 +166,7 @@ open class ReservationService(
         userId: Uuid?,
     ): Either<ReservationError.CreateReservation, Reservation> = either {
         val instance = ensureNotNull(eventInstanceRepository.get(request.eventInstanceId)) { ReservationError.ReservationNotFound }
-        ensure(instance.isPublished) { ReservationError.ReservationNotFound }
+        if (!isAdminCaller()) ensure(instance.isPublished) { ReservationError.ReservationNotFound }
         ensure(!instance.isCancelled) { ReservationError.EventCancelled }
 
         ensure(instance.isFull) { ReservationError.EventNotFull }
@@ -180,7 +189,7 @@ open class ReservationService(
         userId: Uuid?,
     ): Either<ReservationError.CreateReservation, Reservation> = either {
         val series = ensureNotNull(eventSeriesRepository.get(request.eventSeriesId)) { ReservationError.ReservationNotFound }
-        ensure(series.isPublished) { ReservationError.ReservationNotFound }
+        if (!isAdminCaller()) ensure(series.isPublished) { ReservationError.ReservationNotFound }
 
         ensure(series.isFull) { ReservationError.EventNotFull }
         ensure(series.hasWaitlist) { ReservationError.WaitlistNotAvailable }

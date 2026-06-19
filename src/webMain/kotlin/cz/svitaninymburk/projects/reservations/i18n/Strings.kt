@@ -540,6 +540,10 @@ interface AppStrings : ErrorStrings {
     val editTemplateTitle: String
     val editInstanceTitle: String
     val editSeriesTitle: String
+    val viewAsCustomer: String
+    val previewBannerUnpublished: String
+    val previewBannerPublished: String
+    val backToAdmin: String
 
     // Helper functions for Calendar
     fun monthName(index: Int): String

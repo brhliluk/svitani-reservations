@@ -141,6 +141,12 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                         if (isSeries) +currentStrings.editSeries else +currentStrings.editEvent
                         onClick { router.navigate(editPath) }
                     }
+                    val previewPath = if (isSeries) "/admin/events/series/$eventId/preview" else "/admin/events/instance/$eventId/preview"
+                    button(className = "btn btn-outline btn-info btn-sm gap-2") {
+                        span(className = "icon-[heroicons--eye] size-4")
+                        +currentStrings.viewAsCustomer
+                        onClick { router.navigate(previewPath) }
+                    }
                     val isCancelled = (uiState as? AdminEventDetailUiState.Success)?.data?.isCancelled ?: false
                     if (isCancelled) {
                         div(className = "badge badge-error gap-2") {

@@ -23,7 +23,6 @@ fun Application.configureRouting() {
         swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml")
 
         install(CallContextPlugin)
-        applyRoutes(getServiceManager<EventServiceInterface>(), RpcSerializersModules)
 
         mobilePublicAuthRoutes()
 
@@ -50,6 +49,7 @@ fun Application.configureRouting() {
         authenticate("auth-jwt", optional = true) {
             applyRoutes(getServiceManager<AuthServiceInterface>(), RpcSerializersModules)
             applyRoutes(getServiceManager<ReservationServiceInterface>(), RpcSerializersModules)
+            applyRoutes(getServiceManager<EventServiceInterface>(), RpcSerializersModules)
         }
     }
 }

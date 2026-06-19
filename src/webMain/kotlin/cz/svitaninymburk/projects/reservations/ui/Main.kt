@@ -24,6 +24,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.series.AdminCreat
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.AdminEditEventSeriesScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AdminEventCreateChooseScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AdminEventDetailScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.events.EventPreviewScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AdminEventsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.payments.AdminPaymentsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.AdminReservationsScreen
@@ -138,6 +139,13 @@ fun IComponent.MainLayout() {
                                 }
                             }
                         }
+                        route("/preview") {
+                            view {
+                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                    EventPreviewScreen(eventId = eventId.value, isSeries = false, currentUser = currentUser!!)
+                                }
+                            }
+                        }
                     } }
                     route("/series") { string { seriesId ->
                         view {
@@ -156,6 +164,13 @@ fun IComponent.MainLayout() {
                             view {
                                 AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                                     AdminEditEventSeriesScreen(id = seriesId.value)
+                                }
+                            }
+                        }
+                        route("/preview") {
+                            view {
+                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                    EventPreviewScreen(eventId = seriesId.value, isSeries = true, currentUser = currentUser!!)
                                 }
                             }
                         }
