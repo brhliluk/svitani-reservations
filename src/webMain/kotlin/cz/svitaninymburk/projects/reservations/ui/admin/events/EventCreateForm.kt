@@ -217,6 +217,7 @@ fun IComponent.AdminCreateEventScreen() {
                         div(className = "relative flex items-center") {
                             numeric(value = price, min = 0, className = "input input-bordered w-full pr-12") {
                                 onInput { price = value }
+                                onChange { price = value }
                             }
                             span(className = "absolute right-4 text-base-content/50 font-medium") { +currentStrings.currency }
                         }
@@ -228,6 +229,7 @@ fun IComponent.AdminCreateEventScreen() {
                             numeric(value = capacity, min = 1, decimals = 0, className = "input input-bordered w-full pr-12") {
                                 attribute("step", "1")
                                 onInput { capacity = value?.toInt() ?: 1 }
+                                onChange { capacity = value?.toInt() ?: 1 }
                             }
                             span(className = "absolute right-4 text-base-content/50") {
                                 span(className = "icon-[heroicons--users] size-5")
@@ -242,6 +244,7 @@ fun IComponent.AdminCreateEventScreen() {
                                 numeric(value = durationHours, min = 0, decimals = 0, className = "input input-bordered w-full pr-8") {
                                     attribute("step", "1")
                                     onInput { durationHours = value?.toInt() ?: 0 }
+                                    onChange { durationHours = value?.toInt() ?: 0 }
                                 }
                                 span(className = "absolute right-3 text-base-content/50 text-sm") { +currentStrings.hours }
                             }
@@ -249,6 +252,7 @@ fun IComponent.AdminCreateEventScreen() {
                                 numeric(value = durationMinutes, min = 0, max = 59, decimals = 0, className = "input input-bordered w-full pr-12") {
                                     attribute("step", "1")
                                     onInput { durationMinutes = value?.toInt() ?: 0 }
+                                    onChange { durationMinutes = value?.toInt() ?: 0 }
                                 }
                                 span(className = "absolute right-3 text-base-content/50 text-sm") { +currentStrings.minutes }
                             }
@@ -384,6 +388,10 @@ fun IComponent.AdminCreateEventScreen() {
                                     numeric(value = lessonCount, min = 1, decimals = 0, className = "input input-bordered w-full pr-16") {
                                         attribute("step", "1")
                                         onInput {
+                                            lessonCount = value?.toInt() ?: 1
+                                            lessonDateOverrides = emptyMap()
+                                        }
+                                        onChange {
                                             lessonCount = value?.toInt() ?: 1
                                             lessonDateOverrides = emptyMap()
                                         }
@@ -530,6 +538,7 @@ fun IComponent.AdminCreateEventScreen() {
                             numeric(value = deadlineHours, min = 0, decimals = 0, className = "input input-bordered w-full") {
                                 attribute("step", "1")
                                 onInput { deadlineHours = value?.toInt() ?: 0 }
+                                onChange { deadlineHours = value?.toInt() ?: 0 }
                             }
                         }
                     } else {
@@ -539,6 +548,7 @@ fun IComponent.AdminCreateEventScreen() {
                                 numeric(value = deadlineDaysBefore, min = 0, decimals = 0, className = "input input-bordered w-full") {
                                     attribute("step", "1")
                                     onInput { deadlineDaysBefore = value?.toInt() ?: 0 }
+                                    onChange { deadlineDaysBefore = value?.toInt() ?: 0 }
                                 }
                             }
                             div(className = "form-control w-full") {

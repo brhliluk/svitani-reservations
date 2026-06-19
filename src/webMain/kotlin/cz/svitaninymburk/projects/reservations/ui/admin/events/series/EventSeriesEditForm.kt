@@ -257,7 +257,9 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                             div(className = "form-control w-full") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lessonCountLabel } }
                                 numeric(value = lessonCount, min = 1, decimals = 0, className = "input input-bordered w-full") {
-                                    attribute("step", "1"); onInput { lessonCount = value?.toInt() ?: 1 }
+                                    attribute("step", "1")
+                                    onInput { lessonCount = value?.toInt() ?: 1 }
+                                    onChange { lessonCount = value?.toInt() ?: 1 }
                                 }
                             }
                             div(className = "form-control w-full") {

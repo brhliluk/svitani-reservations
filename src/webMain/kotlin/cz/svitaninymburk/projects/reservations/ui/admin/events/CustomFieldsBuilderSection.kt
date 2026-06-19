@@ -183,6 +183,9 @@ fun IComponent.CustomFieldsBuilderSection(
                                                     onInput {
                                                         updateField(index, field.copy(priceModifier = PriceModifier.FixedAmount(value?.toDouble() ?: 0.0)))
                                                     }
+                                                    onChange {
+                                                        updateField(index, field.copy(priceModifier = PriceModifier.FixedAmount(value?.toDouble() ?: 0.0)))
+                                                    }
                                                 }
                                                 p(className = "text-xs text-base-content/50 mt-1") { +currentStrings.fieldFlatFeeFormula }
                                             }
@@ -222,6 +225,9 @@ fun IComponent.CustomFieldsBuilderSection(
                                                     onInput {
                                                         updateField(index, field.copy(priceModifier = PriceModifier.PerUnit(value?.toDouble() ?: 0.0)))
                                                     }
+                                                    onChange {
+                                                        updateField(index, field.copy(priceModifier = PriceModifier.PerUnit(value?.toDouble() ?: 0.0)))
+                                                    }
                                                 }
                                                 p(className = "text-xs text-base-content/50 mt-1") { +currentStrings.fieldPerUnitFormula }
                                             }
@@ -246,9 +252,21 @@ fun IComponent.CustomFieldsBuilderSection(
                                                                     }
                                                                     updateField(index, field.copy(priceModifier = tiered.copy(tiers = newTiers)))
                                                                 }
+                                                                onChange {
+                                                                    val newTiers = tiered.tiers.toMutableList().apply {
+                                                                        set(tierIndex, tier.copy(count = value?.toInt() ?: 1))
+                                                                    }
+                                                                    updateField(index, field.copy(priceModifier = tiered.copy(tiers = newTiers)))
+                                                                }
                                                             }
                                                             numeric(value = tier.price.takeIf { it > 0 }, min = 0, className = "input input-xs input-bordered flex-1") {
                                                                 onInput {
+                                                                    val newTiers = tiered.tiers.toMutableList().apply {
+                                                                        set(tierIndex, tier.copy(price = value?.toDouble() ?: 0.0))
+                                                                    }
+                                                                    updateField(index, field.copy(priceModifier = tiered.copy(tiers = newTiers)))
+                                                                }
+                                                                onChange {
                                                                     val newTiers = tiered.tiers.toMutableList().apply {
                                                                         set(tierIndex, tier.copy(price = value?.toDouble() ?: 0.0))
                                                                     }
@@ -280,6 +298,9 @@ fun IComponent.CustomFieldsBuilderSection(
                                                 label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldTieredFallbackLabel } }
                                                 numeric(value = tiered.fallbackPerUnit.takeIf { it > 0 }, min = 0, className = "input input-sm input-bordered w-full") {
                                                     onInput {
+                                                        updateField(index, field.copy(priceModifier = tiered.copy(fallbackPerUnit = value?.toDouble() ?: 0.0)))
+                                                    }
+                                                    onChange {
                                                         updateField(index, field.copy(priceModifier = tiered.copy(fallbackPerUnit = value?.toDouble() ?: 0.0)))
                                                     }
                                                 }

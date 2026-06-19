@@ -76,7 +76,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
     var ownerEmails by remember { mutableStateOf(listOf("")) }
     var priceOverride by remember { mutableStateOf<Number?>(0) }
     var capacityOverride by remember { mutableIntStateOf(10) }
-    var waitlistCapacityOverride by remember { mutableIntStateOf(0) }
+    var waitlistCapacityOverride by remember { mutableIntStateOf(10) }
     var durationHours by remember { mutableIntStateOf(1) }
     var durationMinutes by remember { mutableIntStateOf(0) }
     var allowBankTransfer by remember { mutableStateOf(true) }

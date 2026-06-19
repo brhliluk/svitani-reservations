@@ -62,6 +62,7 @@ fun IComponent.PriceCurrencyField(
         div(className = "relative flex items-center") {
             numeric(value = value, min = 0, className = "input input-bordered w-full pr-12") {
                 onInput { onChange(this.value) }
+                onChange { onChange(this.value) }
             }
             span(className = "absolute right-4 text-base-content/50 font-medium") { +currentStrings.currency }
         }
@@ -80,6 +81,7 @@ fun IComponent.CapacityField(
             numeric(value = value, min = 1, decimals = 0, className = "input input-bordered w-full pr-12") {
                 attribute("step", "1")
                 onInput { onChange(this.value?.toInt() ?: 1) }
+                onChange { onChange(this.value?.toInt() ?: 1) }
             }
             span(className = "absolute right-4 text-base-content/50") {
                 span(className = "icon-[heroicons--users] size-5")
@@ -100,6 +102,7 @@ fun IComponent.WaitlistCapacityField(
             numeric(value = value, min = 0, decimals = 0, className = "input input-bordered w-full pr-12") {
                 attribute("step", "1")
                 onInput { onChange(this.value?.toInt() ?: 0) }
+                onChange { onChange(this.value?.toInt() ?: 0) }
             }
             span(className = "absolute right-4 text-base-content/50") {
                 span(className = "icon-[heroicons--user-plus] size-5")
@@ -124,6 +127,7 @@ fun IComponent.DurationField(
                 numeric(value = hours, min = 0, decimals = 0, className = "input input-bordered w-full pr-8") {
                     attribute("step", "1")
                     onInput { onHoursChange(value?.toInt() ?: 0) }
+                    onChange { onHoursChange(value?.toInt() ?: 0) }
                 }
                 span(className = "absolute right-3 text-base-content/50 text-sm") { +currentStrings.hours }
             }
@@ -131,6 +135,7 @@ fun IComponent.DurationField(
                 numeric(value = minutes, min = 0, max = 59, decimals = 0, className = "input input-bordered w-full pr-12") {
                     attribute("step", "1")
                     onInput { onMinutesChange(value?.toInt() ?: 0) }
+                    onChange { onMinutesChange(value?.toInt() ?: 0) }
                 }
                 span(className = "absolute right-3 text-base-content/50 text-sm") { +currentStrings.minutes }
             }
@@ -215,6 +220,7 @@ fun IComponent.ReservationDeadlineSection(
                         numeric(value = hours, min = 0, decimals = 0, className = "input input-bordered w-full") {
                             attribute("step", "1")
                             onInput { onHoursChange(value?.toInt() ?: 0) }
+                            onChange { onHoursChange(value?.toInt() ?: 0) }
                         }
                     }
                 } else {
@@ -226,6 +232,7 @@ fun IComponent.ReservationDeadlineSection(
                             numeric(value = daysBefore, min = 0, decimals = 0, className = "input input-bordered w-full") {
                                 attribute("step", "1")
                                 onInput { onDaysBeforeChange(value?.toInt() ?: 0) }
+                                onChange { onDaysBeforeChange(value?.toInt() ?: 0) }
                             }
                         }
                         div(className = "form-control w-full") {

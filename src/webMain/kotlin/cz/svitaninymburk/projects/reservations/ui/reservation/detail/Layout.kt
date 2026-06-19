@@ -30,6 +30,7 @@ fun IComponent.ReservationDetailLayout(
     reservation: Reservation,
     target: ReservationTarget?,
     accountNumber: String,
+    waitlistPosition: Int? = null,
     onCancelReservation: () -> Unit,
     onBackToDashboard: () -> Unit
 ) {
@@ -78,6 +79,9 @@ fun IComponent.ReservationDetailLayout(
 
                         div(className = "flex flex-col gap-4 bg-base-200/50 p-6 rounded-xl") {
                             DetailRow(currentStrings.status, uiState.statusLabel)
+                            if (waitlistPosition != null) {
+                                DetailRow(currentStrings.waitlistedStatus, currentStrings.waitlistPositionLabel(waitlistPosition))
+                            }
                             DetailRow(currentStrings.name, reservation.contactName)
                             DetailRow(currentStrings.seatCountLabel, "${reservation.seatCount}")
                             DetailRow(currentStrings.totalPrice, "${reservation.totalPrice} Kč")

@@ -137,6 +137,7 @@ data class ReservationDetail(
     val reservation: Reservation,
     val target: ReservationTarget?,
     val accountNumber: String,
+    val waitlistPosition: Int? = null,
 )
 
 @Serializable

@@ -701,4 +701,5 @@ object CsStrings : AppStrings {
     override val substitutesSectionTitle = "Náhradníci"
     override val waitlistCapacityLabel = "Max. náhradníků"
     override val substitutesCount = "Náhradníci"
+    override fun waitlistPositionLabel(position: Int) = "Jste na $position. místě v pořadníku"
 }

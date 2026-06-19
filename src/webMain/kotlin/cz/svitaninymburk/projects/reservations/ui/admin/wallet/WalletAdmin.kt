@@ -278,6 +278,7 @@ private fun IComponent.AdminWalletDetailPanel(
                         div(className = "relative flex items-center") {
                             numeric(value = adjustAmount, min = 0, className = "input input-bordered w-full pr-12") {
                                 onInput { adjustAmount = value }
+                                onChange { adjustAmount = value }
                             }
                             span(className = "absolute right-4 text-base-content/50 font-medium") {
                                 +currentStrings.currency

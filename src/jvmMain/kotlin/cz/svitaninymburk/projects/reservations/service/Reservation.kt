@@ -89,7 +89,15 @@ open class ReservationService(
             is Reference.Series -> eventSeriesRepository.get(ref.id)?.let { ReservationTarget.Series(it) }
         }
 
-        ReservationDetail(reservation, target, qrCodeService.accountNumber)
+        val waitlistPosition: Int? = if (reservation.status == Reservation.Status.WAITLISTED) {
+            val position = reservationRepository.findByReference(reservation.reference)
+                .filter { it.status == Reservation.Status.WAITLISTED }
+                .sortedBy { it.createdAt }
+                .indexOfFirst { it.id == reservation.id }
+            if (position >= 0) position + 1 else null
+        } else null
+
+        ReservationDetail(reservation, target, qrCodeService.accountNumber, waitlistPosition)
     }
 
 

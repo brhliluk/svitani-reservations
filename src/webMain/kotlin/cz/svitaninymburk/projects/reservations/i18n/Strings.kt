@@ -641,4 +641,5 @@ interface AppStrings : ErrorStrings {
     val substitutesSectionTitle: String
     val waitlistCapacityLabel: String
     val substitutesCount: String
+    fun waitlistPositionLabel(position: Int): String
 }

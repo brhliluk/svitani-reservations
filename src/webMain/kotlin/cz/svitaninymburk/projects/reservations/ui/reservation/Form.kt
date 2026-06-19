@@ -275,7 +275,12 @@ fun IComponent.ReservationModal(
                             }
                             text(value = seats.toString(), type = InputType.Number, className = "input input-bordered input-lg sm:input-md w-full") {
                                 onInput {
-                                    val typed = it.data?.toInt() ?: 1
+                                    val typed = this.value?.toIntOrNull() ?: 1
+                                    seats = typed.coerceIn(1, target.maxCapacity)
+                                    seatsExceeded = typed > target.maxCapacity
+                                }
+                                onChange {
+                                    val typed = this.value?.toIntOrNull() ?: 1
                                     seats = typed.coerceIn(1, target.maxCapacity)
                                     seatsExceeded = typed > target.maxCapacity
                                 }

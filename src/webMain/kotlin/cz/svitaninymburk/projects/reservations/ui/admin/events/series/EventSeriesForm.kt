@@ -80,7 +80,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
     var ownerEmails by remember { mutableStateOf(listOf("")) }
     var priceOverride by remember { mutableStateOf<Number?>(0) }
     var capacityOverride by remember { mutableIntStateOf(10) }
-    var waitlistCapacityOverride by remember { mutableIntStateOf(0) }
+    var waitlistCapacityOverride by remember { mutableIntStateOf(10) }
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
     var showAttendeeCount by remember { mutableStateOf(true) }
@@ -222,6 +222,7 @@ fun IComponent.AdminCreateEventSeriesScreen(preselectedDefinitionId: String? = n
                                 numeric(value = lessonCount, min = 1, decimals = 0, className = "input input-bordered w-full pr-16") {
                                     attribute("step", "1")
                                     onInput { lessonCount = value?.toInt() ?: 1 }
+                                    onChange { lessonCount = value?.toInt() ?: 1 }
                                 }
                                 span(className = "absolute right-4 text-base-content/50 text-sm") { +currentStrings.courseLessons }
                             }

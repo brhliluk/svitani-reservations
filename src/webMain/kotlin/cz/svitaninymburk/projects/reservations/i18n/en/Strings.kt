@@ -702,4 +702,5 @@ object EnStrings : AppStrings {
     override val substitutesSectionTitle = "Waitlist"
     override val waitlistCapacityLabel = "Max. substitutes"
     override val substitutesCount = "Substitutes"
+    override fun waitlistPositionLabel(position: Int) = "You are #$position on the waitlist"
 }

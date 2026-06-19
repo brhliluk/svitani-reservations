@@ -242,6 +242,7 @@ fun IComponent.ReservationDetailScreen(
                 reservation = state.detail.reservation,
                 target = state.detail.target,
                 accountNumber = state.detail.accountNumber,
+                waitlistPosition = state.detail.waitlistPosition,
                 onCancelReservation = {
                     dialogPaidAmount = state.detail.reservation.paidAmount
                     dialogStartDateTime = state.detail.target?.startDateTime
