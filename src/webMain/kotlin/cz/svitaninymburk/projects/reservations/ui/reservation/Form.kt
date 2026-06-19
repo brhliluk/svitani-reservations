@@ -104,7 +104,9 @@ fun IComponent.ReservationModal(
 
     if (target != null) {
         div(className = "modal modal-open modal-bottom sm:modal-middle bg-base-300/65 z-50") {
-            div(className = "modal-box bg-base-100 shadow-xl border border-base-200 max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl p-4 sm:p-6") {
+            div(className = "modal-box bg-base-100 shadow-xl border border-base-200 max-h-[92vh] overflow-hidden rounded-t-2xl sm:rounded-2xl flex flex-col p-0") {
+
+                div(className = "overflow-y-auto flex-1 p-4 sm:p-6") {
 
                 // --- HLAVIČKA ---
                 h3(className = "font-bold text-lg flex items-center gap-2") {
@@ -373,14 +375,33 @@ fun IComponent.ReservationModal(
                     +currentStrings.requiredFieldLegend
                 }
 
-                // --- AKCE (Footer) ---
-                div(className = "modal-action flex-col-reverse sm:flex-row gap-2") {
-                    button(className = "btn btn-ghost w-full sm:w-auto min-h-11") {
+                } // end scrollable content
+
+                // --- STICKY FOOTER ---
+                div(className = "flex-shrink-0 border-t border-base-200 bg-base-100 px-4 sm:px-6 py-3 flex items-center gap-3") {
+                    div(className = "flex-1 min-w-0") {
+                        val footerTotal = calculateTotalPrice(
+                            basePrice = target.price,
+                            seatCount = seats,
+                            customFields = target.customFields,
+                            customValues = customValuesState,
+                        )
+                        val footerWallet = walletInfo?.let { minOf(it.balance, footerTotal) } ?: 0.0
+                        val footerDisplay = footerTotal - footerWallet
+                        div(className = "text-xs text-base-content/60") {
+                            if (footerWallet > 0.0) +currentStrings.remainingToPay else +currentStrings.formTotalPrice
+                        }
+                        div(className = "font-semibold text-primary") {
+                            if (footerDisplay == 0.0) +currentStrings.free
+                            else +"${footerDisplay.toInt()} ${currentStrings.currency}"
+                        }
+                    }
+                    button(className = "btn btn-ghost min-h-10 h-10") {
                         disabled(isSubmitting)
                         onClick { if (!isSubmitting) onClose() }
                         +currentStrings.cancel
                     }
-                    button(className = "btn btn-primary px-8 w-full sm:w-auto min-h-11") {
+                    button(className = "btn btn-primary px-6 min-h-10 h-10") {
                         disabled(!isValid || isSubmitting)
                         onClick {
                             if (!isSubmitting) {
