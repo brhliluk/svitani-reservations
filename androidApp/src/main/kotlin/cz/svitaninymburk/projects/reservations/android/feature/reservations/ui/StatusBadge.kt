@@ -20,6 +20,7 @@ internal fun StatusBadge(status: Reservation.Status) {
         Reservation.Status.CONFIRMED -> Triple(stringResource(R.string.reservation_status_confirmed), colors.confirmedContainer, colors.confirmedContent)
         Reservation.Status.CANCELLED -> Triple(stringResource(R.string.reservation_status_cancelled), colors.neutralContainer, colors.neutralContent)
         Reservation.Status.REJECTED -> Triple(stringResource(R.string.reservation_status_rejected), colors.neutralContainer, colors.neutralContent)
+        Reservation.Status.WAITLISTED -> Triple(stringResource(R.string.reservation_status_waitlisted), colors.pendingContainer, colors.pendingContent)
     }
     Surface(
         shape = MaterialTheme.shapes.small,

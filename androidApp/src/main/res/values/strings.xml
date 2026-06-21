@@ -56,6 +56,7 @@
     <string name="reservation_status_confirmed">Potvrzena</string>
     <string name="reservation_status_cancelled">Zrušena</string>
     <string name="reservation_status_rejected">Zamítnuta</string>
+    <string name="reservation_status_waitlisted">Na čekací listině</string>
 
     <!-- Reservation detail -->
     <string name="reservation_seats">Počet míst</string>
