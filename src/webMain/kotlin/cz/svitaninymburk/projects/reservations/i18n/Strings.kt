@@ -5,7 +5,6 @@ import cz.svitaninymburk.projects.reservations.i18n.cs.CsStrings
 import cz.svitaninymburk.projects.reservations.i18n.en.EnStrings
 import web.navigator.navigator
 import kotlin.js.ExperimentalWasmJsInterop
-import kotlin.js.toList
 
 
 private val supportedLanguages = mapOf(
@@ -15,7 +14,8 @@ private val supportedLanguages = mapOf(
 
 @OptIn(ExperimentalWasmJsInterop::class)
 private fun resolveStrings(): AppStrings {
-    val languages = navigator.languages.toList().map { it.toString().substringBefore('-') }
+    val languages = (0 until navigator.languages.length)
+        .mapNotNull { navigator.languages[it]?.toString()?.substringBefore('-') }
     return supportedLanguages.firstNotNullOfOrNull { (key, value) -> languages.find { it == key }?.let { value } } ?: CsStrings
 }
 

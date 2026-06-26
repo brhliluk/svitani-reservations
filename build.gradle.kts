@@ -13,9 +13,8 @@ plugins {
     alias(libs.plugins.kilua)
     alias(libs.plugins.vite.kotlin)
     alias(libs.plugins.sentry)
-    alias(libs.plugins.android.library) apply false
     alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.android.kotlin.multiplatform.library) apply false
 }
 
 extra["mainClassName"] = "io.ktor.server.netty.EngineMain"
@@ -169,8 +168,7 @@ kotlin {
         }
     }
     compilerOptions {
-        freeCompilerArgs.add("-Xcontext-parameters")
-        optIn.addAll("kotlin.uuid.ExperimentalUuidApi", "kotlin.time.ExperimentalTime")
+        optIn.add("kotlin.uuid.ExperimentalUuidApi")
     }
 }
 

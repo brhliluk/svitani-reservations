@@ -7,9 +7,11 @@ import cz.svitaninymburk.projects.reservations.plugins.startWalletResetJobs
 import cz.svitaninymburk.projects.reservations.plugins.configureRouting
 import cz.svitaninymburk.projects.reservations.plugins.configureSecurity
 import cz.svitaninymburk.projects.reservations.plugins.configureSentry
-import dev.kilua.rpc.initRpc
+import dev.kilua.rpc.initRpcKoin
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.plugins.compression.*
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.websocket.*
 import kotlinx.coroutines.launch
 
@@ -17,11 +19,11 @@ import kotlinx.coroutines.launch
 fun Application.main() {
     install(Compression)
     install(WebSockets)
+    install(ContentNegotiation) {
+        json(AppJson)
+    }
     configureDatabases()
-    initRpc(
-        initStaticResources = true,
-        AppJson,
-    ) {
+    initRpcKoin(initContentNegotiation = false) {
         modules(appModule)
     }
     startPaymentCheck()

@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlinx.serialization)
 }
@@ -24,14 +23,13 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
         isCoreLibraryDesugaringEnabled = true
     }
-}
 
-kotlin {
-    compilerOptions.freeCompilerArgs.addAll(
-        "-Xexplicit-backing-fields",
-        "-opt-in=kotlin.uuid.ExperimentalUuidApi",
-        "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-    )
+    kotlin {
+        compilerOptions.freeCompilerArgs.addAll(
+            "-opt-in=kotlin.uuid.ExperimentalUuidApi",
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+        )
+    }
 }
 
 dependencies {

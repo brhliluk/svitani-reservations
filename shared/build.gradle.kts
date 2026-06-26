@@ -3,14 +3,18 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlinx.serialization)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.kotlin.multiplatform.library)
 }
 
 @OptIn(ExperimentalWasmDsl::class)
 kotlin {
     jvmToolchain(21)
 
-    androidTarget()
+    android {
+        namespace = "cz.svitaninymburk.projects.reservations.shared"
+        compileSdk = 36
+        minSdk = 29
+    }
 
     jvm()
     js(IR) {
@@ -32,17 +36,5 @@ kotlin {
                 implementation(libs.arrow.serialization)
             }
         }
-    }
-
-    compilerOptions {
-        optIn.addAll("kotlin.uuid.ExperimentalUuidApi", "kotlin.time.ExperimentalTime")
-    }
-}
-
-android {
-    namespace = "cz.svitaninymburk.projects.reservations.shared"
-    compileSdk = 36
-    defaultConfig {
-        minSdk = 29
     }
 }
