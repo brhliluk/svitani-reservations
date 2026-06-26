@@ -419,6 +419,8 @@ object EnStrings : AppStrings {
     override val tableHeaderPaymentStatus = "Payment status"
     override val tableHeaderActions = "Actions"
     override val noParticipants = "No registered participants yet."
+    override val addReservation = "Add reservation"
+    override val addSubstitute = "Add substitute"
     override val statusOnSiteBadge = "On-site"
     override val statusWaiting = "Waiting"
     override val paymentMethodCash = "Cash"

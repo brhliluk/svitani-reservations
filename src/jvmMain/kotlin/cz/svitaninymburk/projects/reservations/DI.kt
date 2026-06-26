@@ -37,6 +37,7 @@ import cz.svitaninymburk.projects.reservations.service.*
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
@@ -63,6 +64,11 @@ val appModule = module {
             }
             install(Logging) {
                 level = LogLevel.INFO
+            }
+            install(HttpTimeout) {
+                requestTimeoutMillis = 30_000
+                connectTimeoutMillis = 10_000
+                socketTimeoutMillis = 30_000
             }
         }
     }

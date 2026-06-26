@@ -435,6 +435,8 @@ interface AppStrings : ErrorStrings {
     val tableHeaderPaymentStatus: String
     val tableHeaderActions: String
     val noParticipants: String
+    val addReservation: String
+    val addSubstitute: String
     val statusOnSiteBadge: String
     val statusWaiting: String
     val paymentMethodCash: String

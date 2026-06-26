@@ -34,13 +34,13 @@ fun Application.startPaymentCheck() {
         while (isActive) {
             if (lastCheckTime.elapsedNow() > minInterval) {
                 paymentPairingService.checkAndPairPayments()
+                    .also { lastCheckTime = TimeSource.Monotonic.markNow() }
                     .onLeft { error ->
                         when (error) {
                             is PaymentPairingError.Upstream -> logger.error("Payment check failed", error.exception)
                             is PaymentPairingError.Failed -> logger.error("Payment check failed: ${error.message}")
                         }
                     }
-                    .onRight { lastCheckTime = TimeSource.Monotonic.markNow() }
             }
 
             val hasPending = reservationRepository.hasPendingReservations()

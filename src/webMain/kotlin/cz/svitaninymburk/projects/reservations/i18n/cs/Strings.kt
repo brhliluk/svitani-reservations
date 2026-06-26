@@ -419,6 +419,8 @@ object CsStrings : AppStrings {
     override val tableHeaderPaymentStatus = "Stav platby"
     override val tableHeaderActions = "Akce"
     override val noParticipants = "Zatím žádní přihlášení účastníci."
+    override val addReservation = "Přidat rezervaci"
+    override val addSubstitute = "Přidat náhradníka"
     override val statusOnSiteBadge = "Na místě"
     override val statusWaiting = "Čeká"
     override val paymentMethodCash = "Hotově"

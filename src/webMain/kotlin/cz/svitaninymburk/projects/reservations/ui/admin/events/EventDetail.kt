@@ -18,6 +18,10 @@ import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
+import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
+import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
+import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationModal
+import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormData
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.ReservationExpandedDetails
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
@@ -84,6 +88,72 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
         }
     }
     var cancelLessonPending by remember { mutableStateOf<EventInstance?>(null) }
+
+    var reservationTarget by remember { mutableStateOf<ReservationTarget?>(null) }
+    var isWaitlistSignup by remember { mutableStateOf(false) }
+    var isSubmittingReservation by remember { mutableStateOf(false) }
+    var isLoadingReservationTarget by remember { mutableStateOf(false) }
+
+    fun loadReservationTarget(asWaitlist: Boolean) {
+        isLoadingReservationTarget = true
+        scope.launch {
+            try {
+                val uuid = Uuid.parse(eventId)
+                val eventService = getService<EventServiceInterface>(RpcSerializersModules)
+                if (isSeries) {
+                    eventService.getSeriesDetail(uuid).onRight { detail ->
+                        reservationTarget = ReservationTarget.Series(detail.series)
+                        isWaitlistSignup = asWaitlist
+                    }.onLeft { error ->
+                        toastData = ToastData(error.localizedMessage(currentStrings), ToastType.Error)
+                    }
+                } else {
+                    eventService.getInstance(uuid).onRight { instance ->
+                        reservationTarget = ReservationTarget.Instance(instance)
+                        isWaitlistSignup = asWaitlist
+                    }.onLeft { error ->
+                        toastData = ToastData(error.localizedMessage(currentStrings), ToastType.Error)
+                    }
+                }
+            } catch (e: Exception) {
+                toastData = ToastData(e.message ?: "Error", ToastType.Error)
+            } finally {
+                isLoadingReservationTarget = false
+            }
+        }
+    }
+
+    suspend fun submitManualReservation(target: ReservationTarget, formData: ReservationFormData) {
+        isSubmittingReservation = true
+        val result = when {
+            formData.asWaitlist && target is ReservationTarget.Instance -> reservationService.joinWaitlistInstance(
+                request = formData.toCreateInstanceReservationRequest(target.id),
+                userId = null
+            )
+            formData.asWaitlist && target is ReservationTarget.Series -> reservationService.joinWaitlistSeries(
+                request = formData.toCreateSeriesReservationRequest(target.id),
+                userId = null
+            )
+            target is ReservationTarget.Instance -> reservationService.reserveInstance(
+                request = formData.toCreateInstanceReservationRequest(target.id),
+                userId = null
+            )
+            else -> reservationService.reserveSeries(
+                request = formData.toCreateSeriesReservationRequest((target as ReservationTarget.Series).id),
+                userId = null
+            )
+        }
+        isSubmittingReservation = false
+        result
+            .onRight {
+                toastData = ToastData(currentStrings.reservationCreated, ToastType.Success)
+                reservationTarget = null
+                refreshTrigger++
+            }
+            .onLeft { error ->
+                toastData = ToastData(error.localizedMessage(currentStrings), ToastType.Error)
+            }
+    }
 
     // Načítání dat z backendu
     val uiState by produceState<AdminEventDetailUiState>(initialValue = AdminEventDetailUiState.Loading, key1 = refreshTrigger) {
@@ -286,6 +356,36 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                 // --- 4. TABULKA ÚČASTNÍKŮ ---
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body p-0") {
+                        div(className = "px-4 pt-4 pb-2 flex flex-wrap items-center justify-between gap-2 border-b border-base-200") {
+                            div(className = "flex items-center gap-2") {
+                                span(className = "icon-[heroicons--users] size-5 text-primary")
+                                h2(className = "font-bold text-lg") { +currentStrings.tableHeaderParticipant }
+                            }
+                            div(className = "flex items-center gap-2") {
+                                button(className = "btn btn-primary btn-sm gap-2") {
+                                    disabled(isLoadingReservationTarget)
+                                    onClick { loadReservationTarget(asWaitlist = false) }
+                                    if (isLoadingReservationTarget && !isWaitlistSignup) {
+                                        span(className = "loading loading-spinner loading-xs")
+                                    } else {
+                                        span(className = "icon-[heroicons--plus] size-4")
+                                    }
+                                    +currentStrings.addReservation
+                                }
+                                if (data.waitlistCapacity > 0) {
+                                    button(className = "btn btn-secondary btn-sm gap-2") {
+                                        disabled(isLoadingReservationTarget)
+                                        onClick { loadReservationTarget(asWaitlist = true) }
+                                        if (isLoadingReservationTarget && isWaitlistSignup) {
+                                            span(className = "loading loading-spinner loading-xs")
+                                        } else {
+                                            span(className = "icon-[heroicons--plus] size-4")
+                                        }
+                                        +currentStrings.addSubstitute
+                                    }
+                                }
+                            }
+                        }
                         div(className = "overflow-x-auto") {
                             table(className = "table table-zebra w-full") {
                                 thead {
@@ -709,6 +809,15 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             }
         }
     }
+
+    ReservationModal(
+        target = reservationTarget,
+        user = null,
+        isSubmitting = isSubmittingReservation,
+        asWaitlist = isWaitlistSignup,
+        onClose = { reservationTarget = null; isWaitlistSignup = false },
+        onSubmit = { target, formData -> scope.launch { submitManualReservation(target, formData) } }
+    )
 
     Toast(
         message = toastData?.message,
