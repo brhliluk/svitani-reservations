@@ -11,6 +11,7 @@ import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.event.AddSeriesLessonRequest
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.UpdateEventInstanceRequest
 import cz.svitaninymburk.projects.reservations.i18n.strings
@@ -30,12 +31,18 @@ import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
+import dev.kilua.form.InputType
 import dev.kilua.form.check.checkBox
 import dev.kilua.form.form
+import dev.kilua.form.text.text
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import web.history.history
 import kotlin.uuid.Uuid
@@ -88,6 +95,12 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
         }
     }
     var cancelLessonPending by remember { mutableStateOf<EventInstance?>(null) }
+    var showAddLesson by remember { mutableStateOf(false) }
+    var addLessonDate by remember { mutableStateOf("") }
+    var addLessonStart by remember { mutableStateOf("") }
+    var addLessonEnd by remember { mutableStateOf("") }
+    var addLessonDropIn by remember { mutableStateOf(false) }
+    var isAddingLesson by remember { mutableStateOf(false) }
 
     var reservationTarget by remember { mutableStateOf<ReservationTarget?>(null) }
     var isWaitlistSignup by remember { mutableStateOf(false) }
@@ -265,9 +278,23 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                     val lessons = lessonsState
                     div(className = "card bg-base-100 shadow-sm") {
                         div(className = "card-body") {
-                            h2(className = "card-title text-lg mb-4") {
-                                span(className = "icon-[heroicons--calendar-days] size-5 text-secondary")
-                                +currentStrings.seriesLessonsHeading
+                            div(className = "flex items-center justify-between mb-4") {
+                                h2(className = "card-title text-lg") {
+                                    span(className = "icon-[heroicons--calendar-days] size-5 text-secondary")
+                                    +currentStrings.seriesLessonsHeading
+                                }
+                                button(className = "btn btn-primary btn-sm gap-2") {
+                                    onClick {
+                                        val last = lessonsState?.maxByOrNull { it.startDateTime }
+                                        addLessonDate = last?.startDateTime?.date?.plus(7, kotlinx.datetime.DateTimeUnit.DAY)?.toString() ?: ""
+                                        addLessonStart = last?.let { "${it.startDateTime.hour.toString().padStart(2, '0')}:${it.startDateTime.minute.toString().padStart(2, '0')}" } ?: ""
+                                        addLessonEnd = last?.let { "${it.endDateTime.hour.toString().padStart(2, '0')}:${it.endDateTime.minute.toString().padStart(2, '0')}" } ?: ""
+                                        addLessonDropIn = false
+                                        showAddLesson = true
+                                    }
+                                    span(className = "icon-[heroicons--plus] size-4")
+                                    +currentStrings.addLessonButton
+                                }
                             }
                             if (lessons == null) {
                                 div(className = "flex justify-center py-4") {
@@ -822,6 +849,75 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
         onClose = { reservationTarget = null; isWaitlistSignup = false },
         onSubmit = { target, formData -> scope.launch { submitManualReservation(target, formData) } }
     )
+
+    if (showAddLesson) {
+        div(className = "modal modal-open") {
+            div(className = "modal-box") {
+                h3(className = "font-bold text-lg mb-4") { +currentStrings.addLessonModalTitle }
+                div(className = "flex flex-col gap-3") {
+                    div(className = "form-control w-full") {
+                        label(className = "label") { span(className = "label-text") { +currentStrings.addLessonDateLabel } }
+                        text(value = addLessonDate, type = InputType.Date, className = "input input-bordered w-full") { onInput { addLessonDate = value ?: "" } }
+                    }
+                    div(className = "grid grid-cols-2 gap-3") {
+                        div(className = "form-control w-full") {
+                            label(className = "label") { span(className = "label-text") { +currentStrings.addLessonStartLabel } }
+                            text(value = addLessonStart, type = InputType.Time, className = "input input-bordered w-full") { onInput { addLessonStart = value ?: "" } }
+                        }
+                        div(className = "form-control w-full") {
+                            label(className = "label") { span(className = "label-text") { +currentStrings.addLessonEndLabel } }
+                            text(value = addLessonEnd, type = InputType.Time, className = "input input-bordered w-full") { onInput { addLessonEnd = value ?: "" } }
+                        }
+                    }
+                    label(className = "label cursor-pointer justify-start gap-2") {
+                        checkBox(value = addLessonDropIn, className = "checkbox checkbox-sm") { onClick { addLessonDropIn = this.value } }
+                        span(className = "label-text") { +currentStrings.addLessonDropInLabel }
+                    }
+                }
+                div(className = "modal-action") {
+                    button(className = "btn") { onClick { showAddLesson = false }; +currentStrings.cancel }
+                    button(className = "btn btn-primary") {
+                        disabled(isAddingLesson)
+                        onClick {
+                            val date = try { LocalDate.parse(addLessonDate) } catch (_: Exception) { null }
+                            val start = try { LocalTime.parse(addLessonStart) } catch (_: Exception) { null }
+                            val end = try { LocalTime.parse(addLessonEnd) } catch (_: Exception) { null }
+                            if (date == null || start == null || end == null || end <= start) {
+                                toastData = ToastData(currentStrings.addLessonInvalidDateTime, ToastType.Error)
+                                return@onClick
+                            }
+                            isAddingLesson = true
+                            scope.launch {
+                                try {
+                                    val uuid = Uuid.parse(eventId)
+                                    adminService.addSeriesLesson(
+                                        AddSeriesLessonRequest(
+                                            seriesId = uuid,
+                                            startDateTime = LocalDateTime(date, start),
+                                            endDateTime = LocalDateTime(date, end),
+                                            isDropIn = addLessonDropIn,
+                                        )
+                                    ).onRight {
+                                        showAddLesson = false
+                                        toastData = ToastData(currentStrings.toastLessonAdded, ToastType.Success)
+                                        lessonsRefreshTrigger++
+                                    }.onLeft { error ->
+                                        toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
+                                    }
+                                } catch (e: Exception) {
+                                    toastData = ToastData(e.message ?: "Error", ToastType.Error)
+                                } finally {
+                                    isAddingLesson = false
+                                }
+                            }
+                        }
+                        if (isAddingLesson) span(className = "loading loading-spinner loading-sm")
+                        +currentStrings.saveChanges
+                    }
+                }
+            }
+        }
+    }
 
     Toast(
         message = toastData?.message,

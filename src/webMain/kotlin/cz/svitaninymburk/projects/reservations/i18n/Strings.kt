@@ -417,6 +417,14 @@ interface AppStrings : ErrorStrings {
     fun cancelLessonModalBody(date: String): String
     val toastLessonCancelled: String
     val cancelLessonButton: String
+    val addLessonButton: String
+    val addLessonModalTitle: String
+    val addLessonDateLabel: String
+    val addLessonStartLabel: String
+    val addLessonEndLabel: String
+    val addLessonDropInLabel: String
+    val addLessonInvalidDateTime: String
+    val toastLessonAdded: String
     val lessonOptOut: String
     val lessonOptOutConfirmTitle: String
     val lessonOptOutConfirmBody: (date: String) -> String
