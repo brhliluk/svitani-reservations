@@ -14,6 +14,7 @@ import cz.svitaninymburk.projects.reservations.admin.PaymentEventsPage
 import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
 import cz.svitaninymburk.projects.reservations.admin.EventsPage
 import cz.svitaninymburk.projects.reservations.admin.SeriesInstancesPage
+import cz.svitaninymburk.projects.reservations.event.AddSeriesLessonRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventAndInstancesRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventAndSeriesRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
@@ -48,6 +49,7 @@ interface AdminServiceInterface {
     suspend fun updateEventDefinition(id: Uuid, request: UpdateEventDefinitionRequest): Either<AdminError.UpdateDefinition, Unit>
     suspend fun updateEventInstance(id: Uuid, request: UpdateEventInstanceRequest): Either<AdminError.UpdateEvent, Unit>
     suspend fun updateEventSeries(id: Uuid, request: UpdateEventSeriesRequest): Either<AdminError.UpdateSeries, Unit>
+    suspend fun addSeriesLesson(request: AddSeriesLessonRequest): Either<AdminError.AddLesson, Uuid>
     suspend fun setInstancePublished(id: Uuid, published: Boolean): Either<AdminError.UpdateEvent, Unit>
     suspend fun setSeriesPublished(id: Uuid, published: Boolean): Either<AdminError.UpdateSeries, Unit>
     suspend fun deleteEventDefinition(id: Uuid): Either<AdminError.DeleteDefinition, Unit>

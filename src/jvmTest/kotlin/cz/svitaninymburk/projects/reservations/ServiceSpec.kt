@@ -33,6 +33,7 @@ import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
 import cz.svitaninymburk.projects.reservations.admin.EventsPage
 import cz.svitaninymburk.projects.reservations.admin.SeriesInstancesPage
 import cz.svitaninymburk.projects.reservations.auth.BCryptHashingService
+import cz.svitaninymburk.projects.reservations.error.AdminError
 import cz.svitaninymburk.projects.reservations.error.EmailError
 import cz.svitaninymburk.projects.reservations.error.UserError
 import cz.svitaninymburk.projects.reservations.service.UserService
@@ -264,6 +265,58 @@ class AdminEditDeleteSpec {
         assertEquals("New Title", updated.title)
         assertEquals(600.0, updated.price)
         assertEquals(4, updated.occupiedSpots)
+    }
+
+    // --- addSeriesLesson ---
+
+    @Test
+    fun `addSeriesLesson creates instance inheriting series fields`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val series = makeSeries(def.id).copy(isPublished = true)
+        seriesRepo.create(series)
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        val result = service.addSeriesLesson(
+            AddSeriesLessonRequest(
+                seriesId = series.id,
+                startDateTime = LocalDateTime(2026, 6, 15, 9, 0),
+                endDateTime = LocalDateTime(2026, 6, 15, 10, 0),
+                isDropIn = true,
+            )
+        )
+
+        assertTrue(result.isRight())
+        val lessons = instanceRepo.findBySeries(series.id)
+        assertEquals(1, lessons.size)
+        val lesson = lessons.single()
+        assertEquals(series.id, lesson.seriesId)
+        assertEquals(series.definitionId, lesson.definitionId)
+        assertEquals(series.title, lesson.title)
+        assertEquals(series.price, lesson.price)
+        assertEquals(series.capacity, lesson.capacity)
+        assertEquals(series.isPublished, lesson.isPublished)
+        assertTrue(lesson.isDropIn)
+        assertEquals(LocalDateTime(2026, 6, 15, 9, 0), lesson.startDateTime)
+    }
+
+    @Test
+    fun `addSeriesLesson returns SeriesNotFoundForAddLesson when series missing`() = runBlocking {
+        val service = makeService()
+        val missingId = Uuid.random()
+
+        val result = service.addSeriesLesson(
+            AddSeriesLessonRequest(
+                seriesId = missingId,
+                startDateTime = LocalDateTime(2026, 6, 15, 9, 0),
+                endDateTime = LocalDateTime(2026, 6, 15, 10, 0),
+            )
+        )
+
+        assertEquals(AdminError.SeriesNotFoundForAddLesson(missingId), result.leftOrNull())
     }
 
     // --- updateEventDefinition with propagation ---

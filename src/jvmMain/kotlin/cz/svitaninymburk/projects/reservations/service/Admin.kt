@@ -26,6 +26,7 @@ import cz.svitaninymburk.projects.reservations.admin.AdminPendingReservation
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminUpcomingEvent
 import cz.svitaninymburk.projects.reservations.admin.AdminUserListItem
+import cz.svitaninymburk.projects.reservations.event.AddSeriesLessonRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventAndInstancesRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventAndSeriesRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
@@ -796,6 +797,38 @@ class AdminDashboardService(
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
             )
         )
+    }
+
+    override suspend fun addSeriesLesson(
+        request: cz.svitaninymburk.projects.reservations.event.AddSeriesLessonRequest,
+    ): Either<AdminError.AddLesson, Uuid> = either {
+        val series = ensureNotNull(eventSeriesRepository.get(request.seriesId)) {
+            AdminError.SeriesNotFoundForAddLesson(request.seriesId)
+        }
+        try {
+            val instance = EventInstance(
+                id = Uuid.random(),
+                definitionId = series.definitionId,
+                seriesId = series.id,
+                title = series.title,
+                description = series.description,
+                startDateTime = request.startDateTime,
+                endDateTime = request.endDateTime,
+                price = series.price,
+                capacity = series.capacity,
+                allowedPaymentTypes = series.allowedPaymentTypes,
+                customFields = series.customFields,
+                isDropIn = request.isDropIn,
+                ownerEmails = series.ownerEmails,
+                showAttendeeCount = series.showAttendeeCount,
+                isPublished = series.isPublished,
+            )
+            eventInstanceRepository.create(instance)
+            instance.id
+        } catch (e: Exception) {
+            e.printStackTrace()
+            raise(AdminError.FailedToAddLesson("Nepodařilo se přidat lekci: ${e.message}"))
+        }
     }
 
     override suspend fun updateEventDefinition(id: Uuid, request: cz.svitaninymburk.projects.reservations.event.UpdateEventDefinitionRequest): Either<AdminError.UpdateDefinition, Unit> = either {

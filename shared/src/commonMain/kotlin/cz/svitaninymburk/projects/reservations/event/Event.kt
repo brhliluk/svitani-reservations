@@ -174,6 +174,14 @@ data class LessonConfig(
 )
 
 @Serializable
+data class AddSeriesLessonRequest(
+    val seriesId: Uuid,
+    val startDateTime: LocalDateTime,
+    val endDateTime: LocalDateTime,
+    val isDropIn: Boolean = false,
+)
+
+@Serializable
 data class CreateEventSeriesRequest(
     val definitionId: Uuid,
     val title: String,
