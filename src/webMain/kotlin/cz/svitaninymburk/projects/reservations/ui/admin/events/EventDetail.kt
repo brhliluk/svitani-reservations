@@ -821,6 +821,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                     .onRight {
                                         toastData = ToastData(currentStrings.toastLessonCancelled, ToastType.Success)
                                         lessonsRefreshTrigger++
+                                        refreshTrigger++
                                         isCancelLessonLoading = false
                                         cancelLessonPending = null
                                     }
@@ -901,6 +902,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                         showAddLesson = false
                                         toastData = ToastData(currentStrings.toastLessonAdded, ToastType.Success)
                                         lessonsRefreshTrigger++
+                                        refreshTrigger++
                                     }.onLeft { error ->
                                         toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
                                     }
