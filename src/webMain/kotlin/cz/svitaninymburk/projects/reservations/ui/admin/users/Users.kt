@@ -338,7 +338,7 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
                 }
             }
             form(className = "modal-backdrop") {
-                button { onClick { pendingAction = null }; +"close" }
+                button { onClick { pendingAction = null }; +currentStrings.close }
             }
         }
     }

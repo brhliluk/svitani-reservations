@@ -378,7 +378,7 @@ fun IComponent.AdminReservationsScreen() {
                 }
             }
             form(className = "modal-backdrop") {
-                button { onClick { pendingAction = null }; +"close" }
+                button { onClick { pendingAction = null }; +currentStrings.close }
             }
         }
     }

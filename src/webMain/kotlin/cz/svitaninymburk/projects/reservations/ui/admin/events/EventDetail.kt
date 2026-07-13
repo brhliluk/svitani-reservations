@@ -839,7 +839,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                 }
             }
             form(className = "modal-backdrop") {
-                button { onClick { cancelLessonPending = null }; +"close" }
+                button { onClick { cancelLessonPending = null }; +currentStrings.close }
             }
         }
     }
