@@ -104,12 +104,14 @@ class ReservationFormViewModel(
 
     fun load() {
         uiState.update { it.copy(isLoading = true, loadError = null) }
-        authRepository.getUser()?.let { user ->
-            uiState.update {
-                it.copy(
-                    contactName = it.contactName.ifBlank { user.fullName },
-                    contactEmail = it.contactEmail.ifBlank { user.email },
-                )
+        viewModelScope.launch {
+            authRepository.getUser()?.let { user ->
+                uiState.update {
+                    it.copy(
+                        contactName = it.contactName.ifBlank { user.fullName },
+                        contactEmail = it.contactEmail.ifBlank { user.email },
+                    )
+                }
             }
         }
         viewModelScope.launch {

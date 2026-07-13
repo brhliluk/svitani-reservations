@@ -1,7 +1,16 @@
 package cz.svitaninymburk.projects.reservations.android
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -19,8 +28,17 @@ import org.koin.compose.koinInject
 @Composable
 fun App() {
     val authRepository: AuthRepository = koinInject()
-    val startEntry: NavKey = remember { if (authRepository.hasToken()) MainEntry else LoginEntry }
-    val backStack = rememberNavBackStack(startEntry)
+    var startEntry by remember { mutableStateOf<NavKey?>(null) }
+
+    LaunchedEffect(authRepository) { startEntry = if (authRepository.hasToken()) MainEntry else LoginEntry }
+
+    val currentStartEntry = startEntry
+    if (currentStartEntry == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        return
+    }
+
+    val backStack = rememberNavBackStack(currentStartEntry)
 
     SvitaniTheme {
         NavDisplay(

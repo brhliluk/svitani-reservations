@@ -1,7 +1,7 @@
 package cz.svitaninymburk.projects.reservations.android.repository
 
-import android.content.SharedPreferences
 import cz.svitaninymburk.projects.reservations.android.error.RepositoryError
+import cz.svitaninymburk.projects.reservations.android.repository.auth.AuthLocalDataSource
 import cz.svitaninymburk.projects.reservations.android.repository.reservation.ReservationsRepositoryImpl
 import cz.svitaninymburk.projects.reservations.api.ApiError
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
@@ -66,7 +66,7 @@ class ReservationsRepositoryCreateTest {
     }
 
     private fun repo(handler: MockRequestHandler) =
-        ReservationsRepositoryImpl(client(handler), FakePrefs())
+        ReservationsRepositoryImpl(client(handler), FakeAuthLocalDataSource())
 
     @Test
     fun `createInstanceReservation posts request with bearer token and parses reservation`() = runTest {
@@ -138,19 +138,11 @@ class ReservationsRepositoryCreateTest {
     }
 }
 
-/** SharedPreferences je interface — čistě kotlinová fake, žádné Robolectric. */
-private class FakePrefs : SharedPreferences {
-    override fun getString(key: String?, defValue: String?): String? =
-        if (key == "access_token") "token" else defValue
-    override fun getAll(): MutableMap<String, *> = throw UnsupportedOperationException()
-    override fun getStringSet(key: String?, defValues: MutableSet<String>?): MutableSet<String>? =
-        throw UnsupportedOperationException()
-    override fun getInt(key: String?, defValue: Int): Int = defValue
-    override fun getLong(key: String?, defValue: Long): Long = defValue
-    override fun getFloat(key: String?, defValue: Float): Float = defValue
-    override fun getBoolean(key: String?, defValue: Boolean): Boolean = defValue
-    override fun contains(key: String?): Boolean = key == "access_token"
-    override fun edit(): SharedPreferences.Editor = throw UnsupportedOperationException()
-    override fun registerOnSharedPreferenceChangeListener(l: SharedPreferences.OnSharedPreferenceChangeListener?) = Unit
-    override fun unregisterOnSharedPreferenceChangeListener(l: SharedPreferences.OnSharedPreferenceChangeListener?) = Unit
+/** FakeAuthLocalDataSource je interface — čistě kotlinová fake. */
+private class FakeAuthLocalDataSource : AuthLocalDataSource {
+    override suspend fun getAccessToken(): String? = "token"
+    override suspend fun getRefreshToken(): String? = null
+    override suspend fun getUserJson(): String? = null
+    override suspend fun saveAuth(accessToken: String, refreshToken: String, userJson: String) {}
+    override suspend fun clearAuth() {}
 }

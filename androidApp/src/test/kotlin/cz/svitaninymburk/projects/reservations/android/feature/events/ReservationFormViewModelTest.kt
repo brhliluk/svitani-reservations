@@ -491,7 +491,7 @@ private class FakeWalletRepository(
 
 private class FakeAuthRepository(private val user: UserDto?) : AuthRepository {
     override suspend fun login(email: String, password: String) = throw UnsupportedOperationException()
-    override fun hasToken() = true
-    override fun clearTokens() = Unit
-    override fun getUser() = user
+    override suspend fun hasToken() = true
+    override suspend fun clearTokens() = Unit
+    override suspend fun getUser() = user
 }

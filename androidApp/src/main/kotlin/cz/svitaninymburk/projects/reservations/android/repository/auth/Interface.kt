@@ -7,7 +7,7 @@ import cz.svitaninymburk.projects.reservations.auth.UserDto
 
 interface AuthRepository {
     suspend fun login(email: String, password: String): Either<RepositoryError, AuthResponse>
-    fun hasToken(): Boolean
-    fun clearTokens()
-    fun getUser(): UserDto?
+    suspend fun hasToken(): Boolean
+    suspend fun clearTokens()
+    suspend fun getUser(): UserDto?
 }

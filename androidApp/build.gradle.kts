@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "cz.svitaninymburk.projects.reservations.android"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "cz.svitaninymburk.projects.reservations"
         minSdk = 29
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
     }
@@ -39,6 +39,7 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
+    implementation(libs.compose.material.icons)
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
     implementation(libs.activity.compose)
@@ -67,8 +68,9 @@ dependencies {
     // QR Code
     implementation(libs.qrCode)
 
-    // EncryptedSharedPreferences
-    implementation(libs.security.crypto)
+    // Encrypted DataStore (replaces deprecated EncryptedSharedPreferences)
+    implementation(libs.datastore.tink)
+    implementation(libs.tink.android)
 
     // Kotlinx DateTime (for LocalDateTime formatting in UI)
     implementation(libs.kotlinx.datetime)
@@ -76,7 +78,7 @@ dependencies {
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     // Tests
-    testImplementation(kotlin("test"))
+    testImplementation(kotlin("test-junit"))
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.kotlinx.datetime)
     testImplementation(libs.ktor.client.mock)

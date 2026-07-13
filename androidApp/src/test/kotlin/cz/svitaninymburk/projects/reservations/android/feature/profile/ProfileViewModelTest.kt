@@ -55,10 +55,11 @@ class ProfileViewModelTest {
     }
 
     @Test
-    fun `logout clears auth tokens`() {
+    fun `logout clears auth tokens`() = runTest {
         val authRepo = FakeAuthRepository()
         val vm = ProfileViewModel(authRepo, FakeWalletRepository())
         vm.logout()
+        advanceUntilIdle()
         assertTrue(authRepo.tokensCleared)
     }
 
@@ -82,9 +83,9 @@ private class FakeAuthRepository : AuthRepository {
     var tokensCleared = false
     override suspend fun login(email: String, password: String): Either<RepositoryError, AuthResponse> =
         throw UnsupportedOperationException()
-    override fun hasToken() = true
-    override fun clearTokens() { tokensCleared = true }
-    override fun getUser() = null
+    override suspend fun hasToken() = true
+    override suspend fun clearTokens() { tokensCleared = true }
+    override suspend fun getUser() = null
 }
 
 private class FakeWalletRepository(

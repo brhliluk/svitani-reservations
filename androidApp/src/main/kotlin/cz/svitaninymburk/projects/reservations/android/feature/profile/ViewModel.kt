@@ -25,9 +25,19 @@ class ProfileViewModel(
 ) : ViewModel() {
 
     val uiState: StateFlow<ProfileUiState>
-        field = MutableStateFlow(ProfileUiState(user = authRepository.getUser()))
+        field = MutableStateFlow(ProfileUiState())
 
-    init { loadWallet() }
+    init {
+        loadUserAndWallet()
+    }
+
+    private fun loadUserAndWallet() {
+        viewModelScope.launch {
+            val user = authRepository.getUser()
+            uiState.update { it.copy(user = user) }
+        }
+        loadWallet()
+    }
 
     fun loadWallet() {
         uiState.update { it.copy(isLoading = true, error = null) }
@@ -39,6 +49,8 @@ class ProfileViewModel(
     }
 
     fun logout() {
-        authRepository.clearTokens()
+        viewModelScope.launch {
+            authRepository.clearTokens()
+        }
     }
 }

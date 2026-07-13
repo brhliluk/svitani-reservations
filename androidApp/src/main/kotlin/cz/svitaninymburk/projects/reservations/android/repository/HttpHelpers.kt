@@ -1,6 +1,5 @@
 package cz.svitaninymburk.projects.reservations.android.repository
 
-import android.content.SharedPreferences
 import arrow.core.Either
 import arrow.core.Either.Companion.catch
 import arrow.core.getOrElse
@@ -24,9 +23,7 @@ import io.ktor.http.isSuccess
  * mapping and body parsing — so each repository method is a one-line delegation.
  */
 
-/** The stored bearer access token, or null when the user is not signed in. */
-internal val SharedPreferences.accessToken: String?
-    get() = getString("access_token", null)
+
 
 /** Authenticated GET that parses the JSON response into [T]. */
 internal suspend inline fun <reified T> HttpClient.authGet(

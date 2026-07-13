@@ -73,9 +73,9 @@ private class FakeAuthRepository(
     private val loginResult: Either<RepositoryError, AuthResponse> = Either.Right(fakeAuthResponse()),
 ) : AuthRepository {
     override suspend fun login(email: String, password: String) = loginResult
-    override fun hasToken() = false
-    override fun clearTokens() {}
-    override fun getUser() = null
+    override suspend fun hasToken() = false
+    override suspend fun clearTokens() {}
+    override suspend fun getUser() = null
 }
 
 private fun fakeAuthResponse() = AuthResponse(
