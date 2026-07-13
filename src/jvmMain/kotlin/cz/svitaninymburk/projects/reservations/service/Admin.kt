@@ -190,7 +190,8 @@ class AdminDashboardService(
         if (isSeries) {
             val series = ensureNotNull(eventSeriesRepository.get(eventId)) { AdminError.EventSeriesNotFound(eventId) }
             title = series.title
-            subtitle = "Kurz (${series.lessonCount} lekcí) • Od ${series.startDate}"
+            val derivedLessonCount = eventInstanceRepository.countBySeries(eventId).toInt()
+            subtitle = "Kurz ($derivedLessonCount lekcí) • Od ${series.startDate}"
             capacity = series.capacity
             occupiedSpots = series.occupiedSpots
             waitlistCapacity = series.waitlistCapacity
@@ -347,6 +348,12 @@ class AdminDashboardService(
             ) { count, defs -> count to defs }
             val definitionIds = definitions.map { it.id }.toSet()
 
+            // lessonCount must reflect actual instances (including cancelled), not the stale stored value.
+            val seriesLessonCount: Map<Uuid, Int> = allInstances
+                .filter { it.seriesId != null }
+                .groupBy { it.seriesId!! }
+                .mapValues { (_, insts) -> insts.size }
+
             val seriesDtos = allSeries
                 .filter { it.definitionId in definitionIds && (includePast || !isSeriesPast(it)) }
                 .map { s ->
@@ -355,7 +362,7 @@ class AdminDashboardService(
                         definitionId = s.definitionId,
                         title = s.title,
                         isSeries = true,
-                        dateInfo = "Od ${s.startDate.humanReadable} (${s.lessonCount} lekcí)",
+                        dateInfo = "Od ${s.startDate.humanReadable} (${seriesLessonCount[s.id] ?: 0} lekcí)",
                         capacity = s.capacity,
                         occupiedSpots = s.occupiedSpots,
                         priceString = "${s.price} Kč",
@@ -720,7 +727,8 @@ class AdminDashboardService(
     }
 
     override suspend fun getEventSeriesForEdit(id: Uuid): Either<AdminError.GetEditData, EventSeries> = either {
-        ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
+        val series = ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
+        series.copy(lessonCount = eventInstanceRepository.countBySeries(id).toInt())
     }
 
     override suspend fun updateEventInstance(id: Uuid, request: cz.svitaninymburk.projects.reservations.event.UpdateEventInstanceRequest): Either<AdminError.UpdateEvent, Unit> = either {

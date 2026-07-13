@@ -92,7 +92,8 @@ class EventServiceDetailSpec {
         val result = service.getSeriesDetail(series.id)
 
         val detail: SeriesDetailResponse? = result.getOrNull()
-        assertEquals(series, detail?.series)
+        assertEquals(series.copy(lessonCount = 2), detail?.series)
+        assertEquals(2, detail?.series?.lessonCount)
         assertEquals(listOf(earlier, later), detail?.lessons)
         assertTrue(detail?.lessons?.none { it.id == unrelated.id } == true)
     }
@@ -106,8 +107,24 @@ class EventServiceDetailSpec {
 
         val result = service.getSeriesDetail(series.id)
 
-        assertEquals(series, result.getOrNull()?.series)
+        assertEquals(series.copy(lessonCount = 0), result.getOrNull()?.series)
         assertEquals(emptyList(), result.getOrNull()?.lessons)
+    }
+
+    @Test
+    fun `getSeriesDetail derives lessonCount from instances including cancelled`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val series = makeSeries() // stored lessonCount = 10
+        seriesRepo.create(series)
+        instanceRepo.create(makeInstance(seriesId = series.id, start = LocalDateTime(2027, 9, 8, 9, 0), end = LocalDateTime(2027, 9, 8, 10, 0)))
+        instanceRepo.create(makeInstance(seriesId = series.id, start = LocalDateTime(2027, 9, 15, 9, 0), end = LocalDateTime(2027, 9, 15, 10, 0)))
+        instanceRepo.create(makeInstance(seriesId = series.id, start = LocalDateTime(2027, 9, 22, 9, 0), end = LocalDateTime(2027, 9, 22, 10, 0)).copy(isCancelled = true))
+        val service = makeService(instanceRepo = instanceRepo, seriesRepo = seriesRepo)
+
+        val result = service.getSeriesDetail(series.id)
+
+        assertEquals(3, result.getOrNull()?.series?.lessonCount)
     }
 
     @Test

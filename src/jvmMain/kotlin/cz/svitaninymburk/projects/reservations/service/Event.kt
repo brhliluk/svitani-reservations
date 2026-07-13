@@ -121,7 +121,14 @@ class EventService(
             val definitions = definitions.getOrElse { raise(EventError.FailedToGetDefinitions) }
                 .filter { def -> instances.any { it.definitionId == def.id } || series.any { it.definitionId == def.id } }
 
-            DashboardData(instances, series, definitions)
+            // lessonCount must reflect actual instances (including cancelled), not the stale stored value.
+            val lessonCountBySeries = eventInstanceRepository.getAll(null)
+                .filter { it.seriesId != null }
+                .groupBy { it.seriesId!! }
+                .mapValues { (_, insts) -> insts.size }
+            val seriesWithLessonCount = series.map { it.copy(lessonCount = lessonCountBySeries[it.id] ?: 0) }
+
+            DashboardData(instances, seriesWithLessonCount, definitions)
         }
     }
 
@@ -151,6 +158,6 @@ class EventService(
             ensure(series.isPublished) { EventError.EventSeriesNotFound(id.toString()) }
         }
         val lessons = eventInstanceRepository.findBySeries(id).sortedBy { it.startDateTime }
-        SeriesDetailResponse(series, lessons)
+        SeriesDetailResponse(series.copy(lessonCount = lessons.size), lessons)
     }
 }
