@@ -83,4 +83,19 @@ class EventVisibilitySpec {
         assertEquals(1, data.instances.size)
         assertEquals(1, data.series.size)
     }
+
+    @Test
+    fun `getDashboardData derives series lessonCount from instances including cancelled`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val theSeries = series(published = true) // stored lessonCount = 5
+        seriesRepo.create(theSeries)
+        instanceRepo.create(instance(published = true).copy(seriesId = theSeries.id))
+        instanceRepo.create(instance(published = true).copy(seriesId = theSeries.id))
+        instanceRepo.create(instance(published = true).copy(seriesId = theSeries.id, isCancelled = true))
+
+        val data = service(instanceRepo, seriesRepo).getDashboardData().getOrNull()!!
+
+        assertEquals(3, data.series.single { it.id == theSeries.id }.lessonCount)
+    }
 }

@@ -134,4 +134,25 @@ class AdminEventsPastFilterSpec {
         val page = svc.getAllEvents(0, 20, includePast = false).getOrNull()!!
         assertEquals(1, page.items.count { it.isDefinitionOnly })
     }
+
+    @Test
+    fun `getAllEvents dateInfo reflects derived lessonCount, not the stale stored value`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val defId = Uuid.random()
+        defRepo.create(definition(defId))
+        val theSeries = series(defId, futureStart.date, futureEnd.date) // stored lessonCount = 5
+        seriesRepo.create(theSeries)
+        instanceRepo.create(instance(defId, futureStart, futureEnd).copy(seriesId = theSeries.id))
+        instanceRepo.create(instance(defId, futureStart, futureEnd).copy(seriesId = theSeries.id))
+        instanceRepo.create(instance(defId, futureStart, futureEnd).copy(seriesId = theSeries.id, isCancelled = true))
+        val svc = service(defRepo, instanceRepo, seriesRepo)
+
+        val page = svc.getAllEvents(0, 20, includePast = false).getOrNull()!!
+        val seriesItem = page.items.first { it.isSeries }
+
+        assertTrue(seriesItem.dateInfo.contains("3 lekcí"), "dateInfo was: ${seriesItem.dateInfo}")
+        assertFalse(seriesItem.dateInfo.contains("5 lekcí"), "dateInfo should not contain the stale stored count: ${seriesItem.dateInfo}")
+    }
 }

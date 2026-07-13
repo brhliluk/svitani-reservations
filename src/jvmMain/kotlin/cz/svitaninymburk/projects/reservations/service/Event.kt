@@ -108,11 +108,12 @@ class EventService(
         val today = now.date
 
         parZip(
-            { getAllInstances() },
+            { eventInstanceRepository.getAll(null) },
             { getAllSeries() },
             { getAllDefinitions() }
-        ) { instances, series, definitions ->
-            val instances = instances.getOrElse { raise(EventError.FailedToGetInstances) }
+        ) { allInstances, series, definitions ->
+            val instances = allInstances
+                .filter { it.isPublished }
                 .filter { it.endDateTime > now && (it.seriesId == null || it.isDropIn) }
                 .sortedBy { it.startDateTime }
             val series = series.getOrElse { raise(EventError.FailedToGetSeries) }
@@ -122,7 +123,7 @@ class EventService(
                 .filter { def -> instances.any { it.definitionId == def.id } || series.any { it.definitionId == def.id } }
 
             // lessonCount must reflect actual instances (including cancelled), not the stale stored value.
-            val lessonCountBySeries = eventInstanceRepository.getAll(null)
+            val lessonCountBySeries = allInstances
                 .filter { it.seriesId != null }
                 .groupBy { it.seriesId!! }
                 .mapValues { (_, insts) -> insts.size }

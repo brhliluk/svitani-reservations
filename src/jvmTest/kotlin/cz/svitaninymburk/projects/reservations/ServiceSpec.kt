@@ -188,6 +188,48 @@ class AdminEditDeleteSpec {
         assertTrue(result.isLeft())
     }
 
+    @Test
+    fun `getEventSeriesForEdit derives lessonCount from instances including cancelled`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val series = makeSeries(def.id) // stored lessonCount = 8
+        seriesRepo.create(series)
+        instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id))
+        instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id))
+        instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id, isCancelled = true))
+        val result = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+            .getEventSeriesForEdit(series.id)
+
+        assertEquals(3, result.getOrNull()?.lessonCount)
+    }
+
+    // --- get event detail ---
+
+    @Test
+    fun `getEventDetail subtitle uses derived lessonCount, not the stale stored value`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val series = makeSeries(def.id) // stored lessonCount = 8
+        seriesRepo.create(series)
+        instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id))
+        instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id))
+        instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id, isCancelled = true))
+        val result = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+            .getEventDetail(series.id, isSeries = true)
+
+        assertTrue(result.isRight())
+        val subtitle = result.getOrNull()?.subtitle
+        assertNotNull(subtitle)
+        assertContains(subtitle, "3 lekcí")
+        assertTrue(!subtitle.contains("8 lekcí"), "subtitle should not contain the stale stored count: $subtitle")
+    }
+
     // --- updateEventInstance ---
 
     @Test
