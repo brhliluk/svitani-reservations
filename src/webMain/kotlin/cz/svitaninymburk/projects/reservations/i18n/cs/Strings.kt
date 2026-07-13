@@ -391,6 +391,8 @@ object CsStrings : AppStrings {
     override fun lessonPreviewHeading(count: Int) = "Termíny ($count)"
     override val lessonDateEditHint = "Datum lze upravit kliknutím"
     override val lessonIndividualLabel = "Lze individuálně"
+    override val lessonIndividualOn = "Ano"
+    override val lessonIndividualOff = "Ne"
     override val lessonIndividualTooltip = "Lekce bude dostupná k individuální rezervaci i bez přihlášení do celého kurzu"
     override val lessonIndividualBulkTooltip = "Zaškrtnutím všech povolíte individuální rezervaci každé lekce"
     override val lessonActiveBadge = "Aktivní"

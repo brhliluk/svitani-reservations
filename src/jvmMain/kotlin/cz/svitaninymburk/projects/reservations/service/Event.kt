@@ -116,7 +116,17 @@ class EventService(
                 .filter { it.isPublished }
                 .filter { it.endDateTime > now && (it.seriesId == null || it.isDropIn) }
                 .sortedBy { it.startDateTime }
+            // The displayed course date range must follow the actual lessons, not the
+            // (freely editable, sometimes stale) stored start/end dates on the series.
+            val lessonRangeBySeries = allInstances
+                .filter { it.seriesId != null }
+                .groupBy { it.seriesId!! }
+                .mapValues { (_, insts) -> insts.minOf { it.startDateTime.date } to insts.maxOf { it.startDateTime.date } }
             val series = series.getOrElse { raise(EventError.FailedToGetSeries) }
+                .map { s ->
+                    val range = lessonRangeBySeries[s.id]
+                    if (range != null) s.copy(startDate = range.first, endDate = range.second) else s
+                }
                 .filter { it.endDate >= today }
                 .sortedBy { it.startDate }
             val definitions = definitions.getOrElse { raise(EventError.FailedToGetDefinitions) }

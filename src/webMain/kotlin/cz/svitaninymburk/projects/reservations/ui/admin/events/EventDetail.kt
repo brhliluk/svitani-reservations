@@ -334,7 +334,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                                                 if (togglingDropInId == lesson.id) {
                                                                     span(className = "loading loading-spinner loading-xs")
                                                                 } else {
-                                                                    if (lesson.isDropIn) +" On" else +" Off"
+                                                                    if (lesson.isDropIn) +" ${currentStrings.lessonIndividualOn}" else +" ${currentStrings.lessonIndividualOff}"
                                                                 }
                                                                 onClick {
                                                                     togglingDropInId = lesson.id
@@ -352,7 +352,9 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                                                                                 customFields = lesson.customFields,
                                                                                 isDropIn = !lesson.isDropIn,
                                                                             )
-                                                                        )
+                                                                        ).onLeft { error ->
+                                                                            toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
+                                                                        }
                                                                         lessonsRefreshTrigger++
                                                                         togglingDropInId = null
                                                                     }

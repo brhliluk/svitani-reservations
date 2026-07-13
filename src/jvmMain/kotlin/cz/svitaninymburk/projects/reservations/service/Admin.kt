@@ -178,6 +178,12 @@ class AdminDashboardService(
             .onLeft { captureEmailError(logger, "Failed to send payment-received email for reservation ${reservation.id}: $it") }
     }
 
+    // The course's displayed start date must follow its actual lessons, not the stored
+    // (freely editable, sometimes stale) series.startDate. Returns the first lesson's date,
+    // falling back to the stored value when the series has no instances.
+    private suspend fun seriesDisplayStartDate(seriesId: Uuid, fallback: LocalDate): LocalDate =
+        eventInstanceRepository.findBySeries(seriesId).minOfOrNull { it.startDateTime.date } ?: fallback
+
     override suspend fun getEventDetail(eventId: Uuid, isSeries: Boolean): Either<AdminError.GetEventDetail, AdminEventDetailData> = either {
         val title: String
         val subtitle: String
@@ -271,6 +277,11 @@ class AdminDashboardService(
                 { eventSeriesRepository.getAll(seriesIds).associateBy { it.id } },
             ) { i, s -> i to s }
 
+            // Displayed course date follows the actual first lesson, not the stored series.startDate.
+            val seriesLessonStart: Map<Uuid, LocalDate> = seriesIds.distinct().mapNotNull { sid ->
+                eventInstanceRepository.findBySeries(sid).minOfOrNull { it.startDateTime.date }?.let { sid to it }
+            }.toMap()
+
             val items = reservations.map { res ->
                 var eventTitle = "Neznámá událost"
                 var eventDate = ""
@@ -284,7 +295,7 @@ class AdminDashboardService(
                     }
                     is Reference.Series -> seriesById[ref.id]?.let { series ->
                         eventTitle = series.title
-                        eventDate = "Kurz (od ${series.startDate})"
+                        eventDate = "Kurz (od ${seriesLessonStart[ref.id] ?: series.startDate})"
                         customFields = series.customFields
                     }
                 }
@@ -354,6 +365,12 @@ class AdminDashboardService(
                 .groupBy { it.seriesId!! }
                 .mapValues { (_, insts) -> insts.size }
 
+            // Displayed course date follows the actual first lesson, not the stored series.startDate.
+            val seriesLessonStart: Map<Uuid, LocalDate> = allInstances
+                .filter { it.seriesId != null }
+                .groupBy { it.seriesId!! }
+                .mapValues { (_, insts) -> insts.minOf { it.startDateTime.date } }
+
             val seriesDtos = allSeries
                 .filter { it.definitionId in definitionIds && (includePast || !isSeriesPast(it)) }
                 .map { s ->
@@ -362,7 +379,7 @@ class AdminDashboardService(
                         definitionId = s.definitionId,
                         title = s.title,
                         isSeries = true,
-                        dateInfo = "Od ${s.startDate.humanReadable} (${seriesLessonCount[s.id] ?: 0} lekcí)",
+                        dateInfo = "Od ${(seriesLessonStart[s.id] ?: s.startDate).humanReadable} (${seriesLessonCount[s.id] ?: 0} lekcí)",
                         capacity = s.capacity,
                         occupiedSpots = s.occupiedSpots,
                         priceString = "${s.price} Kč",
@@ -746,6 +763,7 @@ class AdminDashboardService(
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
                 ownerEmails = request.ownerEmails,
+                isDropIn = request.isDropIn,
                 showAttendeeCount = request.showAttendeeCount,
                 reservationDeadline = request.reservationDeadline,
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
@@ -930,6 +948,26 @@ class AdminDashboardService(
                     }
                 }
             }
+
+        // Delete the series' lesson instances so they aren't left orphaned in the DB.
+        // Cancel/refund any per-lesson (drop-in) reservations that reference an instance directly.
+        eventInstanceRepository.findBySeries(id).forEach { instance ->
+            reservationRepository.findByReference(Reference.Instance(instance.id))
+                .filter { it.status != Reservation.Status.CANCELLED }
+                .forEach { res ->
+                    reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
+                    emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
+                        .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                    if (refund && res.paidAmount > 0.0) {
+                        try {
+                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                        } catch (e: Exception) {
+                            logger.error("Failed to refund reservation ${res.id}", e)
+                        }
+                    }
+                }
+            eventInstanceRepository.delete(instance.id)
+        }
 
         eventSeriesRepository.delete(id)
     }

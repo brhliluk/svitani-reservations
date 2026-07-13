@@ -391,6 +391,8 @@ object EnStrings : AppStrings {
     override fun lessonPreviewHeading(count: Int) = "Sessions ($count)"
     override val lessonDateEditHint = "Click a date to edit it"
     override val lessonIndividualLabel = "Individual booking"
+    override val lessonIndividualOn = "Yes"
+    override val lessonIndividualOff = "No"
     override val lessonIndividualTooltip = "The lesson will be available for individual booking without enrolling in the full course"
     override val lessonIndividualBulkTooltip = "Check all to enable individual booking for every lesson"
     override val lessonActiveBadge = "Active"

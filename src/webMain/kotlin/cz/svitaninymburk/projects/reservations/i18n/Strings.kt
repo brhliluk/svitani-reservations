@@ -409,6 +409,8 @@ interface AppStrings : ErrorStrings {
     fun lessonPreviewHeading(count: Int): String
     val lessonDateEditHint: String
     val lessonIndividualLabel: String
+    val lessonIndividualOn: String
+    val lessonIndividualOff: String
     val lessonIndividualTooltip: String
     val lessonIndividualBulkTooltip: String
     val lessonActiveBadge: String

@@ -30,7 +30,8 @@ navigation3 = "1.1.3"
 compose-bom = "2026.06.00"
 activity-compose = "1.13.0"
 lifecycle = "2.11.0"
-security-crypto = "1.1.0"
+datastore = "1.3.0-alpha09"
+tink = "1.23.0"
 coroutines = "1.11.0"
 
 [libraries]
@@ -88,13 +89,16 @@ navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref =
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
 compose-ui = { module = "androidx.compose.ui:ui" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
+compose-material-icons = { module = "androidx.compose.material:material-icons-core" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
 lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 
-security-crypto = { module = "androidx.security:security-crypto", version.ref = "security-crypto" }
+datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+datastore-tink = { module = "androidx.datastore:datastore-tink", version.ref = "datastore" }
+tink-android = { module = "com.google.crypto.tink:tink-android", version.ref = "tink" }
 
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 

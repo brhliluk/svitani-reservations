@@ -479,6 +479,80 @@ class AdminEditDeleteSpec {
         assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(res.id)?.status)
     }
 
+    @Test
+    fun `deleteEventSeries also deletes its lesson instances (no orphans)`() = runBlocking {
+        val defId = Uuid.random()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+
+        val series = makeSeries(defId)
+        seriesRepo.create(series)
+        val lesson1 = makeInstance(defId).copy(seriesId = series.id)
+        val lesson2 = makeInstance(defId).copy(seriesId = series.id)
+        instanceRepo.create(lesson1)
+        instanceRepo.create(lesson2)
+
+        val result = makeService(seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+            .deleteEventSeries(series.id)
+        assertTrue(result.isRight())
+
+        assertNull(seriesRepo.get(series.id))
+        // Regression: lessons must be deleted with the series, not left orphaned.
+        assertNull(instanceRepo.get(lesson1.id))
+        assertNull(instanceRepo.get(lesson2.id))
+        assertTrue(instanceRepo.findBySeries(series.id).isEmpty())
+    }
+
+    @Test
+    fun `deleteEventSeries cancels a per-lesson (drop-in) reservation`() = runBlocking {
+        val defId = Uuid.random()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+
+        val series = makeSeries(defId)
+        seriesRepo.create(series)
+        val lesson = makeInstance(defId).copy(seriesId = series.id, isDropIn = true)
+        instanceRepo.create(lesson)
+        val lessonRes = makeReservation(Reference.Instance(lesson.id))
+        reservationRepo.save(lessonRes)
+
+        val result = makeService(seriesRepo = seriesRepo, instanceRepo = instanceRepo, reservationRepo = reservationRepo)
+            .deleteEventSeries(series.id)
+        assertTrue(result.isRight())
+
+        assertNull(instanceRepo.get(lesson.id))
+        assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(lessonRes.id)?.status)
+    }
+
+    @Test
+    fun `getEventDetail subtitle follows the first lesson date, not the stored series startDate`() = runBlocking {
+        val defId = Uuid.random()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+
+        // Stored startDate deliberately diverges from the actual lessons.
+        val series = makeSeries(defId).copy(startDate = LocalDate(2026, 9, 14))
+        seriesRepo.create(series)
+        instanceRepo.create(makeInstance(defId).copy(
+            seriesId = series.id,
+            startDateTime = LocalDateTime(2026, 7, 6, 14, 30),
+            endDateTime = LocalDateTime(2026, 7, 6, 15, 30),
+        ))
+        instanceRepo.create(makeInstance(defId).copy(
+            seriesId = series.id,
+            startDateTime = LocalDateTime(2026, 7, 13, 14, 30),
+            endDateTime = LocalDateTime(2026, 7, 13, 15, 30),
+        ))
+
+        val result = makeService(seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+            .getEventDetail(series.id, isSeries = true)
+        assertTrue(result.isRight())
+        val subtitle = result.getOrNull()!!.subtitle
+        assertTrue(subtitle.contains("2026-07-06"), "expected first lesson date, was: $subtitle")
+        assertTrue(!subtitle.contains("2026-09-14"), "must not show stale stored startDate, was: $subtitle")
+    }
+
     // --- deleteEventDefinition ---
 
     @Test
