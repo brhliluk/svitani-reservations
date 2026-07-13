@@ -876,7 +876,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                     }
                 }
                 div(className = "modal-action") {
-                    button(className = "btn") { onClick { showAddLesson = false }; +currentStrings.cancel }
+                    button(className = "btn") { disabled(isAddingLesson); onClick { showAddLesson = false }; +currentStrings.cancel }
                     button(className = "btn btn-primary") {
                         disabled(isAddingLesson)
                         onClick {
@@ -917,6 +917,9 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                         +currentStrings.saveChanges
                     }
                 }
+            }
+            form(className = "modal-backdrop") {
+                button { onClick { if (!isAddingLesson) showAddLesson = false }; +"close" }
             }
         }
     }

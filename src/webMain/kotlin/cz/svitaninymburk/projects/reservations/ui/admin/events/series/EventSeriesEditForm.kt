@@ -22,7 +22,6 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.ReservationDeadli
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ShowAttendeeCountCheckbox
 import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
-import dev.kilua.form.number.numeric
 import dev.kilua.form.select.select
 import dev.kilua.form.text.text
 import dev.kilua.form.text.textArea
