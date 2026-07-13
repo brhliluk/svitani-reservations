@@ -70,7 +70,6 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
     var occupiedSpots by remember { mutableIntStateOf(0) }
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
-    var lessonCount by remember { mutableIntStateOf(1) }
     var lessonDayOfWeekOrdinal by remember { mutableStateOf<Int?>(null) }
     var lessonStartTimeStr by remember { mutableStateOf("") }
     var allowBankTransfer by remember { mutableStateOf(true) }
@@ -102,7 +101,6 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                 occupiedSpots = s.occupiedSpots
                 startDate = s.startDate.toString()
                 endDate = s.endDate.toString()
-                lessonCount = s.lessonCount
                 lessonDayOfWeekOrdinal = s.lessonDayOfWeek?.isoDayNumber
                 lessonStartTimeStr = s.lessonStartTime?.toString() ?: ""
                 allowBankTransfer = s.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
@@ -166,7 +164,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
             title = title, description = description,
             price = price?.toDouble() ?: 0.0, capacity = capacity, waitlistCapacity = waitlistCapacity,
             startDate = parsedStart, endDate = parsedEnd,
-            lessonCount = lessonCount, allowedPaymentTypes = allowedPayments,
+            lessonCount = (uiState as? EditSeriesUiState.Loaded)?.series?.lessonCount ?: 0, allowedPaymentTypes = allowedPayments,
             customFields = customFields,
             lessonDayOfWeek = parsedDay,
             lessonStartTime = parsedStartTime,
@@ -253,14 +251,6 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                             div(className = "form-control w-full") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.endDateLabel } }
                                 text(value = endDate, type = InputType.Date, className = "input input-bordered w-full") { onInput { endDate = value ?: "" } }
-                            }
-                            div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lessonCountLabel } }
-                                numeric(value = lessonCount, min = 1, decimals = 0, className = "input input-bordered w-full") {
-                                    attribute("step", "1")
-                                    onInput { lessonCount = value?.toInt() ?: 1 }
-                                    onChange { lessonCount = value?.toInt() ?: 1 }
-                                }
                             }
                             div(className = "form-control w-full") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lessonDayLabel } }
