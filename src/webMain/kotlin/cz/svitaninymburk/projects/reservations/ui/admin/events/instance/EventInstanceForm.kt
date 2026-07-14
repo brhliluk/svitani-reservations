@@ -343,7 +343,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
                         toastData = ToastData(currentStrings.validationDateTimeRequired, ToastType.Error)
                         return
                     }
-                    val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
+                    val validOwnerEmails = parseOwnerEmails(ownerEmails)
                     if (validOwnerEmails.isEmpty()) {
                         toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error)
                         return

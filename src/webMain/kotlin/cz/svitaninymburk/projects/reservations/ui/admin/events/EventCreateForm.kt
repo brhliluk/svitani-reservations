@@ -576,7 +576,7 @@ fun IComponent.AdminCreateEventScreen() {
                 toastData = ToastData(currentStrings.validationTitleRequired, ToastType.Error)
                 return
             }
-            val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
+            val validOwnerEmails = parseOwnerEmails(ownerEmails)
             if (validOwnerEmails.isEmpty()) {
                 toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error)
                 return

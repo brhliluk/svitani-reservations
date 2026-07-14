@@ -98,7 +98,7 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
             allowedPaymentTypes = allowedPayments,
             customFields = customFields,
             propagateToChildren = propagateToChildren,
-            ownerEmails = ownerEmails.filter { it.isNotBlank() },
+            ownerEmails = parseOwnerEmails(ownerEmails),
             showAttendeeCount = showAttendeeCount,
         )
         isSubmitting = true
@@ -189,7 +189,7 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
                         disabled(isSubmitting)
                         onClick {
                             if (title.isBlank()) { toastData = ToastData(currentStrings.validationNameRequired, ToastType.Error); return@onClick }
-                            val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
+                            val validOwnerEmails = parseOwnerEmails(ownerEmails)
                             if (validOwnerEmails.isEmpty()) { toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error); return@onClick }
                             doSave()
                         }

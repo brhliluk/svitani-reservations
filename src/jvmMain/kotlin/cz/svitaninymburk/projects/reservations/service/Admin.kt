@@ -35,6 +35,7 @@ import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
+import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
 import cz.svitaninymburk.projects.reservations.wallet.WalletTransaction
@@ -444,7 +445,7 @@ class AdminDashboardService(
                 defaultDuration = request.defaultDuration,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
-                ownerEmails = request.ownerEmails,
+                ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = request.showAttendeeCount,
             )
 
@@ -475,7 +476,7 @@ class AdminDashboardService(
                 lessonDayOfWeek = request.lessonDayOfWeek,
                 lessonStartTime = request.lessonStartTime,
                 lessonEndTime = request.lessonEndTime,
-                ownerEmails = request.ownerEmails,
+                ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = request.showAttendeeCount,
                 lessonRefundAmount = request.lessonRefundAmount,
                 reservationDeadline = request.reservationDeadline,
@@ -564,7 +565,7 @@ class AdminDashboardService(
                 defaultDuration = request.defaultDuration,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
-                ownerEmails = request.ownerEmails,
+                ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = request.showAttendeeCount,
             )
             eventDefinitionRepository.create(newDefinition)
@@ -610,7 +611,7 @@ class AdminDashboardService(
                 defaultDuration = request.defaultDuration,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
-                ownerEmails = request.ownerEmails,
+                ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = request.showAttendeeCount,
             )
             eventDefinitionRepository.create(newDefinition)
@@ -627,7 +628,7 @@ class AdminDashboardService(
                 lessonCount = request.lessonCount,
                 allowedPaymentTypes = newDefinition.allowedPaymentTypes,
                 customFields = newDefinition.customFields,
-                ownerEmails = request.ownerEmails,
+                ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = newDefinition.showAttendeeCount,
                 reservationDeadline = request.reservationDeadline,
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
@@ -774,7 +775,7 @@ class AdminDashboardService(
                 waitlistCapacity = request.waitlistCapacity,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
-                ownerEmails = request.ownerEmails,
+                ownerEmails = parseOwnerEmails(request.ownerEmails),
                 isDropIn = request.isDropIn,
                 showAttendeeCount = request.showAttendeeCount,
                 reservationDeadline = request.reservationDeadline,
@@ -828,7 +829,7 @@ class AdminDashboardService(
                 lessonDayOfWeek = request.lessonDayOfWeek,
                 lessonStartTime = request.lessonStartTime,
                 lessonEndTime = request.lessonEndTime,
-                ownerEmails = request.ownerEmails,
+                ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = request.showAttendeeCount,
                 lessonRefundAmount = request.lessonRefundAmount,
                 reservationDeadline = request.reservationDeadline,
@@ -882,7 +883,7 @@ class AdminDashboardService(
             defaultDuration = request.defaultDuration,
             allowedPaymentTypes = request.allowedPaymentTypes,
             customFields = request.customFields,
-            ownerEmails = request.ownerEmails,
+            ownerEmails = parseOwnerEmails(request.ownerEmails),
             showAttendeeCount = request.showAttendeeCount,
         )
         eventDefinitionRepository.update(updated)
@@ -902,7 +903,7 @@ class AdminDashboardService(
                         capacity = request.defaultCapacity,
                         allowedPaymentTypes = request.allowedPaymentTypes,
                         customFields = request.customFields,
-                        ownerEmails = request.ownerEmails,
+                        ownerEmails = parseOwnerEmails(request.ownerEmails),
                         showAttendeeCount = request.showAttendeeCount,
                     )
                 )
@@ -917,7 +918,7 @@ class AdminDashboardService(
                         capacity = request.defaultCapacity,
                         allowedPaymentTypes = request.allowedPaymentTypes,
                         customFields = request.customFields,
-                        ownerEmails = request.ownerEmails,
+                        ownerEmails = parseOwnerEmails(request.ownerEmails),
                         showAttendeeCount = request.showAttendeeCount,
                     )
                 )

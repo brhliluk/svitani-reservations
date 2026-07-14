@@ -168,7 +168,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
             lessonDayOfWeek = parsedDay,
             lessonStartTime = parsedStartTime,
             lessonEndTime = parsedEndTime,
-            ownerEmails = ownerEmails.filter { it.isNotBlank() },
+            ownerEmails = parseOwnerEmails(ownerEmails),
             showAttendeeCount = showAttendeeCount,
             lessonRefundAmount = lessonRefundAmountInput?.toDouble()?.takeIf { it > 0 },
             reservationDeadline = resolvedDeadline,
@@ -312,7 +312,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                         disabled(isSubmitting)
                         onClick {
                             if (title.isBlank()) { toastData = ToastData(currentStrings.validationSeriesTitleRequired, ToastType.Error); return@onClick }
-                            val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
+                            val validOwnerEmails = parseOwnerEmails(ownerEmails)
                             if (validOwnerEmails.isEmpty()) { toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error); return@onClick }
                             if (capacity < occupiedSpots) { showCapacityWarning = true; return@onClick }
                             doSave()

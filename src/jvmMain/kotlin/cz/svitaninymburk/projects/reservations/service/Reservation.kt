@@ -9,6 +9,7 @@ import arrow.core.raise.ensure
 import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.error.WalletError
 import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
+import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
@@ -622,7 +623,7 @@ open class ReservationService(
                 emails += eventDefinitionRepository.get(target.series.definitionId)?.ownerEmails ?: emptyList()
             }
         }
-        return emails.filter { it.isNotBlank() }
+        return parseOwnerEmails(emails.toList())
     }
 
     private suspend fun generateUniqueVariableSymbol(): String? {

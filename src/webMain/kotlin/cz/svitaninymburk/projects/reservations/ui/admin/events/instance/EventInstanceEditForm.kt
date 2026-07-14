@@ -153,7 +153,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
             price = price?.toDouble() ?: 0.0, capacity = capacity, waitlistCapacity = waitlistCapacity,
             allowedPaymentTypes = allowedPayments, customFields = customFields,
             isDropIn = isDropIn,
-            ownerEmails = ownerEmails.filter { it.isNotBlank() },
+            ownerEmails = parseOwnerEmails(ownerEmails),
             showAttendeeCount = showAttendeeCount,
             reservationDeadline = resolvedDeadline,
             reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
@@ -292,7 +292,7 @@ fun IComponent.AdminEditEventInstanceScreen(id: String) {
                         disabled(isSubmitting)
                         onClick {
                             if (title.isBlank()) { toastData = ToastData(currentStrings.validationNameRequired, ToastType.Error); return@onClick }
-                            val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
+                            val validOwnerEmails = parseOwnerEmails(ownerEmails)
                             if (validOwnerEmails.isEmpty()) { toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error); return@onClick }
                             if (capacity < occupiedSpots) { showCapacityWarning = true; return@onClick }
                             doSave()

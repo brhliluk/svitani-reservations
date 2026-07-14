@@ -130,7 +130,7 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
                         toastData = ToastData(currentStrings.validationNameRequired, ToastType.Error)
                         return@onClick
                     }
-                    val validOwnerEmails = ownerEmails.filter { it.isNotBlank() }
+                    val validOwnerEmails = parseOwnerEmails(ownerEmails)
                     if (validOwnerEmails.isEmpty()) {
                         toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error)
                         return@onClick
