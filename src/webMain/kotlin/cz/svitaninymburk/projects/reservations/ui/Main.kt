@@ -178,7 +178,7 @@ fun IComponent.MainLayout() {
                     route("/new") {
                         view {
                             AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                AdminCreateEventScreen()
+                                AdminCreateEventScreen(currentUser = currentUser!!)
                             }
                         }
                     }
@@ -186,7 +186,7 @@ fun IComponent.MainLayout() {
                         route("/definition") {
                             view {
                                 AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                    AdminCreateEventDefinitionScreen()
+                                    AdminCreateEventDefinitionScreen(currentUser = currentUser!!)
                                 }
                             }
                         }
@@ -202,13 +202,13 @@ fun IComponent.MainLayout() {
                         route("/instance") {
                             view {
                                 AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                    AdminCreateEventInstanceScreen()
+                                    AdminCreateEventInstanceScreen(currentUser = currentUser!!)
                                 }
                             }
                             string { definitionId ->
                                 view {
                                     AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                        AdminCreateEventInstanceScreen(preselectedDefinitionId = definitionId.value)
+                                        AdminCreateEventInstanceScreen(currentUser = currentUser!!, preselectedDefinitionId = definitionId.value)
                                     }
                                 }
                             }
@@ -216,13 +216,13 @@ fun IComponent.MainLayout() {
                         route("/series") {
                             view {
                                 AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                    AdminCreateEventSeriesScreen()
+                                    AdminCreateEventSeriesScreen(currentUser = currentUser!!)
                                 }
                             }
                             string { definitionId ->
                                 view {
                                     AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                        AdminCreateEventSeriesScreen(preselectedDefinitionId = definitionId.value)
+                                        AdminCreateEventSeriesScreen(currentUser = currentUser!!, preselectedDefinitionId = definitionId.value)
                                     }
                                 }
                             }

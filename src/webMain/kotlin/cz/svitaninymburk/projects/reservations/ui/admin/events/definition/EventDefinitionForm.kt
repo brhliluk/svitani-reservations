@@ -11,6 +11,7 @@ import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowedPaymentsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuilderSection
@@ -29,7 +30,7 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
 @Composable
-fun IComponent.AdminCreateEventDefinitionScreen() {
+fun IComponent.AdminCreateEventDefinitionScreen(currentUser: User) {
     val router = Router.current
     val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
@@ -40,7 +41,7 @@ fun IComponent.AdminCreateEventDefinitionScreen() {
     // --- ZÁKLADNÍ STAVY FORMULÁŘE ---
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var ownerEmails by remember { mutableStateOf(listOf("")) }
+    var ownerEmails by remember { mutableStateOf(listOf(currentUser.email)) }
     var price by remember { mutableStateOf<Number?>(0) }
     var capacity by remember { mutableIntStateOf(10) }
 

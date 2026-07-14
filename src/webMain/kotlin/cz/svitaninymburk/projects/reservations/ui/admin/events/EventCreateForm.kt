@@ -11,6 +11,7 @@ import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
 import dev.kilua.form.check.checkBox
@@ -47,7 +48,7 @@ import kotlin.time.Duration.Companion.minutes
 private enum class EventCreateType { SINGLE, RECURRING, COURSE }
 
 @Composable
-fun IComponent.AdminCreateEventScreen() {
+fun IComponent.AdminCreateEventScreen(currentUser: User) {
     val router = Router.current
     val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
@@ -60,7 +61,7 @@ fun IComponent.AdminCreateEventScreen() {
     // Definition fields
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var ownerEmails by remember { mutableStateOf(listOf("")) }
+    var ownerEmails by remember { mutableStateOf(listOf(currentUser.email)) }
     var price by remember { mutableStateOf<Number?>(0) }
     var capacity by remember { mutableIntStateOf(10) }
     var durationHours by remember { mutableIntStateOf(1) }

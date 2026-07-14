@@ -11,6 +11,7 @@ import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowedPaymentsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.WaitlistCapacityField
@@ -52,7 +53,7 @@ import kotlin.uuid.Uuid
 
 
 @Composable
-fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? = null) {
+fun IComponent.AdminCreateEventInstanceScreen(currentUser: User, preselectedDefinitionId: String? = null) {
     val router = Router.current
 
     val eventService = getService<EventServiceInterface>(RpcSerializersModules)
@@ -73,7 +74,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
 
     var titleOverride by remember { mutableStateOf("") }
     var descriptionOverride by remember { mutableStateOf("") }
-    var ownerEmails by remember { mutableStateOf(listOf("")) }
+    var ownerEmails by remember { mutableStateOf(listOf(currentUser.email)) }
     var priceOverride by remember { mutableStateOf<Number?>(0) }
     var capacityOverride by remember { mutableIntStateOf(10) }
     var waitlistCapacityOverride by remember { mutableIntStateOf(10) }
@@ -113,7 +114,7 @@ fun IComponent.AdminCreateEventInstanceScreen(preselectedDefinitionId: String? =
     fun applyDefinitionDefaults(definition: EventDefinition) {
         titleOverride = definition.title
         descriptionOverride = definition.description
-        ownerEmails = definition.ownerEmails.ifEmpty { listOf("") }
+        ownerEmails = definition.ownerEmails.ifEmpty { listOf(currentUser.email) }
         priceOverride = definition.defaultPrice
         capacityOverride = definition.defaultCapacity
 

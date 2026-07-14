@@ -876,11 +876,12 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                         checkBox(value = addLessonDropIn, className = "checkbox checkbox-sm") { onClick { addLessonDropIn = this.value } }
                         span(className = "label-text") { +currentStrings.addLessonDropInLabel }
                     }
-                    if (data.customFields.isNotEmpty()) {
+                    val addLessonCustomFields = (uiState as? AdminEventDetailUiState.Success)?.data?.customFields ?: emptyList()
+                    if (addLessonCustomFields.isNotEmpty()) {
                         div(className = "alert alert-info text-sm flex flex-col items-start gap-1") {
                             span { +currentStrings.addLessonInheritedFieldsNote }
                             ul(className = "list-disc list-inside") {
-                                data.customFields.forEach { field ->
+                                addLessonCustomFields.forEach { field ->
                                     li { +field.label }
                                 }
                             }
