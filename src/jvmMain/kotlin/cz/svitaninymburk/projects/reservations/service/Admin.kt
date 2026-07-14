@@ -500,11 +500,14 @@ class AdminDashboardService(
                             endDateTime = lesson.endDateTime,
                             price = newSeries.price,
                             capacity = newSeries.capacity,
+                            waitlistCapacity = newSeries.waitlistCapacity,
                             allowedPaymentTypes = newSeries.allowedPaymentTypes,
                             customFields = newSeries.customFields,
                             isDropIn = lesson.isDropIn,
                             ownerEmails = newSeries.ownerEmails,
                             showAttendeeCount = newSeries.showAttendeeCount,
+                            reservationDeadline = newSeries.reservationDeadline,
+                            reservationDeadlineMessage = newSeries.reservationDeadlineMessage,
                             isPublished = request.isPublished,
                         )
                     )
@@ -528,11 +531,14 @@ class AdminDashboardService(
                             endDateTime = LocalDateTime(date, lessonEndTime),
                             price = newSeries.price,
                             capacity = newSeries.capacity,
+                            waitlistCapacity = newSeries.waitlistCapacity,
                             allowedPaymentTypes = newSeries.allowedPaymentTypes,
                             customFields = newSeries.customFields,
                             isDropIn = false,
                             ownerEmails = newSeries.ownerEmails,
                             showAttendeeCount = newSeries.showAttendeeCount,
+                            reservationDeadline = newSeries.reservationDeadline,
+                            reservationDeadlineMessage = newSeries.reservationDeadlineMessage,
                             isPublished = request.isPublished,
                         )
                     )
@@ -644,11 +650,14 @@ class AdminDashboardService(
                             endDateTime = lesson.endDateTime,
                             price = newDefinition.defaultPrice,
                             capacity = newDefinition.defaultCapacity,
+                            waitlistCapacity = newSeries.waitlistCapacity,
                             allowedPaymentTypes = newDefinition.allowedPaymentTypes,
                             customFields = newDefinition.customFields,
                             isDropIn = lesson.isDropIn,
                             ownerEmails = newSeries.ownerEmails,
                             showAttendeeCount = newSeries.showAttendeeCount,
+                            reservationDeadline = newSeries.reservationDeadline,
+                            reservationDeadlineMessage = newSeries.reservationDeadlineMessage,
                             isPublished = request.isPublished,
                         )
                     )
@@ -672,11 +681,14 @@ class AdminDashboardService(
                             endDateTime = LocalDateTime(date, lessonEndTime),
                             price = newSeries.price,
                             capacity = newSeries.capacity,
+                            waitlistCapacity = newSeries.waitlistCapacity,
                             allowedPaymentTypes = newSeries.allowedPaymentTypes,
                             customFields = newSeries.customFields,
                             isDropIn = false,
                             ownerEmails = newSeries.ownerEmails,
                             showAttendeeCount = newSeries.showAttendeeCount,
+                            reservationDeadline = newSeries.reservationDeadline,
+                            reservationDeadlineMessage = newSeries.reservationDeadlineMessage,
                             isPublished = request.isPublished,
                         )
                     )
@@ -842,11 +854,14 @@ class AdminDashboardService(
                 endDateTime = request.endDateTime,
                 price = series.price,
                 capacity = series.capacity,
+                waitlistCapacity = series.waitlistCapacity,
                 allowedPaymentTypes = series.allowedPaymentTypes,
                 customFields = series.customFields,
                 isDropIn = request.isDropIn,
                 ownerEmails = series.ownerEmails,
                 showAttendeeCount = series.showAttendeeCount,
+                reservationDeadline = series.reservationDeadline,
+                reservationDeadlineMessage = series.reservationDeadlineMessage,
                 isPublished = series.isPublished,
             )
             eventInstanceRepository.create(instance)

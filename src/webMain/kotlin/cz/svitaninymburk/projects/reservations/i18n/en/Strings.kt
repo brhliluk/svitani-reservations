@@ -407,6 +407,7 @@ object EnStrings : AppStrings {
     override val addLessonStartLabel = "Start time"
     override val addLessonEndLabel = "End time"
     override val addLessonDropInLabel = "Standalone lesson (drop-in)"
+    override val addLessonInheritedFieldsNote = "This lesson will inherit the course's custom reservation form fields:"
     override val addLessonInvalidDateTime = "Enter a valid date and times (end after start)."
     override val toastLessonAdded = "Lesson added."
     override val lessonOptOut = "Unsubscribe from lesson"

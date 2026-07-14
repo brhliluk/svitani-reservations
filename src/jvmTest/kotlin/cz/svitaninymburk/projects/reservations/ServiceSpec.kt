@@ -318,7 +318,12 @@ class AdminEditDeleteSpec {
         val instanceRepo = InMemoryEventInstanceRepository()
         val def = makeDefinition()
         defRepo.create(def)
-        val series = makeSeries(def.id).copy(isPublished = true)
+        val series = makeSeries(def.id).copy(
+            isPublished = true,
+            waitlistCapacity = 3,
+            reservationDeadline = 2.hours,
+            reservationDeadlineMessage = "Uzávěrka rezervací 2 hodiny předem",
+        )
         seriesRepo.create(series)
         val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
 
@@ -340,6 +345,9 @@ class AdminEditDeleteSpec {
         assertEquals(series.title, lesson.title)
         assertEquals(series.price, lesson.price)
         assertEquals(series.capacity, lesson.capacity)
+        assertEquals(series.waitlistCapacity, lesson.waitlistCapacity)
+        assertEquals(series.reservationDeadline, lesson.reservationDeadline)
+        assertEquals(series.reservationDeadlineMessage, lesson.reservationDeadlineMessage)
         assertEquals(series.isPublished, lesson.isPublished)
         assertTrue(lesson.isDropIn)
         assertEquals(LocalDateTime(2026, 6, 15, 9, 0), lesson.startDateTime)

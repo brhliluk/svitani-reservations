@@ -876,6 +876,16 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                         checkBox(value = addLessonDropIn, className = "checkbox checkbox-sm") { onClick { addLessonDropIn = this.value } }
                         span(className = "label-text") { +currentStrings.addLessonDropInLabel }
                     }
+                    if (data.customFields.isNotEmpty()) {
+                        div(className = "alert alert-info text-sm flex flex-col items-start gap-1") {
+                            span { +currentStrings.addLessonInheritedFieldsNote }
+                            ul(className = "list-disc list-inside") {
+                                data.customFields.forEach { field ->
+                                    li { +field.label }
+                                }
+                            }
+                        }
+                    }
                 }
                 div(className = "modal-action") {
                     button(className = "btn") { disabled(isAddingLesson); onClick { showAddLesson = false }; +currentStrings.cancel }

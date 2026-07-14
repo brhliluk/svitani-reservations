@@ -425,6 +425,7 @@ interface AppStrings : ErrorStrings {
     val addLessonStartLabel: String
     val addLessonEndLabel: String
     val addLessonDropInLabel: String
+    val addLessonInheritedFieldsNote: String
     val addLessonInvalidDateTime: String
     val toastLessonAdded: String
     val lessonOptOut: String

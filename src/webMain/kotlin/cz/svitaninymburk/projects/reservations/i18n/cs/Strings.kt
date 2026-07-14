@@ -407,6 +407,7 @@ object CsStrings : AppStrings {
     override val addLessonStartLabel = "Čas od"
     override val addLessonEndLabel = "Čas do"
     override val addLessonDropInLabel = "Samostatná lekce (drop-in)"
+    override val addLessonInheritedFieldsNote = "Tato lekce převezme vlastní pole rezervačního formuláře nastavená u kurzu:"
     override val addLessonInvalidDateTime = "Vyplňte platné datum a časy (konec po začátku)."
     override val toastLessonAdded = "Lekce byla přidána."
     override val lessonOptOut = "Odhlásit se z lekce"
