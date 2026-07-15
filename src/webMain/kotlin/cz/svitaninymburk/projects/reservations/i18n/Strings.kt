@@ -55,6 +55,7 @@ interface AppStrings : ErrorStrings {
     val clearFilterTooltip: String
     val filterIsActive: (String) -> String
     val copyEventLink: String
+    val copySeriesLink: String
 
     // Card Labels (Series/Event)
     val course: String
