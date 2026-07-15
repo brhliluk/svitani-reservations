@@ -35,6 +35,7 @@ fun IComponent.DashboardScreen(
     user: User?,
     walletCode: String? = null,
     initialFilterId: String? = null,
+    initialSeriesId: String? = null,
 ) {
     var retryTrigger by remember { mutableStateOf(0) }
     var isSubmitting by remember { mutableStateOf(false) }
@@ -102,11 +103,16 @@ fun IComponent.DashboardScreen(
             series = state.series,
             definitions = state.definitions,
             initialFilterId = initialFilterId,
+            initialSeriesId = initialSeriesId,
             isSubmitting = isSubmitting,
             onSubmitReservation = { target, formData -> scope.launch { submitReservation(target, formData) } },
             onFilterChange = { id ->
                 if (id == null) router.navigate("/")
                 else router.navigate("/?filter=$id")
+            },
+            onSeriesFilterChange = { id ->
+                if (id == null) router.navigate("/")
+                else router.navigate("/?series=$id")
             }
         )
         is DashboardUiState.Error -> {
