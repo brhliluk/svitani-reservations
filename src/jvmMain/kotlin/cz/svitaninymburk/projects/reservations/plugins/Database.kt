@@ -18,12 +18,14 @@ import cz.svitaninymburk.projects.reservations.repository.wallet.WalletsTable
 import io.ktor.server.application.*
 import java.nio.ByteBuffer
 import kotlin.uuid.Uuid
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
 
 fun Application.configureDatabases() {
@@ -87,6 +89,12 @@ fun Application.configureDatabases() {
         } catch (e: Exception) {
             println("⚠️ is_published backfill failed (non-fatal): ${e.message}")
         }
+
+        try {
+            backfillCustomFieldsFromTemplates()
+        } catch (e: Exception) {
+            println("⚠️ custom_fields backfill failed (non-fatal): ${e.message}")
+        }
     }
 }
 
@@ -137,6 +145,44 @@ internal fun JdbcTransaction.migrateLectorEmailsToOwnerEmails() {
                     it[EventOwnerEmailsTable.entityType] = entityType
                     it[EventOwnerEmailsTable.entityId] = entityId
                     it[EventOwnerEmailsTable.email] = email
+                }
+            }
+        }
+    }
+}
+
+// Kurzy/termíny vytvořené před opravou dědění vlastních polí ze šablony mají
+// custom_fields prázdné, i když šablona pole má. Idempotentní: dobarví jen řádky,
+// které jsou zatím prázdné, takže opakovaný běh nic nepřepíše.
+internal fun JdbcTransaction.backfillCustomFieldsFromTemplates() {
+    val definitionFieldsById = EventDefinitionsTable.selectAll()
+        .associate { it[EventDefinitionsTable.id] to it[EventDefinitionsTable.customFields] }
+
+    EventSeriesTable.selectAll().forEach { row ->
+        if (row[EventSeriesTable.customFields].isEmpty()) {
+            val templateFields = definitionFieldsById[row[EventSeriesTable.definitionId]]
+            if (!templateFields.isNullOrEmpty()) {
+                EventSeriesTable.update({ EventSeriesTable.id eq row[EventSeriesTable.id] }) {
+                    it[customFields] = templateFields
+                }
+            }
+        }
+    }
+
+    val seriesFieldsById = EventSeriesTable.selectAll()
+        .associate { it[EventSeriesTable.id] to it[EventSeriesTable.customFields] }
+
+    EventInstancesTable.selectAll().forEach { row ->
+        if (row[EventInstancesTable.customFields].isEmpty()) {
+            val seriesId = row[EventInstancesTable.seriesId]
+            val templateFields = if (seriesId != null) {
+                seriesFieldsById[seriesId]
+            } else {
+                definitionFieldsById[row[EventInstancesTable.definitionId]]
+            }
+            if (!templateFields.isNullOrEmpty()) {
+                EventInstancesTable.update({ EventInstancesTable.id eq row[EventInstancesTable.id] }) {
+                    it[customFields] = templateFields
                 }
             }
         }

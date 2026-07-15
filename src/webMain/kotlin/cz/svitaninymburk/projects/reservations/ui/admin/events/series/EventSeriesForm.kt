@@ -114,6 +114,7 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
         allowBankTransfer = definition.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
         allowOnSite = definition.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
         showAttendeeCount = definition.showAttendeeCount
+        customFields = definition.customFields
     }
 
     LaunchedEffect(computedSeriesDates) {
