@@ -32,9 +32,11 @@ fun IComponent.DashboardLayout(
     series: List<EventSeries>,
     definitions: List<EventDefinition>,
     initialFilterId: String? = null,
+    initialSeriesId: String? = null,
     isSubmitting: Boolean = false,
     onSubmitReservation: (ReservationTarget, ReservationFormData) -> Unit,
     onFilterChange: (Uuid?) -> Unit = {},
+    onSeriesFilterChange: (Uuid?) -> Unit = {},
 ) {
     val currentStrings by strings
 
@@ -42,20 +44,35 @@ fun IComponent.DashboardLayout(
     var isWaitlistSignup by remember { mutableStateOf(false) }
     var activeTab by remember { mutableStateOf(DashboardTab.SCHEDULE) }
     var selectedDefinitionId by remember { mutableStateOf(initialFilterId?.let { Uuid.parse(it) }) }
+    var selectedSeriesId by remember { mutableStateOf(initialSeriesId?.let { Uuid.parse(it) }) }
     var viewMode by remember { mutableStateOf(ViewMode.LIST) }
 
-    val filteredEvents = remember(events, selectedDefinitionId) {
-        if (selectedDefinitionId == null) events
-        else events.filter { it.definitionId == selectedDefinitionId }
+    fun clearFilters() {
+        selectedDefinitionId = null
+        selectedSeriesId = null
+        onFilterChange(null)
+        onSeriesFilterChange(null)
     }
 
-    val filteredSeries = remember(series, selectedDefinitionId) {
-        if (selectedDefinitionId == null) series
-        else series.filter { it.definitionId == selectedDefinitionId }
+    val filteredEvents = remember(events, selectedSeriesId, selectedDefinitionId) {
+        when {
+            selectedSeriesId != null -> events.filter { it.seriesId == selectedSeriesId }
+            selectedDefinitionId != null -> events.filter { it.definitionId == selectedDefinitionId }
+            else -> events
+        }
     }
 
-    val activeFilterName = remember(selectedDefinitionId, definitions) {
-        definitions.find { it.id == selectedDefinitionId }?.title
+    val filteredSeries = remember(series, selectedSeriesId, selectedDefinitionId) {
+        when {
+            selectedSeriesId != null -> series.filter { it.id == selectedSeriesId }
+            selectedDefinitionId != null -> series.filter { it.definitionId == selectedDefinitionId }
+            else -> series
+        }
+    }
+
+    val activeFilterName = remember(selectedSeriesId, selectedDefinitionId, series, definitions) {
+        selectedSeriesId?.let { id -> series.find { it.id == id }?.title }
+            ?: definitions.find { it.id == selectedDefinitionId }?.title
     }
 
     div(className = "min-h-screen bg-base-200 flex flex-col font-sans") {
@@ -73,8 +90,7 @@ fun IComponent.DashboardLayout(
                     a(className = "tab rounded-full min-h-11 px-4 text-sm sm:text-base flex-1 sm:flex-none transition-colors duration-200 ${if (activeTab == DashboardTab.CATALOG) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
                         onClick {
                             activeTab = DashboardTab.CATALOG
-                            selectedDefinitionId = null
-                            onFilterChange(null)
+                            clearFilters()
                         }
                         span(className = "icon-[heroicons--swatch] size-5 mr-2")
                         +currentStrings.catalog
@@ -86,8 +102,10 @@ fun IComponent.DashboardLayout(
                 div(className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 animate-fade-in") {
                     definitions.forEach { def ->
                         DefinitionCard(def) {
+                            selectedSeriesId = null
                             selectedDefinitionId = def.id
                             activeTab = DashboardTab.SCHEDULE
+                            onSeriesFilterChange(null)
                             onFilterChange(def.id)
                         }
                     }
@@ -97,7 +115,7 @@ fun IComponent.DashboardLayout(
                     if (activeFilterName != null) {
                         div(className = "badge badge-primary gap-2 px-4 py-2 h-auto min-h-11 whitespace-normal text-left w-full sm:w-auto sm:max-w-md justify-start sm:justify-center cursor-pointer hover:badge-error hover:text-white transition-colors tooltip tooltip-bottom") {
                             attribute("data-tip", currentStrings.clearFilterTooltip)
-                            onClick { selectedDefinitionId = null; onFilterChange(null) }
+                            onClick { clearFilters() }
                             span(className = "icon-[heroicons--funnel] size-4 shrink-0")
                             span(className = "flex-1") { +currentStrings.filterIsActive(activeFilterName) }
                             span(className = "icon-[heroicons--x-mark] size-4 shrink-0 ml-1")
