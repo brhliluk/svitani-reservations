@@ -198,7 +198,7 @@ class AdminDashboardService(
             val series = ensureNotNull(eventSeriesRepository.get(eventId)) { AdminError.EventSeriesNotFound(eventId) }
             title = series.title
             val derivedLessonCount = eventInstanceRepository.countBySeries(eventId).toInt()
-            subtitle = "Kurz ($derivedLessonCount lekcí) • Od ${series.startDate}"
+            subtitle = "Kurz ($derivedLessonCount lekcí) • Od ${seriesDisplayStartDate(eventId, series.startDate)}"
             capacity = series.capacity
             occupiedSpots = series.occupiedSpots
             waitlistCapacity = series.waitlistCapacity
