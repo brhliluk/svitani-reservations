@@ -2,16 +2,27 @@ package cz.svitaninymburk.projects.reservations.ui.events
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import cz.svitaninymburk.projects.reservations.copyToClipboard
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalTime
+import web.window.window
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
     val currentStrings by strings
+    val scope = rememberCoroutineScope()
+    var isCopied by remember { mutableStateOf(false) }
 
     div(className = "indicator w-full") {
 
@@ -26,8 +37,24 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                     span(className = "badge badge-secondary font-bold") { +currentStrings.course }
                 }
 
-                h3(className = "card-title text-lg sm:text-xl font-bold text-base-content") {
-                    +series.title
+                div(className = "flex items-start justify-between gap-2") {
+                    h3(className = "card-title text-lg sm:text-xl font-bold text-base-content") {
+                        +series.title
+                    }
+                    button(className = "btn btn-ghost btn-xs btn-square shrink-0 tooltip tooltip-left ${if (isCopied) "text-success" else "text-base-content/40 hover:text-base-content"}") {
+                        attribute("aria-label", currentStrings.copySeriesLink)
+                        attribute("data-tip", if (isCopied) currentStrings.copied else currentStrings.copySeriesLink)
+                        onClick {
+                            val url = "${window.location.origin}/?series=${series.id}"
+                            copyToClipboard(url)
+                            isCopied = true
+                            scope.launch {
+                                delay(2.seconds)
+                                isCopied = false
+                            }
+                        }
+                        span(className = if (isCopied) "icon-[heroicons--check] size-4" else "icon-[heroicons--link] size-4")
+                    }
                 }
                 if (series.isCancelled) {
                     div(className = "badge badge-error badge-sm gap-1 mt-1") {
