@@ -406,7 +406,12 @@ fun IComponent.MainLayout() {
                         onNavigateToDashboard = { router.navigate("/") },
                         onNavigateToAdmin = { router.navigate("/admin") },
                     ) {
-                        DashboardScreen(user = currentUser, walletCode = userWalletCode, initialFilterId = context.parameters?.map?.get("filter")?.firstOrNull())
+                        DashboardScreen(
+                            user = currentUser,
+                            walletCode = userWalletCode,
+                            initialFilterId = context.parameters?.map?.get("filter")?.firstOrNull(),
+                            initialSeriesId = context.parameters?.map?.get("series")?.firstOrNull(),
+                        )
                     }
                 }
             }
@@ -444,7 +449,12 @@ fun IComponent.MainLayout() {
                         onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
                         onNavigateToDashboard = { router.navigate("/") },
                     ) {
-                        DashboardScreen(user = currentUser, walletCode = userWalletCode, initialFilterId = context.parameters?.map?.get("filter")?.firstOrNull())
+                        DashboardScreen(
+                            user = currentUser,
+                            walletCode = userWalletCode,
+                            initialFilterId = context.parameters?.map?.get("filter")?.firstOrNull(),
+                            initialSeriesId = context.parameters?.map?.get("series")?.firstOrNull(),
+                        )
                     }
                 }
             }
