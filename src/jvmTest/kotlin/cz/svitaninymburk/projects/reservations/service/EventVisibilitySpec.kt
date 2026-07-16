@@ -85,7 +85,7 @@ class EventVisibilitySpec {
     }
 
     @Test
-    fun `getDashboardData derives series lessonCount from instances including cancelled`() = runBlocking {
+    fun `getDashboardData reflects refreshed series lessonCount including cancelled`() = runBlocking {
         val instanceRepo = InMemoryEventInstanceRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val theSeries = series(published = true) // stored lessonCount = 5
@@ -93,6 +93,7 @@ class EventVisibilitySpec {
         instanceRepo.create(instance(published = true).copy(seriesId = theSeries.id))
         instanceRepo.create(instance(published = true).copy(seriesId = theSeries.id))
         instanceRepo.create(instance(published = true).copy(seriesId = theSeries.id, isCancelled = true))
+        SeriesScheduleRefresher(instanceRepo, seriesRepo).refresh(theSeries.id)
 
         val data = service(instanceRepo, seriesRepo).getDashboardData().getOrNull()!!
 

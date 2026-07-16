@@ -52,6 +52,7 @@ class AdminCancelTest {
             ),
         ),
         seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
+        seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
     )
 
     private fun futureInstance(seriesId: Uuid? = null) = EventInstance(

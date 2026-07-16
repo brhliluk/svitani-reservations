@@ -45,6 +45,7 @@ class AdminPublishToggleSpec {
             ),
         ),
         seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
+        seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
     )
 
     @Test

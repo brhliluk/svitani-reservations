@@ -31,6 +31,7 @@ import kotlin.uuid.Uuid
 class AuthenticatedEventService(
     private val eventDefinitionRepository: EventDefinitionRepository,
     private val eventInstanceRepository: EventInstanceRepository,
+    private val seriesScheduleRefresher: SeriesScheduleRefresher,
 ): AuthenticatedEventServiceInterface {
     override suspend fun createEventDefinition(request: CreateEventDefinitionRequest): Either<EventError.CreateEventDefinition, Unit> = either {
         eventDefinitionRepository.create(
@@ -83,13 +84,16 @@ class AuthenticatedEventService(
     }
 
     override suspend fun updateEventInstance(instance: EventInstance): Either<EventError.UpdateEventInstance, Unit> = either {
-        ensureNotNull(eventInstanceRepository.get(instance.id)) { EventError.EventInstanceNotFound(instance.id.toString()) }
+        val existing = ensureNotNull(eventInstanceRepository.get(instance.id)) { EventError.EventInstanceNotFound(instance.id.toString()) }
         eventInstanceRepository.update(instance)
+        existing.seriesId?.let { seriesScheduleRefresher.refresh(it) }
     }
 
     override suspend fun deleteEventInstance(id: Uuid): Either<EventError.DeleteEventInstance, Boolean> = either {
-        ensureNotNull(eventInstanceRepository.get(id)) { EventError.EventInstanceNotFound(id.toString()) }
-        eventInstanceRepository.delete(id)
+        val existing = ensureNotNull(eventInstanceRepository.get(id)) { EventError.EventInstanceNotFound(id.toString()) }
+        val deleted = eventInstanceRepository.delete(id)
+        existing.seriesId?.let { seriesScheduleRefresher.refresh(it) }
+        deleted
     }
 }
 
@@ -116,30 +120,13 @@ class EventService(
                 .filter { it.isPublished }
                 .filter { it.endDateTime > now && (it.seriesId == null || it.isDropIn) }
                 .sortedBy { it.startDateTime }
-            // The displayed course date range must follow the actual lessons, not the
-            // (freely editable, sometimes stale) stored start/end dates on the series.
-            val lessonRangeBySeries = allInstances
-                .filter { it.seriesId != null }
-                .groupBy { it.seriesId!! }
-                .mapValues { (_, insts) -> insts.minOf { it.startDateTime.date } to insts.maxOf { it.startDateTime.date } }
             val series = series.getOrElse { raise(EventError.FailedToGetSeries) }
-                .map { s ->
-                    val range = lessonRangeBySeries[s.id]
-                    if (range != null) s.copy(startDate = range.first, endDate = range.second) else s
-                }
                 .filter { it.endDate >= today }
                 .sortedBy { it.startDate }
             val definitions = definitions.getOrElse { raise(EventError.FailedToGetDefinitions) }
                 .filter { def -> instances.any { it.definitionId == def.id } || series.any { it.definitionId == def.id } }
 
-            // lessonCount must reflect actual instances (including cancelled), not the stale stored value.
-            val lessonCountBySeries = allInstances
-                .filter { it.seriesId != null }
-                .groupBy { it.seriesId!! }
-                .mapValues { (_, insts) -> insts.size }
-            val seriesWithLessonCount = series.map { it.copy(lessonCount = lessonCountBySeries[it.id] ?: 0) }
-
-            DashboardData(instances, seriesWithLessonCount, definitions)
+            DashboardData(instances, series, definitions)
         }
     }
 
@@ -169,6 +156,6 @@ class EventService(
             ensure(series.isPublished) { EventError.EventSeriesNotFound(id.toString()) }
         }
         val lessons = eventInstanceRepository.findBySeries(id).sortedBy { it.startDateTime }
-        SeriesDetailResponse(series.copy(lessonCount = lessons.size), lessons)
+        SeriesDetailResponse(series, lessons)
     }
 }

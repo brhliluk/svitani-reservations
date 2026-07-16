@@ -51,7 +51,6 @@ import arrow.fx.coroutines.parZip
 import kotlin.reflect.jvm.jvmName
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
@@ -72,6 +71,7 @@ class AdminDashboardService(
     private val walletService: WalletService,
     private val refundService: RefundService,
     private val seriesLessonOptOutRepository: SeriesLessonOptOutRepository,
+    private val seriesScheduleRefresher: SeriesScheduleRefresher,
 ): AdminServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -179,12 +179,6 @@ class AdminDashboardService(
             .onLeft { captureEmailError(logger, "Failed to send payment-received email for reservation ${reservation.id}: $it") }
     }
 
-    // The course's displayed start date must follow its actual lessons, not the stored
-    // (freely editable, sometimes stale) series.startDate. Returns the first lesson's date,
-    // falling back to the stored value when the series has no instances.
-    private suspend fun seriesDisplayStartDate(seriesId: Uuid, fallback: LocalDate): LocalDate =
-        eventInstanceRepository.findBySeries(seriesId).minOfOrNull { it.startDateTime.date } ?: fallback
-
     override suspend fun getEventDetail(eventId: Uuid, isSeries: Boolean): Either<AdminError.GetEventDetail, AdminEventDetailData> = either {
         val title: String
         val subtitle: String
@@ -197,8 +191,7 @@ class AdminDashboardService(
         if (isSeries) {
             val series = ensureNotNull(eventSeriesRepository.get(eventId)) { AdminError.EventSeriesNotFound(eventId) }
             title = series.title
-            val derivedLessonCount = eventInstanceRepository.countBySeries(eventId).toInt()
-            subtitle = "Kurz ($derivedLessonCount lekcí) • Od ${seriesDisplayStartDate(eventId, series.startDate)}"
+            subtitle = "Kurz (${series.lessonCount} lekcí) • Od ${series.startDate}"
             capacity = series.capacity
             occupiedSpots = series.occupiedSpots
             waitlistCapacity = series.waitlistCapacity
@@ -278,11 +271,6 @@ class AdminDashboardService(
                 { eventSeriesRepository.getAll(seriesIds).associateBy { it.id } },
             ) { i, s -> i to s }
 
-            // Displayed course date follows the actual first lesson, not the stored series.startDate.
-            val seriesLessonStart: Map<Uuid, LocalDate> = seriesIds.distinct().mapNotNull { sid ->
-                eventInstanceRepository.findBySeries(sid).minOfOrNull { it.startDateTime.date }?.let { sid to it }
-            }.toMap()
-
             val items = reservations.map { res ->
                 var eventTitle = "Neznámá událost"
                 var eventDate = ""
@@ -296,7 +284,7 @@ class AdminDashboardService(
                     }
                     is Reference.Series -> seriesById[ref.id]?.let { series ->
                         eventTitle = series.title
-                        eventDate = "Kurz (od ${seriesLessonStart[ref.id] ?: series.startDate})"
+                        eventDate = "Kurz (od ${series.startDate})"
                         customFields = series.customFields
                     }
                 }
@@ -360,18 +348,6 @@ class AdminDashboardService(
             ) { count, defs -> count to defs }
             val definitionIds = definitions.map { it.id }.toSet()
 
-            // lessonCount must reflect actual instances (including cancelled), not the stale stored value.
-            val seriesLessonCount: Map<Uuid, Int> = allInstances
-                .filter { it.seriesId != null }
-                .groupBy { it.seriesId!! }
-                .mapValues { (_, insts) -> insts.size }
-
-            // Displayed course date follows the actual first lesson, not the stored series.startDate.
-            val seriesLessonStart: Map<Uuid, LocalDate> = allInstances
-                .filter { it.seriesId != null }
-                .groupBy { it.seriesId!! }
-                .mapValues { (_, insts) -> insts.minOf { it.startDateTime.date } }
-
             val seriesDtos = allSeries
                 .filter { it.definitionId in definitionIds && (includePast || !isSeriesPast(it)) }
                 .map { s ->
@@ -380,7 +356,7 @@ class AdminDashboardService(
                         definitionId = s.definitionId,
                         title = s.title,
                         isSeries = true,
-                        dateInfo = "Od ${(seriesLessonStart[s.id] ?: s.startDate).humanReadable} (${seriesLessonCount[s.id] ?: 0} lekcí)",
+                        dateInfo = "Od ${s.startDate.humanReadable} (${s.lessonCount} lekcí)",
                         capacity = s.capacity,
                         occupiedSpots = s.occupiedSpots,
                         priceString = "${s.price} Kč",
@@ -547,6 +523,8 @@ class AdminDashboardService(
                 }
             }
 
+            seriesScheduleRefresher.refresh(newSeries.id)
+
             newSeries.id
         } catch (e: Exception) {
             e.printStackTrace()
@@ -697,6 +675,8 @@ class AdminDashboardService(
                 }
             }
 
+            seriesScheduleRefresher.refresh(newSeries.id)
+
             newDefinition.id
         } catch (e: Exception) {
             e.printStackTrace()
@@ -757,8 +737,7 @@ class AdminDashboardService(
     }
 
     override suspend fun getEventSeriesForEdit(id: Uuid): Either<AdminError.GetEditData, EventSeries> = either {
-        val series = ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
-        series.copy(lessonCount = eventInstanceRepository.countBySeries(id).toInt())
+        ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
     }
 
     override suspend fun updateEventInstance(id: Uuid, request: cz.svitaninymburk.projects.reservations.event.UpdateEventInstanceRequest): Either<AdminError.UpdateEvent, Unit> = either {
@@ -800,6 +779,8 @@ class AdminDashboardService(
                     ).onLeft { captureEmailError(logger, "Failed to send reschedule email for ${res.id}: $it") }
                 }
         }
+
+        existing.seriesId?.let { seriesScheduleRefresher.refresh(it) }
     }
 
     override suspend fun setInstancePublished(id: Uuid, published: Boolean): Either<AdminError.UpdateEvent, Unit> = either {
@@ -821,14 +802,8 @@ class AdminDashboardService(
                 price = request.price,
                 capacity = request.capacity,
                 waitlistCapacity = request.waitlistCapacity,
-                startDate = request.startDate,
-                endDate = request.endDate,
-                lessonCount = request.lessonCount,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
-                lessonDayOfWeek = request.lessonDayOfWeek,
-                lessonStartTime = request.lessonStartTime,
-                lessonEndTime = request.lessonEndTime,
                 ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = request.showAttendeeCount,
                 lessonRefundAmount = request.lessonRefundAmount,
@@ -866,6 +841,7 @@ class AdminDashboardService(
                 isPublished = series.isPublished,
             )
             eventInstanceRepository.create(instance)
+            seriesScheduleRefresher.refresh(series.id)
             instance.id
         } catch (e: Exception) {
             e.printStackTrace()
@@ -945,6 +921,7 @@ class AdminDashboardService(
             }
 
         eventInstanceRepository.delete(id)
+        instance.seriesId?.let { seriesScheduleRefresher.refresh(it) }
     }
 
     override suspend fun deleteEventSeries(id: Uuid, refund: Boolean): Either<AdminError.DeleteSeries, Unit> = either {
@@ -1122,6 +1099,7 @@ class AdminDashboardService(
         try {
             // Mark instance as cancelled
             eventInstanceRepository.update(instance.copy(isCancelled = true))
+            seriesScheduleRefresher.refresh(seriesId)
 
             // Notify all active series enrollees + refund the lesson amount
             val series = eventSeriesRepository.get(seriesId)

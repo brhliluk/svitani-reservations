@@ -13,6 +13,7 @@ import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.service.AdminDashboardService
+import cz.svitaninymburk.projects.reservations.service.SeriesScheduleRefresher
 import cz.svitaninymburk.projects.reservations.service.RefundService
 import cz.svitaninymburk.projects.reservations.service.WalletService
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
@@ -105,6 +106,7 @@ class AdminEditDeleteSpec {
             walletService = walletService,
             refundService = refundService,
             seriesLessonOptOutRepository = optOutRepo,
+            seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
         )
     }
 
@@ -189,7 +191,7 @@ class AdminEditDeleteSpec {
     }
 
     @Test
-    fun `getEventSeriesForEdit derives lessonCount from instances including cancelled`() = runBlocking {
+    fun `getEventSeriesForEdit returns refreshed lessonCount including cancelled`() = runBlocking {
         val defRepo = InMemoryEventDefinitionRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val instanceRepo = InMemoryEventInstanceRepository()
@@ -200,6 +202,7 @@ class AdminEditDeleteSpec {
         instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id))
         instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id))
         instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id, isCancelled = true))
+        SeriesScheduleRefresher(instanceRepo, seriesRepo).refresh(series.id)
         val result = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
             .getEventSeriesForEdit(series.id)
 
@@ -209,7 +212,7 @@ class AdminEditDeleteSpec {
     // --- get event detail ---
 
     @Test
-    fun `getEventDetail subtitle uses derived lessonCount, not the stale stored value`() = runBlocking {
+    fun `getEventDetail subtitle shows refreshed lessonCount, not the stale stored value`() = runBlocking {
         val defRepo = InMemoryEventDefinitionRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val instanceRepo = InMemoryEventInstanceRepository()
@@ -220,6 +223,7 @@ class AdminEditDeleteSpec {
         instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id))
         instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id))
         instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id, isCancelled = true))
+        SeriesScheduleRefresher(instanceRepo, seriesRepo).refresh(series.id)
         val result = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
             .getEventDetail(series.id, isSeries = true)
 
@@ -278,8 +282,7 @@ class AdminEditDeleteSpec {
     fun `updateEventSeries returns Left when series not found`() = runBlocking {
         val request = UpdateEventSeriesRequest(
             title = "X", description = "d", price = 100.0, capacity = 5,
-            startDate = LocalDate(2026, 6, 1), endDate = LocalDate(2026, 8, 1),
-            lessonCount = 8, allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+            allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
             customFields = emptyList(),
         )
         val result = makeService().updateEventSeries(Uuid.random(), request)
@@ -295,8 +298,7 @@ class AdminEditDeleteSpec {
 
         val request = UpdateEventSeriesRequest(
             title = "New Title", description = "new", price = 600.0, capacity = 15,
-            startDate = LocalDate(2026, 7, 1), endDate = LocalDate(2026, 9, 1),
-            lessonCount = 10, allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+            allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
             customFields = emptyList(),
         )
         val result = makeService(seriesRepo = seriesRepo).updateEventSeries(series.id, request)
@@ -307,6 +309,35 @@ class AdminEditDeleteSpec {
         assertEquals("New Title", updated.title)
         assertEquals(600.0, updated.price)
         assertEquals(4, updated.occupiedSpots)
+    }
+
+    @Test
+    fun `updateEventSeries does not touch schedule fields`() = runBlocking {
+        val defId = Uuid.random()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val series = makeSeries(defId).copy(
+            lessonDayOfWeek = DayOfWeek.MONDAY,
+            lessonStartTime = LocalTime(17, 0),
+            lessonEndTime = LocalTime(18, 0),
+        )
+        seriesRepo.create(series)
+
+        val request = UpdateEventSeriesRequest(
+            title = "New Title", description = "new", price = 600.0, capacity = 15,
+            allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+            customFields = emptyList(),
+        )
+        val result = makeService(seriesRepo = seriesRepo).updateEventSeries(series.id, request)
+        assertTrue(result.isRight())
+
+        val updated = seriesRepo.get(series.id)
+        assertNotNull(updated)
+        assertEquals(series.startDate, updated.startDate)
+        assertEquals(series.endDate, updated.endDate)
+        assertEquals(series.lessonCount, updated.lessonCount)
+        assertEquals(DayOfWeek.MONDAY, updated.lessonDayOfWeek)
+        assertEquals(LocalTime(17, 0), updated.lessonStartTime)
+        assertEquals(LocalTime(18, 0), updated.lessonEndTime)
     }
 
     // --- addSeriesLesson ---
@@ -367,6 +398,137 @@ class AdminEditDeleteSpec {
         )
 
         assertEquals(AdminError.SeriesNotFoundForAddLesson(missingId), result.leftOrNull())
+    }
+
+    // --- series schedule cache refresh on lesson mutations ---
+
+    @Test
+    fun `addSeriesLesson refreshes series schedule cache`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val series = makeSeries(def.id) // stored: 2026-06-01..2026-08-01, lessonCount 8
+        seriesRepo.create(series)
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        service.addSeriesLesson(
+            AddSeriesLessonRequest(
+                seriesId = series.id,
+                startDateTime = LocalDateTime(2026, 9, 15, 9, 0),
+                endDateTime = LocalDateTime(2026, 9, 15, 10, 0),
+            )
+        )
+
+        val updated = seriesRepo.get(series.id)
+        assertNotNull(updated)
+        assertEquals(LocalDate(2026, 9, 15), updated.startDate)
+        assertEquals(LocalDate(2026, 9, 15), updated.endDate)
+        assertEquals(1, updated.lessonCount)
+    }
+
+    @Test
+    fun `updateEventInstance on a series lesson refreshes series dates`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val series = makeSeries(def.id)
+        seriesRepo.create(series)
+        val first = makeInstance(def.id).copy(seriesId = series.id) // 2026-06-01 10:00
+        val second = makeInstance(def.id).copy(
+            seriesId = series.id,
+            startDateTime = LocalDateTime(2026, 6, 8, 10, 0),
+            endDateTime = LocalDateTime(2026, 6, 8, 11, 0),
+        )
+        instanceRepo.create(first)
+        instanceRepo.create(second)
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        val result = service.updateEventInstance(
+            second.id,
+            UpdateEventInstanceRequest(
+                title = second.title, description = second.description,
+                startDateTime = LocalDateTime(2026, 9, 1, 10, 0),
+                endDateTime = LocalDateTime(2026, 9, 1, 11, 0),
+                price = second.price, capacity = second.capacity,
+                allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                customFields = emptyList(),
+            )
+        )
+        assertTrue(result.isRight())
+
+        val updated = seriesRepo.get(series.id)
+        assertNotNull(updated)
+        assertEquals(LocalDate(2026, 6, 1), updated.startDate)
+        assertEquals(LocalDate(2026, 9, 1), updated.endDate)
+    }
+
+    @Test
+    fun `deleteEventInstance on a series lesson refreshes series dates`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val series = makeSeries(def.id)
+        seriesRepo.create(series)
+        val first = makeInstance(def.id).copy(seriesId = series.id) // 2026-06-01 10:00
+        val last = makeInstance(def.id).copy(
+            seriesId = series.id,
+            startDateTime = LocalDateTime(2026, 6, 8, 10, 0),
+            endDateTime = LocalDateTime(2026, 6, 8, 11, 0),
+        )
+        instanceRepo.create(first)
+        instanceRepo.create(last)
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        val result = service.deleteEventInstance(last.id, refund = false)
+        assertTrue(result.isRight())
+
+        val updated = seriesRepo.get(series.id)
+        assertNotNull(updated)
+        assertEquals(LocalDate(2026, 6, 1), updated.startDate)
+        assertEquals(LocalDate(2026, 6, 1), updated.endDate)
+        assertEquals(1, updated.lessonCount)
+    }
+
+    @Test
+    fun `createEventSeries stores schedule derived from generated lessons`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        // endDate is deliberately nonsense — generation runs weekly from startDate,
+        // and the stored endDate must come out as the last generated lesson's date.
+        val result = service.createEventSeries(
+            CreateEventSeriesRequest(
+                definitionId = def.id,
+                title = "Course", description = "d",
+                price = 500.0, capacity = 10,
+                startDate = LocalDate(2026, 6, 1),
+                endDate = LocalDate(2026, 12, 31),
+                lessonCount = 3,
+                lessonDayOfWeek = DayOfWeek.MONDAY,
+                lessonStartTime = LocalTime(17, 0),
+                lessonEndTime = LocalTime(18, 0),
+            )
+        )
+        assertTrue(result.isRight())
+        val seriesId = result.getOrNull()
+        assertNotNull(seriesId)
+
+        val stored = seriesRepo.get(seriesId)
+        assertNotNull(stored)
+        assertEquals(LocalDate(2026, 6, 1), stored.startDate)   // first Monday
+        assertEquals(LocalDate(2026, 6, 15), stored.endDate)    // third Monday
+        assertEquals(3, stored.lessonCount)
+        assertEquals(DayOfWeek.MONDAY, stored.lessonDayOfWeek)
     }
 
     // --- updateEventDefinition with propagation ---
@@ -534,7 +696,7 @@ class AdminEditDeleteSpec {
     }
 
     @Test
-    fun `getEventDetail subtitle follows the first lesson date, not the stored series startDate`() = runBlocking {
+    fun `getEventDetail subtitle shows refreshed startDate, not the pre-refresh stored value`() = runBlocking {
         val defId = Uuid.random()
         val seriesRepo = InMemoryEventSeriesRepository()
         val instanceRepo = InMemoryEventInstanceRepository()
@@ -552,6 +714,7 @@ class AdminEditDeleteSpec {
             startDateTime = LocalDateTime(2026, 7, 13, 14, 30),
             endDateTime = LocalDateTime(2026, 7, 13, 15, 30),
         ))
+        SeriesScheduleRefresher(instanceRepo, seriesRepo).refresh(series.id)
 
         val result = makeService(seriesRepo = seriesRepo, instanceRepo = instanceRepo)
             .getEventDetail(series.id, isSeries = true)
@@ -976,10 +1139,12 @@ class PaymentEventSpec {
         reservationRepo.save(reservation)
 
         // service will be created in Task 6 — this test will fail to compile until then
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
         val service = AdminDashboardService(
             eventDefinitionRepository = InMemoryEventDefinitionRepository(),
-            eventSeriesRepository = InMemoryEventSeriesRepository(),
-            eventInstanceRepository = InMemoryEventInstanceRepository(),
+            eventSeriesRepository = seriesRepo,
+            eventInstanceRepository = instanceRepo,
             reservationRepository = reservationRepo,
             userRepository = InMemoryUserRepository(),
             emailService = ConsoleEmailService(),
@@ -987,6 +1152,7 @@ class PaymentEventSpec {
             walletService = WalletService(InMemoryWalletRepository()),
             refundService = stubRefundService(),
             seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
+            seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
         )
 
         val result = service.markReservationAsPaid(reservation.id)
@@ -1006,10 +1172,12 @@ class PaymentEventSpec {
         paymentRepo.seed(PaymentEvent("id1", Uuid.random().toString(), "Alice", 100.0, "CZK", PaymentInfo.Type.BANK_TRANSFER, PaymentEvent.Source.AUTO_FIO,     now))
         paymentRepo.seed(PaymentEvent("id2", Uuid.random().toString(), "Bob",   200.0, "CZK", PaymentInfo.Type.ON_SITE,       PaymentEvent.Source.MANUAL_ADMIN, now))
 
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
         val service = AdminDashboardService(
             eventDefinitionRepository = InMemoryEventDefinitionRepository(),
-            eventSeriesRepository = InMemoryEventSeriesRepository(),
-            eventInstanceRepository = InMemoryEventInstanceRepository(),
+            eventSeriesRepository = seriesRepo,
+            eventInstanceRepository = instanceRepo,
             reservationRepository = InMemoryReservationRepository(),
             userRepository = InMemoryUserRepository(),
             emailService = ConsoleEmailService(),
@@ -1017,6 +1185,7 @@ class PaymentEventSpec {
             walletService = WalletService(InMemoryWalletRepository()),
             refundService = stubRefundService(),
             seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
+            seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
         )
 
         val result = service.getPaymentEvents(page = 0, pageSize = 10)
@@ -1037,10 +1206,12 @@ class PaymentEventSpec {
             paymentRepo.seed(PaymentEvent("id$i", Uuid.random().toString(), "User$i", 100.0 * i, "CZK", PaymentInfo.Type.BANK_TRANSFER, PaymentEvent.Source.AUTO_FIO, now))
         }
 
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
         val service = AdminDashboardService(
             eventDefinitionRepository = InMemoryEventDefinitionRepository(),
-            eventSeriesRepository = InMemoryEventSeriesRepository(),
-            eventInstanceRepository = InMemoryEventInstanceRepository(),
+            eventSeriesRepository = seriesRepo,
+            eventInstanceRepository = instanceRepo,
             reservationRepository = InMemoryReservationRepository(),
             userRepository = InMemoryUserRepository(),
             emailService = ConsoleEmailService(),
@@ -1048,6 +1219,7 @@ class PaymentEventSpec {
             walletService = WalletService(InMemoryWalletRepository()),
             refundService = stubRefundService(),
             seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
+            seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
         )
 
         val page0 = service.getPaymentEvents(page = 0, pageSize = 3)
@@ -1079,6 +1251,7 @@ class PaginationSpec {
         walletService = WalletService(InMemoryWalletRepository()),
         refundService = stubRefundService(),
         seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
+        seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
     )
 
     private fun makeDefinition(title: String = "Def", id: Uuid = Uuid.random()) = EventDefinition(
@@ -1495,5 +1668,79 @@ class ChangePasswordSpec {
         assertTrue(result.isRight())
         val updatedUser = userRepo.findById(id) as User.Email
         assertTrue(hashing.verify("newpass123", updatedUser.passwordHash))
+    }
+}
+
+class AuthenticatedEventServiceScheduleSpec {
+
+    private val definitionId = Uuid.random()
+
+    private fun makeSeries(id: Uuid = Uuid.random()) = EventSeries(
+        id = id,
+        definitionId = definitionId,
+        title = "Series",
+        description = "desc",
+        price = 500.0,
+        capacity = 10,
+        startDate = LocalDate(2026, 1, 1),
+        endDate = LocalDate(2026, 1, 2),
+        lessonCount = 99,
+    )
+
+    private fun makeLesson(seriesId: Uuid, day: Int) = EventInstance(
+        id = Uuid.random(),
+        definitionId = definitionId,
+        seriesId = seriesId,
+        title = "Lesson",
+        description = "desc",
+        startDateTime = LocalDateTime(2026, 6, day, 10, 0),
+        endDateTime = LocalDateTime(2026, 6, day, 11, 0),
+        price = 500.0,
+        capacity = 10,
+    )
+
+    @Test
+    fun `updateEventInstance refreshes series schedule cache`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val series = makeSeries()
+        seriesRepo.create(series)
+        val lesson = makeLesson(series.id, day = 1)
+        instanceRepo.create(lesson)
+        val service = cz.svitaninymburk.projects.reservations.service.AuthenticatedEventService(
+            InMemoryEventDefinitionRepository(), instanceRepo, SeriesScheduleRefresher(instanceRepo, seriesRepo),
+        )
+
+        val result = service.updateEventInstance(
+            lesson.copy(
+                startDateTime = LocalDateTime(2026, 6, 22, 10, 0),
+                endDateTime = LocalDateTime(2026, 6, 22, 11, 0),
+            )
+        )
+        assertTrue(result.isRight())
+
+        assertEquals(LocalDate(2026, 6, 22), seriesRepo.get(series.id)?.startDate)
+        assertEquals(LocalDate(2026, 6, 22), seriesRepo.get(series.id)?.endDate)
+    }
+
+    @Test
+    fun `deleteEventInstance refreshes series schedule cache`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val series = makeSeries()
+        seriesRepo.create(series)
+        val first = makeLesson(series.id, day = 1)
+        val last = makeLesson(series.id, day = 8)
+        instanceRepo.create(first)
+        instanceRepo.create(last)
+        val service = cz.svitaninymburk.projects.reservations.service.AuthenticatedEventService(
+            InMemoryEventDefinitionRepository(), instanceRepo, SeriesScheduleRefresher(instanceRepo, seriesRepo),
+        )
+
+        val result = service.deleteEventInstance(last.id)
+        assertTrue(result.isRight())
+
+        assertEquals(LocalDate(2026, 6, 1), seriesRepo.get(series.id)?.endDate)
+        assertEquals(1, seriesRepo.get(series.id)?.lessonCount)
     }
 }

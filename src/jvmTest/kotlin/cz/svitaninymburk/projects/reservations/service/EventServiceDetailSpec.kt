@@ -87,12 +87,13 @@ class EventServiceDetailSpec {
         instanceRepo.create(later)
         instanceRepo.create(earlier)
         instanceRepo.create(unrelated)
+        SeriesScheduleRefresher(instanceRepo, seriesRepo).refresh(series.id)
         val service = makeService(instanceRepo = instanceRepo, seriesRepo = seriesRepo)
 
         val result = service.getSeriesDetail(series.id)
 
         val detail: SeriesDetailResponse? = result.getOrNull()
-        assertEquals(series.copy(lessonCount = 2), detail?.series)
+        assertEquals(seriesRepo.get(series.id), detail?.series)
         assertEquals(2, detail?.series?.lessonCount)
         assertEquals(listOf(earlier, later), detail?.lessons)
         assertTrue(detail?.lessons?.none { it.id == unrelated.id } == true)
@@ -107,12 +108,14 @@ class EventServiceDetailSpec {
 
         val result = service.getSeriesDetail(series.id)
 
-        assertEquals(series.copy(lessonCount = 0), result.getOrNull()?.series)
+        // No instances means no refresh ever happens for this series, so the stored
+        // series is returned as-is; lessons is simply empty.
+        assertEquals(series, result.getOrNull()?.series)
         assertEquals(emptyList(), result.getOrNull()?.lessons)
     }
 
     @Test
-    fun `getSeriesDetail derives lessonCount from instances including cancelled`() = runBlocking {
+    fun `getSeriesDetail returns refreshed lessonCount including cancelled`() = runBlocking {
         val instanceRepo = InMemoryEventInstanceRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val series = makeSeries() // stored lessonCount = 10
@@ -120,6 +123,7 @@ class EventServiceDetailSpec {
         instanceRepo.create(makeInstance(seriesId = series.id, start = LocalDateTime(2027, 9, 8, 9, 0), end = LocalDateTime(2027, 9, 8, 10, 0)))
         instanceRepo.create(makeInstance(seriesId = series.id, start = LocalDateTime(2027, 9, 15, 9, 0), end = LocalDateTime(2027, 9, 15, 10, 0)))
         instanceRepo.create(makeInstance(seriesId = series.id, start = LocalDateTime(2027, 9, 22, 9, 0), end = LocalDateTime(2027, 9, 22, 10, 0)).copy(isCancelled = true))
+        SeriesScheduleRefresher(instanceRepo, seriesRepo).refresh(series.id)
         val service = makeService(instanceRepo = instanceRepo, seriesRepo = seriesRepo)
 
         val result = service.getSeriesDetail(series.id)

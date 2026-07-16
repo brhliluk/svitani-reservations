@@ -112,7 +112,7 @@ val appModule = module {
     single { AuthRefreshTokenService(get(), get(), get()) } bind RefreshTokenServiceInterface::class
     single { RefreshTokenService(get(), get()) }
     single { EventService(get(), get(), get()) } bind EventServiceInterface::class
-    single { AuthenticatedEventService(get(), get()) } bind AuthenticatedEventServiceInterface::class
+    single { AuthenticatedEventService(get(), get(), get()) } bind AuthenticatedEventServiceInterface::class
     single {
         GmailEmailService(
             settings = get(),
@@ -125,7 +125,8 @@ val appModule = module {
     single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get()) } bind ReservationServiceInterface::class
     single { AuthenticatedReservationService(get(), get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
     single { PaymentPairingService(get(), get(), get(), get(), get(), get()) }
+    single { SeriesScheduleRefresher(get(), get()) }
     single { AdminService(get()) }
-    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get(), refundService = get(), seriesLessonOptOutRepository = get()) } bind AdminServiceInterface::class
+    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get(), refundService = get(), seriesLessonOptOutRepository = get(), seriesScheduleRefresher = get()) } bind AdminServiceInterface::class
     single { UserService(get(), get()) }
 }

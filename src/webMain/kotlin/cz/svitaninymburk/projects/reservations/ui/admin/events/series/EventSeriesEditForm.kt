@@ -21,24 +21,18 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyFiel
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ReservationDeadlineSection
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ShowAttendeeCountCheckbox
 import dev.kilua.core.IComponent
-import dev.kilua.form.InputType
-import dev.kilua.form.select.select
 import dev.kilua.form.text.text
 import dev.kilua.form.text.textArea
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.DayOfWeek
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.minus
 import kotlinx.datetime.toInstant
 import web.history.history
-import web.html.HTMLSelectElement
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
@@ -67,10 +61,6 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
     var capacity by remember { mutableIntStateOf(10) }
     var waitlistCapacity by remember { mutableIntStateOf(0) }
     var occupiedSpots by remember { mutableIntStateOf(0) }
-    var startDate by remember { mutableStateOf("") }
-    var endDate by remember { mutableStateOf("") }
-    var lessonDayOfWeekOrdinal by remember { mutableStateOf<Int?>(null) }
-    var lessonStartTimeStr by remember { mutableStateOf("") }
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
     var showCapacityWarning by remember { mutableStateOf(false) }
@@ -98,10 +88,6 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                 capacity = s.capacity
                 waitlistCapacity = s.waitlistCapacity
                 occupiedSpots = s.occupiedSpots
-                startDate = s.startDate.toString()
-                endDate = s.endDate.toString()
-                lessonDayOfWeekOrdinal = s.lessonDayOfWeek?.isoDayNumber
-                lessonStartTimeStr = s.lessonStartTime?.toString() ?: ""
                 allowBankTransfer = s.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
                 allowOnSite = s.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
                 ownerEmails = s.ownerEmails.ifEmpty { listOf("") }
@@ -122,27 +108,10 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
 
     fun doSave() {
         val uuid = Uuid.parse(id)
-        val parsedStart = try { LocalDate.parse(startDate) } catch (_: Exception) {
-            toastData = ToastData(currentStrings.validationStartDateFormat, ToastType.Error); return
-        }
-        val parsedEnd = try { LocalDate.parse(endDate) } catch (_: Exception) {
-            toastData = ToastData(currentStrings.validationEndDateFormat, ToastType.Error); return
-        }
-        if (parsedEnd < parsedStart) { toastData = ToastData(currentStrings.validationEndBeforeStart, ToastType.Error); return }
+        val loadedSeries = (uiState as? EditSeriesUiState.Loaded)?.series ?: return
         val allowedPayments = buildList {
             if (allowBankTransfer) add(PaymentInfo.Type.BANK_TRANSFER)
             if (allowOnSite) add(PaymentInfo.Type.ON_SITE)
-        }
-        val parsedDay = lessonDayOfWeekOrdinal?.let { DayOfWeek(it) }
-        val parsedStartTime = if (lessonStartTimeStr.isNotBlank()) {
-            try { LocalTime.parse(lessonStartTimeStr) } catch (_: Exception) { null }
-        } else null
-        val loadedStartTime = (uiState as? EditSeriesUiState.Loaded)?.series?.lessonStartTime
-        val loadedEndTime = (uiState as? EditSeriesUiState.Loaded)?.series?.lessonEndTime
-        val parsedEndTime = when {
-            parsedStartTime == null -> null
-            parsedStartTime == loadedStartTime -> loadedEndTime
-            else -> null
         }
 
         val resolvedDeadline: Duration? = if (deadlineEnabled) {
@@ -151,9 +120,9 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
             } else {
                 try {
                     val tz = TimeZone.of("Europe/Prague")
-                    val startTime = if (lessonStartTimeStr.isNotBlank()) LocalTime.parse(lessonStartTimeStr) else LocalTime(0, 0)
-                    val effectiveStart = LocalDateTime(parsedStart, startTime)
-                    val deadlineDate = parsedStart.minus(deadlineDaysBefore, DateTimeUnit.DAY)
+                    val startTime = loadedSeries.lessonStartTime ?: LocalTime(0, 0)
+                    val effectiveStart = LocalDateTime(loadedSeries.startDate, startTime)
+                    val deadlineDate = loadedSeries.startDate.minus(deadlineDaysBefore, DateTimeUnit.DAY)
                     val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(deadlineTimeStr))
                     effectiveStart.toInstant(tz) - deadlineDateTime.toInstant(tz)
                 } catch (_: Exception) { null }
@@ -162,12 +131,8 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
         val request = UpdateEventSeriesRequest(
             title = title, description = description,
             price = price?.toDouble() ?: 0.0, capacity = capacity, waitlistCapacity = waitlistCapacity,
-            startDate = parsedStart, endDate = parsedEnd,
-            lessonCount = (uiState as? EditSeriesUiState.Loaded)?.series?.lessonCount ?: 0, allowedPaymentTypes = allowedPayments,
+            allowedPaymentTypes = allowedPayments,
             customFields = customFields,
-            lessonDayOfWeek = parsedDay,
-            lessonStartTime = parsedStartTime,
-            lessonEndTime = parsedEndTime,
             ownerEmails = parseOwnerEmails(ownerEmails),
             showAttendeeCount = showAttendeeCount,
             lessonRefundAmount = lessonRefundAmountInput?.toDouble()?.takeIf { it > 0 },
@@ -242,38 +207,6 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                                 textArea(value = description, className = "textarea textarea-bordered h-24 w-full") { onInput { description = value ?: "" } }
                             }
                             OwnerEmailsField(ownerEmails) { ownerEmails = it }
-
-                            div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.startDateLabel } }
-                                text(value = startDate, type = InputType.Date, className = "input input-bordered w-full") { onInput { startDate = value ?: "" } }
-                            }
-                            div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.endDateLabel } }
-                                text(value = endDate, type = InputType.Date, className = "input input-bordered w-full") { onInput { endDate = value ?: "" } }
-                            }
-                            div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lessonDayLabel } }
-                                select(className = "select select-bordered w-full") {
-                                    option(value = "", label = currentStrings.lessonDayPlaceholder) {
-                                        if (lessonDayOfWeekOrdinal == null) attribute("selected", "true")
-                                    }
-                                    DayOfWeek.entries.forEach { day ->
-                                        option(value = day.isoDayNumber.toString(), label = currentStrings.dayName(day.isoDayNumber - 1)) {
-                                            if (lessonDayOfWeekOrdinal == day.isoDayNumber) attribute("selected", "true")
-                                        }
-                                    }
-                                    onChange { event ->
-                                        val v = (event.target as? HTMLSelectElement)?.value
-                                        lessonDayOfWeekOrdinal = v?.toIntOrNull()
-                                    }
-                                }
-                            }
-                            div(className = "form-control w-full") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.lessonTimeLabel } }
-                                text(value = lessonStartTimeStr, type = InputType.Time, className = "input input-bordered w-full") {
-                                    onInput { lessonStartTimeStr = value ?: "" }
-                                }
-                            }
 
                             PriceCurrencyField(currentStrings.fullCoursePriceLabel, price) { price = it }
 

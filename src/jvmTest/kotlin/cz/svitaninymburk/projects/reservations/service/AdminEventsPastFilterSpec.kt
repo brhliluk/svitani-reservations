@@ -50,6 +50,7 @@ class AdminEventsPastFilterSpec {
             ),
         ),
         seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
+        seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
     )
 
     private fun definition(id: Uuid, title: String = "Def") = EventDefinition(
@@ -136,7 +137,7 @@ class AdminEventsPastFilterSpec {
     }
 
     @Test
-    fun `getAllEvents dateInfo reflects derived lessonCount, not the stale stored value`() = runBlocking {
+    fun `getAllEvents dateInfo reflects refreshed lessonCount, not the stale stored value`() = runBlocking {
         val defRepo = InMemoryEventDefinitionRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val instanceRepo = InMemoryEventInstanceRepository()
@@ -147,6 +148,7 @@ class AdminEventsPastFilterSpec {
         instanceRepo.create(instance(defId, futureStart, futureEnd).copy(seriesId = theSeries.id))
         instanceRepo.create(instance(defId, futureStart, futureEnd).copy(seriesId = theSeries.id))
         instanceRepo.create(instance(defId, futureStart, futureEnd).copy(seriesId = theSeries.id, isCancelled = true))
+        SeriesScheduleRefresher(instanceRepo, seriesRepo).refresh(theSeries.id)
         val svc = service(defRepo, instanceRepo, seriesRepo)
 
         val page = svc.getAllEvents(0, 20, includePast = false).getOrNull()!!
