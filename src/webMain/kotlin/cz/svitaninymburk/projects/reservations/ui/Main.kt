@@ -23,7 +23,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.AdminEdi
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.AdminCreateEventSeriesScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.AdminEditEventSeriesScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AdminEventCreateChooseScreen
-import cz.svitaninymburk.projects.reservations.ui.admin.events.AdminEventDetailScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.AdminEventDetailScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.events.EventPreviewScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AdminEventsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.payments.AdminPaymentsScreen
