@@ -295,7 +295,6 @@ interface AppStrings : ErrorStrings {
     val addBooleanField: String
     val addTimeRangeField: String
     val noCustomFieldsMessage: String
-    val fieldKeyLabel: String
     val fieldLabelLabel: String
     val fieldRequired: String
     val fieldTypeText: String

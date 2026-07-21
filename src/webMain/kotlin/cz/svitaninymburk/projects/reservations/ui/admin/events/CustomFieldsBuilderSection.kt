@@ -11,6 +11,29 @@ import dev.kilua.form.text.text
 import dev.kilua.html.*
 import web.html.HTMLSelectElement
 
+fun nextAvailableFieldKey(existingKeys: Collection<String>): String {
+    var i = 0
+    while ("field_$i" in existingKeys) i++
+    return "field_$i"
+}
+
+fun deduplicateFieldKeys(fields: List<CustomFieldDefinition>): List<CustomFieldDefinition> {
+    val usedKeys = fields.map { it.key }.toMutableSet()
+    val seenKeys = mutableSetOf<String>()
+    return fields.map { field ->
+        if (!seenKeys.add(field.key)) {
+            val newKey = nextAvailableFieldKey(usedKeys)
+            usedKeys += newKey
+            when (field) {
+                is TextFieldDefinition -> field.copy(key = newKey)
+                is NumberFieldDefinition -> field.copy(key = newKey)
+                is BooleanFieldDefinition -> field.copy(key = newKey)
+                is TimeRangeFieldDefinition -> field.copy(key = newKey)
+            }
+        } else field
+    }
+}
+
 /**
  * Sdílený builder pro custom fields — používán ve všech admin formulářích pro eventy.
  *
@@ -23,6 +46,11 @@ fun IComponent.CustomFieldsBuilderSection(
     onCustomFieldsChange: (List<CustomFieldDefinition>) -> Unit,
 ) {
     val currentStrings by strings
+
+    LaunchedEffect(customFields) {
+        val deduped = deduplicateFieldKeys(customFields)
+        if (deduped != customFields) onCustomFieldsChange(deduped)
+    }
 
     fun updateField(index: Int, newField: CustomFieldDefinition) {
         onCustomFieldsChange(customFields.toMutableList().apply { set(index, newField) })
@@ -45,7 +73,8 @@ fun IComponent.CustomFieldsBuilderSection(
                         li {
                             a {
                                 onClick {
-                                    onCustomFieldsChange(customFields + TextFieldDefinition("field_${customFields.size}", "Nové textové pole"))
+                                    val key = nextAvailableFieldKey(customFields.map { it.key })
+                                    onCustomFieldsChange(customFields + TextFieldDefinition(key, "Nové textové pole"))
                                 }
                                 +currentStrings.addTextField
                             }
@@ -53,7 +82,8 @@ fun IComponent.CustomFieldsBuilderSection(
                         li {
                             a {
                                 onClick {
-                                    onCustomFieldsChange(customFields + NumberFieldDefinition("field_${customFields.size}", "Nové číselné pole"))
+                                    val key = nextAvailableFieldKey(customFields.map { it.key })
+                                    onCustomFieldsChange(customFields + NumberFieldDefinition(key, "Nové číselné pole"))
                                 }
                                 +currentStrings.addNumberField
                             }
@@ -61,7 +91,8 @@ fun IComponent.CustomFieldsBuilderSection(
                         li {
                             a {
                                 onClick {
-                                    onCustomFieldsChange(customFields + BooleanFieldDefinition("field_${customFields.size}", "Nové zaškrtávací pole"))
+                                    val key = nextAvailableFieldKey(customFields.map { it.key })
+                                    onCustomFieldsChange(customFields + BooleanFieldDefinition(key, "Nové zaškrtávací pole"))
                                 }
                                 +currentStrings.addBooleanField
                             }
@@ -69,7 +100,8 @@ fun IComponent.CustomFieldsBuilderSection(
                         li {
                             a {
                                 onClick {
-                                    onCustomFieldsChange(customFields + TimeRangeFieldDefinition("field_${customFields.size}", "Nový časový úsek"))
+                                    val key = nextAvailableFieldKey(customFields.map { it.key })
+                                    onCustomFieldsChange(customFields + TimeRangeFieldDefinition(key, "Nový časový úsek"))
                                 }
                                 +currentStrings.addTimeRangeField
                             }
@@ -93,24 +125,8 @@ fun IComponent.CustomFieldsBuilderSection(
                             }
 
                             div(className = "flex-1 grid grid-cols-1 md:grid-cols-2 gap-3") {
-                                // Klíč pole
-                                div(className = "form-control") {
-                                    label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldKeyLabel } }
-                                    text(value = field.key, className = "input input-sm input-bordered") {
-                                        onInput {
-                                            val newKey = value ?: ""
-                                            updateField(index, when (field) {
-                                                is TextFieldDefinition -> field.copy(key = newKey)
-                                                is NumberFieldDefinition -> field.copy(key = newKey)
-                                                is BooleanFieldDefinition -> field.copy(key = newKey)
-                                                is TimeRangeFieldDefinition -> field.copy(key = newKey)
-                                            })
-                                        }
-                                    }
-                                }
-
                                 // Popisek pole
-                                div(className = "form-control") {
+                                div(className = "form-control md:col-span-2") {
                                     label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldLabelLabel } }
                                     text(value = field.label, className = "input input-sm input-bordered") {
                                         onInput {

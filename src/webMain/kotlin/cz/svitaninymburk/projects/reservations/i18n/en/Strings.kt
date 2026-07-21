@@ -276,7 +276,6 @@ object EnStrings : AppStrings {
     override val addBooleanField = "Checkbox (Yes/No)"
     override val addTimeRangeField = "Time range"
     override val noCustomFieldsMessage = "No custom fields yet. People will only fill in Name, Email, and Phone."
-    override val fieldKeyLabel = "Key (system)"
     override val fieldLabelLabel = "Display text (Label)"
     override val fieldRequired = "Required field"
     override val fieldTypeText = "Type: Text"

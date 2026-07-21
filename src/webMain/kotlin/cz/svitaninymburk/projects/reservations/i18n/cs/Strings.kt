@@ -276,7 +276,6 @@ object CsStrings : AppStrings {
     override val addBooleanField = "Zaškrtávátko (Ano/Ne)"
     override val addTimeRangeField = "Časový úsek"
     override val noCustomFieldsMessage = "Zatím žádná vlastní pole. Lidé vyplní jen Jméno, E-mail a Telefon."
-    override val fieldKeyLabel = "Klíč (pro systém)"
     override val fieldLabelLabel = "Zobrazený text (Label)"
     override val fieldRequired = "Povinné pole"
     override val fieldTypeText = "Typ: Text"
