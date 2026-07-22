@@ -126,9 +126,9 @@ fun IComponent.CustomFieldsBuilderSection(
 
                             div(className = "flex-1 grid grid-cols-1 md:grid-cols-2 gap-3") {
                                 // Popisek pole
-                                div(className = "form-control md:col-span-2") {
+                                div(className = "form-control md:col-span-2 flex flex-col gap-1") {
                                     label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldLabelLabel } }
-                                    text(value = field.label, className = "input input-sm input-bordered") {
+                                    text(value = field.label, className = "input input-sm input-bordered w-full") {
                                         onInput {
                                             val newLabel = value ?: ""
                                             updateField(index, when (field) {
@@ -169,7 +169,7 @@ fun IComponent.CustomFieldsBuilderSection(
                                 // Specifické nastavení podle typu pole
                                 when (field) {
                                     is TimeRangeFieldDefinition -> {
-                                        div(className = "form-control md:col-span-2") {
+                                        div(className = "form-control md:col-span-2 pt-2 mt-1 border-t border-base-content/15") {
                                             label(className = "cursor-pointer label justify-start gap-2 py-1") {
                                                 checkBox(value = field.priceModifier is PriceModifier.TimeMultiplier, className = "checkbox checkbox-xs checkbox-accent") {
                                                     onChange {
@@ -181,7 +181,7 @@ fun IComponent.CustomFieldsBuilderSection(
                                         }
                                     }
                                     is BooleanFieldDefinition -> {
-                                        div(className = "form-control md:col-span-2") {
+                                        div(className = "form-control md:col-span-2 pt-2 mt-1 border-t border-base-content/15") {
                                             label(className = "cursor-pointer label justify-start gap-2 py-1") {
                                                 checkBox(value = field.priceModifier is PriceModifier.FixedAmount, className = "checkbox checkbox-xs checkbox-accent") {
                                                     onChange {
@@ -209,7 +209,7 @@ fun IComponent.CustomFieldsBuilderSection(
                                     }
                                     is NumberFieldDefinition -> {
                                         // Modifier type selector
-                                        div(className = "form-control md:col-span-2") {
+                                        div(className = "form-control md:col-span-2 pt-2 mt-1 border-t border-base-content/15") {
                                             label(className = "label py-1") { span(className = "label-text text-xs") { +currentStrings.fieldPriceModifierEnabled } }
                                             select(className = "select select-sm select-bordered w-full") {
                                                 option(value = "", label = currentStrings.fieldModifierNone) {
