@@ -2,6 +2,9 @@ package cz.svitaninymburk.projects.reservations.ui.admin.events.detail
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
@@ -20,8 +23,6 @@ import kotlin.uuid.Uuid
 @Composable
 fun IComponent.ParticipantsCard(
     data: AdminEventDetailData,
-    expandedId: Uuid?,
-    onExpandedChange: (Uuid?) -> Unit,
     isLoadingReservationTarget: Boolean,
     isWaitlistSignup: Boolean,
     onAddReservation: (asWaitlist: Boolean) -> Unit,
@@ -29,6 +30,7 @@ fun IComponent.ParticipantsCard(
     onCancelReservation: (AdminParticipantRow) -> Unit,
 ) {
     val currentStrings by strings
+    var expandedId by remember { mutableStateOf<Uuid?>(null) }
 
     div(className = "card bg-base-100 shadow-sm") {
         div(className = "card-body p-0") {
@@ -91,7 +93,7 @@ fun IComponent.ParticipantsCard(
                                     customFields = data.customFields,
                                     isExpanded = expandedId == participant.reservationId,
                                     onToggleExpanded = {
-                                        onExpandedChange(if (expandedId == participant.reservationId) null else participant.reservationId)
+                                        expandedId = if (expandedId == participant.reservationId) null else participant.reservationId
                                     },
                                     onConfirmPayment = { onConfirmPayment(participant) },
                                     onCancelReservation = { onCancelReservation(participant) },
