@@ -2,7 +2,6 @@ package cz.svitaninymburk.projects.reservations.ui.admin.events.definition.useca
 
 import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
-import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.UpdateEventDefinitionRequest
 import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
