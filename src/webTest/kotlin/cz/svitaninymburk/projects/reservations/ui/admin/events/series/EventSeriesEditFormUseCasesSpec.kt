@@ -1,0 +1,113 @@
+package cz.svitaninymburk.projects.reservations.ui.admin.events.series
+
+import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.EventSeriesEditFormData
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.SeriesFormValidationError
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.buildUpdateEventSeriesRequest
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.resolveReservationDeadline
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.validateSeriesForm
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.time.Duration.Companion.hours
+
+private fun sampleForm() = EventSeriesEditFormData(
+    title = "Jóga",
+    description = "Popis",
+    ownerEmails = listOf("a@x.cz", "not-an-email"),
+    price = 1500.0,
+    capacity = 12,
+    waitlistCapacity = 3,
+    allowBankTransfer = true,
+    allowOnSite = false,
+    showAttendeeCount = true,
+    lessonRefundAmount = 100.0,
+    customFields = emptyList(),
+    deadlineMessage = "",
+)
+
+class EventSeriesEditFormUseCasesSpec {
+
+    @Test
+    fun validateSeriesFormRequiresTitle() {
+        assertEquals(SeriesFormValidationError.MissingTitle, validateSeriesForm("  ", listOf("a@x.cz")))
+    }
+
+    @Test
+    fun validateSeriesFormRequiresAtLeastOneValidOwnerEmail() {
+        assertEquals(SeriesFormValidationError.MissingOwnerEmail, validateSeriesForm("Jóga", listOf("not-an-email")))
+    }
+
+    @Test
+    fun validateSeriesFormPassesWithTitleAndOwnerEmail() {
+        assertNull(validateSeriesForm("Jóga", listOf("a@x.cz")))
+    }
+
+    @Test
+    fun resolveReservationDeadlineReturnsNullWhenDisabled() {
+        assertNull(
+            resolveReservationDeadline(
+                startDate = LocalDate(2026, 1, 10),
+                lessonStartTime = LocalTime(18, 0),
+                enabled = false,
+                typeIsHours = true,
+                hours = 2,
+                daysBefore = 1,
+                timeStr = "18:00",
+            ),
+        )
+    }
+
+    @Test
+    fun resolveReservationDeadlineReturnsHoursWhenTypeIsHours() {
+        assertEquals(
+            2.hours,
+            resolveReservationDeadline(
+                startDate = LocalDate(2026, 1, 10),
+                lessonStartTime = LocalTime(18, 0),
+                enabled = true,
+                typeIsHours = true,
+                hours = 2,
+                daysBefore = 1,
+                timeStr = "18:00",
+            ),
+        )
+    }
+
+    @Test
+    fun resolveReservationDeadlineReturnsNullForUnparsableTime() {
+        assertNull(
+            resolveReservationDeadline(
+                startDate = LocalDate(2026, 1, 10),
+                lessonStartTime = LocalTime(18, 0),
+                enabled = true,
+                typeIsHours = false,
+                hours = 2,
+                daysBefore = 1,
+                timeStr = "not-a-time",
+            ),
+        )
+    }
+
+    @Test
+    fun buildUpdateEventSeriesRequestMapsFormFieldsAndFiltersOwnerEmails() {
+        val request = buildUpdateEventSeriesRequest(sampleForm(), reservationDeadline = 2.hours)
+        assertEquals("Jóga", request.title)
+        assertEquals(listOf("a@x.cz"), request.ownerEmails)
+        assertEquals(1500.0, request.price)
+        assertEquals(12, request.capacity)
+        assertEquals(3, request.waitlistCapacity)
+        assertEquals(listOf(PaymentInfo.Type.BANK_TRANSFER), request.allowedPaymentTypes)
+        assertEquals(true, request.showAttendeeCount)
+        assertEquals(100.0, request.lessonRefundAmount)
+        assertEquals(2.hours, request.reservationDeadline)
+    }
+
+    @Test
+    fun buildUpdateEventSeriesRequestDropsNonPositiveLessonRefundAmount() {
+        val request = buildUpdateEventSeriesRequest(sampleForm().copy(lessonRefundAmount = 0.0), reservationDeadline = null)
+        assertNull(request.lessonRefundAmount)
+    }
+}
