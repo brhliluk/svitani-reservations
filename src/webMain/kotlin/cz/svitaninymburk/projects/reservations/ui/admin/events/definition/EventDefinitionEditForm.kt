@@ -1,126 +1,39 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.definition
 
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import app.softwork.routingcompose.Router
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
-import cz.svitaninymburk.projects.reservations.error.localizedMessage
-import cz.svitaninymburk.projects.reservations.event.*
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
-import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuilderSection
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
-import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
-import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowedPaymentsField
-import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
-import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuilderSection
-import cz.svitaninymburk.projects.reservations.ui.admin.events.DurationField
-import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
-import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyField
-import cz.svitaninymburk.projects.reservations.ui.admin.events.ShowAttendeeCountCheckbox
 import dev.kilua.core.IComponent
 import dev.kilua.form.check.checkBox
-import dev.kilua.form.text.text
-import dev.kilua.form.text.textArea
-import dev.kilua.html.*
-import dev.kilua.rpc.getService
-import kotlinx.coroutines.launch
+import dev.kilua.html.button
+import dev.kilua.html.div
+import dev.kilua.html.h1
+import dev.kilua.html.label
+import dev.kilua.html.p
+import dev.kilua.html.span
 import web.history.history
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.minutes
-import kotlin.uuid.Uuid
-
-private sealed interface EditDefinitionUiState {
-    data object Loading : EditDefinitionUiState
-    data class Loaded(val definition: EventDefinition) : EditDefinitionUiState
-    data class Error(val message: String) : EditDefinitionUiState
-}
 
 @Composable
 fun IComponent.AdminEditEventDefinitionScreen(id: String) {
     val router = Router.current
-    val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
     val currentStrings by strings
-    var toastData by remember { mutableStateOf<ToastData?>(null) }
-    var isSubmitting by remember { mutableStateOf(false) }
+    val model = remember(id) { buildAdminEditEventDefinitionModel(scope, router, id) }
 
-    var uiState by remember { mutableStateOf<EditDefinitionUiState>(EditDefinitionUiState.Loading) }
+    LaunchedEffect(id) { model.load() }
 
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf<Number?>(0) }
-    var capacity by remember { mutableIntStateOf(10) }
-    var durationHours by remember { mutableIntStateOf(1) }
-    var durationMinutes by remember { mutableIntStateOf(0) }
-    var allowBankTransfer by remember { mutableStateOf(true) }
-    var allowOnSite by remember { mutableStateOf(true) }
-    var customFields by remember { mutableStateOf(listOf<CustomFieldDefinition>()) }
-    var propagateToChildren by remember { mutableStateOf(false) }
-    var ownerEmails by remember { mutableStateOf(listOf("")) }
-    var showAttendeeCount by remember { mutableStateOf(true) }
-
-    LaunchedEffect(id) {
-        val uuid = try { Uuid.parse(id) } catch (_: IllegalArgumentException) { null }
-        if (uuid == null) { uiState = EditDefinitionUiState.Error(currentStrings.invalidEventId); return@LaunchedEffect }
-        adminService.getEventDefinitionForEdit(uuid)
-            .onRight { def ->
-                title = def.title
-                description = def.description
-                price = def.defaultPrice
-                capacity = def.defaultCapacity
-                durationHours = def.defaultDuration.inWholeHours.toInt()
-                durationMinutes = (def.defaultDuration.inWholeMinutes % 60).toInt()
-                allowBankTransfer = def.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
-                allowOnSite = def.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
-                customFields = def.customFields
-                ownerEmails = def.ownerEmails.ifEmpty { listOf("") }
-                showAttendeeCount = def.showAttendeeCount
-                uiState = EditDefinitionUiState.Loaded(def)
-            }
-            .onLeft { uiState = EditDefinitionUiState.Error(it.localizedMessage(currentStrings)) }
-    }
-
-    fun doSave() {
-        val uuid = Uuid.parse(id)
-        val allowedPayments = buildList {
-            if (allowBankTransfer) add(PaymentInfo.Type.BANK_TRANSFER)
-            if (allowOnSite) add(PaymentInfo.Type.ON_SITE)
-        }
-        val request = UpdateEventDefinitionRequest(
-            title = title,
-            description = description,
-            defaultPrice = price?.toDouble() ?: 0.0,
-            defaultCapacity = capacity,
-            defaultDuration = durationHours.hours + durationMinutes.minutes,
-            allowedPaymentTypes = allowedPayments,
-            customFields = customFields,
-            propagateToChildren = propagateToChildren,
-            ownerEmails = parseOwnerEmails(ownerEmails),
-            showAttendeeCount = showAttendeeCount,
-        )
-        isSubmitting = true
-        scope.launch {
-            adminService.updateEventDefinition(uuid, request)
-                .onRight {
-                    isSubmitting = false
-                    toastData = ToastData(currentStrings.toastDefinitionUpdated, ToastType.Success)
-                    kotlinx.coroutines.delay(500.milliseconds)
-                    router.navigate("/admin/events")
-                }
-                .onLeft {
-                    isSubmitting = false
-                    toastData = ToastData(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error)
-                }
-        }
-    }
-
-    when (val state = uiState) {
-        is EditDefinitionUiState.Loading -> Loading()
-        is EditDefinitionUiState.Error -> div(className = "alert alert-error max-w-lg mx-auto mt-10") { +state.message }
-        is EditDefinitionUiState.Loaded -> {
+    when (val state = model.uiState) {
+        is EditEventDefinitionUiState.Loading -> Loading()
+        is EditEventDefinitionUiState.Error -> div(className = "alert alert-error max-w-lg mx-auto mt-10") { +state.message }
+        is EditEventDefinitionUiState.Loaded -> {
             div(className = "flex flex-col gap-6 animate-fade-in max-w-4xl mx-auto pb-20") {
 
                 div(className = "flex items-center gap-4") {
@@ -134,48 +47,30 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
                     }
                 }
 
-                div(className = "card bg-base-100 shadow-sm") {
-                    div(className = "card-body") {
-                        h2(className = "card-title text-lg mb-4") { +currentStrings.basicInfoHeading }
-                        div(className = "grid grid-cols-1 md:grid-cols-2 gap-4") {
-                            div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.eventNameLabel } }
-                                text(value = title, className = "input input-bordered w-full") { onInput { title = value ?: "" } }
-                            }
-                            div(className = "form-control w-full md:col-span-2") {
-                                label(className = "label") { span(className = "label-text font-medium") { +currentStrings.descriptionLabel } }
-                                textArea(value = description, className = "textarea textarea-bordered h-24 w-full") { onInput { description = value ?: "" } }
-                            }
-                            OwnerEmailsField(ownerEmails) { ownerEmails = it }
+                EventDefinitionFieldsCard(
+                    title = model.title, onTitleChange = { model.title = it },
+                    description = model.description, onDescriptionChange = { model.description = it },
+                    ownerEmails = model.ownerEmails, onOwnerEmailsChange = { model.ownerEmails = it },
+                    price = model.price, onPriceChange = { model.price = it },
+                    capacity = model.capacity, onCapacityChange = { model.capacity = it },
+                    durationHours = model.durationHours, onDurationHoursChange = { model.durationHours = it },
+                    durationMinutes = model.durationMinutes, onDurationMinutesChange = { model.durationMinutes = it },
+                    allowBankTransfer = model.allowBankTransfer, onAllowBankTransferChange = { model.allowBankTransfer = it },
+                    allowOnSite = model.allowOnSite, onAllowOnSiteChange = { model.allowOnSite = it },
+                    showAttendeeCount = model.showAttendeeCount, onShowAttendeeCountChange = { model.showAttendeeCount = it },
+                )
 
-                            PriceCurrencyField(currentStrings.defaultPriceLabel, price) { price = it }
-
-                            CapacityField(capacity) { capacity = it }
-
-                            DurationField(
-                                currentStrings.defaultDurationLabel,
-                                durationHours, durationMinutes,
-                                { durationHours = it }, { durationMinutes = it },
-                            )
-
-                            AllowedPaymentsField(allowBankTransfer, allowOnSite, { allowBankTransfer = it }, { allowOnSite = it })
-
-                            ShowAttendeeCountCheckbox(value = showAttendeeCount) { showAttendeeCount = it }
-                        }
-                    }
-                }
-
-                CustomFieldsBuilderSection(customFields) { customFields = it }
+                CustomFieldsBuilderSection(model.customFields) { model.customFields = it }
 
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body") {
                         label(className = "cursor-pointer flex items-center gap-3") {
-                            checkBox(value = propagateToChildren, className = "checkbox checkbox-primary") {
-                                onChange { propagateToChildren = value }
+                            checkBox(value = model.propagateToChildren, className = "checkbox checkbox-primary") {
+                                onChange { model.propagateToChildren = value }
                             }
                             div {
                                 span(className = "font-medium") { +currentStrings.propagateToChildren }
-                                if (propagateToChildren) {
+                                if (model.propagateToChildren) {
                                     p(className = "text-sm text-warning mt-1") { +currentStrings.propagateToChildrenNote }
                                 }
                             }
@@ -186,14 +81,9 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
                 div(className = "flex justify-end gap-2 mt-4") {
                     button(className = "btn") { onClick { history.back() }; +currentStrings.cancel }
                     button(className = "btn btn-primary") {
-                        disabled(isSubmitting)
-                        onClick {
-                            if (title.isBlank()) { toastData = ToastData(currentStrings.validationNameRequired, ToastType.Error); return@onClick }
-                            val validOwnerEmails = parseOwnerEmails(ownerEmails)
-                            if (validOwnerEmails.isEmpty()) { toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error); return@onClick }
-                            doSave()
-                        }
-                        if (isSubmitting) span(className = "loading loading-spinner loading-sm")
+                        disabled(model.isSubmitting)
+                        onClick { model.submit() }
+                        if (model.isSubmitting) span(className = "loading loading-spinner loading-sm")
                         span(className = "icon-[heroicons--check] size-5")
                         +currentStrings.saveChanges
                     }
@@ -202,5 +92,5 @@ fun IComponent.AdminEditEventDefinitionScreen(id: String) {
         }
     }
 
-    Toast(message = toastData?.message, type = toastData?.type ?: ToastType.Success, onDismiss = { toastData = null })
+    Toast(message = model.toast?.message, type = model.toast?.type ?: ToastType.Success, onDismiss = { model.dismissToast() })
 }
