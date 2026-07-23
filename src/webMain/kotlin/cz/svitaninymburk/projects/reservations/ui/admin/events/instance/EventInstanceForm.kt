@@ -36,7 +36,7 @@ fun IComponent.AdminCreateEventInstanceScreen(currentUser: User, preselectedDefi
         buildAdminCreateEventInstanceModel(scope, router, currentUser.email, preselectedDefinitionId)
     }
 
-    LaunchedEffect(Unit) { model.load() }
+    LaunchedEffect(preselectedDefinitionId) { model.load() }
 
     div(className = "flex flex-col gap-6 animate-fade-in max-w-4xl mx-auto pb-20") {
 
