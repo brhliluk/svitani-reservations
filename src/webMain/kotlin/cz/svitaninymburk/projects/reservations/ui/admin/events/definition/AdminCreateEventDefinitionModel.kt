@@ -52,7 +52,7 @@ class AdminCreateEventDefinitionModel(
         val request = buildCreateEventDefinitionRequest(formData())
         run(
             loading = { isSubmitting = it },
-            errorMessage = { it.localizedMessage(currentStrings) },
+            errorMessage = { currentStrings.errorToast(it.localizedMessage(currentStrings)) },
             block = { mutations.create(request) },
             onSuccess = {
                 showToast(currentStrings.templateSavedToast)
