@@ -2,25 +2,20 @@ package cz.svitaninymburk.projects.reservations.ui.admin.events.series
 
 import androidx.compose.runtime.*
 import app.softwork.routingcompose.Router
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
-import cz.svitaninymburk.projects.reservations.error.localizedMessage
-import cz.svitaninymburk.projects.reservations.event.*
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
-import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
-import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
-import cz.svitaninymburk.projects.reservations.ui.util.Toast
-import cz.svitaninymburk.projects.reservations.ui.util.ToastData
-import cz.svitaninymburk.projects.reservations.ui.util.ToastType
-import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowedPaymentsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
-import cz.svitaninymburk.projects.reservations.ui.admin.events.WaitlistCapacityField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuilderSection
 import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ReservationDeadlineSection
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ShowAttendeeCountCheckbox
+import cz.svitaninymburk.projects.reservations.ui.admin.events.WaitlistCapacityField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.computeLessonEndTime
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.parseTimeOrNull
+import cz.svitaninymburk.projects.reservations.ui.util.Toast
+import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
 import dev.kilua.form.check.checkBox
@@ -29,112 +24,21 @@ import dev.kilua.form.select.select
 import dev.kilua.form.text.text
 import dev.kilua.form.text.textArea
 import dev.kilua.html.*
-import dev.kilua.rpc.getService
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.LocalTime
 import kotlinx.datetime.isoDayNumber
-import kotlinx.datetime.minus
-import kotlinx.datetime.plus
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
-import cz.svitaninymburk.projects.reservations.event.LessonConfig
 import web.history.history
 import web.html.HTMLSelectElement
-import kotlin.time.Clock
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
-import kotlin.uuid.Uuid
-
 
 @Composable
 fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefinitionId: String? = null) {
     val router = Router.current
-    val eventService = getService<EventServiceInterface>(RpcSerializersModules)
-    val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
-
     val scope = rememberCoroutineScope()
     val currentStrings by strings
-    var toastData by remember { mutableStateOf<ToastData?>(null) }
-    var isSubmitting by remember { mutableStateOf(false) }
-
-    var definitions by remember { mutableStateOf<List<EventDefinition>>(emptyList()) }
-    var isLoadingDefinitions by remember { mutableStateOf(true) }
-
-    var selectedDefinitionId by remember { mutableStateOf(preselectedDefinitionId) }
-
-    var startDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()) }
-    var endDate by remember { mutableStateOf("") }
-    var lessonCount by remember { mutableIntStateOf(1) }
-    var lessonDayOfWeekOrdinal by remember { mutableStateOf<Int?>(null) }  // 1=Mon…7=Sun (ISO)
-    var lessonStartTimeStr by remember { mutableStateOf("") }               // "HH:MM"
-    var lessonDateOverrides by remember { mutableStateOf(mapOf<Int, String>()) }
-    var lessonDropIn by remember { mutableStateOf(mapOf<Int, Boolean>()) }
-
-    var titleOverride by remember { mutableStateOf("") }
-    var descriptionOverride by remember { mutableStateOf("") }
-    var ownerEmails by remember { mutableStateOf(listOf(currentUser.email)) }
-    var priceOverride by remember { mutableStateOf<Number?>(0) }
-    var capacityOverride by remember { mutableIntStateOf(10) }
-    var waitlistCapacityOverride by remember { mutableIntStateOf(10) }
-    var allowBankTransfer by remember { mutableStateOf(true) }
-    var allowOnSite by remember { mutableStateOf(true) }
-    var showAttendeeCount by remember { mutableStateOf(true) }
-
-    var deadlineEnabled by remember { mutableStateOf(false) }
-    var deadlineTypeIsHours by remember { mutableStateOf(true) }
-    var deadlineHours by remember { mutableIntStateOf(2) }
-    var deadlineDaysBefore by remember { mutableIntStateOf(1) }
-    var deadlineTimeStr by remember { mutableStateOf("18:00") }
-    var deadlineMessage by remember { mutableStateOf("") }
-
-    var customFields by remember { mutableStateOf(listOf<CustomFieldDefinition>()) }
-
-    val computedSeriesDates: List<LocalDate> = remember(startDate, lessonDayOfWeekOrdinal, lessonCount) {
-        val dayOrdinal = lessonDayOfWeekOrdinal ?: return@remember emptyList()
-        val startD = try { LocalDate.parse(startDate) } catch (_: Exception) { return@remember emptyList() }
-        if (lessonCount <= 0) return@remember emptyList()
-        val targetDow = DayOfWeek(dayOrdinal)
-        var date = startD
-        while (date.dayOfWeek != targetDow) date = date.plus(1, DateTimeUnit.DAY)
-        (0 until lessonCount).map { i -> date.plus(i, DateTimeUnit.WEEK) }
+    val model = remember(preselectedDefinitionId) {
+        buildAdminCreateEventSeriesModel(scope, router, currentUser.email, preselectedDefinitionId)
     }
 
-    fun applyDefinitionDefaults(definition: EventDefinition) {
-        titleOverride = definition.title
-        descriptionOverride = definition.description
-        ownerEmails = definition.ownerEmails.ifEmpty { listOf(currentUser.email) }
-        priceOverride = definition.defaultPrice
-        capacityOverride = definition.defaultCapacity
-        allowBankTransfer = definition.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
-        allowOnSite = definition.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
-        showAttendeeCount = definition.showAttendeeCount
-        customFields = definition.customFields
-    }
-
-    LaunchedEffect(computedSeriesDates) {
-        if (computedSeriesDates.isNotEmpty()) endDate = computedSeriesDates.last().toString()
-    }
-
-    LaunchedEffect(Unit) {
-        eventService.getAllDefinitions()
-            .onRight { defs ->
-                definitions = defs
-                isLoadingDefinitions = false
-                if (preselectedDefinitionId != null) {
-                    defs.find { it.id.toString() == preselectedDefinitionId }?.let { applyDefinitionDefaults(it) }
-                }
-            }
-            .onLeft { error ->
-                toastData = ToastData(currentStrings.toastTemplatesLoadError(error.localizedMessage(currentStrings)), ToastType.Error)
-                isLoadingDefinitions = false
-            }
-    }
+    LaunchedEffect(preselectedDefinitionId) { model.load() }
 
     div(className = "flex flex-col gap-6 animate-fade-in max-w-4xl mx-auto pb-20") {
 
@@ -150,11 +54,11 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
             }
         }
 
-        if (isLoadingDefinitions) {
+        if (model.isLoadingDefinitions) {
             div(className = "flex justify-center p-10") {
                 span(className = "loading loading-spinner loading-lg text-primary")
             }
-        } else if (definitions.isEmpty()) {
+        } else if (model.definitions.isEmpty()) {
             div(className = "alert alert-warning shadow-sm") {
                 span(className = "icon-[heroicons--exclamation-triangle] size-6")
                 div {
@@ -178,17 +82,14 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
                                 label(className = "label") { span(className = "label-text font-bold") { +currentStrings.templateSelectionLabel } }
                                 select(className = "select select-bordered w-full text-base") {
                                     option(value = "", label = currentStrings.templatePlaceholder) {
-                                        if (selectedDefinitionId == null) attribute("selected", "true")
+                                        if (model.selectedDefinitionId == null) attribute("selected", "true")
                                         attribute("disabled", "true")
                                     }
-                                    definitions.forEach { def ->
+                                    model.definitions.forEach { def ->
                                         option(value = def.id.toString(), label = def.title)
                                     }
                                     onChange { event ->
-                                        val targetSelect = event.target as? HTMLSelectElement
-                                        val selectedValue = targetSelect?.value
-                                        selectedDefinitionId = selectedValue
-                                        definitions.find { it.id.toString() == selectedValue }?.let { applyDefinitionDefaults(it) }
+                                        model.onDefinitionSelected((event.target as? HTMLSelectElement)?.value)
                                     }
                                 }
                             }
@@ -197,22 +98,22 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
                         // Datum začátku
                         div(className = "form-control w-full") {
                             label(className = "label") { span(className = "label-text font-bold") { +currentStrings.startDateLabel } }
-                            text(value = startDate, type = InputType.Date, className = "input input-bordered w-full") {
-                                onInput { startDate = value ?: "" }
+                            text(value = model.startDate, type = InputType.Date, className = "input input-bordered w-full") {
+                                onInput { model.onStartDateChange(value ?: "") }
                             }
                         }
 
                         // Datum konce — editable only when no day is set, otherwise auto-computed
                         div(className = "form-control w-full") {
                             label(className = "label") { span(className = "label-text font-bold") { +currentStrings.endDateLabel } }
-                            if (lessonDayOfWeekOrdinal != null && computedSeriesDates.isNotEmpty()) {
+                            if (model.lessonDayOfWeekOrdinal != null && model.computedSeriesDates.isNotEmpty()) {
                                 // Auto-computed: show as read-only
                                 div(className = "input input-bordered w-full flex items-center bg-base-200/50 text-base-content/70 text-sm px-4") {
-                                    +computedSeriesDates.last().toString()
+                                    +model.computedSeriesDates.last().toString()
                                 }
                             } else {
-                                text(value = endDate, type = InputType.Date, className = "input input-bordered w-full") {
-                                    onInput { endDate = value ?: "" }
+                                text(value = model.endDate, type = InputType.Date, className = "input input-bordered w-full") {
+                                    onInput { model.endDate = value ?: "" }
                                 }
                             }
                         }
@@ -221,10 +122,10 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
                         div(className = "form-control w-full") {
                             label(className = "label") { span(className = "label-text font-bold") { +currentStrings.lessonCountLabel } }
                             div(className = "relative flex items-center") {
-                                numeric(value = lessonCount, min = 1, decimals = 0, className = "input input-bordered w-full pr-16") {
+                                numeric(value = model.lessonCount, min = 1, decimals = 0, className = "input input-bordered w-full pr-16") {
                                     attribute("step", "1")
-                                    onInput { lessonCount = value?.toInt() ?: 1 }
-                                    onChange { lessonCount = value?.toInt() ?: 1 }
+                                    onInput { model.onLessonCountChange(value?.toInt() ?: 1) }
+                                    onChange { model.onLessonCountChange(value?.toInt() ?: 1) }
                                 }
                                 span(className = "absolute right-4 text-base-content/50 text-sm") { +currentStrings.courseLessons }
                             }
@@ -235,16 +136,15 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
                             label(className = "label") { span(className = "label-text font-bold") { +currentStrings.lessonDayLabel } }
                             select(className = "select select-bordered w-full") {
                                 option(value = "", label = currentStrings.lessonDayPlaceholder) {
-                                    if (lessonDayOfWeekOrdinal == null) attribute("selected", "true")
+                                    if (model.lessonDayOfWeekOrdinal == null) attribute("selected", "true")
                                 }
                                 DayOfWeek.entries.forEach { day ->
                                     option(value = day.isoDayNumber.toString(), label = currentStrings.dayName(day.isoDayNumber - 1)) {
-                                        if (lessonDayOfWeekOrdinal == day.isoDayNumber) attribute("selected", "true")
+                                        if (model.lessonDayOfWeekOrdinal == day.isoDayNumber) attribute("selected", "true")
                                     }
                                 }
                                 onChange { event ->
-                                    val v = (event.target as? HTMLSelectElement)?.value
-                                    lessonDayOfWeekOrdinal = v?.toIntOrNull()
+                                    model.onLessonDayChange((event.target as? HTMLSelectElement)?.value?.toIntOrNull())
                                 }
                             }
                         }
@@ -252,20 +152,18 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
                         // Čas lekce
                         div(className = "form-control w-full") {
                             label(className = "label") { span(className = "label-text font-bold") { +currentStrings.lessonTimeLabel } }
-                            text(value = lessonStartTimeStr, type = InputType.Time, className = "input input-bordered w-full") {
-                                onInput { lessonStartTimeStr = value ?: "" }
+                            text(value = model.lessonStartTimeStr, type = InputType.Time, className = "input input-bordered w-full") {
+                                onInput { model.lessonStartTimeStr = value ?: "" }
                             }
                         }
 
                     }
 
                     // Live lesson preview
-                    if (computedSeriesDates.isNotEmpty()) {
-                        val selectedDef = definitions.find { it.id.toString() == selectedDefinitionId }
-                        val lessonStartT = if (lessonStartTimeStr.isNotBlank()) try { LocalTime.parse(lessonStartTimeStr) } catch (_: Exception) { null } else null
-                        val endTimeStr = if (lessonStartT != null && selectedDef != null) {
-                            val endMinutes = (lessonStartT.hour * 60 + lessonStartT.minute + selectedDef.defaultDuration.inWholeMinutes.toInt()) % (24 * 60)
-                            val endT = LocalTime(endMinutes / 60, endMinutes % 60)
+                    if (model.computedSeriesDates.isNotEmpty()) {
+                        val lessonStartT = parseTimeOrNull(model.lessonStartTimeStr)
+                        val endTimeStr = if (lessonStartT != null && model.selectedDefinition != null) {
+                            val endT = computeLessonEndTime(lessonStartT, model.selectedDefinition!!.defaultDuration.inWholeMinutes.toInt())
                             "${endT.hour}:${endT.minute.toString().padStart(2, '0')}"
                         } else "?"
                         val startTimeDisplayStr = lessonStartT?.let { "${it.hour}:${it.minute.toString().padStart(2, '0')}" } ?: "?"
@@ -273,10 +171,10 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
                         div(className = "mt-4 md:col-span-2") {
                             div(className = "flex items-center gap-2 mb-2") {
                                 span(className = "icon-[heroicons--calendar-days] size-5 text-secondary")
-                                span(className = "font-medium text-sm") { +currentStrings.lessonPreviewHeading(computedSeriesDates.size) }
+                                span(className = "font-medium text-sm") { +currentStrings.lessonPreviewHeading(model.computedSeriesDates.size) }
                             }
                             div(className = "overflow-x-auto") {
-                                val allDropInSeries = computedSeriesDates.indices.all { lessonDropIn[it] == true }
+                                val allDropInSeries = model.computedSeriesDates.indices.all { model.lessonDropIn[it] == true }
                                 table(className = "table table-xs w-full") {
                                     thead {
                                         tr {
@@ -288,9 +186,7 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
                                                     label(className = "cursor-pointer tooltip tooltip-left") {
                                                         attribute("data-tip", currentStrings.lessonIndividualBulkTooltip)
                                                         checkBox(value = allDropInSeries, className = "checkbox checkbox-secondary checkbox-xs") {
-                                                            onChange {
-                                                                lessonDropIn = if (value) computedSeriesDates.indices.associateWith { true } else emptyMap()
-                                                            }
+                                                            onChange { model.setAllDropIn(value) }
                                                         }
                                                     }
                                                     span(className = "tooltip tooltip-left cursor-help whitespace-nowrap") {
@@ -303,23 +199,22 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
                                         }
                                     }
                                     tbody {
-                                        computedSeriesDates.forEachIndexed { i, defaultDate ->
-                                            val effectiveDateStr = lessonDateOverrides[i] ?: defaultDate.toString()
+                                        model.computedSeriesDates.forEachIndexed { i, defaultDate ->
+                                            val effectiveDateStr = model.lessonDateOverrides[i] ?: defaultDate.toString()
                                             tr {
                                                 td(className = "text-base-content/50") { +"${i + 1}" }
                                                 td {
                                                     text(value = effectiveDateStr, type = InputType.Date, className = "input input-xs input-bordered w-36") {
                                                         onInput {
-                                                            val v = value ?: ""
-                                                            lessonDateOverrides = if (v == defaultDate.toString()) lessonDateOverrides - i else lessonDateOverrides + (i to v)
+                                                            model.setLessonDateOverride(i, value ?: "", defaultDate.toString())
                                                         }
                                                     }
                                                 }
                                                 td(className = "text-sm text-base-content/70") { +"$startTimeDisplayStr – $endTimeStr" }
                                                 td {
                                                     label(className = "cursor-pointer") {
-                                                        checkBox(value = lessonDropIn[i] ?: false, className = "checkbox checkbox-secondary checkbox-xs") {
-                                                            onChange { lessonDropIn = if (value) lessonDropIn + (i to true) else lessonDropIn - i }
+                                                        checkBox(value = model.lessonDropIn[i] ?: false, className = "checkbox checkbox-secondary checkbox-xs") {
+                                                            onChange { model.setLessonDropIn(i, value) }
                                                         }
                                                     }
                                                 }
@@ -334,7 +229,7 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
             }
 
             // --- ÚPRAVY PRO TENTO KURZ ---
-            if (selectedDefinitionId != null) {
+            if (model.selectedDefinitionId != null) {
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body") {
                         h2(className = "card-title text-lg mb-2") { +currentStrings.seriesOverrideHeading }
@@ -346,181 +241,68 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
 
                             div(className = "form-control w-full md:col-span-2") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.seriesTitleLabel } }
-                                text(value = titleOverride, className = "input input-bordered w-full") {
-                                    onInput { titleOverride = value ?: "" }
+                                text(value = model.titleOverride, className = "input input-bordered w-full") {
+                                    onInput { model.titleOverride = value ?: "" }
                                 }
                             }
 
                             div(className = "form-control w-full md:col-span-2") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.descriptionLabel } }
-                                textArea(value = descriptionOverride, className = "textarea textarea-bordered h-24 w-full") {
-                                    onInput { descriptionOverride = value ?: "" }
+                                textArea(value = model.descriptionOverride, className = "textarea textarea-bordered h-24 w-full") {
+                                    onInput { model.descriptionOverride = value ?: "" }
                                 }
                             }
 
-                            OwnerEmailsField(ownerEmails) { ownerEmails = it }
+                            OwnerEmailsField(model.ownerEmails) { model.ownerEmails = it }
 
-                            PriceCurrencyField(currentStrings.fullCoursePriceLabel, priceOverride) { priceOverride = it }
+                            PriceCurrencyField(currentStrings.fullCoursePriceLabel, model.priceOverride) { model.priceOverride = it }
 
-                            CapacityField(capacityOverride) { capacityOverride = it }
+                            CapacityField(model.capacityOverride) { model.capacityOverride = it }
 
-                            WaitlistCapacityField(waitlistCapacityOverride) { waitlistCapacityOverride = it }
+                            WaitlistCapacityField(model.waitlistCapacityOverride) { model.waitlistCapacityOverride = it }
 
-                            AllowedPaymentsField(allowBankTransfer, allowOnSite, { allowBankTransfer = it }, { allowOnSite = it })
+                            AllowedPaymentsField(model.allowBankTransfer, model.allowOnSite, { model.allowBankTransfer = it }, { model.allowOnSite = it })
 
-                            ShowAttendeeCountCheckbox(value = showAttendeeCount) { showAttendeeCount = it }
+                            ShowAttendeeCountCheckbox(value = model.showAttendeeCount) { model.showAttendeeCount = it }
 
                         }
                     }
                 }
 
                 // --- CUSTOM FIELDS BUILDER ---
-                CustomFieldsBuilderSection(customFields) { customFields = it }
+                CustomFieldsBuilderSection(model.customFields) { model.customFields = it }
 
                 // --- UZÁVĚRKA REZERVACÍ ---
                 ReservationDeadlineSection(
-                    enabled = deadlineEnabled,
-                    typeIsHours = deadlineTypeIsHours,
-                    hours = deadlineHours,
-                    daysBefore = deadlineDaysBefore,
-                    timeStr = deadlineTimeStr,
-                    message = deadlineMessage,
-                    onEnabledChange = { deadlineEnabled = it },
-                    onTypeChange = { deadlineTypeIsHours = it },
-                    onHoursChange = { deadlineHours = it },
-                    onDaysBeforeChange = { deadlineDaysBefore = it },
-                    onTimeStrChange = { deadlineTimeStr = it },
-                    onMessageChange = { deadlineMessage = it },
+                    enabled = model.deadlineEnabled,
+                    typeIsHours = model.deadlineTypeIsHours,
+                    hours = model.deadlineHours,
+                    daysBefore = model.deadlineDaysBefore,
+                    timeStr = model.deadlineTimeStr,
+                    message = model.deadlineMessage,
+                    onEnabledChange = { model.deadlineEnabled = it },
+                    onTypeChange = { model.deadlineTypeIsHours = it },
+                    onHoursChange = { model.deadlineHours = it },
+                    onDaysBeforeChange = { model.deadlineDaysBefore = it },
+                    onTimeStrChange = { model.deadlineTimeStr = it },
+                    onMessageChange = { model.deadlineMessage = it },
                 )
 
                 // --- ULOŽIT ---
-                fun submitForm(isPublished: Boolean) {
-                    if (startDate.isBlank() || endDate.isBlank()) {
-                        toastData = ToastData(currentStrings.validationDatesRequired, ToastType.Error)
-                        return
-                    }
-                    if (titleOverride.isBlank()) {
-                        toastData = ToastData(currentStrings.validationSeriesTitleRequired, ToastType.Error)
-                        return
-                    }
-                    val validOwnerEmails = parseOwnerEmails(ownerEmails)
-                    if (validOwnerEmails.isEmpty()) {
-                        toastData = ToastData(currentStrings.validationOwnerEmailRequired, ToastType.Error)
-                        return
-                    }
-
-                    val parsedStartDate = try { LocalDate.parse(startDate) } catch (e: Exception) {
-                        toastData = ToastData(currentStrings.validationStartDateFormat, ToastType.Error)
-                        return
-                    }
-                    val parsedEndDate = try { LocalDate.parse(endDate) } catch (e: Exception) {
-                        toastData = ToastData(currentStrings.validationEndDateFormat, ToastType.Error)
-                        return
-                    }
-                    if (parsedEndDate < parsedStartDate) {
-                        toastData = ToastData(currentStrings.validationEndBeforeStart, ToastType.Error)
-                        return
-                    }
-
-                    val allowedPayments = mutableListOf<PaymentInfo.Type>()
-                    if (allowBankTransfer) allowedPayments.add(PaymentInfo.Type.BANK_TRANSFER)
-                    if (allowOnSite) allowedPayments.add(PaymentInfo.Type.ON_SITE)
-
-                    val parsedDay = lessonDayOfWeekOrdinal?.let { DayOfWeek(it) }
-                    val parsedStartTime = if (lessonStartTimeStr.isNotBlank()) {
-                        try { LocalTime.parse(lessonStartTimeStr) } catch (_: Exception) { null }
-                    } else null
-                    val selectedDef = definitions.find { it.id.toString() == selectedDefinitionId }
-                    val parsedEndTime = if (parsedStartTime != null && selectedDef != null) {
-                        val startMinutes = parsedStartTime.hour * 60 + parsedStartTime.minute
-                        val durationMinutes = selectedDef.defaultDuration.inWholeMinutes.toInt()
-                        val endMinutes = (startMinutes + durationMinutes) % (24 * 60)
-                        LocalTime(endMinutes / 60, endMinutes % 60)
-                    } else null
-
-                    val lessonStartT = if (lessonStartTimeStr.isNotBlank()) try { LocalTime.parse(lessonStartTimeStr) } catch (_: Exception) { null } else null
-                    val finalCustomLessons: List<LessonConfig>? = if (lessonStartT != null && computedSeriesDates.isNotEmpty() && selectedDef != null) {
-                        val endMinutes = (lessonStartT.hour * 60 + lessonStartT.minute + selectedDef.defaultDuration.inWholeMinutes.toInt()) % (24 * 60)
-                        val lessonEndT = LocalTime(endMinutes / 60, endMinutes % 60)
-                        computedSeriesDates.indices.map { i ->
-                            val dateStr = lessonDateOverrides[i] ?: computedSeriesDates[i].toString()
-                            val date = try { LocalDate.parse(dateStr) } catch (_: Exception) { computedSeriesDates[i] }
-                            LessonConfig(
-                                startDateTime = LocalDateTime(date, lessonStartT),
-                                endDateTime = LocalDateTime(date, lessonEndT),
-                                isDropIn = lessonDropIn[i] ?: false,
-                            )
-                        }
-                    } else null
-
-                    val resolvedDeadline: Duration? = if (deadlineEnabled) {
-                        if (deadlineTypeIsHours) {
-                            deadlineHours.hours
-                        } else {
-                            try {
-                                val tz = TimeZone.of("Europe/Prague")
-                                val startTime = if (lessonStartTimeStr.isNotBlank()) LocalTime.parse(lessonStartTimeStr) else LocalTime(0, 0)
-                                val effectiveStart = LocalDateTime(parsedStartDate, startTime)
-                                val deadlineDate = parsedStartDate.minus(deadlineDaysBefore, DateTimeUnit.DAY)
-                                val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(deadlineTimeStr))
-                                effectiveStart.toInstant(tz) - deadlineDateTime.toInstant(tz)
-                            } catch (_: Exception) { null }
-                        }
-                    } else null
-
-                    val request = CreateEventSeriesRequest(
-                        definitionId = Uuid.parse(selectedDefinitionId!!),
-                        title = titleOverride,
-                        description = descriptionOverride,
-                        ownerEmails = validOwnerEmails,
-                        price = priceOverride?.toDouble() ?: 0.0,
-                        capacity = capacityOverride,
-                        waitlistCapacity = waitlistCapacityOverride,
-                        startDate = parsedStartDate,
-                        endDate = parsedEndDate,
-                        lessonCount = lessonCount,
-                        allowedPaymentTypes = allowedPayments,
-                        lessonDayOfWeek = parsedDay,
-                        lessonStartTime = parsedStartTime,
-                        lessonEndTime = parsedEndTime,
-                        customLessons = finalCustomLessons,
-                        customFields = customFields,
-                        showAttendeeCount = showAttendeeCount,
-                        reservationDeadline = resolvedDeadline,
-                        reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
-                        isPublished = isPublished,
-                    )
-
-                    isSubmitting = true
-                    scope.launch {
-                        adminService.createEventSeries(request)
-                            .onRight {
-                                isSubmitting = false
-                                toastData = ToastData(currentStrings.toastSeriesCreated, ToastType.Success)
-                                delay(500)
-                                router.navigate("/admin/events")
-                            }
-                            .onLeft { error ->
-                                isSubmitting = false
-                                toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
-                            }
-                    }
-                }
-
                 div(className = "flex justify-end gap-2 mt-4") {
                     button(className = "btn") {
                         onClick { history.back() }
                         +currentStrings.cancel
                     }
                     button(className = "btn btn-outline") {
-                        disabled(isSubmitting)
-                        onClick { submitForm(false) }
+                        disabled(model.isSubmitting)
+                        onClick { model.submit(false) }
                         +currentStrings.saveDraftButton
                     }
                     button(className = "btn btn-secondary") {
-                        disabled(isSubmitting)
-                        onClick { submitForm(true) }
-                        if (isSubmitting) span(className = "loading loading-spinner loading-sm")
+                        disabled(model.isSubmitting)
+                        onClick { model.submit(true) }
+                        if (model.isSubmitting) span(className = "loading loading-spinner loading-sm")
                         span(className = "icon-[heroicons--check] size-5")
                         +currentStrings.createSeriesButton
                     }
@@ -530,8 +312,8 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
     }
 
     Toast(
-        message = toastData?.message,
-        type = toastData?.type ?: ToastType.Success,
-        onDismiss = { toastData = null }
+        message = model.toast?.message,
+        type = model.toast?.type ?: ToastType.Success,
+        onDismiss = { model.dismissToast() },
     )
 }
