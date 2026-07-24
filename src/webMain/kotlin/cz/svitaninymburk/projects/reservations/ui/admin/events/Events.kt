@@ -32,12 +32,6 @@ import kotlinx.coroutines.launch
 private const val DEFINITIONS_PAGE_SIZE = 20
 private const val CHILDREN_PAGE_SIZE = 10
 
-private sealed interface AdminEventsUiState {
-    data object Loading : AdminEventsUiState
-    data class Success(val data: EventsPage) : AdminEventsUiState
-    data class Error(val message: String) : AdminEventsUiState
-}
-
 @Composable
 fun IComponent.AdminEventsScreen() {
     val router = Router.current
