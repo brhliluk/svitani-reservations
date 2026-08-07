@@ -8,6 +8,8 @@ import cz.svitaninymburk.projects.reservations.event.*
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.effectiveSeriesDates
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.keptLessonIndices
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
@@ -85,6 +87,7 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
     var courseLessonStartTimeStr by remember { mutableStateOf("") }
     var lessonDateOverrides by remember { mutableStateOf(mapOf<Int, String>()) }
     var lessonDropIn by remember { mutableStateOf(mapOf<Int, Boolean>()) }
+    var excludedLessonIndices by remember { mutableStateOf(setOf<Int>()) }
 
     // Deadline fields
     var deadlineEnabled by remember { mutableStateOf(false) }
@@ -379,6 +382,7 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                                     onInput {
                                         courseStartDate = value ?: ""
                                         lessonDateOverrides = emptyMap()
+                                        excludedLessonIndices = emptySet()
                                     }
                                 }
                             }
@@ -391,10 +395,12 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                                         onInput {
                                             lessonCount = value?.toInt() ?: 1
                                             lessonDateOverrides = emptyMap()
+                                        excludedLessonIndices = emptySet()
                                         }
                                         onChange {
                                             lessonCount = value?.toInt() ?: 1
                                             lessonDateOverrides = emptyMap()
+                                        excludedLessonIndices = emptySet()
                                         }
                                     }
                                     span(className = "absolute right-4 text-base-content/50 text-sm") { +currentStrings.courseLessons }
@@ -416,6 +422,7 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                                         val v = (event.target as? HTMLSelectElement)?.value
                                         courseLessonDayOrdinal = v?.toIntOrNull()
                                         lessonDateOverrides = emptyMap()
+                                        excludedLessonIndices = emptySet()
                                     }
                                 }
                             }
@@ -438,15 +445,21 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                             } else "?"
                             val startTimeStr = lessonStartT?.let { "${it.hour}:${it.minute.toString().padStart(2, '0')}" } ?: "?"
 
+                            val keptIndices = keptLessonIndices(computedCourseDates, excludedLessonIndices)
+                            val excludedCount = computedCourseDates.size - keptIndices.size
+
                             div(className = "mt-4") {
                                 div(className = "flex items-center gap-2 mb-2") {
                                     span(className = "icon-[heroicons--calendar-days] size-5 text-secondary")
-                                    span(className = "font-medium text-sm") { +currentStrings.lessonPreviewHeading(computedCourseDates.size) }
+                                    span(className = "font-medium text-sm") { +currentStrings.lessonPreviewHeading(keptIndices.size) }
                                     span(className = "text-xs text-base-content/50") { +currentStrings.lessonDateEditHint }
+                                    if (excludedCount > 0) {
+                                        span(className = "text-xs text-base-content/50") { +currentStrings.lessonExcludedSummary(excludedCount) }
+                                    }
                                 }
                                 div(className = "overflow-x-auto") {
                                     table(className = "table table-xs w-full") {
-                                        val allDropIn = computedCourseDates.indices.all { lessonDropIn[it] == true }
+                                        val allDropIn = keptIndices.isNotEmpty() && keptIndices.all { lessonDropIn[it] == true }
                                         thead {
                                             tr {
                                                 th(className = "w-8") { +"#" }
@@ -458,7 +471,7 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                                                             attribute("data-tip", currentStrings.lessonIndividualBulkTooltip)
                                                             checkBox(value = allDropIn, className = "checkbox checkbox-secondary checkbox-xs") {
                                                                 onChange {
-                                                                    lessonDropIn = if (value) computedCourseDates.indices.associateWith { true } else emptyMap()
+                                                                    lessonDropIn = if (value) keptIndices.associateWith { true } else emptyMap()
                                                                 }
                                                             }
                                                         }
@@ -469,27 +482,65 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                                                         }
                                                     }
                                                 }
+                                                th(className = "text-right") { +currentStrings.tableHeaderActions }
                                             }
                                         }
                                         tbody {
+                                            var lessonNumber = 0
                                             computedCourseDates.forEachIndexed { i, defaultDate ->
                                                 val effectiveDateStr = lessonDateOverrides[i] ?: defaultDate.toString()
-                                                tr {
-                                                    td(className = "text-base-content/50") { +"${i + 1}" }
+                                                val isExcluded = i in excludedLessonIndices
+                                                if (!isExcluded) lessonNumber++
+                                                val displayNumber = if (isExcluded) "–" else lessonNumber.toString()
+                                                tr(className = if (isExcluded) "opacity-50" else null) {
+                                                    td(className = "text-base-content/50") { +displayNumber }
                                                     td {
-                                                        text(value = effectiveDateStr, type = InputType.Date, className = "input input-xs input-bordered w-36") {
-                                                            onInput {
-                                                                val v = value ?: ""
-                                                                lessonDateOverrides = if (v == defaultDate.toString()) lessonDateOverrides - i
-                                                                else lessonDateOverrides + (i to v)
+                                                        if (isExcluded) {
+                                                            div(className = "flex items-center gap-2") {
+                                                                span(className = "line-through text-base-content/60") { +effectiveDateStr }
+                                                                span(className = "badge badge-ghost badge-xs") { +currentStrings.lessonExcludedBadge }
+                                                            }
+                                                        } else {
+                                                            text(value = effectiveDateStr, type = InputType.Date, className = "input input-xs input-bordered w-36") {
+                                                                onInput {
+                                                                    val v = value ?: ""
+                                                                    lessonDateOverrides = if (v == defaultDate.toString()) lessonDateOverrides - i
+                                                                    else lessonDateOverrides + (i to v)
+                                                                }
                                                             }
                                                         }
                                                     }
-                                                    td(className = "text-sm text-base-content/70") { +"$startTimeStr – $endTimeStr" }
+                                                    td(className = "text-sm text-base-content/70") {
+                                                        if (isExcluded) {
+                                                            span(className = "line-through") { +"$startTimeStr – $endTimeStr" }
+                                                        } else {
+                                                            +"$startTimeStr – $endTimeStr"
+                                                        }
+                                                    }
                                                     td {
-                                                        label(className = "cursor-pointer") {
-                                                            checkBox(value = lessonDropIn[i] ?: false, className = "checkbox checkbox-secondary checkbox-xs") {
-                                                                onChange { lessonDropIn = if (value) lessonDropIn + (i to true) else lessonDropIn - i }
+                                                        if (!isExcluded) {
+                                                            label(className = "cursor-pointer") {
+                                                                checkBox(value = lessonDropIn[i] ?: false, className = "checkbox checkbox-secondary checkbox-xs") {
+                                                                    onChange { lessonDropIn = if (value) lessonDropIn + (i to true) else lessonDropIn - i }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    td(className = "text-right") {
+                                                        button(className = "btn btn-ghost btn-xs tooltip tooltip-left ${if (isExcluded) "" else "text-error"}") {
+                                                            attribute(
+                                                                "data-tip",
+                                                                if (isExcluded) currentStrings.lessonRestoreTooltip else currentStrings.lessonExcludeTooltip,
+                                                            )
+                                                            span(
+                                                                className = if (isExcluded) {
+                                                                    "icon-[heroicons--arrow-uturn-left] size-4"
+                                                                } else {
+                                                                    "icon-[heroicons--x-mark] size-4"
+                                                                },
+                                                            )
+                                                            onClick {
+                                                                excludedLessonIndices = if (isExcluded) excludedLessonIndices - i else excludedLessonIndices + i
                                                             }
                                                         }
                                                     }
@@ -681,11 +732,17 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                             return@launch
                         }
 
+                        val effectiveCourseDates = effectiveSeriesDates(computedCourseDates, lessonDateOverrides, excludedLessonIndices)
+                        if (computedCourseDates.isNotEmpty() && effectiveCourseDates.isEmpty()) {
+                            toastData = ToastData(currentStrings.validationAllLessonsExcluded, ToastType.Error)
+                            return@launch
+                        }
+
                         val lessonStartT = if (courseLessonStartTimeStr.isNotBlank()) try { LocalTime.parse(courseLessonStartTimeStr) } catch (_: Exception) { null } else null
-                        val finalCustomLessons: List<LessonConfig>? = if (lessonStartT != null && computedCourseDates.isNotEmpty()) {
+                        val finalCustomLessons: List<LessonConfig>? = if (lessonStartT != null && effectiveCourseDates.isNotEmpty()) {
                             val endMinutes = (lessonStartT.hour * 60 + lessonStartT.minute + durationHours * 60 + durationMinutes) % (24 * 60)
                             val lessonEndT = LocalTime(endMinutes / 60, endMinutes % 60)
-                            computedCourseDates.indices.map { i ->
+                            keptLessonIndices(computedCourseDates, excludedLessonIndices).map { i ->
                                 val dateStr = lessonDateOverrides[i] ?: computedCourseDates[i].toString()
                                 val date = try { LocalDate.parse(dateStr) } catch (_: Exception) { computedCourseDates[i] }
                                 LessonConfig(
@@ -696,12 +753,11 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                             }
                         } else null
 
-                        val computedEndDate = computedCourseDates.lastOrNull()?.let {
-                            val overrideStr = lessonDateOverrides[computedCourseDates.size - 1]
-                            if (overrideStr != null) try { LocalDate.parse(overrideStr) } catch (_: Exception) { it } else it
-                        } ?: parsedStart
+                        val effectiveStartDate = effectiveCourseDates.firstOrNull() ?: parsedStart
+                        val computedEndDate = effectiveCourseDates.lastOrNull() ?: parsedStart
+                        val effectiveLessonCount = effectiveCourseDates.size.takeIf { it > 0 } ?: lessonCount
 
-                        val courseStartDt = LocalDateTime(parsedStart, if (courseLessonStartTimeStr.isNotBlank()) try { LocalTime.parse(courseLessonStartTimeStr) } catch (_: Exception) { LocalTime(0, 0) } else LocalTime(0, 0))
+                        val courseStartDt = LocalDateTime(effectiveStartDate, if (courseLessonStartTimeStr.isNotBlank()) try { LocalTime.parse(courseLessonStartTimeStr) } catch (_: Exception) { LocalTime(0, 0) } else LocalTime(0, 0))
                         adminService.createEventAndSeries(
                             CreateEventAndSeriesRequest(
                                 title = title,
@@ -712,9 +768,9 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                                 defaultDuration = finalDuration,
                                 allowedPaymentTypes = allowedPayments,
                                 customFields = customFields,
-                                startDate = parsedStart,
+                                startDate = effectiveStartDate,
                                 endDate = computedEndDate,
-                                lessonCount = lessonCount,
+                                lessonCount = effectiveLessonCount,
                                 customLessons = finalCustomLessons,
                                 showAttendeeCount = showAttendeeCount,
                                 reservationDeadline = computeDeadline(courseStartDt),

@@ -356,6 +356,7 @@ object CsStrings : AppStrings {
     override val validationStartDateFormat = "Neplatný formát data začátku."
     override val validationEndDateFormat = "Neplatný formát data konce."
     override val validationEndBeforeStart = "Datum konce musí být po datu začátku."
+    override val validationAllLessonsExcluded = "Vyřadili jste všechny termíny — alespoň jeden musí zůstat."
     override val toastSeriesCreated = "Kurz byl úspěšně vytvořen!"
 
     // Unified Event Create Form
@@ -395,6 +396,14 @@ object CsStrings : AppStrings {
     override val lessonIndividualOff = "Ne"
     override val lessonIndividualTooltip = "Lekce bude dostupná k individuální rezervaci i bez přihlášení do celého kurzu"
     override val lessonIndividualBulkTooltip = "Zaškrtnutím všech povolíte individuální rezervaci každé lekce"
+    override val lessonExcludeTooltip = "Vyřadit termín — lekce se nevytvoří"
+    override val lessonRestoreTooltip = "Vrátit termín zpět"
+    override val lessonExcludedBadge = "Vyřazeno"
+    override fun lessonExcludedSummary(count: Int) = when (count) {
+        1 -> "1 termín vyřazen"
+        in 2..4 -> "$count termíny vyřazeny"
+        else -> "$count termínů vyřazeno"
+    }
     override val lessonActiveBadge = "Aktivní"
     override val lessonCancelledBadge = "Zrušeno"
     override val cancelLessonModalTitle = "Zrušit lekci?"

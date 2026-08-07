@@ -51,19 +51,44 @@ fun computeLessonEndTime(startTime: LocalTime, durationMinutes: Int): LocalTime 
 fun parseTimeOrNull(timeStr: String): LocalTime? =
     if (timeStr.isNotBlank()) try { LocalTime.parse(timeStr) } catch (_: Exception) { null } else null
 
-/** Sestaví konfiguraci lekcí; null pokud chybí čas začátku, trvání šablony, nebo nejsou žádná data. */
+/** Datum lekce na daném indexu po aplikaci případného override. */
+private fun resolveLessonDate(dates: List<LocalDate>, lessonDateOverrides: Map<Int, String>, index: Int): LocalDate {
+    val dateStr = lessonDateOverrides[index] ?: return dates[index]
+    return try { LocalDate.parse(dateStr) } catch (_: Exception) { dates[index] }
+}
+
+/**
+ * Indexy lekcí, které se skutečně vytvoří — vygenerovaná data bez vyřazených.
+ * Overrides i příznak "lze individuálně" zůstávají klíčované původním indexem,
+ * takže vyřazení lekce neposune nastavení ostatních.
+ */
+fun keptLessonIndices(dates: List<LocalDate>, excludedIndices: Set<Int>): List<Int> =
+    dates.indices.filter { it !in excludedIndices }
+
+/** Skutečná data lekcí (po override, bez vyřazených), seřazená vzestupně. */
+fun effectiveSeriesDates(
+    dates: List<LocalDate>,
+    lessonDateOverrides: Map<Int, String>,
+    excludedIndices: Set<Int>,
+): List<LocalDate> = keptLessonIndices(dates, excludedIndices)
+    .map { resolveLessonDate(dates, lessonDateOverrides, it) }
+    .sorted()
+
+/** Sestaví konfiguraci lekcí; null pokud chybí čas začátku, trvání šablony, nebo nezbyla žádná lekce. */
 fun buildSeriesLessonConfigs(
     dates: List<LocalDate>,
     lessonDateOverrides: Map<Int, String>,
     lessonStartTime: LocalTime?,
     durationMinutes: Int?,
     lessonDropIn: Map<Int, Boolean>,
+    excludedIndices: Set<Int> = emptySet(),
 ): List<LessonConfig>? {
-    if (lessonStartTime == null || dates.isEmpty() || durationMinutes == null) return null
+    if (lessonStartTime == null || durationMinutes == null) return null
+    val kept = keptLessonIndices(dates, excludedIndices)
+    if (kept.isEmpty()) return null
     val endT = computeLessonEndTime(lessonStartTime, durationMinutes)
-    return dates.indices.map { i ->
-        val dateStr = lessonDateOverrides[i] ?: dates[i].toString()
-        val date = try { LocalDate.parse(dateStr) } catch (_: Exception) { dates[i] }
+    return kept.map { i ->
+        val date = resolveLessonDate(dates, lessonDateOverrides, i)
         LessonConfig(
             startDateTime = LocalDateTime(date, lessonStartTime),
             endDateTime = LocalDateTime(date, endT),

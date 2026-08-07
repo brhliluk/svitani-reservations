@@ -374,6 +374,7 @@ interface AppStrings : ErrorStrings {
     val validationStartDateFormat: String
     val validationEndDateFormat: String
     val validationEndBeforeStart: String
+    val validationAllLessonsExcluded: String
     val toastSeriesCreated: String
 
     // Unified Event Create Form (/admin/events/new)
@@ -413,6 +414,10 @@ interface AppStrings : ErrorStrings {
     val lessonIndividualOff: String
     val lessonIndividualTooltip: String
     val lessonIndividualBulkTooltip: String
+    val lessonExcludeTooltip: String
+    val lessonRestoreTooltip: String
+    val lessonExcludedBadge: String
+    fun lessonExcludedSummary(count: Int): String
     val lessonActiveBadge: String
     val lessonCancelledBadge: String
     val cancelLessonModalTitle: String

@@ -356,6 +356,7 @@ object EnStrings : AppStrings {
     override val validationStartDateFormat = "Invalid start date format."
     override val validationEndDateFormat = "Invalid end date format."
     override val validationEndBeforeStart = "End date must be after start date."
+    override val validationAllLessonsExcluded = "You excluded every session — at least one must remain."
     override val toastSeriesCreated = "Course was successfully created!"
 
     // Unified Event Create Form
@@ -395,6 +396,10 @@ object EnStrings : AppStrings {
     override val lessonIndividualOff = "No"
     override val lessonIndividualTooltip = "The lesson will be available for individual booking without enrolling in the full course"
     override val lessonIndividualBulkTooltip = "Check all to enable individual booking for every lesson"
+    override val lessonExcludeTooltip = "Exclude this date — the lesson will not be created"
+    override val lessonRestoreTooltip = "Restore this date"
+    override val lessonExcludedBadge = "Excluded"
+    override fun lessonExcludedSummary(count: Int) = if (count == 1) "1 date excluded" else "$count dates excluded"
     override val lessonActiveBadge = "Active"
     override val lessonCancelledBadge = "Cancelled"
     override val cancelLessonModalTitle = "Cancel lesson?"

@@ -21,6 +21,8 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.bu
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.buildSeriesLessonConfigs
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.computeLessonEndTime
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.computeSeriesDates
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.effectiveSeriesDates
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.keptLessonIndices
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.parseTimeOrNull
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.resolveReservationDeadline
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.validateSeriesCreateForm
@@ -60,6 +62,7 @@ class AdminCreateEventSeriesModel(
     var lessonStartTimeStr by mutableStateOf("")
     var lessonDateOverrides by mutableStateOf(mapOf<Int, String>()); private set
     var lessonDropIn by mutableStateOf(mapOf<Int, Boolean>()); private set
+    var excludedLessonIndices by mutableStateOf(setOf<Int>()); private set
 
     var titleOverride by mutableStateOf("")
     var descriptionOverride by mutableStateOf("")
@@ -85,8 +88,15 @@ class AdminCreateEventSeriesModel(
     val selectedDefinition: EventDefinition?
         get() = definitions.find { it.id.toString() == selectedDefinitionId }
 
+    /** Všechny vygenerované termíny — i vyřazené, aby šly v tabulce vrátit zpět. */
     val computedSeriesDates: List<LocalDate>
         get() = computeSeriesDates(startDate, lessonDayOfWeekOrdinal, lessonCount)
+
+    /** Termíny, které se opravdu vytvoří (po override, bez vyřazených). */
+    val effectiveLessonDates: List<LocalDate>
+        get() = effectiveSeriesDates(computedSeriesDates, lessonDateOverrides, excludedLessonIndices)
+
+    fun isLessonExcluded(index: Int) = index in excludedLessonIndices
 
     fun load() {
         scope.launch {
@@ -111,20 +121,39 @@ class AdminCreateEventSeriesModel(
     }
 
     fun onStartDateChange(v: String) { startDate = v; syncEndDate() }
-    fun onLessonCountChange(n: Int) { lessonCount = n; syncEndDate() }
+
+    fun onLessonCountChange(n: Int) {
+        lessonCount = n
+        // Nastavení řádků, které se zmenšením počtu ztratily, zahoď — jinak by se
+        // po opětovném zvětšení tiše vrátilo (a lekce by nevznikla).
+        lessonDateOverrides = lessonDateOverrides.filterKeys { it < n }
+        lessonDropIn = lessonDropIn.filterKeys { it < n }
+        excludedLessonIndices = excludedLessonIndices.filter { it < n }.toSet()
+        syncEndDate()
+    }
+
     fun onLessonDayChange(ordinal: Int?) { lessonDayOfWeekOrdinal = ordinal; syncEndDate() }
 
     private fun syncEndDate() {
-        val dates = computedSeriesDates
-        if (dates.isNotEmpty()) endDate = dates.last().toString()
+        effectiveLessonDates.lastOrNull()?.let { endDate = it.toString() }
     }
 
     fun setLessonDateOverride(index: Int, value: String, defaultDate: String) {
         lessonDateOverrides = if (value == defaultDate) lessonDateOverrides - index else lessonDateOverrides + (index to value)
+        syncEndDate()
+    }
+
+    fun toggleLessonExcluded(index: Int) {
+        excludedLessonIndices = if (index in excludedLessonIndices) excludedLessonIndices - index else excludedLessonIndices + index
+        syncEndDate()
     }
 
     fun setAllDropIn(all: Boolean) {
-        lessonDropIn = if (all) computedSeriesDates.indices.associateWith { true } else emptyMap()
+        lessonDropIn = if (all) {
+            keptLessonIndices(computedSeriesDates, excludedLessonIndices).associateWith { true }
+        } else {
+            emptyMap()
+        }
     }
 
     fun setLessonDropIn(index: Int, value: Boolean) {
@@ -152,20 +181,28 @@ class AdminCreateEventSeriesModel(
         }
         val valid = validation as SeriesCreateValidation.Valid
 
+        val generated = computedSeriesDates
+        val effectiveDates = effectiveLessonDates
+        if (generated.isNotEmpty() && effectiveDates.isEmpty()) {
+            showToast(currentStrings.validationAllLessonsExcluded, ToastType.Error)
+            return
+        }
+
         val def = selectedDefinition
         val startT = parseTimeOrNull(lessonStartTimeStr)
         val durationMinutes = def?.defaultDuration?.inWholeMinutes?.toInt()
         val endT = if (startT != null && durationMinutes != null) computeLessonEndTime(startT, durationMinutes) else null
-        val customLessons = buildSeriesLessonConfigs(computedSeriesDates, lessonDateOverrides, startT, durationMinutes, lessonDropIn)
+        val customLessons = buildSeriesLessonConfigs(generated, lessonDateOverrides, startT, durationMinutes, lessonDropIn, excludedLessonIndices)
+        val firstLessonDate = effectiveDates.firstOrNull() ?: valid.startDate
         val deadline = resolveReservationDeadline(
-            valid.startDate, startT, deadlineEnabled, deadlineTypeIsHours, deadlineHours, deadlineDaysBefore, deadlineTimeStr,
+            firstLessonDate, startT, deadlineEnabled, deadlineTypeIsHours, deadlineHours, deadlineDaysBefore, deadlineTimeStr,
         )
         val request = buildCreateEventSeriesRequest(
             form = formData(),
             definitionId = Uuid.parse(definitionId),
-            startDate = valid.startDate,
-            endDate = valid.endDate,
-            lessonCount = lessonCount,
+            startDate = firstLessonDate,
+            endDate = effectiveDates.lastOrNull() ?: valid.endDate,
+            lessonCount = effectiveDates.size.takeIf { it > 0 } ?: lessonCount,
             lessonDayOfWeek = lessonDayOfWeekOrdinal?.let { DayOfWeek(it) },
             lessonStartTime = startT,
             lessonEndTime = endT,

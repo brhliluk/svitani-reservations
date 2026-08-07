@@ -106,10 +106,10 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
                         // Datum konce — editable only when no day is set, otherwise auto-computed
                         div(className = "form-control w-full") {
                             label(className = "label") { span(className = "label-text font-bold") { +currentStrings.endDateLabel } }
-                            if (model.lessonDayOfWeekOrdinal != null && model.computedSeriesDates.isNotEmpty()) {
+                            if (model.lessonDayOfWeekOrdinal != null && model.effectiveLessonDates.isNotEmpty()) {
                                 // Auto-computed: show as read-only
                                 div(className = "input input-bordered w-full flex items-center bg-base-200/50 text-base-content/70 text-sm px-4") {
-                                    +model.computedSeriesDates.last().toString()
+                                    +model.effectiveLessonDates.last().toString()
                                 }
                             } else {
                                 text(value = model.endDate, type = InputType.Date, className = "input input-bordered w-full") {
@@ -168,13 +168,19 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
                         } else "?"
                         val startTimeDisplayStr = lessonStartT?.let { "${it.hour}:${it.minute.toString().padStart(2, '0')}" } ?: "?"
 
+                        val excludedCount = model.computedSeriesDates.size - model.effectiveLessonDates.size
+
                         div(className = "mt-4 md:col-span-2") {
                             div(className = "flex items-center gap-2 mb-2") {
                                 span(className = "icon-[heroicons--calendar-days] size-5 text-secondary")
-                                span(className = "font-medium text-sm") { +currentStrings.lessonPreviewHeading(model.computedSeriesDates.size) }
+                                span(className = "font-medium text-sm") { +currentStrings.lessonPreviewHeading(model.effectiveLessonDates.size) }
+                                if (excludedCount > 0) {
+                                    span(className = "text-xs text-base-content/50") { +currentStrings.lessonExcludedSummary(excludedCount) }
+                                }
                             }
                             div(className = "overflow-x-auto") {
-                                val allDropInSeries = model.computedSeriesDates.indices.all { model.lessonDropIn[it] == true }
+                                val keptIndices = model.computedSeriesDates.indices.filterNot { model.isLessonExcluded(it) }
+                                val allDropInSeries = keptIndices.isNotEmpty() && keptIndices.all { model.lessonDropIn[it] == true }
                                 table(className = "table table-xs w-full") {
                                     thead {
                                         tr {
@@ -196,26 +202,62 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
                                                     }
                                                 }
                                             }
+                                            th(className = "text-right") { +currentStrings.tableHeaderActions }
                                         }
                                     }
                                     tbody {
+                                        var lessonNumber = 0
                                         model.computedSeriesDates.forEachIndexed { i, defaultDate ->
                                             val effectiveDateStr = model.lessonDateOverrides[i] ?: defaultDate.toString()
-                                            tr {
-                                                td(className = "text-base-content/50") { +"${i + 1}" }
+                                            val isExcluded = model.isLessonExcluded(i)
+                                            if (!isExcluded) lessonNumber++
+                                            val displayNumber = if (isExcluded) "–" else lessonNumber.toString()
+                                            tr(className = if (isExcluded) "opacity-50" else null) {
+                                                td(className = "text-base-content/50") { +displayNumber }
                                                 td {
-                                                    text(value = effectiveDateStr, type = InputType.Date, className = "input input-xs input-bordered w-36") {
-                                                        onInput {
-                                                            model.setLessonDateOverride(i, value ?: "", defaultDate.toString())
+                                                    if (isExcluded) {
+                                                        div(className = "flex items-center gap-2") {
+                                                            span(className = "line-through text-base-content/60") { +effectiveDateStr }
+                                                            span(className = "badge badge-ghost badge-xs") { +currentStrings.lessonExcludedBadge }
+                                                        }
+                                                    } else {
+                                                        text(value = effectiveDateStr, type = InputType.Date, className = "input input-xs input-bordered w-36") {
+                                                            onInput {
+                                                                model.setLessonDateOverride(i, value ?: "", defaultDate.toString())
+                                                            }
                                                         }
                                                     }
                                                 }
-                                                td(className = "text-sm text-base-content/70") { +"$startTimeDisplayStr – $endTimeStr" }
+                                                td(className = "text-sm text-base-content/70") {
+                                                    if (isExcluded) {
+                                                        span(className = "line-through") { +"$startTimeDisplayStr – $endTimeStr" }
+                                                    } else {
+                                                        +"$startTimeDisplayStr – $endTimeStr"
+                                                    }
+                                                }
                                                 td {
-                                                    label(className = "cursor-pointer") {
-                                                        checkBox(value = model.lessonDropIn[i] ?: false, className = "checkbox checkbox-secondary checkbox-xs") {
-                                                            onChange { model.setLessonDropIn(i, value) }
+                                                    if (!isExcluded) {
+                                                        label(className = "cursor-pointer") {
+                                                            checkBox(value = model.lessonDropIn[i] ?: false, className = "checkbox checkbox-secondary checkbox-xs") {
+                                                                onChange { model.setLessonDropIn(i, value) }
+                                                            }
                                                         }
+                                                    }
+                                                }
+                                                td(className = "text-right") {
+                                                    button(className = "btn btn-ghost btn-xs tooltip tooltip-left ${if (isExcluded) "" else "text-error"}") {
+                                                        attribute(
+                                                            "data-tip",
+                                                            if (isExcluded) currentStrings.lessonRestoreTooltip else currentStrings.lessonExcludeTooltip,
+                                                        )
+                                                        span(
+                                                            className = if (isExcluded) {
+                                                                "icon-[heroicons--arrow-uturn-left] size-4"
+                                                            } else {
+                                                                "icon-[heroicons--x-mark] size-4"
+                                                            },
+                                                        )
+                                                        onClick { model.toggleLessonExcluded(i) }
                                                     }
                                                 }
                                             }
