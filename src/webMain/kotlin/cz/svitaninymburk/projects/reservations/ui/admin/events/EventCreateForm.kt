@@ -85,6 +85,7 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
     var lessonCount by remember { mutableIntStateOf(1) }
     var courseLessonDayOrdinal by remember { mutableStateOf<Int?>(null) }
     var courseLessonStartTimeStr by remember { mutableStateOf("") }
+    var courseLessonPrice by remember { mutableStateOf<Number?>(null) }
     var lessonDateOverrides by remember { mutableStateOf(mapOf<Int, String>()) }
     var lessonDropIn by remember { mutableStateOf(mapOf<Int, Boolean>()) }
     var excludedLessonIndices by remember { mutableStateOf(setOf<Int>()) }
@@ -433,6 +434,12 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                                     onInput { courseLessonStartTimeStr = value ?: "" }
                                 }
                             }
+                            // Cena za lekci
+                            PriceCurrencyField(
+                                label = currentStrings.lessonPriceLabel,
+                                value = courseLessonPrice,
+                                hint = currentStrings.lessonPriceHint,
+                            ) { courseLessonPrice = it }
                         }
 
                         // Live lesson preview — only when day is selected
@@ -773,6 +780,7 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                                 lessonCount = effectiveLessonCount,
                                 customLessons = finalCustomLessons,
                                 showAttendeeCount = showAttendeeCount,
+                                lessonPrice = courseLessonPrice?.toDouble()?.takeIf { it > 0 },
                                 reservationDeadline = computeDeadline(courseStartDt),
                                 reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
                                 isPublished = isPublished,

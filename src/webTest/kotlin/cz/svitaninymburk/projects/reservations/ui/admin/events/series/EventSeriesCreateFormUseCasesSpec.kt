@@ -25,6 +25,7 @@ private fun sampleForm() = EventSeriesCreateFormData(
     description = "Popis",
     ownerEmails = listOf("a@x.cz", "not-an-email"),
     price = 1500.0,
+    lessonPrice = null,
     capacity = 12,
     waitlistCapacity = 3,
     allowBankTransfer = true,
@@ -164,4 +165,30 @@ class EventSeriesCreateFormUseCasesSpec {
         assertEquals(listOf(PaymentInfo.Type.BANK_TRANSFER), request.allowedPaymentTypes)
         assertEquals(true, request.isPublished)
     }
+
+    @Test
+    fun buildRequestCarriesLessonPrice() {
+        val request = buildRequestFrom(sampleForm().copy(lessonPrice = 250.0))
+        assertEquals(250.0, request.lessonPrice)
+    }
+
+    @Test
+    fun buildRequestTreatsBlankOrZeroLessonPriceAsUnset() {
+        assertNull(buildRequestFrom(sampleForm().copy(lessonPrice = null)).lessonPrice)
+        assertNull(buildRequestFrom(sampleForm().copy(lessonPrice = 0.0)).lessonPrice)
+    }
 }
+
+private fun buildRequestFrom(form: EventSeriesCreateFormData) = buildCreateEventSeriesRequest(
+    form = form,
+    definitionId = kotlin.uuid.Uuid.parse("00000000-0000-0000-0000-000000000001"),
+    startDate = LocalDate(2026, 2, 2),
+    endDate = LocalDate(2026, 2, 16),
+    lessonCount = 3,
+    lessonDayOfWeek = DayOfWeek.MONDAY,
+    lessonStartTime = LocalTime(18, 0),
+    lessonEndTime = LocalTime(19, 0),
+    customLessons = null,
+    reservationDeadline = null,
+    isPublished = true,
+)

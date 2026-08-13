@@ -368,6 +368,9 @@ interface AppStrings : ErrorStrings {
     val seriesOverrideDescription: String
     val seriesTitleLabel: String
     val fullCoursePriceLabel: String
+    val lessonPriceLabel: String
+    val lessonPriceHint: String
+    val lessonPriceEditHint: String
     val createSeriesButton: String
     val validationDatesRequired: String
     val validationSeriesTitleRequired: String

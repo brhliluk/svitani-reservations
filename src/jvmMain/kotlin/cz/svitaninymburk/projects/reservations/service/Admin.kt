@@ -454,6 +454,7 @@ class AdminDashboardService(
                 lessonEndTime = request.lessonEndTime,
                 ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = request.showAttendeeCount,
+                lessonPrice = request.lessonPrice,
                 lessonRefundAmount = request.lessonRefundAmount,
                 reservationDeadline = request.reservationDeadline,
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
@@ -461,6 +462,9 @@ class AdminDashboardService(
             )
 
             eventSeriesRepository.create(newSeries)
+
+            // Bez ceny za lekci se lekce zakládají za cenu celého kurzu (chování před jejím zavedením).
+            val perLessonPrice = newSeries.lessonPrice ?: newSeries.price
 
             // Auto-generate lesson instances if schedule is defined
             val customLessons = request.customLessons
@@ -475,7 +479,7 @@ class AdminDashboardService(
                             description = newSeries.description,
                             startDateTime = lesson.startDateTime,
                             endDateTime = lesson.endDateTime,
-                            price = newSeries.price,
+                            price = perLessonPrice,
                             capacity = newSeries.capacity,
                             waitlistCapacity = newSeries.waitlistCapacity,
                             allowedPaymentTypes = newSeries.allowedPaymentTypes,
@@ -506,7 +510,7 @@ class AdminDashboardService(
                             description = newSeries.description,
                             startDateTime = LocalDateTime(date, lessonStartTime),
                             endDateTime = LocalDateTime(date, lessonEndTime),
-                            price = newSeries.price,
+                            price = perLessonPrice,
                             capacity = newSeries.capacity,
                             waitlistCapacity = newSeries.waitlistCapacity,
                             allowedPaymentTypes = newSeries.allowedPaymentTypes,
@@ -608,11 +612,15 @@ class AdminDashboardService(
                 customFields = newDefinition.customFields,
                 ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = newDefinition.showAttendeeCount,
+                lessonPrice = request.lessonPrice,
                 reservationDeadline = request.reservationDeadline,
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
                 isPublished = request.isPublished,
             )
             eventSeriesRepository.create(newSeries)
+
+            // Bez ceny za lekci se lekce zakládají za cenu celého kurzu (chování před jejím zavedením).
+            val perLessonPrice = newSeries.lessonPrice ?: newDefinition.defaultPrice
 
             // Auto-generate lesson instances if schedule is defined
             val customLessons = request.customLessons
@@ -627,7 +635,7 @@ class AdminDashboardService(
                             description = newDefinition.description,
                             startDateTime = lesson.startDateTime,
                             endDateTime = lesson.endDateTime,
-                            price = newDefinition.defaultPrice,
+                            price = perLessonPrice,
                             capacity = newDefinition.defaultCapacity,
                             waitlistCapacity = newSeries.waitlistCapacity,
                             allowedPaymentTypes = newDefinition.allowedPaymentTypes,
@@ -658,7 +666,7 @@ class AdminDashboardService(
                             description = newSeries.description,
                             startDateTime = LocalDateTime(date, lessonStartTime),
                             endDateTime = LocalDateTime(date, lessonEndTime),
-                            price = newSeries.price,
+                            price = perLessonPrice,
                             capacity = newSeries.capacity,
                             waitlistCapacity = newSeries.waitlistCapacity,
                             allowedPaymentTypes = newSeries.allowedPaymentTypes,
@@ -806,11 +814,24 @@ class AdminDashboardService(
                 customFields = request.customFields,
                 ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = request.showAttendeeCount,
+                lessonPrice = request.lessonPrice,
                 lessonRefundAmount = request.lessonRefundAmount,
                 reservationDeadline = request.reservationDeadline,
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
             )
         )
+
+        // Změna ceny za lekci je vědomý zásah do celého kurzu: přepíše i lekce s ručně
+        // upravenou cenou. Vyprázdnění pole vrátí lekce na cenu kurzu — přesně to slibuje
+        // nápověda u pole. Už vytvořené rezervace se nemění, ty si cenu drží u sebe.
+        if (request.lessonPrice != existing.lessonPrice) {
+            val newLessonPrice = request.lessonPrice ?: request.price
+            eventInstanceRepository.findBySeries(id).forEach { lesson ->
+                if (lesson.price != newLessonPrice) {
+                    eventInstanceRepository.update(lesson.copy(price = newLessonPrice))
+                }
+            }
+        }
     }
 
     override suspend fun addSeriesLesson(
@@ -828,7 +849,7 @@ class AdminDashboardService(
                 description = series.description,
                 startDateTime = request.startDateTime,
                 endDateTime = request.endDateTime,
-                price = series.price,
+                price = series.lessonPrice ?: series.price,
                 capacity = series.capacity,
                 waitlistCapacity = series.waitlistCapacity,
                 allowedPaymentTypes = series.allowedPaymentTypes,
@@ -870,12 +891,16 @@ class AdminDashboardService(
                 { eventSeriesRepository.getAllByDefinitionIds(listOf(id)) },
             ) { i, s -> i to s }
 
+            // Lekce kurzu si drží cenu za lekci — ta je vlastnost kurzu, ne šablony,
+            // takže ji propagace ceny ze šablony nesmí přepsat.
+            val lessonPriceBySeries = childSeries.mapNotNull { s -> s.lessonPrice?.let { s.id to it } }.toMap()
+
             childInstances.forEach { instance ->
                 eventInstanceRepository.update(
                     instance.copy(
                         title = request.title,
                         description = request.description,
-                        price = request.defaultPrice,
+                        price = instance.seriesId?.let { lessonPriceBySeries[it] } ?: request.defaultPrice,
                         capacity = request.defaultCapacity,
                         allowedPaymentTypes = request.allowedPaymentTypes,
                         customFields = request.customFields,

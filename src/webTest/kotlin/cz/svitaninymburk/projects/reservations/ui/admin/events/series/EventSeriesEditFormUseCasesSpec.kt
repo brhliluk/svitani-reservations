@@ -18,6 +18,7 @@ private fun sampleForm() = EventSeriesEditFormData(
     description = "Popis",
     ownerEmails = listOf("a@x.cz", "not-an-email"),
     price = 1500.0,
+    lessonPrice = null,
     capacity = 12,
     waitlistCapacity = 3,
     allowBankTransfer = true,
@@ -109,5 +110,17 @@ class EventSeriesEditFormUseCasesSpec {
     fun buildUpdateEventSeriesRequestDropsNonPositiveLessonRefundAmount() {
         val request = buildUpdateEventSeriesRequest(sampleForm().copy(lessonRefundAmount = 0.0), reservationDeadline = null)
         assertNull(request.lessonRefundAmount)
+    }
+
+    @Test
+    fun buildUpdateEventSeriesRequestCarriesLessonPrice() {
+        val request = buildUpdateEventSeriesRequest(sampleForm().copy(lessonPrice = 250.0), reservationDeadline = null)
+        assertEquals(250.0, request.lessonPrice)
+    }
+
+    @Test
+    fun buildUpdateEventSeriesRequestTreatsBlankOrZeroLessonPriceAsUnset() {
+        assertNull(buildUpdateEventSeriesRequest(sampleForm().copy(lessonPrice = null), reservationDeadline = null).lessonPrice)
+        assertNull(buildUpdateEventSeriesRequest(sampleForm().copy(lessonPrice = 0.0), reservationDeadline = null).lessonPrice)
     }
 }

@@ -299,6 +299,12 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
 
                             PriceCurrencyField(currentStrings.fullCoursePriceLabel, model.priceOverride) { model.priceOverride = it }
 
+                            PriceCurrencyField(
+                                label = currentStrings.lessonPriceLabel,
+                                value = model.lessonPriceOverride,
+                                hint = currentStrings.lessonPriceHint,
+                            ) { model.lessonPriceOverride = it }
+
                             CapacityField(model.capacityOverride) { model.capacityOverride = it }
 
                             WaitlistCapacityField(model.waitlistCapacityOverride) { model.waitlistCapacityOverride = it }

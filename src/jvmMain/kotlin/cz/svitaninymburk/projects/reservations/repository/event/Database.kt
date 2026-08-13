@@ -123,6 +123,7 @@ object EventSeriesTable : Table("event_series") {
     val lessonStartTime = varchar("lesson_start_time", 8).nullable()
     val lessonEndTime = varchar("lesson_end_time", 8).nullable()
     val showAttendeeCount = bool("show_attendee_count").default(true)
+    val lessonPrice = double("lesson_price").nullable()
     val lessonRefundAmount = double("lesson_refund_amount").nullable()
     val reservationDeadlineMs = long("reservation_deadline_ms").nullable()
     val reservationDeadlineMessage = text("reservation_deadline_message").nullable()
@@ -151,6 +152,7 @@ fun ResultRow.toEventSeries(ownerEmails: List<String>): EventSeries = EventSerie
     lessonStartTime = this[EventSeriesTable.lessonStartTime]?.let { LocalTime.parse(it) },
     lessonEndTime = this[EventSeriesTable.lessonEndTime]?.let { LocalTime.parse(it) },
     showAttendeeCount = this[EventSeriesTable.showAttendeeCount],
+    lessonPrice = this[EventSeriesTable.lessonPrice],
     lessonRefundAmount = this[EventSeriesTable.lessonRefundAmount],
     reservationDeadline = this[EventSeriesTable.reservationDeadlineMs]?.milliseconds,
     reservationDeadlineMessage = this[EventSeriesTable.reservationDeadlineMessage],
@@ -389,6 +391,7 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[lessonStartTime] = series.lessonStartTime?.toString()
             row[lessonEndTime] = series.lessonEndTime?.toString()
             row[showAttendeeCount] = series.showAttendeeCount
+            row[lessonPrice] = series.lessonPrice
             row[lessonRefundAmount] = series.lessonRefundAmount
             row[reservationDeadlineMs] = series.reservationDeadline?.inWholeMilliseconds
             row[reservationDeadlineMessage] = series.reservationDeadlineMessage
@@ -414,6 +417,7 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[lessonStartTime] = series.lessonStartTime?.toString()
             row[lessonEndTime] = series.lessonEndTime?.toString()
             row[showAttendeeCount] = series.showAttendeeCount
+            row[lessonPrice] = series.lessonPrice
             row[lessonRefundAmount] = series.lessonRefundAmount
             row[reservationDeadlineMs] = series.reservationDeadline?.inWholeMilliseconds
             row[reservationDeadlineMessage] = series.reservationDeadlineMessage

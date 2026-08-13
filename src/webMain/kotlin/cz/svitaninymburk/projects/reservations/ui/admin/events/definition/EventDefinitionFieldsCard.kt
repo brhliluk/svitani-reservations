@@ -54,7 +54,7 @@ fun IComponent.EventDefinitionFieldsCard(
                     textArea(value = description, className = "textarea textarea-bordered h-24 w-full") { onInput { onDescriptionChange(value ?: "") } }
                 }
                 OwnerEmailsField(ownerEmails, onOwnerEmailsChange)
-                PriceCurrencyField(currentStrings.defaultPriceLabel, price, onPriceChange)
+                PriceCurrencyField(currentStrings.defaultPriceLabel, price, onChange = onPriceChange)
                 CapacityField(capacity, onCapacityChange)
                 DurationField(currentStrings.defaultDurationLabel, durationHours, durationMinutes, onDurationHoursChange, onDurationMinutesChange)
                 AllowedPaymentsField(allowBankTransfer, allowOnSite, onAllowBankTransferChange, onAllowOnSiteChange)

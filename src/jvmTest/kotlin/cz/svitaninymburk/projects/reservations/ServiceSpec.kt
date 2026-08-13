@@ -531,6 +531,272 @@ class AdminEditDeleteSpec {
         assertEquals(DayOfWeek.MONDAY, stored.lessonDayOfWeek)
     }
 
+    // --- cena za lekci ---
+
+    @Test
+    fun `createEventSeries prices generated lessons with lessonPrice when set`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        val result = service.createEventSeries(
+            CreateEventSeriesRequest(
+                definitionId = def.id,
+                title = "Course", description = "d",
+                price = 1500.0, capacity = 10,
+                lessonPrice = 250.0,
+                startDate = LocalDate(2026, 6, 1),
+                endDate = LocalDate(2026, 6, 15),
+                lessonCount = 3,
+                lessonDayOfWeek = DayOfWeek.MONDAY,
+                lessonStartTime = LocalTime(17, 0),
+                lessonEndTime = LocalTime(18, 0),
+            )
+        )
+        val seriesId = result.getOrNull()
+        assertNotNull(seriesId)
+
+        assertEquals(250.0, seriesRepo.get(seriesId)?.lessonPrice)
+        val lessons = instanceRepo.findBySeries(seriesId)
+        assertEquals(3, lessons.size)
+        assertTrue(lessons.all { it.price == 250.0 }, "lekce mají mít cenu za lekci, ne cenu kurzu")
+    }
+
+    @Test
+    fun `createEventSeries prices custom lessons with lessonPrice when set`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        val result = service.createEventSeries(
+            CreateEventSeriesRequest(
+                definitionId = def.id,
+                title = "Course", description = "d",
+                price = 1500.0, capacity = 10,
+                lessonPrice = 250.0,
+                startDate = LocalDate(2026, 6, 1),
+                endDate = LocalDate(2026, 6, 8),
+                lessonCount = 2,
+                customLessons = listOf(
+                    LessonConfig(LocalDateTime(2026, 6, 1, 17, 0), LocalDateTime(2026, 6, 1, 18, 0), isDropIn = true),
+                    LessonConfig(LocalDateTime(2026, 6, 8, 17, 0), LocalDateTime(2026, 6, 8, 18, 0)),
+                ),
+            )
+        )
+        val seriesId = result.getOrNull()
+        assertNotNull(seriesId)
+
+        val lessons = instanceRepo.findBySeries(seriesId)
+        assertEquals(2, lessons.size)
+        assertTrue(lessons.all { it.price == 250.0 }, "lekce mají mít cenu za lekci, ne cenu kurzu")
+    }
+
+    @Test
+    fun `createEventSeries falls back to course price when lessonPrice is absent`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        val result = service.createEventSeries(
+            CreateEventSeriesRequest(
+                definitionId = def.id,
+                title = "Course", description = "d",
+                price = 1500.0, capacity = 10,
+                startDate = LocalDate(2026, 6, 1),
+                endDate = LocalDate(2026, 6, 8),
+                lessonCount = 2,
+                lessonDayOfWeek = DayOfWeek.MONDAY,
+                lessonStartTime = LocalTime(17, 0),
+                lessonEndTime = LocalTime(18, 0),
+            )
+        )
+        val seriesId = result.getOrNull()
+        assertNotNull(seriesId)
+
+        assertNull(seriesRepo.get(seriesId)?.lessonPrice)
+        assertTrue(instanceRepo.findBySeries(seriesId).all { it.price == 1500.0 })
+    }
+
+    @Test
+    fun `createEventAndSeries prices lessons with lessonPrice when set`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        val result = service.createEventAndSeries(
+            CreateEventAndSeriesRequest(
+                title = "Course", description = "d",
+                defaultPrice = 1500.0, defaultCapacity = 10,
+                defaultDuration = 1.hours,
+                lessonPrice = 250.0,
+                startDate = LocalDate(2026, 6, 1),
+                endDate = LocalDate(2026, 6, 8),
+                lessonCount = 2,
+                customLessons = listOf(
+                    LessonConfig(LocalDateTime(2026, 6, 1, 17, 0), LocalDateTime(2026, 6, 1, 18, 0), isDropIn = true),
+                    LessonConfig(LocalDateTime(2026, 6, 8, 17, 0), LocalDateTime(2026, 6, 8, 18, 0)),
+                ),
+            )
+        )
+        assertTrue(result.isRight())
+
+        val series = seriesRepo.getAll(null).single()
+        assertEquals(250.0, series.lessonPrice)
+        assertTrue(instanceRepo.findBySeries(series.id).all { it.price == 250.0 })
+    }
+
+    @Test
+    fun `updateEventSeries reprices all lessons when lessonPrice changes`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val series = makeSeries(def.id).copy(lessonPrice = 250.0)
+        seriesRepo.create(series)
+        instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id, price = 250.0))
+        instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id, price = 400.0)) // ručně upravená lekce
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        val result = service.updateEventSeries(
+            series.id,
+            UpdateEventSeriesRequest(
+                title = series.title, description = series.description,
+                price = series.price, capacity = series.capacity,
+                allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                customFields = emptyList(),
+                lessonPrice = 300.0,
+            )
+        )
+        assertTrue(result.isRight())
+
+        assertEquals(300.0, seriesRepo.get(series.id)?.lessonPrice)
+        assertTrue(
+            instanceRepo.findBySeries(series.id).all { it.price == 300.0 },
+            "změna ceny za lekci přepíše cenu všech lekcí kurzu",
+        )
+    }
+
+    @Test
+    fun `updateEventSeries reprices lessons back to the course price when lessonPrice is cleared`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val series = makeSeries(def.id).copy(lessonPrice = 250.0) // price = 500.0
+        seriesRepo.create(series)
+        instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id, price = 250.0))
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        service.updateEventSeries(
+            series.id,
+            UpdateEventSeriesRequest(
+                title = series.title, description = series.description,
+                price = series.price, capacity = series.capacity,
+                allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                customFields = emptyList(),
+                lessonPrice = null,
+            )
+        )
+
+        assertNull(seriesRepo.get(series.id)?.lessonPrice)
+        assertEquals(500.0, instanceRepo.findBySeries(series.id).single().price)
+    }
+
+    @Test
+    fun `updateEventSeries leaves lesson prices alone when lessonPrice is unchanged`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val series = makeSeries(def.id).copy(lessonPrice = 250.0)
+        seriesRepo.create(series)
+        instanceRepo.create(makeInstance(def.id).copy(seriesId = series.id, price = 400.0))
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        service.updateEventSeries(
+            series.id,
+            UpdateEventSeriesRequest(
+                title = "Nový název", description = series.description,
+                price = series.price, capacity = series.capacity,
+                allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                customFields = emptyList(),
+                lessonPrice = 250.0,
+            )
+        )
+
+        assertEquals(400.0, instanceRepo.findBySeries(series.id).single().price)
+    }
+
+    @Test
+    fun `addSeriesLesson prices the new lesson with the series lessonPrice`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val series = makeSeries(def.id).copy(lessonPrice = 250.0)
+        seriesRepo.create(series)
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        val result = service.addSeriesLesson(
+            AddSeriesLessonRequest(
+                seriesId = series.id,
+                startDateTime = LocalDateTime(2026, 6, 22, 17, 0),
+                endDateTime = LocalDateTime(2026, 6, 22, 18, 0),
+                isDropIn = true,
+            )
+        )
+        val lessonId = result.getOrNull()
+        assertNotNull(lessonId)
+
+        assertEquals(250.0, instanceRepo.get(lessonId)?.price)
+    }
+
+    @Test
+    fun `updateEventDefinition propagation keeps the lesson price of series lessons`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val series = makeSeries(def.id).copy(lessonPrice = 250.0)
+        seriesRepo.create(series)
+        val lesson = makeInstance(def.id).copy(seriesId = series.id, price = 250.0)
+        instanceRepo.create(lesson)
+        val standalone = makeInstance(def.id) // mimo kurz — propagace ho přecenit má
+        instanceRepo.create(standalone)
+
+        val result = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+            .updateEventDefinition(
+                def.id,
+                UpdateEventDefinitionRequest(
+                    title = "T", description = "d",
+                    defaultPrice = 999.0, defaultCapacity = 10,
+                    defaultDuration = 1.hours,
+                    allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                    customFields = emptyList(),
+                    propagateToChildren = true,
+                ),
+            )
+        assertTrue(result.isRight())
+
+        assertEquals(250.0, instanceRepo.get(lesson.id)?.price, "propagace šablony nesmí smazat cenu za lekci")
+        assertEquals(999.0, instanceRepo.get(standalone.id)?.price)
+    }
+
     // --- updateEventDefinition with propagation ---
 
     @Test

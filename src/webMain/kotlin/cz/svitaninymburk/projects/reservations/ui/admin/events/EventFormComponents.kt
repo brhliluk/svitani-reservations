@@ -54,6 +54,7 @@ fun IComponent.OwnerEmailsField(
 fun IComponent.PriceCurrencyField(
     label: String,
     value: Number?,
+    hint: String? = null,
     onChange: (Number?) -> Unit,
 ) {
     val currentStrings by strings
@@ -65,6 +66,11 @@ fun IComponent.PriceCurrencyField(
                 onChange { onChange(this.value) }
             }
             span(className = "absolute right-4 text-base-content/50 font-medium") { +currentStrings.currency }
+        }
+        // Vlastní div místo `label`: DaisyUI label je flex řádek, který dlouhou
+        // nápovědu nezalomí a nechá ji přetéct přes okraj karty.
+        if (hint != null) {
+            div(className = "text-xs text-base-content/60 mt-1 leading-snug") { +hint }
         }
     }
 }

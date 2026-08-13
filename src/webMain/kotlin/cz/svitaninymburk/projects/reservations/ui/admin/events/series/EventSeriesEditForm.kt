@@ -77,6 +77,12 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
 
                             PriceCurrencyField(currentStrings.fullCoursePriceLabel, model.price) { model.price = it }
 
+                            PriceCurrencyField(
+                                label = currentStrings.lessonPriceLabel,
+                                value = model.lessonPriceInput,
+                                hint = currentStrings.lessonPriceEditHint,
+                            ) { model.lessonPriceInput = it }
+
                             CapacityField(model.capacity) { model.capacity = it }
 
                             WaitlistCapacityField(model.waitlistCapacity) { model.waitlistCapacity = it }
