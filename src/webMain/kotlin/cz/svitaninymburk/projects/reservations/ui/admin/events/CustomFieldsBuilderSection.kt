@@ -11,29 +11,6 @@ import dev.kilua.form.text.text
 import dev.kilua.html.*
 import web.html.HTMLSelectElement
 
-fun nextAvailableFieldKey(existingKeys: Collection<String>): String {
-    var i = 0
-    while ("field_$i" in existingKeys) i++
-    return "field_$i"
-}
-
-fun deduplicateFieldKeys(fields: List<CustomFieldDefinition>): List<CustomFieldDefinition> {
-    val usedKeys = fields.map { it.key }.toMutableSet()
-    val seenKeys = mutableSetOf<String>()
-    return fields.map { field ->
-        if (!seenKeys.add(field.key)) {
-            val newKey = nextAvailableFieldKey(usedKeys)
-            usedKeys += newKey
-            when (field) {
-                is TextFieldDefinition -> field.copy(key = newKey)
-                is NumberFieldDefinition -> field.copy(key = newKey)
-                is BooleanFieldDefinition -> field.copy(key = newKey)
-                is TimeRangeFieldDefinition -> field.copy(key = newKey)
-            }
-        } else field
-    }
-}
-
 /**
  * Sdílený builder pro custom fields — používán ve všech admin formulářích pro eventy.
  *

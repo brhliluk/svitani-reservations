@@ -2,6 +2,9 @@ package cz.svitaninymburk.projects.reservations.plugins
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
+import cz.svitaninymburk.projects.reservations.event.deduplicateFieldKeys
+import cz.svitaninymburk.projects.reservations.event.remapValuesAfterKeyDeduplication
 import cz.svitaninymburk.projects.reservations.repository.auth.RefreshTokensTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionsTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstancesTable
@@ -23,6 +26,7 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
@@ -94,6 +98,12 @@ fun Application.configureDatabases() {
             backfillCustomFieldsFromTemplates()
         } catch (e: Exception) {
             println("⚠️ custom_fields backfill failed (non-fatal): ${e.message}")
+        }
+
+        try {
+            deduplicateCustomFieldKeys()
+        } catch (e: Exception) {
+            println("⚠️ custom_fields key deduplication failed (non-fatal): ${e.message}")
         }
     }
 }
@@ -187,4 +197,83 @@ internal fun JdbcTransaction.backfillCustomFieldsFromTemplates() {
             }
         }
     }
+}
+
+// Události vytvořené předtím, než se klíče vlastních polí začaly generovat přes
+// nextAvailableFieldKey (klíč se počítal jako "field_${customFields.size}", takže po
+// smazání pole a přidání nového vznikla duplicita), mají v custom_fields dvě pole se
+// stejným key. Hodnoty rezervace jsou mapované právě přes key, takže si taková pole
+// v rezervačním formuláři navzájem přepisují hodnotu. Dedup v admin builderu opraví
+// jen stav formuláře — dokud admin neuloží, v DB duplicita zůstane.
+//
+// Idempotentní: řádky s unikátními klíči nechá být. Pro přejmenování nepoužije klíč,
+// který se už vyskytuje v hodnotách existujících rezervací na daný termín/kurz, aby
+// opravené pole nezdědilo hodnotu po dávno smazaném poli.
+internal fun JdbcTransaction.deduplicateCustomFieldKeys() {
+    val reservedKeysByReference = mutableMapOf<Uuid, MutableSet<String>>()
+    ReservationsTable
+        .select(ReservationsTable.referenceId, ReservationsTable.customValues)
+        .forEach { row ->
+            reservedKeysByReference
+                .getOrPut(row[ReservationsTable.referenceId]) { mutableSetOf() }
+                .addAll(row[ReservationsTable.customValues].keys)
+        }
+
+    EventDefinitionsTable.selectAll().forEach { row ->
+        val fields = row[EventDefinitionsTable.customFields]
+        val deduped = deduplicateFieldKeys(fields)
+        if (deduped != fields) {
+            EventDefinitionsTable.update({ EventDefinitionsTable.id eq row[EventDefinitionsTable.id] }) {
+                it[customFields] = deduped
+            }
+        }
+    }
+
+    EventSeriesTable.selectAll().forEach { row ->
+        val id = row[EventSeriesTable.id]
+        val fields = row[EventSeriesTable.customFields]
+        val deduped = deduplicateFieldKeys(fields, reservedKeysByReference[id].orEmpty())
+        if (deduped != fields) {
+            EventSeriesTable.update({ EventSeriesTable.id eq id }) {
+                it[customFields] = deduped
+            }
+            remapReservationValues(id, fields, deduped)
+        }
+    }
+
+    EventInstancesTable.selectAll().forEach { row ->
+        val id = row[EventInstancesTable.id]
+        val fields = row[EventInstancesTable.customFields]
+        val seriesReservedKeys = row[EventInstancesTable.seriesId]
+            ?.let { reservedKeysByReference[it] }
+            .orEmpty()
+        val deduped = deduplicateFieldKeys(fields, reservedKeysByReference[id].orEmpty() + seriesReservedKeys)
+        if (deduped != fields) {
+            EventInstancesTable.update({ EventInstancesTable.id eq id }) {
+                it[customFields] = deduped
+            }
+            remapReservationValues(id, fields, deduped)
+        }
+    }
+}
+
+// Hodnoty už odeslaných rezervací jsou mapované přes key pole, takže po přejmenování
+// klíče by odpověď zůstala viset u pole, kterému nepatří (a v detailu rezervace by se
+// zobrazila jako prázdná). Přesune ji na pole, jehož typ jí odpovídá.
+private fun JdbcTransaction.remapReservationValues(
+    referenceId: Uuid,
+    originalFields: List<CustomFieldDefinition>,
+    dedupedFields: List<CustomFieldDefinition>,
+) {
+    ReservationsTable.selectAll()
+        .where { ReservationsTable.referenceId eq referenceId }
+        .forEach { row ->
+            val values = row[ReservationsTable.customValues]
+            val remapped = remapValuesAfterKeyDeduplication(originalFields, dedupedFields, values)
+            if (remapped != values) {
+                ReservationsTable.update({ ReservationsTable.id eq row[ReservationsTable.id] }) {
+                    it[customValues] = remapped
+                }
+            }
+        }
 }

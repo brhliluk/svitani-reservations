@@ -2,6 +2,8 @@ package cz.svitaninymburk.projects.reservations.ui.admin.events
 
 import cz.svitaninymburk.projects.reservations.event.BooleanFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TextFieldDefinition
+import cz.svitaninymburk.projects.reservations.event.deduplicateFieldKeys
+import cz.svitaninymburk.projects.reservations.event.nextAvailableFieldKey
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -55,5 +57,17 @@ class CustomFieldsBuilderSectionSpec {
 
         val keys = deduped.map { it.key }
         assertEquals(keys.size, keys.toSet().size, "keys must stay unique: $keys")
+    }
+
+    @Test
+    fun deduplicateFieldKeysNeverReusesAReservedKey() {
+        val a = BooleanFieldDefinition(key = "field_1", label = "Beru s sebou dítě/děti")
+        val b = TextFieldDefinition(key = "field_1", label = "Pokud beru, napište prosím...")
+
+        // field_0 patří dávno smazanému poli, jehož hodnoty jsou pořád v existujících
+        // rezervacích — přejmenované pole ji nesmí zdědit
+        val deduped = deduplicateFieldKeys(listOf(a, b), reservedKeys = setOf("field_0"))
+
+        assertEquals(listOf("field_1", "field_2"), deduped.map { it.key })
     }
 }
