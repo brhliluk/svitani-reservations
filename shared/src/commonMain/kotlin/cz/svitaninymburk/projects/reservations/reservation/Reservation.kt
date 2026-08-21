@@ -65,6 +65,8 @@ sealed interface ReservationTarget {
     val price: Double
     val allowedPaymentTypes: List<PaymentInfo.Type>
     val maxCapacity: Int
+    /** Když je false, rezervační formulář pole s počtem míst skryje a rezervuje se vždy 1 místo. */
+    val allowMultipleSeats: Boolean
     val customFields: List<CustomFieldDefinition>
     val startDateTime: LocalDateTime
     val endDateTime: LocalDateTime
@@ -77,6 +79,7 @@ sealed interface ReservationTarget {
         override val price = event.price
         override val allowedPaymentTypes = event.allowedPaymentTypes
         override val maxCapacity = event.capacity - event.occupiedSpots
+        override val allowMultipleSeats = event.allowMultipleSeats
         override val startDateTime = event.startDateTime
         override val endDateTime = event.endDateTime
         override val customFields = event.customFields
@@ -90,6 +93,7 @@ sealed interface ReservationTarget {
         override val price = series.price
         override val allowedPaymentTypes = series.allowedPaymentTypes
         override val maxCapacity = series.capacity - series.occupiedSpots
+        override val allowMultipleSeats = series.allowMultipleSeats
         override val startDateTime = LocalDateTime(date = series.startDate, time = LocalTime(0,0))
         override val endDateTime = LocalDateTime(date = series.endDate, time = LocalTime(23,0))
         override val customFields = series.customFields

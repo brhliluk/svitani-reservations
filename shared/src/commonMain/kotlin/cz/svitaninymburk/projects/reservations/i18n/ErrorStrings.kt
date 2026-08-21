@@ -17,6 +17,8 @@ interface ErrorStrings {
     val errorEventInstanceNotFound: String
     val errorEventSeriesNotFound: String
     val errorCapacityExceeded: String
+    val errorMultipleSeatsNotAllowed: String
+    val errorInvalidSeatCount: String
     val errorEventAlreadyFinished: String
     val errorEventAlreadyStarted: String
     val errorEventCancelled: String

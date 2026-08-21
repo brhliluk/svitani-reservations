@@ -52,6 +52,7 @@ class AdminEditEventSeriesModel(
     var allowOnSite by mutableStateOf(true)
     var ownerEmails by mutableStateOf(listOf(""))
     var showAttendeeCount by mutableStateOf(true)
+    var allowMultipleSeats by mutableStateOf(true)
     var lessonPriceInput: Number? by mutableStateOf(null)
     var lessonRefundAmountInput: Number? by mutableStateOf(null)
     var customFields by mutableStateOf(listOf<CustomFieldDefinition>())
@@ -83,6 +84,7 @@ class AdminEditEventSeriesModel(
                     allowOnSite = s.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
                     ownerEmails = s.ownerEmails.ifEmpty { listOf("") }
                     showAttendeeCount = s.showAttendeeCount
+                    allowMultipleSeats = s.allowMultipleSeats
                     lessonPriceInput = s.lessonPrice
                     lessonRefundAmountInput = s.lessonRefundAmount
                     val seriesDeadline = s.reservationDeadline
@@ -183,6 +185,7 @@ class AdminEditEventSeriesModel(
         allowBankTransfer = allowBankTransfer,
         allowOnSite = allowOnSite,
         showAttendeeCount = showAttendeeCount,
+        allowMultipleSeats = allowMultipleSeats,
         lessonRefundAmount = lessonRefundAmountInput?.toDouble(),
         customFields = customFields,
         deadlineMessage = deadlineMessage,

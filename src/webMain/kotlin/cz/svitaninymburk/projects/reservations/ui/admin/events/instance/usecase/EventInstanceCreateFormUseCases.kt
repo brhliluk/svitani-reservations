@@ -32,6 +32,7 @@ data class EventInstanceCreateFormData(
     val allowBankTransfer: Boolean,
     val allowOnSite: Boolean,
     val showAttendeeCount: Boolean,
+    val allowMultipleSeats: Boolean,
     val customFields: List<CustomFieldDefinition>,
     val deadlineMessage: String,
 )
@@ -75,6 +76,7 @@ fun buildCreateEventInstanceRequest(
     customFields = form.customFields,
     ownerEmails = parseOwnerEmails(form.ownerEmails),
     showAttendeeCount = form.showAttendeeCount,
+    allowMultipleSeats = form.allowMultipleSeats,
     reservationDeadline = reservationDeadline,
     reservationDeadlineMessage = form.deadlineMessage.takeIf { it.isNotBlank() },
     isPublished = isPublished,

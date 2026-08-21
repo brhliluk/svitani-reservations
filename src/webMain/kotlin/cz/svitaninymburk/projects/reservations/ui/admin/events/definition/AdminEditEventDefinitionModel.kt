@@ -54,6 +54,7 @@ class AdminEditEventDefinitionModel(
     var propagateToChildren by mutableStateOf(false)
     var ownerEmails by mutableStateOf(listOf(""))
     var showAttendeeCount by mutableStateOf(true)
+    var allowMultipleSeats by mutableStateOf(true)
     var isSubmitting by mutableStateOf(false); private set
 
     fun load() {
@@ -73,6 +74,7 @@ class AdminEditEventDefinitionModel(
                     customFields = def.customFields
                     ownerEmails = def.ownerEmails.ifEmpty { listOf("") }
                     showAttendeeCount = def.showAttendeeCount
+                    allowMultipleSeats = def.allowMultipleSeats
                     uiState = EditEventDefinitionUiState.Loaded(def)
                 }
                 .onLeft { uiState = EditEventDefinitionUiState.Error(it.localizedMessage(currentStrings)) }
@@ -109,6 +111,7 @@ class AdminEditEventDefinitionModel(
         allowOnSite = allowOnSite,
         customFields = customFields,
         showAttendeeCount = showAttendeeCount,
+        allowMultipleSeats = allowMultipleSeats,
     )
 
     private fun validationErrorMessage(error: DefinitionFormValidationError): String = when (error) {

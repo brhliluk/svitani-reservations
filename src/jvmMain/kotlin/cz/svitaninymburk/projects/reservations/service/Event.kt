@@ -43,6 +43,7 @@ class AuthenticatedEventService(
                 defaultCapacity = request.defaultCapacity,
                 defaultDuration = request.defaultDuration,
                 showAttendeeCount = request.showAttendeeCount,
+                allowMultipleSeats = request.allowMultipleSeats,
             )
         )
     }
@@ -76,6 +77,7 @@ class AuthenticatedEventService(
                 capacity = request.capacity ?: eventDefinition.defaultCapacity,
                 customFields = request.customFields.ifEmpty { eventDefinition.customFields },
                 showAttendeeCount = request.showAttendeeCount,
+                allowMultipleSeats = request.allowMultipleSeats,
                 reservationDeadline = request.reservationDeadline,
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
                 isPublished = request.isPublished,

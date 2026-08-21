@@ -29,6 +29,7 @@ data class EventSeriesCreateFormData(
     val allowBankTransfer: Boolean,
     val allowOnSite: Boolean,
     val showAttendeeCount: Boolean,
+    val allowMultipleSeats: Boolean,
     val customFields: List<CustomFieldDefinition>,
     val deadlineMessage: String,
 )
@@ -154,6 +155,7 @@ fun buildCreateEventSeriesRequest(
     customLessons = customLessons,
     customFields = form.customFields,
     showAttendeeCount = form.showAttendeeCount,
+    allowMultipleSeats = form.allowMultipleSeats,
     reservationDeadline = reservationDeadline,
     reservationDeadlineMessage = form.deadlineMessage.takeIf { it.isNotBlank() },
     isPublished = isPublished,

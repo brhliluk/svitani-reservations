@@ -31,6 +31,7 @@ private fun sampleForm() = EventSeriesCreateFormData(
     allowBankTransfer = true,
     allowOnSite = false,
     showAttendeeCount = true,
+    allowMultipleSeats = true,
     customFields = emptyList(),
     deadlineMessage = "",
 )

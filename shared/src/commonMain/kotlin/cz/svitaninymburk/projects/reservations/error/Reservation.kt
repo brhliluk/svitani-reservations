@@ -20,6 +20,8 @@ import kotlinx.serialization.Serializable
     @Serializable data object EventAlreadyStarted : CreateReservation, CancelReservation
     @Serializable data object EventCancelled : CreateReservation
     @Serializable data object CapacityExceeded : CreateReservation
+    @Serializable data object MultipleSeatsNotAllowed : CreateReservation
+    @Serializable data object InvalidSeatCount : CreateReservation
     @Serializable data object FailedToGetAllReservations : GetAll
     @Serializable data class FailedToSendCancellationEmail(val cause: EmailError.SendCancellation) : CancelReservation
     @Serializable data class SystemError(val message: String) : CreateReservation
@@ -40,6 +42,8 @@ fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (thi
     is ReservationError.EventInstanceNotFound -> strings.errorEventInstanceNotFound
     is ReservationError.EventSeriesNotFound -> strings.errorEventSeriesNotFound
     is ReservationError.CapacityExceeded -> strings.errorCapacityExceeded
+    is ReservationError.MultipleSeatsNotAllowed -> strings.errorMultipleSeatsNotAllowed
+    is ReservationError.InvalidSeatCount -> strings.errorInvalidSeatCount
     is ReservationError.EventAlreadyFinished -> strings.errorEventAlreadyFinished
     is ReservationError.EventAlreadyStarted -> strings.errorEventAlreadyStarted
     is ReservationError.EventCancelled -> strings.errorEventCancelled

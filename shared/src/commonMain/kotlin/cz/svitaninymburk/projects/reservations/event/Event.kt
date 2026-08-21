@@ -26,6 +26,8 @@ data class EventDefinition(
     val customFields: List<CustomFieldDefinition> = emptyList(),
     val ownerEmails: List<String> = emptyList(),
     val showAttendeeCount: Boolean = true,
+    /** Výchozí nastavení pro nové kurzy a akce; viz [EventInstance.allowMultipleSeats]. */
+    val allowMultipleSeats: Boolean = true,
 )
 
 @Serializable
@@ -50,6 +52,8 @@ data class EventSeries(
     val lessonStartTime: LocalTime? = null,
     val lessonEndTime: LocalTime? = null,
     val showAttendeeCount: Boolean = true,
+    /** Když je false, rezervační formulář skryje pole s počtem míst a rezervuje se vždy 1 místo. */
+    val allowMultipleSeats: Boolean = true,
     /** Cena jedné lekce; null = lekce se prodávají za cenu celého kurzu ([price]). */
     val lessonPrice: Double? = null,
     val lessonRefundAmount: Double? = null,
@@ -90,6 +94,8 @@ data class EventInstance(
     val ownerEmails: List<String> = emptyList(),
     val isDropIn: Boolean = false,
     val showAttendeeCount: Boolean = true,
+    /** Když je false, rezervační formulář skryje pole s počtem míst a rezervuje se vždy 1 místo. */
+    val allowMultipleSeats: Boolean = true,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
 ) {
@@ -127,6 +133,7 @@ data class CreateEventDefinitionRequest(
     val customFields: List<CustomFieldDefinition> = emptyList(),
     val ownerEmails: List<String> = emptyList(),
     val showAttendeeCount: Boolean = true,
+    val allowMultipleSeats: Boolean = true,
 )
 
 @Serializable
@@ -142,6 +149,7 @@ data class CreateEventAndInstancesRequest(
     val ownerEmails: List<String> = emptyList(),
     val dateTimes: List<LocalDateTime>,
     val showAttendeeCount: Boolean = true,
+    val allowMultipleSeats: Boolean = true,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
     val isPublished: Boolean = false,
@@ -163,6 +171,7 @@ data class CreateEventAndSeriesRequest(
     val lessonCount: Int,
     val customLessons: List<LessonConfig>? = null,
     val showAttendeeCount: Boolean = true,
+    val allowMultipleSeats: Boolean = true,
     /** Cena jedné lekce; null = lekce se zakládají za cenu celého kurzu ([defaultPrice]). */
     val lessonPrice: Double? = null,
     val reservationDeadline: Duration? = null,
@@ -204,6 +213,7 @@ data class CreateEventSeriesRequest(
     val lessonEndTime: LocalTime? = null,
     val customLessons: List<LessonConfig>? = null,
     val showAttendeeCount: Boolean = true,
+    val allowMultipleSeats: Boolean = true,
     /** Cena jedné lekce; null = lekce se zakládají za cenu celého kurzu ([price]). */
     val lessonPrice: Double? = null,
     val lessonRefundAmount: Double? = null,
@@ -226,6 +236,7 @@ data class CreateEventInstanceRequest(
     val customFields: List<CustomFieldDefinition> = emptyList(),
     val ownerEmails: List<String> = emptyList(),
     val showAttendeeCount: Boolean = true,
+    val allowMultipleSeats: Boolean = true,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
     val isPublished: Boolean = false,
@@ -251,6 +262,7 @@ data class UpdateEventDefinitionRequest(
     val ownerEmails: List<String> = emptyList(),
     val propagateToChildren: Boolean,
     val showAttendeeCount: Boolean = true,
+    val allowMultipleSeats: Boolean = true,
 )
 
 @Serializable
@@ -267,6 +279,7 @@ data class UpdateEventInstanceRequest(
     val ownerEmails: List<String> = emptyList(),
     val isDropIn: Boolean = false,
     val showAttendeeCount: Boolean = true,
+    val allowMultipleSeats: Boolean = true,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
 )
@@ -282,6 +295,7 @@ data class UpdateEventSeriesRequest(
     val customFields: List<CustomFieldDefinition>,
     val ownerEmails: List<String> = emptyList(),
     val showAttendeeCount: Boolean = true,
+    val allowMultipleSeats: Boolean = true,
     /** Cena jedné lekce; null = lekce se prodávají za cenu celého kurzu ([price]). */
     val lessonPrice: Double? = null,
     val lessonRefundAmount: Double? = null,

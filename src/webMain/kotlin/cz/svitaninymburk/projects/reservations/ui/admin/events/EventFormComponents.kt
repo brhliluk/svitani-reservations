@@ -282,3 +282,20 @@ fun IComponent.ShowAttendeeCountCheckbox(
     }
 }
 
+
+@Composable
+fun IComponent.AllowMultipleSeatsCheckbox(
+    value: Boolean,
+    onValueChange: (Boolean) -> Unit,
+) {
+    val currentStrings by strings
+    div(className = "form-control w-full md:col-span-2") {
+        p(className = "label-text font-medium mb-1") { +currentStrings.allowMultipleSeats }
+        label(className = "cursor-pointer label justify-start gap-3") {
+            checkBox(value = value, className = "checkbox checkbox-primary") {
+                onChange { onValueChange(this.value) }
+            }
+            span(className = "label-text text-sm text-base-content/70") { +currentStrings.allowMultipleSeatsHint }
+        }
+    }
+}

@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuild
 import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ReservationDeadlineSection
+import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowMultipleSeatsCheckbox
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ShowAttendeeCountCheckbox
 import cz.svitaninymburk.projects.reservations.ui.admin.events.WaitlistCapacityField
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
@@ -90,6 +91,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                             AllowedPaymentsField(model.allowBankTransfer, model.allowOnSite, { model.allowBankTransfer = it }, { model.allowOnSite = it })
 
                             ShowAttendeeCountCheckbox(value = model.showAttendeeCount) { model.showAttendeeCount = it }
+                            AllowMultipleSeatsCheckbox(value = model.allowMultipleSeats) { model.allowMultipleSeats = it }
 
                             PriceCurrencyField(currentStrings.lessonRefundAmount, model.lessonRefundAmountInput) { model.lessonRefundAmountInput = it }
                         }

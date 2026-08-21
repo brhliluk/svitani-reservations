@@ -296,6 +296,53 @@ class ReservationFormViewModelTest {
         assertEquals(1, vm.uiState.value.seatCount)
     }
 
+    // --- Akce bez volby počtu míst: formulář krok pro počet míst vůbec nezobrazí ---
+
+    @Test
+    fun `allowsMultipleSeats mirrors the event flag`() = runTest {
+        val allowed = viewModel(instance = mockInstance())
+        advanceUntilIdle()
+        assertTrue(allowed.uiState.value.allowsMultipleSeats)
+
+        val forbidden = viewModel(instance = mockInstance().copy(allowMultipleSeats = false))
+        advanceUntilIdle()
+        assertFalse(forbidden.uiState.value.allowsMultipleSeats)
+    }
+
+    @Test
+    fun `setSeatCount stays at one when the event does not allow multiple seats`() = runTest {
+        val vm = viewModel(instance = mockInstance(capacity = 10, occupiedSpots = 0).copy(allowMultipleSeats = false))
+        advanceUntilIdle()
+
+        vm.setSeatCount(4)
+
+        assertEquals(1, vm.uiState.value.seatCount)
+    }
+
+    @Test
+    fun `submitted request reserves a single seat when multiple seats are not allowed`() = runTest {
+        val reservations = FakeReservationsRepository(Either.Right(mockReservation()))
+        val vm = viewModel(
+            instance = mockInstance(capacity = 10, occupiedSpots = 0).copy(allowMultipleSeats = false),
+            reservations = reservations,
+        )
+        advanceUntilIdle()
+        vm.setContactPhone("+420123456789")
+        vm.setSeatCount(3)
+        vm.submit()
+        advanceUntilIdle()
+
+        val request = assertIs<CreateInstanceReservationRequest>(reservations.lastInstanceRequest)
+        assertEquals(1, request.seatCount)
+    }
+
+    @Test
+    fun `allowsMultipleSeats is true while the event is still loading`() = runTest {
+        val vm = viewModel()
+        // Před dokončením načtení není co skrývat — krok zůstane viditelný.
+        assertTrue(vm.uiState.value.allowsMultipleSeats)
+    }
+
     @Test
     fun `reload does not clobber user-edited contact fields`() = runTest {
         val vm = viewModel()

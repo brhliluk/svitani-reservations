@@ -25,6 +25,7 @@ private fun sampleForm() = EventDefinitionFormData(
     allowOnSite = false,
     customFields = emptyList(),
     showAttendeeCount = true,
+    allowMultipleSeats = true,
 )
 
 class EventDefinitionFormUseCasesSpec {

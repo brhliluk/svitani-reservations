@@ -74,6 +74,7 @@ class AdminCreateEventSeriesModel(
     var allowBankTransfer by mutableStateOf(true)
     var allowOnSite by mutableStateOf(true)
     var showAttendeeCount by mutableStateOf(true)
+    var allowMultipleSeats by mutableStateOf(true)
 
     var deadlineEnabled by mutableStateOf(false)
     var deadlineTypeIsHours by mutableStateOf(true)
@@ -170,6 +171,7 @@ class AdminCreateEventSeriesModel(
         allowBankTransfer = definition.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
         allowOnSite = definition.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
         showAttendeeCount = definition.showAttendeeCount
+        allowMultipleSeats = definition.allowMultipleSeats
         customFields = definition.customFields
     }
 
@@ -233,6 +235,7 @@ class AdminCreateEventSeriesModel(
         allowBankTransfer = allowBankTransfer,
         allowOnSite = allowOnSite,
         showAttendeeCount = showAttendeeCount,
+        allowMultipleSeats = allowMultipleSeats,
         customFields = customFields,
         deadlineMessage = deadlineMessage,
     )

@@ -15,6 +15,8 @@ object CsErrorStrings : ErrorStrings {
     override val errorEventInstanceNotFound = "Událost nebyla nalezena"
     override val errorEventSeriesNotFound = "Kroužek nebyl nalezen"
     override val errorCapacityExceeded = "Kapacita události překročena"
+    override val errorMultipleSeatsNotAllowed = "U této akce lze rezervovat pouze jedno místo."
+    override val errorInvalidSeatCount = "Počet míst musí být alespoň 1."
     override val errorEventAlreadyFinished = "Událost již skončila"
     override val errorEventAlreadyStarted = "Událost již začala"
     override val errorEventCancelled = "Událost byla zrušena"

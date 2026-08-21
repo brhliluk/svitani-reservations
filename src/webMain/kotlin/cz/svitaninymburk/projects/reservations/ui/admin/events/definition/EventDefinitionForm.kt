@@ -49,6 +49,7 @@ fun IComponent.AdminCreateEventDefinitionScreen(currentUser: User) {
             allowBankTransfer = model.allowBankTransfer, onAllowBankTransferChange = { model.allowBankTransfer = it },
             allowOnSite = model.allowOnSite, onAllowOnSiteChange = { model.allowOnSite = it },
             showAttendeeCount = model.showAttendeeCount, onShowAttendeeCountChange = { model.showAttendeeCount = it },
+            allowMultipleSeats = model.allowMultipleSeats, onAllowMultipleSeatsChange = { model.allowMultipleSeats = it },
         )
 
         CustomFieldsBuilderSection(model.customFields) { model.customFields = it }

@@ -274,6 +274,8 @@ interface AppStrings : ErrorStrings {
     val toastTemplatesLoadError: (String) -> String
     val showAttendeeCount: String
     val showAttendeeCountHint: String
+    val allowMultipleSeats: String
+    val allowMultipleSeatsHint: String
     val dropInLabel: String
     val dropInDescription: String
 

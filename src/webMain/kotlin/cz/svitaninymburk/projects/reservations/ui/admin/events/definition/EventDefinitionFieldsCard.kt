@@ -8,6 +8,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.DurationField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyField
+import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowMultipleSeatsCheckbox
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ShowAttendeeCountCheckbox
 import dev.kilua.core.IComponent
 import dev.kilua.form.text.text
@@ -39,6 +40,8 @@ fun IComponent.EventDefinitionFieldsCard(
     onAllowOnSiteChange: (Boolean) -> Unit,
     showAttendeeCount: Boolean,
     onShowAttendeeCountChange: (Boolean) -> Unit,
+    allowMultipleSeats: Boolean,
+    onAllowMultipleSeatsChange: (Boolean) -> Unit,
 ) {
     val currentStrings by strings
     div(className = "card bg-base-100 shadow-sm") {
@@ -59,6 +62,7 @@ fun IComponent.EventDefinitionFieldsCard(
                 DurationField(currentStrings.defaultDurationLabel, durationHours, durationMinutes, onDurationHoursChange, onDurationMinutesChange)
                 AllowedPaymentsField(allowBankTransfer, allowOnSite, onAllowBankTransferChange, onAllowOnSiteChange)
                 ShowAttendeeCountCheckbox(showAttendeeCount, onShowAttendeeCountChange)
+                AllowMultipleSeatsCheckbox(allowMultipleSeats, onAllowMultipleSeatsChange)
             }
         }
     }

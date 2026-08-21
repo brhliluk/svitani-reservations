@@ -63,6 +63,7 @@ class AdminEditEventInstanceModel(
     var allowOnSite by mutableStateOf(true)
     var isDropIn by mutableStateOf(false)
     var showAttendeeCount by mutableStateOf(true)
+    var allowMultipleSeats by mutableStateOf(true)
     var customFields by mutableStateOf(listOf<CustomFieldDefinition>())
 
     var deadlineEnabled by mutableStateOf(false)
@@ -98,6 +99,7 @@ class AdminEditEventInstanceModel(
                     isDropIn = inst.isDropIn
                     ownerEmails = inst.ownerEmails.ifEmpty { listOf("") }
                     showAttendeeCount = inst.showAttendeeCount
+                    allowMultipleSeats = inst.allowMultipleSeats
                     val instDeadline = inst.reservationDeadline
                     if (instDeadline != null) {
                         deadlineEnabled = true
@@ -198,6 +200,7 @@ class AdminEditEventInstanceModel(
         allowOnSite = allowOnSite,
         isDropIn = isDropIn,
         showAttendeeCount = showAttendeeCount,
+        allowMultipleSeats = allowMultipleSeats,
         customFields = customFields,
         deadlineMessage = deadlineMessage,
     )

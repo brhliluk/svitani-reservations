@@ -71,6 +71,7 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
     var allowBankTransfer by remember { mutableStateOf(true) }
     var allowOnSite by remember { mutableStateOf(true) }
     var showAttendeeCount by remember { mutableStateOf(true) }
+    var allowMultipleSeats by remember { mutableStateOf(true) }
 
     // Single / Recurring fields
     var startDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()) }
@@ -283,6 +284,7 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                     }
 
                     ShowAttendeeCountCheckbox(value = showAttendeeCount) { showAttendeeCount = it }
+                    AllowMultipleSeatsCheckbox(value = allowMultipleSeats) { allowMultipleSeats = it }
 
                 }
             }
@@ -685,6 +687,7 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                                 allowedPaymentTypes = allowedPayments,
                                 customFields = customFields,
                                 showAttendeeCount = showAttendeeCount,
+                                allowMultipleSeats = allowMultipleSeats,
                                 dateTimes = listOf(dt),
                                 reservationDeadline = computeDeadline(dt),
                                 reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
@@ -715,6 +718,7 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                                 allowedPaymentTypes = allowedPayments,
                                 customFields = customFields,
                                 showAttendeeCount = showAttendeeCount,
+                                allowMultipleSeats = allowMultipleSeats,
                                 dateTimes = previewDates,
                                 reservationDeadline = previewDates.firstOrNull()?.let { computeDeadline(it) },
                                 reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },
@@ -780,6 +784,7 @@ fun IComponent.AdminCreateEventScreen(currentUser: User) {
                                 lessonCount = effectiveLessonCount,
                                 customLessons = finalCustomLessons,
                                 showAttendeeCount = showAttendeeCount,
+                                allowMultipleSeats = allowMultipleSeats,
                                 lessonPrice = courseLessonPrice?.toDouble()?.takeIf { it > 0 },
                                 reservationDeadline = computeDeadline(courseStartDt),
                                 reservationDeadlineMessage = deadlineMessage.takeIf { it.isNotBlank() },

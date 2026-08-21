@@ -29,6 +29,7 @@ data class EventInstanceEditFormData(
     val allowOnSite: Boolean,
     val isDropIn: Boolean,
     val showAttendeeCount: Boolean,
+    val allowMultipleSeats: Boolean,
     val customFields: List<CustomFieldDefinition>,
     val deadlineMessage: String,
 )
@@ -94,6 +95,7 @@ fun buildUpdateEventInstanceRequest(
     isDropIn = form.isDropIn,
     ownerEmails = parseOwnerEmails(form.ownerEmails),
     showAttendeeCount = form.showAttendeeCount,
+    allowMultipleSeats = form.allowMultipleSeats,
     reservationDeadline = reservationDeadline,
     reservationDeadlineMessage = form.deadlineMessage.takeIf { it.isNotBlank() },
 )

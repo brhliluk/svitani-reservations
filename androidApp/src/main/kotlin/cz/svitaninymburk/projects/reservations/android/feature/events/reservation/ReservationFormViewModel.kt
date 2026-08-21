@@ -49,6 +49,13 @@ data class ReservationFormUiState(
     val submitError: RepositoryError? = null,
     val createdReservation: MyReservationListItem? = null,
 ) {
+    /**
+     * Zda formulář nabídne volbu počtu míst. Dokud se akce nenačte, zůstává true — není co
+     * skrývat a stav se hned po načtení srovná podle [ReservationTarget.allowMultipleSeats].
+     */
+    val allowsMultipleSeats: Boolean
+        get() = target?.allowMultipleSeats != false
+
     /** Živý náhled ceny — stejná sdílená funkce používá web i server. */
     val totalPrice: Double
         get() = target?.let { calculateTotalPrice(it.price, seatCount, it.customFields, customValues) } ?: 0.0
@@ -147,7 +154,8 @@ class ReservationFormViewModel(
     fun setUseWallet(value: Boolean) = uiState.update { it.copy(useWallet = value) }
 
     fun setSeatCount(value: Int) = uiState.update {
-        it.copy(seatCount = value.coerceIn(1, maxOf(1, it.target?.maxCapacity ?: 1)))
+        if (!it.allowsMultipleSeats) it.copy(seatCount = 1)
+        else it.copy(seatCount = value.coerceIn(1, maxOf(1, it.target?.maxCapacity ?: 1)))
     }
 
     fun setCustomValue(value: CustomFieldValue) = uiState.update {

@@ -423,6 +423,7 @@ class AdminDashboardService(
                 customFields = request.customFields,
                 ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = request.showAttendeeCount,
+                allowMultipleSeats = request.allowMultipleSeats,
             )
 
             eventDefinitionRepository.create(newDefinition)
@@ -454,6 +455,7 @@ class AdminDashboardService(
                 lessonEndTime = request.lessonEndTime,
                 ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = request.showAttendeeCount,
+                allowMultipleSeats = request.allowMultipleSeats,
                 lessonPrice = request.lessonPrice,
                 lessonRefundAmount = request.lessonRefundAmount,
                 reservationDeadline = request.reservationDeadline,
@@ -487,6 +489,7 @@ class AdminDashboardService(
                             isDropIn = lesson.isDropIn,
                             ownerEmails = newSeries.ownerEmails,
                             showAttendeeCount = newSeries.showAttendeeCount,
+                            allowMultipleSeats = newSeries.allowMultipleSeats,
                             reservationDeadline = newSeries.reservationDeadline,
                             reservationDeadlineMessage = newSeries.reservationDeadlineMessage,
                             isPublished = request.isPublished,
@@ -518,6 +521,7 @@ class AdminDashboardService(
                             isDropIn = false,
                             ownerEmails = newSeries.ownerEmails,
                             showAttendeeCount = newSeries.showAttendeeCount,
+                            allowMultipleSeats = newSeries.allowMultipleSeats,
                             reservationDeadline = newSeries.reservationDeadline,
                             reservationDeadlineMessage = newSeries.reservationDeadlineMessage,
                             isPublished = request.isPublished,
@@ -549,6 +553,7 @@ class AdminDashboardService(
                 customFields = request.customFields,
                 ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = request.showAttendeeCount,
+                allowMultipleSeats = request.allowMultipleSeats,
             )
             eventDefinitionRepository.create(newDefinition)
 
@@ -569,6 +574,7 @@ class AdminDashboardService(
                         customFields = newDefinition.customFields,
                         ownerEmails = newDefinition.ownerEmails,
                         showAttendeeCount = newDefinition.showAttendeeCount,
+                        allowMultipleSeats = newDefinition.allowMultipleSeats,
                         reservationDeadline = request.reservationDeadline,
                         reservationDeadlineMessage = request.reservationDeadlineMessage,
                         isPublished = request.isPublished,
@@ -595,6 +601,7 @@ class AdminDashboardService(
                 customFields = request.customFields,
                 ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = request.showAttendeeCount,
+                allowMultipleSeats = request.allowMultipleSeats,
             )
             eventDefinitionRepository.create(newDefinition)
 
@@ -612,6 +619,7 @@ class AdminDashboardService(
                 customFields = newDefinition.customFields,
                 ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = newDefinition.showAttendeeCount,
+                allowMultipleSeats = newDefinition.allowMultipleSeats,
                 lessonPrice = request.lessonPrice,
                 reservationDeadline = request.reservationDeadline,
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
@@ -643,6 +651,7 @@ class AdminDashboardService(
                             isDropIn = lesson.isDropIn,
                             ownerEmails = newSeries.ownerEmails,
                             showAttendeeCount = newSeries.showAttendeeCount,
+                            allowMultipleSeats = newSeries.allowMultipleSeats,
                             reservationDeadline = newSeries.reservationDeadline,
                             reservationDeadlineMessage = newSeries.reservationDeadlineMessage,
                             isPublished = request.isPublished,
@@ -674,6 +683,7 @@ class AdminDashboardService(
                             isDropIn = false,
                             ownerEmails = newSeries.ownerEmails,
                             showAttendeeCount = newSeries.showAttendeeCount,
+                            allowMultipleSeats = newSeries.allowMultipleSeats,
                             reservationDeadline = newSeries.reservationDeadline,
                             reservationDeadlineMessage = newSeries.reservationDeadlineMessage,
                             isPublished = request.isPublished,
@@ -765,6 +775,7 @@ class AdminDashboardService(
                 ownerEmails = parseOwnerEmails(request.ownerEmails),
                 isDropIn = request.isDropIn,
                 showAttendeeCount = request.showAttendeeCount,
+                allowMultipleSeats = request.allowMultipleSeats,
                 reservationDeadline = request.reservationDeadline,
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
             )
@@ -814,6 +825,7 @@ class AdminDashboardService(
                 customFields = request.customFields,
                 ownerEmails = parseOwnerEmails(request.ownerEmails),
                 showAttendeeCount = request.showAttendeeCount,
+                allowMultipleSeats = request.allowMultipleSeats,
                 lessonPrice = request.lessonPrice,
                 lessonRefundAmount = request.lessonRefundAmount,
                 reservationDeadline = request.reservationDeadline,
@@ -857,6 +869,7 @@ class AdminDashboardService(
                 isDropIn = request.isDropIn,
                 ownerEmails = series.ownerEmails,
                 showAttendeeCount = series.showAttendeeCount,
+                allowMultipleSeats = series.allowMultipleSeats,
                 reservationDeadline = series.reservationDeadline,
                 reservationDeadlineMessage = series.reservationDeadlineMessage,
                 isPublished = series.isPublished,
@@ -882,6 +895,7 @@ class AdminDashboardService(
             customFields = request.customFields,
             ownerEmails = parseOwnerEmails(request.ownerEmails),
             showAttendeeCount = request.showAttendeeCount,
+            allowMultipleSeats = request.allowMultipleSeats,
         )
         eventDefinitionRepository.update(updated)
 
@@ -906,6 +920,7 @@ class AdminDashboardService(
                         customFields = request.customFields,
                         ownerEmails = parseOwnerEmails(request.ownerEmails),
                         showAttendeeCount = request.showAttendeeCount,
+                        allowMultipleSeats = request.allowMultipleSeats,
                     )
                 )
             }
@@ -921,6 +936,7 @@ class AdminDashboardService(
                         customFields = request.customFields,
                         ownerEmails = parseOwnerEmails(request.ownerEmails),
                         showAttendeeCount = request.showAttendeeCount,
+                        allowMultipleSeats = request.allowMultipleSeats,
                     )
                 )
             }

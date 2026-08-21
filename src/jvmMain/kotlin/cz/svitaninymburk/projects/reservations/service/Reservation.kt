@@ -121,6 +121,9 @@ open class ReservationService(
         ensure(instance.startDateTime > Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) { ReservationError.EventAlreadyStarted }
         ensure(!instance.isDeadlinePassed) { ReservationError.ReservationDeadlinePassed }
 
+        ensure(request.seatCount >= 1) { ReservationError.InvalidSeatCount }
+        ensure(instance.allowMultipleSeats || request.seatCount == 1) { ReservationError.MultipleSeatsNotAllowed }
+
         val isReserved = eventInstanceRepository.attemptToReserveSpots(instanceId = instance.id, amount = request.seatCount,)
 
         ensure(isReserved) { ReservationError.CapacityExceeded }
@@ -146,6 +149,9 @@ open class ReservationService(
         if (!isAdminCaller()) ensure(series.isPublished) { ReservationError.ReservationNotFound }
 
         ensure(!series.isDeadlinePassed) { ReservationError.ReservationDeadlinePassed }
+
+        ensure(request.seatCount >= 1) { ReservationError.InvalidSeatCount }
+        ensure(series.allowMultipleSeats || request.seatCount == 1) { ReservationError.MultipleSeatsNotAllowed }
 
         val isReserved = eventSeriesRepository.attemptToReserveSpots(series.id, request.seatCount)
         ensure(isReserved) { ReservationError.CapacityExceeded }

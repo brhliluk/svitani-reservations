@@ -24,6 +24,7 @@ data class EventDefinitionFormData(
     val allowOnSite: Boolean,
     val customFields: List<CustomFieldDefinition>,
     val showAttendeeCount: Boolean,
+    val allowMultipleSeats: Boolean,
 )
 
 sealed interface DefinitionFormValidationError {
@@ -53,6 +54,7 @@ fun buildCreateEventDefinitionRequest(form: EventDefinitionFormData): CreateEven
         allowedPaymentTypes = buildAllowedPaymentTypes(form.allowBankTransfer, form.allowOnSite),
         customFields = form.customFields,
         showAttendeeCount = form.showAttendeeCount,
+        allowMultipleSeats = form.allowMultipleSeats,
     )
 
 fun buildUpdateEventDefinitionRequest(form: EventDefinitionFormData, propagateToChildren: Boolean): UpdateEventDefinitionRequest =
@@ -67,6 +69,7 @@ fun buildUpdateEventDefinitionRequest(form: EventDefinitionFormData, propagateTo
         propagateToChildren = propagateToChildren,
         ownerEmails = parseOwnerEmails(form.ownerEmails),
         showAttendeeCount = form.showAttendeeCount,
+        allowMultipleSeats = form.allowMultipleSeats,
     )
 
 // --- UseCase třídy (tenké, vrací Either) ---

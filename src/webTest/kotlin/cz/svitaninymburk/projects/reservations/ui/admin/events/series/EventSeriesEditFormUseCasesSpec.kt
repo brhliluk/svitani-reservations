@@ -24,6 +24,7 @@ private fun sampleForm() = EventSeriesEditFormData(
     allowBankTransfer = true,
     allowOnSite = false,
     showAttendeeCount = true,
+    allowMultipleSeats = true,
     lessonRefundAmount = 100.0,
     customFields = emptyList(),
     deadlineMessage = "",

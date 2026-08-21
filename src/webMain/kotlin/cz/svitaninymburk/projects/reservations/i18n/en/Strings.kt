@@ -255,6 +255,8 @@ object EnStrings : AppStrings {
     override val toastTemplatesLoadError: (String) -> String = { "Error loading templates: $it" }
     override val showAttendeeCount = "Show attendee count to public"
     override val showAttendeeCountHint = "When off, the number of registered participants is hidden from the public."
+    override val allowMultipleSeats = "Allow reserving multiple seats"
+    override val allowMultipleSeatsHint = "When off, the reservation form hides the number of seats field and always reserves 1 seat."
     override val dropInLabel = "Show as drop-in class in overview"
     override val dropInDescription = "The class will appear in the event overview as individually bookable with an assigned price."
 
@@ -617,6 +619,8 @@ object EnStrings : AppStrings {
     override val errorEventInstanceNotFound = "Event not found"
     override val errorEventSeriesNotFound = "Course not found"
     override val errorCapacityExceeded = "Event capacity exceeded"
+    override val errorMultipleSeatsNotAllowed = "Only one seat can be reserved for this event."
+    override val errorInvalidSeatCount = "The number of seats must be at least 1."
     override val errorEventAlreadyFinished = "Event has already ended"
     override val errorEventAlreadyStarted = "Event has already started"
     override val errorEventCancelled = "Event was cancelled"

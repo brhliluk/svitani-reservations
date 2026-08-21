@@ -191,7 +191,10 @@ private fun FormBody(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        SeatCountRow(state, onSeatCountChange)
+        // Akce bez volby počtu míst se rezervuje vždy po jednom místě — krok se nezobrazuje.
+        if (state.allowsMultipleSeats) {
+            SeatCountRow(state, onSeatCountChange)
+        }
 
         target.customFields.forEach { field ->
             CustomFieldInput(

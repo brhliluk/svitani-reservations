@@ -78,6 +78,7 @@ object EventDefinitionsTable : Table("event_definitions") {
     val allowedPaymentTypes = json<List<PaymentInfo.Type>>("allowed_payment_types", Json)
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
     val showAttendeeCount = bool("show_attendee_count").default(true)
+    val allowMultipleSeats = bool("allow_multiple_seats").default(true)
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -94,6 +95,7 @@ fun ResultRow.toEventDefinition(ownerEmails: List<String>): EventDefinition = Ev
     customFields = this[EventDefinitionsTable.customFields],
     ownerEmails = ownerEmails,
     showAttendeeCount = this[EventDefinitionsTable.showAttendeeCount],
+    allowMultipleSeats = this[EventDefinitionsTable.allowMultipleSeats],
 )
 
 
@@ -123,6 +125,7 @@ object EventSeriesTable : Table("event_series") {
     val lessonStartTime = varchar("lesson_start_time", 8).nullable()
     val lessonEndTime = varchar("lesson_end_time", 8).nullable()
     val showAttendeeCount = bool("show_attendee_count").default(true)
+    val allowMultipleSeats = bool("allow_multiple_seats").default(true)
     val lessonPrice = double("lesson_price").nullable()
     val lessonRefundAmount = double("lesson_refund_amount").nullable()
     val reservationDeadlineMs = long("reservation_deadline_ms").nullable()
@@ -152,6 +155,7 @@ fun ResultRow.toEventSeries(ownerEmails: List<String>): EventSeries = EventSerie
     lessonStartTime = this[EventSeriesTable.lessonStartTime]?.let { LocalTime.parse(it) },
     lessonEndTime = this[EventSeriesTable.lessonEndTime]?.let { LocalTime.parse(it) },
     showAttendeeCount = this[EventSeriesTable.showAttendeeCount],
+    allowMultipleSeats = this[EventSeriesTable.allowMultipleSeats],
     lessonPrice = this[EventSeriesTable.lessonPrice],
     lessonRefundAmount = this[EventSeriesTable.lessonRefundAmount],
     reservationDeadline = this[EventSeriesTable.reservationDeadlineMs]?.milliseconds,
@@ -190,6 +194,7 @@ object EventInstancesTable : Table("event_instances") {
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
     val isDropIn = bool("is_drop_in").default(false)
     val showAttendeeCount = bool("show_attendee_count").default(true)
+    val allowMultipleSeats = bool("allow_multiple_seats").default(true)
     val reservationDeadlineMs = long("reservation_deadline_ms").nullable()
     val reservationDeadlineMessage = text("reservation_deadline_message").nullable()
 
@@ -215,6 +220,7 @@ fun ResultRow.toEventInstance(ownerEmails: List<String>): EventInstance = EventI
     ownerEmails = ownerEmails,
     isDropIn = this[EventInstancesTable.isDropIn],
     showAttendeeCount = this[EventInstancesTable.showAttendeeCount],
+    allowMultipleSeats = this[EventInstancesTable.allowMultipleSeats],
     reservationDeadline = this[EventInstancesTable.reservationDeadlineMs]?.milliseconds,
     reservationDeadlineMessage = this[EventInstancesTable.reservationDeadlineMessage],
     isPublished = this[EventInstancesTable.isPublished],
@@ -276,6 +282,7 @@ class ExposedEventDefinitionRepository : EventDefinitionRepository {
             row[allowedPaymentTypes] = event.allowedPaymentTypes
             row[customFields] = event.customFields
             row[showAttendeeCount] = event.showAttendeeCount
+            row[allowMultipleSeats] = event.allowMultipleSeats
         }
         setOwnerEmails(EntityType.DEFINITION, event.id, event.ownerEmails)
         event
@@ -292,6 +299,7 @@ class ExposedEventDefinitionRepository : EventDefinitionRepository {
             row[allowedPaymentTypes] = event.allowedPaymentTypes
             row[customFields] = event.customFields
             row[showAttendeeCount] = event.showAttendeeCount
+            row[allowMultipleSeats] = event.allowMultipleSeats
         }
         setOwnerEmails(EntityType.DEFINITION, event.id, event.ownerEmails)
         event
@@ -391,6 +399,7 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[lessonStartTime] = series.lessonStartTime?.toString()
             row[lessonEndTime] = series.lessonEndTime?.toString()
             row[showAttendeeCount] = series.showAttendeeCount
+            row[allowMultipleSeats] = series.allowMultipleSeats
             row[lessonPrice] = series.lessonPrice
             row[lessonRefundAmount] = series.lessonRefundAmount
             row[reservationDeadlineMs] = series.reservationDeadline?.inWholeMilliseconds
@@ -417,6 +426,7 @@ class ExposedEventSeriesRepository : EventSeriesRepository {
             row[lessonStartTime] = series.lessonStartTime?.toString()
             row[lessonEndTime] = series.lessonEndTime?.toString()
             row[showAttendeeCount] = series.showAttendeeCount
+            row[allowMultipleSeats] = series.allowMultipleSeats
             row[lessonPrice] = series.lessonPrice
             row[lessonRefundAmount] = series.lessonRefundAmount
             row[reservationDeadlineMs] = series.reservationDeadline?.inWholeMilliseconds
@@ -584,6 +594,7 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[customFields] = instance.customFields
             row[isDropIn] = instance.isDropIn
             row[showAttendeeCount] = instance.showAttendeeCount
+            row[allowMultipleSeats] = instance.allowMultipleSeats
             row[reservationDeadlineMs] = instance.reservationDeadline?.inWholeMilliseconds
             row[reservationDeadlineMessage] = instance.reservationDeadlineMessage
         }
@@ -610,6 +621,7 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[customFields] = instance.customFields
             row[isDropIn] = instance.isDropIn
             row[showAttendeeCount] = instance.showAttendeeCount
+            row[allowMultipleSeats] = instance.allowMultipleSeats
             row[reservationDeadlineMs] = instance.reservationDeadline?.inWholeMilliseconds
             row[reservationDeadlineMessage] = instance.reservationDeadlineMessage
         }

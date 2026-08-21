@@ -25,6 +25,7 @@ private fun sampleCreateForm() = EventInstanceCreateFormData(
     allowBankTransfer = true,
     allowOnSite = false,
     showAttendeeCount = true,
+    allowMultipleSeats = true,
     customFields = emptyList(),
     deadlineMessage = "",
 )

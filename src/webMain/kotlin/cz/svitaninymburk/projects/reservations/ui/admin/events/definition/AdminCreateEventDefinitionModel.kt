@@ -40,6 +40,7 @@ class AdminCreateEventDefinitionModel(
     var allowBankTransfer by mutableStateOf(true)
     var allowOnSite by mutableStateOf(true)
     var showAttendeeCount by mutableStateOf(true)
+    var allowMultipleSeats by mutableStateOf(true)
     var customFields by mutableStateOf(listOf<CustomFieldDefinition>())
     var isSubmitting by mutableStateOf(false); private set
 
@@ -73,6 +74,7 @@ class AdminCreateEventDefinitionModel(
         allowOnSite = allowOnSite,
         customFields = customFields,
         showAttendeeCount = showAttendeeCount,
+        allowMultipleSeats = allowMultipleSeats,
     )
 
     private fun validationErrorMessage(error: DefinitionFormValidationError): String = when (error) {

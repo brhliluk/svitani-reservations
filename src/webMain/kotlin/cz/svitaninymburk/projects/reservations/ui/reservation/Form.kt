@@ -145,12 +145,15 @@ fun IComponent.ReservationModal(
                                         ?.takeIf { it.to > it.from }
                                         ?.let { v -> hoursFromRange(v) }
                                 }
+                                // Bez volby počtu míst je "× 1 osob" jen šum — rozpad ceny ho vynechá.
+                                val seatsPart =
+                                    if (target.allowMultipleSeats) " × $seats ${currentStrings.persons}" else ""
                                 if (hours != null) {
                                     val rounded = kotlin.math.round(hours * 10) / 10.0
                                     val displayHours = if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
-                                    +"${target.price} ${currentStrings.currency} × $seats ${currentStrings.persons} × $displayHours ${currentStrings.hours}"
+                                    +"${target.price} ${currentStrings.currency}$seatsPart × $displayHours ${currentStrings.hours}"
                                 } else {
-                                    +"${target.price} ${currentStrings.currency} × $seats ${currentStrings.persons}"
+                                    +"${target.price} ${currentStrings.currency}$seatsPart"
                                 }
                             }
                         }
@@ -269,34 +272,38 @@ fun IComponent.ReservationModal(
                         )
                         val afterWallet = totalForPayment - (walletInfo?.let { minOf(it.balance, totalForPayment) } ?: 0.0)
 
-                        // Počet míst
-                        label(className = "form-control w-full sm:col-span-1") {
-                            div(className = "label") {
-                                span(className = "label-text") { +currentStrings.seatCountLabel }
-                                span(className = "text-error") { +"*" }
-                            }
-                            text(value = seats.toString(), type = InputType.Number, className = "input input-bordered input-lg sm:input-md w-full") {
-                                onInput {
-                                    val typed = this.value?.toIntOrNull() ?: 1
-                                    seats = typed.coerceIn(1, target.maxCapacity)
-                                    seatsExceeded = typed > target.maxCapacity
+                        // Počet míst — u akcí bez volby počtu míst se pole nezobrazuje a rezervuje se 1 místo
+                        if (target.allowMultipleSeats) {
+                            label(className = "form-control w-full sm:col-span-1") {
+                                div(className = "label") {
+                                    span(className = "label-text") { +currentStrings.seatCountLabel }
+                                    span(className = "text-error") { +"*" }
                                 }
-                                onChange {
-                                    val typed = this.value?.toIntOrNull() ?: 1
-                                    seats = typed.coerceIn(1, target.maxCapacity)
-                                    seatsExceeded = typed > target.maxCapacity
+                                text(value = seats.toString(), type = InputType.Number, className = "input input-bordered input-lg sm:input-md w-full") {
+                                    onInput {
+                                        val typed = this.value?.toIntOrNull()
+                                        seats = target.clampSeatCount(typed)
+                                        seatsExceeded = target.exceedsRemainingCapacity(typed)
+                                    }
+                                    onChange {
+                                        val typed = this.value?.toIntOrNull()
+                                        seats = target.clampSeatCount(typed)
+                                        seatsExceeded = target.exceedsRemainingCapacity(typed)
+                                    }
                                 }
-                            }
-                            if (seatsExceeded) {
-                                p(className = "text-warning text-sm mt-1") {
-                                    +currentStrings.seatCountMaxReached(target.maxCapacity)
+                                if (seatsExceeded) {
+                                    p(className = "text-warning text-sm mt-1") {
+                                        +currentStrings.seatCountMaxReached(target.maxCapacity)
+                                    }
                                 }
                             }
                         }
 
                         // Typ platby — skryto pokud peněženka pokrývá celou cenu
                         if (afterWallet > 0.0) {
-                            label(className = "form-control w-full sm:col-span-2") {
+                            // Bez pole s počtem míst zabere platba celou šířku mřížky.
+                            val paymentSpan = if (target.allowMultipleSeats) "sm:col-span-2" else "sm:col-span-3"
+                            label(className = "form-control w-full $paymentSpan") {
                                 div(className = "label") {
                                     span(className = "label-text") { +currentStrings.paymentType }
                                     span(className = "text-error") { +"*" }

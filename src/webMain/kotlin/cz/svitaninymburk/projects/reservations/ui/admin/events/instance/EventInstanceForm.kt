@@ -14,6 +14,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.DurationField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ReservationDeadlineSection
+import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowMultipleSeatsCheckbox
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ShowAttendeeCountCheckbox
 import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
@@ -179,6 +180,7 @@ fun IComponent.AdminCreateEventInstanceScreen(currentUser: User, preselectedDefi
                             AllowedPaymentsField(model.allowBankTransfer, model.allowOnSite, { model.allowBankTransfer = it }, { model.allowOnSite = it })
 
                             ShowAttendeeCountCheckbox(value = model.showAttendeeCount) { model.showAttendeeCount = it }
+                            AllowMultipleSeatsCheckbox(value = model.allowMultipleSeats) { model.allowMultipleSeats = it }
 
                         }
                     }
