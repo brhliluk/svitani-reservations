@@ -45,4 +45,31 @@ class OwnerEmailsSpec {
     fun blankOrWhitespaceOnlyRowContributesNothing() {
         assertEquals(emptyList(), parseOwnerEmails(listOf("", "   ")))
     }
+
+    @Test
+    fun trailingSemicolonIsStripped() {
+        assertEquals(listOf("a@x.cz"), parseOwnerEmails(listOf("a@x.cz;")))
+    }
+
+    @Test
+    fun semicolonSeparatedPairBothValid() {
+        assertEquals(listOf("a@x.cz", "b@y.cz"), parseOwnerEmails(listOf("a@x.cz;b@y.cz")))
+    }
+
+    @Test
+    fun semicolonSpaceSeparatedPairBothValid() {
+        assertEquals(listOf("a@x.cz", "b@y.cz"), parseOwnerEmails(listOf("a@x.cz; b@y.cz")))
+    }
+
+    @Test
+    fun semicolonOnlyRowContributesNothing() {
+        assertEquals(emptyList(), parseOwnerEmails(listOf(";", " ; ")))
+    }
+
+    @Test
+    fun addressWithCharactersIllegalForSmtpIsDropped() {
+        assertEquals(emptyList(), parseOwnerEmails(listOf("a@x.cz>")))
+        assertEquals(emptyList(), parseOwnerEmails(listOf("\"a@x.cz")))
+        assertEquals(emptyList(), parseOwnerEmails(listOf("a@x.cz:25")))
+    }
 }

@@ -481,7 +481,7 @@ open class ReservationService(
                 locale = reservation.locale,
             ).onLeft { captureEmailError(logger, "Failed to send opt-out email to ${reservation.contactEmail}: $it") }
 
-            val ownerEmails = instance.ownerEmails
+            val ownerEmails = parseOwnerEmails(instance.ownerEmails)
             ownerEmails.forEach { ownerEmail ->
                 lectorEmailService.sendLectorLessonOptOutNotification(
                     lectorEmail = ownerEmail,

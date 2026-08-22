@@ -1,7 +1,11 @@
 package cz.svitaninymburk.projects.reservations.event
 
-private val OWNER_EMAIL_SPLIT_REGEX = Regex("[,\\s]+")
-private val OWNER_EMAIL_PATTERN = Regex("^\\S+@\\S+\\.\\S+$")
+private val OWNER_EMAIL_SPLIT_REGEX = Regex("""[,;\s]+""")
+
+// Znaky zakázané v adrese (RFC "specials") adresu vyřadí úplně — jinak by ji odmítl
+// až SMTP výjimkou a notifikace vlastníkovi by se neodeslala.
+private const val OWNER_EMAIL_CHAR = """[^\s@,;:<>()\[\]\\"]"""
+private val OWNER_EMAIL_PATTERN = Regex("^$OWNER_EMAIL_CHAR+@$OWNER_EMAIL_CHAR+\\.$OWNER_EMAIL_CHAR+$")
 
 fun parseOwnerEmails(rawEntries: List<String>): List<String> {
     val result = LinkedHashSet<String>()
