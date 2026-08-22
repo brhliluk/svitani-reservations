@@ -99,4 +99,7 @@ class InMemorySeriesLessonOptOutRepository : SeriesLessonOptOutRepository {
 
     override suspend fun findByReservation(reservationId: Uuid): List<SeriesLessonOptOut> =
         optOuts.values.filter { it.reservationId == reservationId }
+
+    override suspend fun findByInstance(instanceId: Uuid): List<SeriesLessonOptOut> =
+        optOuts.values.filter { it.instanceId == instanceId }
 }

@@ -28,6 +28,7 @@ interface SeriesLessonOptOutRepository {
     suspend fun save(optOut: SeriesLessonOptOut): SeriesLessonOptOut
     suspend fun findByReservationAndInstance(reservationId: Uuid, instanceId: Uuid): SeriesLessonOptOut?
     suspend fun findByReservation(reservationId: Uuid): List<SeriesLessonOptOut>
+    suspend fun findByInstance(instanceId: Uuid): List<SeriesLessonOptOut>
 }
 
 class ExposedSeriesLessonOptOutRepository(private val database: Database? = null) : SeriesLessonOptOutRepository {
@@ -60,6 +61,12 @@ class ExposedSeriesLessonOptOutRepository(private val database: Database? = null
     override suspend fun findByReservation(reservationId: Uuid): List<SeriesLessonOptOut> = query {
         SeriesLessonOptOutsTable.selectAll()
             .where { SeriesLessonOptOutsTable.reservationId eq reservationId }
+            .map { it.toSeriesLessonOptOut() }
+    }
+
+    override suspend fun findByInstance(instanceId: Uuid): List<SeriesLessonOptOut> = query {
+        SeriesLessonOptOutsTable.selectAll()
+            .where { SeriesLessonOptOutsTable.instanceId eq instanceId }
             .map { it.toSeriesLessonOptOut() }
     }
 }
