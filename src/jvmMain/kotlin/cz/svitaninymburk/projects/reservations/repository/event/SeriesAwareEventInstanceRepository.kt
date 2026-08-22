@@ -20,6 +20,7 @@ import kotlin.uuid.Uuid
 class SeriesAwareEventInstanceRepository(
     private val delegate: EventInstanceRepository,
     private val load: SeriesLessonLoad,
+    private val guard: SeriesAwareCapacityGuard,
 ) : EventInstanceRepository {
 
     private suspend fun enrich(instances: List<EventInstance>): List<EventInstance> {
@@ -71,6 +72,16 @@ class SeriesAwareEventInstanceRepository(
     override suspend fun update(instance: EventInstance): EventInstance =
         enrich(delegate.update(strip(instance)))!!
 
+    /**
+     * Kapacitu lekce ukrajují i účastníci kurzu. Lekce mimo sérii žádnou zátěž
+     * nemá, takže pro ni zůstává původní cesta.
+     */
+    override suspend fun attemptToReserveSpots(instanceId: Uuid, amount: Int): Boolean {
+        val seriesId = delegate.get(instanceId)?.seriesId
+            ?: return delegate.attemptToReserveSpots(instanceId, amount)
+        return guard.attemptToReserveSpots(instanceId, seriesId, amount)
+    }
+
     // --- beze změny ---
 
     override suspend fun delete(id: Uuid): Boolean = delegate.delete(id)
@@ -87,9 +98,6 @@ class SeriesAwareEventInstanceRepository(
 
     override suspend fun decrementOccupiedSpots(instanceId: Uuid, amount: Int): Int? =
         delegate.decrementOccupiedSpots(instanceId, amount)
-
-    override suspend fun attemptToReserveSpots(instanceId: Uuid, amount: Int): Boolean =
-        delegate.attemptToReserveSpots(instanceId, amount)
 
     override suspend fun attemptToReserveWaitlistSpot(instanceId: Uuid): Boolean =
         delegate.attemptToReserveWaitlistSpot(instanceId)

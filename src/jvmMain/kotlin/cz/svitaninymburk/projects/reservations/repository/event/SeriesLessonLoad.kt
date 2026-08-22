@@ -9,13 +9,23 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLess
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.util.dbQuery
+import org.jetbrains.exposed.v1.core.AbstractQuery
+import org.jetbrains.exposed.v1.core.CustomFunction
+import org.jetbrains.exposed.v1.core.ExpressionWithColumnType
+import org.jetbrains.exposed.v1.core.IntegerColumnType
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.intLiteral
+import org.jetbrains.exposed.v1.core.lessEq
+import org.jetbrains.exposed.v1.core.minus
 import org.jetbrains.exposed.v1.core.notInList
+import org.jetbrains.exposed.v1.core.plus
 import org.jetbrains.exposed.v1.core.sum
+import org.jetbrains.exposed.v1.core.wrapAsExpression
 import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.uuid.Uuid
 
 /**
@@ -133,3 +143,91 @@ private fun EventInstance.loadFrom(
     val optedOut = optedOutPerInstance[id] ?: 0
     return (enrolled - optedOut).coerceAtLeast(0)
 }
+
+/**
+ * Atomické zabrání míst na lekci, které do kapacity započítá i účastníky kurzu.
+ *
+ * Odděleno od [SeriesLessonLoad], protože kontrola i zápis musí proběhnout jedním
+ * příkazem — dopočítat zátěž v Kotlinu a teprve pak zapisovat by otevřelo okno,
+ * ve kterém se mezi čtením a zápisem někdo přihlásí na kurz.
+ */
+interface SeriesAwareCapacityGuard {
+    /** true = místa se zabrala; false = nevešla se do kapacity. */
+    suspend fun attemptToReserveSpots(instanceId: Uuid, seriesId: Uuid, amount: Int): Boolean
+}
+
+/** [instances] musí být neobalené úložiště — zátěž kurzu si guard přičítá sám. */
+class InMemorySeriesAwareCapacityGuard(
+    private val instances: EventInstanceRepository,
+    private val load: SeriesLessonLoad,
+) : SeriesAwareCapacityGuard {
+
+    override suspend fun attemptToReserveSpots(instanceId: Uuid, seriesId: Uuid, amount: Int): Boolean {
+        val instance = instances.get(instanceId) ?: return false
+        val extra = load.forInstance(instance)
+        if (instance.occupiedSpots + amount + extra > instance.capacity) return false
+        return instances.attemptToReserveSpots(instanceId, amount)
+    }
+}
+
+class ExposedSeriesAwareCapacityGuard : SeriesAwareCapacityGuard {
+
+    override suspend fun attemptToReserveSpots(instanceId: Uuid, seriesId: Uuid, amount: Int): Boolean = dbQuery {
+        // Obě čísla se počítají uvnitř téhož UPDATE, takže mezi kontrolou
+        // a zápisem není okno. seriesId a instanceId jdou dovnitř jako konstanty —
+        // ty se souběžně nemění, mění se jen počty.
+        // Na rozdíl od [loadFrom] se rozdíl neořezává na nulu: v SQL by to znamenalo
+        // funkci závislou na dialektu a záporný rozdíl znamená rozbitá data, ne běžný stav.
+        val enrolledSeats = seatSumOrZero(
+            ReservationsTable
+                .select(ReservationsTable.seatCount.sum())
+                .where {
+                    (ReservationsTable.referenceType eq ReferenceDbDiscriminator.SERIES) and
+                        (ReservationsTable.referenceId eq seriesId) and
+                        (ReservationsTable.status notInList INACTIVE_RESERVATION_STATUSES)
+                }
+        )
+        val optedOutSeats = seatSumOrZero(
+            SeriesLessonOptOutsTable
+                .join(
+                    ReservationsTable,
+                    JoinType.INNER,
+                    onColumn = SeriesLessonOptOutsTable.reservationId,
+                    otherColumn = ReservationsTable.id,
+                )
+                .select(ReservationsTable.seatCount.sum())
+                .where {
+                    (SeriesLessonOptOutsTable.instanceId eq instanceId) and
+                        (ReservationsTable.status notInList INACTIVE_RESERVATION_STATUSES)
+                }
+        )
+
+        val updatedRows = EventInstancesTable.update({
+            (EventInstancesTable.id eq instanceId) and
+                (
+                    EventInstancesTable.occupiedSpots
+                        .plus(intLiteral(amount))
+                        .plus(enrolledSeats)
+                        .minus(optedOutSeats)
+                        lessEq EventInstancesTable.capacity
+                    )
+        }) {
+            it.update(EventInstancesTable.occupiedSpots, EventInstancesTable.occupiedSpots + amount)
+        }
+        updatedRows > 0
+    }
+}
+
+/**
+ * Skalární poddotaz na součet míst jako plnohodnotný int.
+ *
+ * `wrapAsExpression` umí vrátit jen `Expression<Int?>`, se kterým Exposed neumí
+ * počítat a nebere ho ani `Coalesce` (ten chce `ExpressionWithColumnType`).
+ * COALESCE proto skládáme ručně — prázdný součet je 0, ne NULL.
+ */
+private fun seatSumOrZero(query: AbstractQuery<*>): ExpressionWithColumnType<Int> = CustomFunction(
+    "COALESCE",
+    IntegerColumnType(),
+    wrapAsExpression<Int>(query),
+    intLiteral(0),
+)

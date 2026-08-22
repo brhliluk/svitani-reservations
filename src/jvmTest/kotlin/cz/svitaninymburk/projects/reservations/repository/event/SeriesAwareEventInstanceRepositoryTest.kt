@@ -23,9 +23,11 @@ class SeriesAwareEventInstanceRepositoryTest {
     private val inner = InMemoryEventInstanceRepository()
     private val reservationRepo = InMemoryReservationRepository()
     private val optOutRepo = InMemorySeriesLessonOptOutRepository()
+    private val load = InMemorySeriesLessonLoad(reservationRepo, optOutRepo)
     private val repo = SeriesAwareEventInstanceRepository(
         delegate = inner,
-        load = InMemorySeriesLessonLoad(reservationRepo, optOutRepo),
+        load = load,
+        guard = InMemorySeriesAwareCapacityGuard(inner, load),
     )
 
     private val lesson = EventInstance(
