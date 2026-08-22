@@ -16,9 +16,12 @@ import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepos
 import cz.svitaninymburk.projects.reservations.repository.event.ExposedEventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.ExposedEventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.ExposedEventSeriesRepository
+import cz.svitaninymburk.projects.reservations.repository.event.ExposedSeriesLessonLoad
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
+import cz.svitaninymburk.projects.reservations.repository.event.SeriesAwareEventInstanceRepository
+import cz.svitaninymburk.projects.reservations.repository.event.SeriesLessonLoad
 import cz.svitaninymburk.projects.reservations.repository.reservation.ExposedReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ExposedSeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
@@ -87,7 +90,10 @@ val appModule = module {
     // Events
     single<EventDefinitionRepository> { ExposedEventDefinitionRepository() }
     single<EventSeriesRepository> { ExposedEventSeriesRepository() }
-    single<EventInstanceRepository> { ExposedEventInstanceRepository() }
+    single<SeriesLessonLoad> { ExposedSeriesLessonLoad() }
+    single<EventInstanceRepository> {
+        SeriesAwareEventInstanceRepository(delegate = ExposedEventInstanceRepository(), load = get())
+    }
 
     // Reservations
     single<ReservationRepository> { ExposedReservationRepository() }
