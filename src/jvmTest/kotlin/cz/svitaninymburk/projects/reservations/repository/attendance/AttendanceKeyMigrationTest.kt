@@ -13,7 +13,10 @@ import kotlin.test.assertTrue
 /**
  * Nasazení běží proti existující DB, kde má `reservation_attendance` klíč jen
  * na `reservation_id`. Ověřuje, že ruční migrace tabulku přestaví, odškrtnutou
- * docházku přenese a nenamapovatelné řádky zahodí.
+ * docházku přenese a nenamapovatelné řádky zahodí. Kromě šťastné cesty a
+ * idempotence pokrývá i dva okrajové stavy: čerstvou databázi, kde tabulka
+ * ještě neexistuje, a pozůstatek dřívějšího nedokončeného pokusu (zastaralá
+ * `reservation_attendance_new`), který by migraci mohl natrvalo zablokovat.
  */
 class AttendanceKeyMigrationTest {
 
@@ -65,6 +68,12 @@ class AttendanceKeyMigrationTest {
         }
     }
 
+    private fun tableExists(table: String): Boolean = transaction {
+        exec("SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = '$table'") { rs ->
+            rs.next() && rs.getInt(1) > 0
+        } ?: false
+    }
+
     @Test
     fun `migrace prestavi klic a prenese docházku`() = runBlocking {
         assertTrue(!columnExists(), "výchozí stav testu: sloupec instance_id chybí")
@@ -83,5 +92,38 @@ class AttendanceKeyMigrationTest {
 
         assertEquals(1, rowCount())
         assertEquals(lekce, instanceIdOf(rezervaceNaLekci))
+    }
+
+    @Test
+    fun `na cerstve databazi bez tabulky je migrace no-op`() = runBlocking {
+        // Vlastní čerstvá DB bez jediné tabulky — nahrazuje stav před SchemaUtils.create,
+        // kdy setup() z @BeforeTest ještě neproběhl.
+        val freshDbFile = File.createTempFile("attendance-key-migration-fresh", ".db").also { it.deleteOnExit() }
+        Database.connect("jdbc:sqlite:${freshDbFile.absolutePath}", driver = "org.sqlite.JDBC")
+
+        transaction { migrateAttendanceToPerLessonKey() }
+
+        assertTrue(!tableExists("reservation_attendance"), "no-op nesmí tabulku založit")
+        assertTrue(!tableExists("reservation_attendance_new"), "no-op nesmí zanechat pomocnou tabulku")
+    }
+
+    @Test
+    fun `zastarala reservation_attendance_new z predchoziho pokusu migraci nezablokuje`() = runBlocking {
+        // Simuluje pozůstatek dřívějšího nedokončeného běhu migrace.
+        transaction {
+            exec("""
+                CREATE TABLE reservation_attendance_new (
+                    reservation_id TEXT PRIMARY KEY,
+                    checked_in INTEGER NOT NULL DEFAULT 0,
+                    checked_in_at TEXT NULL
+                )
+            """.trimIndent())
+        }
+
+        transaction { migrateAttendanceToPerLessonKey() }
+
+        assertTrue(columnExists(), "migrace i přes zastaralou pomocnou tabulku doplní instance_id")
+        assertEquals(lekce, instanceIdOf(rezervaceNaLekci), "docházka se i tak namapuje na instanci rezervace")
+        assertEquals(1, rowCount(), "řádek u rezervace na sérii se stále zahazuje")
     }
 }

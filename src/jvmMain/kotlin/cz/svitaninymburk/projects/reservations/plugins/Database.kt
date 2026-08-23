@@ -44,18 +44,22 @@ fun Application.configureDatabases() {
     val dataSource = HikariDataSource(config)
     Database.connect(dataSource)
 
+    // Přestavba klíče musí proběhnout ve vlastní transakci: SQLite umí DDL
+    // transakčně, takže případný pád vrátí celou přestavbu zpět a další start
+    // ji zkusí znovu z čistého stavu. Uvnitř sdílené transakce by se rozdělaný
+    // stav commitnul se zbytkem bootu.
+    try {
+        transaction { migrateAttendanceToPerLessonKey() }
+    } catch (e: Exception) {
+        println("⚠️ reservation_attendance key migration failed (non-fatal): ${e.message}")
+    }
+
     transaction {
         // Data migration runs first (before MigrationUtils can drop old columns)
         try {
             migrateLectorEmailsToOwnerEmails()
         } catch (e: Exception) {
             println("⚠️ lector_email migration failed (non-fatal, data may need manual migration): ${e.message}")
-        }
-
-        try {
-            migrateAttendanceToPerLessonKey()
-        } catch (e: Exception) {
-            println("⚠️ reservation_attendance key migration failed (non-fatal): ${e.message}")
         }
 
         val instancesPublishMissing = !columnExists("event_instances", "is_published")
@@ -119,6 +123,11 @@ internal fun JdbcTransaction.columnExists(table: String, column: String): Boolea
         rs.next() && rs.getInt(1) > 0
     } ?: false
 
+internal fun JdbcTransaction.tableExists(table: String): Boolean =
+    exec("SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = '$table'") { rs ->
+        rs.next() && rs.getInt(1) > 0
+    } ?: false
+
 /**
  * Prezence se dřív klíčovala jen na rezervaci. Účastník kurzu má jedinou rezervaci
  * napříč všemi lekcemi série, takže se klíč rozšiřuje na (rezervace, lekce).
@@ -126,15 +135,27 @@ internal fun JdbcTransaction.columnExists(table: String, column: String): Boolea
  * SQLite primární klíč nezmění, proto rebuild tabulky. Historická docházka se
  * mapuje na instanci z `reference_id` své rezervace; řádky u rezervací na sérii
  * se namapovat nedají a zahazují se. Idempotentní: existuje-li už `instance_id`,
- * nedělá nic.
+ * nedělá nic; na čerstvé DB bez tabulky je no-op.
+ *
+ * Volající musí tuto funkci spustit ve vlastní transakci, ne ve sdílené transakci
+ * bootu — jinak by se při chybě mezi DROP a RENAME rozdělaný stav commitnul a
+ * historická docházka by zůstala osiřelá v `reservation_attendance_new`.
  */
 internal fun JdbcTransaction.migrateAttendanceToPerLessonKey() {
+    // Čerstvá instalace zakládá reservation_attendance až SchemaUtils.create níže —
+    // tady na ní ještě nic není co přestavovat.
+    if (!tableExists("reservation_attendance")) return
     if (columnExists("reservation_attendance", "instance_id")) return
+
+    // Zbytek po dřívějším nedokončeném pokusu (např. z doby, než tahle migrace
+    // běžela ve vlastní transakci) by jinak CREATE TABLE níže shodil na "table
+    // already exists" a migrace by se zablokovala natrvalo.
+    exec("DROP TABLE IF EXISTS reservation_attendance_new")
 
     exec("""
         CREATE TABLE reservation_attendance_new (
-            reservation_id TEXT NOT NULL,
-            instance_id TEXT NOT NULL,
+            reservation_id BINARY(16) NOT NULL,
+            instance_id BINARY(16) NOT NULL,
             checked_in INTEGER NOT NULL DEFAULT 0,
             checked_in_at TEXT NULL,
             CONSTRAINT pk_reservation_attendance PRIMARY KEY (reservation_id, instance_id),
