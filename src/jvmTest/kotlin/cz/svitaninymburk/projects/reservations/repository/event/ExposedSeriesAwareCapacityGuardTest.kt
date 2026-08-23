@@ -25,8 +25,8 @@ import kotlin.uuid.Uuid
 
 /**
  * [SeriesAwareCapacityGuardTest] pokrývá jen in-memory variantu. Ostrý guard je
- * ale jediný SQL příkaz s dvěma skalárními poddotazy a ručně skládaným COALESCE —
- * konstrukce, která nikde jinde v projektu není. Chyba v ní by neshodila
+ * ale jediný SQL příkaz s dvěma skalárními poddotazy, ručně skládaným COALESCE
+ * a ořezem přes CASE WHEN — konstrukce, která nikde jinde v projektu není. Chyba v ní by neshodila
  * kompilaci, jen by za běhu buď spadla, nebo tiše počítala špatně, takže tenhle
  * test jede přes reálnou SQLite a ověřuje stejné scénáře skrz
  * [ExposedSeriesAwareCapacityGuard].
@@ -146,6 +146,21 @@ class ExposedSeriesAwareCapacityGuardTest {
         enrol(seriesId, seats = 2, status = Reservation.Status.CANCELLED)
 
         assertTrue(guard.attemptToReserveSpots(lekce.id, seriesId, 2), "zrušená přihláška se do kapacity nepočítá")
+    }
+
+    @Test
+    fun `zaporna zatez z rozbitych dat kapacitu nerozsiri`() = runBlocking {
+        val seriesId = Uuid.random()
+        val lekce = lesson(seriesId)
+        // Rozbitý stav: omluvenka na lekci téhle série, ale od přihlášky na sérii jinou.
+        // Přes službu nevznikne (kontroluje shodu sérií), přímým zápisem ano — a bez ořezu
+        // na nulu by záporná zátěž kapacitu naopak rozšířila.
+        val cizi = enrol(Uuid.random(), seats = 2)
+        optOut(cizi, lekce.id)
+
+        assertFalse(guard.attemptToReserveSpots(lekce.id, seriesId, 3), "kapacita je 2, ne 4")
+        assertTrue(guard.attemptToReserveSpots(lekce.id, seriesId, 2), "celá kapacita 2 zůstává k dispozici")
+        assertEquals(2, instanceRepo.get(lekce.id)?.occupiedSpots)
     }
 
     @Test

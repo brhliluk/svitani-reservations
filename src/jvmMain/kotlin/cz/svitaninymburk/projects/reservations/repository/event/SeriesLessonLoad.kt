@@ -10,12 +10,14 @@ import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.util.dbQuery
 import org.jetbrains.exposed.v1.core.AbstractQuery
+import org.jetbrains.exposed.v1.core.Case
 import org.jetbrains.exposed.v1.core.CustomFunction
 import org.jetbrains.exposed.v1.core.ExpressionWithColumnType
 import org.jetbrains.exposed.v1.core.IntegerColumnType
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.intLiteral
 import org.jetbrains.exposed.v1.core.lessEq
@@ -176,8 +178,6 @@ class ExposedSeriesAwareCapacityGuard : SeriesAwareCapacityGuard {
         // Obě čísla se počítají uvnitř téhož UPDATE, takže mezi kontrolou
         // a zápisem není okno. seriesId a instanceId jdou dovnitř jako konstanty —
         // ty se souběžně nemění, mění se jen počty.
-        // Na rozdíl od [loadFrom] se rozdíl neořezává na nulu: v SQL by to znamenalo
-        // funkci závislou na dialektu a záporný rozdíl znamená rozbitá data, ne běžný stav.
         val enrolledSeats = seatSumOrZero(
             ReservationsTable
                 .select(ReservationsTable.seatCount.sum())
@@ -202,13 +202,14 @@ class ExposedSeriesAwareCapacityGuard : SeriesAwareCapacityGuard {
                 }
         )
 
+        val seriesLoad = clampToZero(enrolledSeats.minus(optedOutSeats))
+
         val updatedRows = EventInstancesTable.update({
             (EventInstancesTable.id eq instanceId) and
                 (
                     EventInstancesTable.occupiedSpots
                         .plus(intLiteral(amount))
-                        .plus(enrolledSeats)
-                        .minus(optedOutSeats)
+                        .plus(seriesLoad)
                         lessEq EventInstancesTable.capacity
                     )
         }) {
@@ -231,3 +232,15 @@ private fun seatSumOrZero(query: AbstractQuery<*>): ExpressionWithColumnType<Int
     wrapAsExpression<Int>(query),
     intLiteral(0),
 )
+
+/**
+ * SQL protějšek `coerceAtLeast(0)` z [loadFrom] — obě definice musí počítat totéž.
+ *
+ * Záporná zátěž (omluvenek víc než přihlášek) znamená rozbitá data, ale bez ořezu
+ * by kapacitu naopak rozšířila. Exposed 1.3.0 nemá přenositelný `GREATEST`, takže
+ * ořez skládáme přes CASE WHEN; zůstává tím uvnitř téhož UPDATE.
+ */
+private fun clampToZero(value: ExpressionWithColumnType<Int>): ExpressionWithColumnType<Int> =
+    Case()
+        .When(value greater intLiteral(0), value)
+        .Else(intLiteral(0))
