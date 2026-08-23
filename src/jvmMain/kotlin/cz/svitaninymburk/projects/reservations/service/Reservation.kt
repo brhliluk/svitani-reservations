@@ -535,9 +535,19 @@ open class ReservationService(
                 // Referenced event was deleted — still cancel the reservation, skip side effects
                 CancellationResult()
             } else {
+                // decrementOccupiedSpots vrací jen zúžený uložený sloupec (přímé
+                // rezervace bez zátěže kurzu) — pro e-mail lektorovi to čte znovu přes
+                // repository, které při čtení dopočítá zátěž kurzu (SeriesAwareEventInstanceRepository),
+                // aby se obsazenost lekce shodovala s potvrzovacím e-mailem účastníkovi (viz výš).
                 val updatedSpots = when (reservation.reference) {
-                    is Reference.Instance -> eventInstanceRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
-                    is Reference.Series -> eventSeriesRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
+                    is Reference.Instance -> {
+                        eventInstanceRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
+                        eventInstanceRepository.get(reservation.reference.id)?.occupiedSpots
+                    }
+                    is Reference.Series -> {
+                        eventSeriesRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
+                        eventSeriesRepository.get(reservation.reference.id)?.occupiedSpots
+                    }
                 } ?: when (target) {
                     is ReservationTarget.Instance -> (target.event.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
                     is ReservationTarget.Series -> (target.series.occupiedSpots - reservation.seatCount).coerceAtLeast(0)

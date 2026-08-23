@@ -51,7 +51,14 @@ fun Application.configureDatabases() {
     try {
         transaction { migrateAttendanceToPerLessonKey() }
     } catch (e: Exception) {
-        println("⚠️ reservation_attendance key migration failed (non-fatal): ${e.message}")
+        // Ve skutečnosti to fatální je: nedokončená přestavba nechá tabulku beze
+        // sloupce instance_id, na což o pár řádků níž narazí MigrationUtils a zkusí
+        // "ALTER TABLE ... ADD COLUMN instance_id ... NOT NULL" bez výchozí hodnoty —
+        // to SQLite odmítne a start shodí s nesouvisející SQLiteException. Proto tu
+        // chybu nahlas zalogujeme a start ukončíme rovnou, s jasnou příčinou v logu.
+        println("‼️ Přestavba klíče reservation_attendance selhala — APLIKACE SE NESPUSTÍ, dokud DB nebude opravena:")
+        e.printStackTrace()
+        throw e
     }
 
     transaction {
@@ -114,6 +121,17 @@ fun Application.configureDatabases() {
             deduplicateCustomFieldKeys()
         } catch (e: Exception) {
             println("⚠️ custom_fields key deduplication failed (non-fatal): ${e.message}")
+        }
+
+        // Musí doběhnout synchronně tady, ne asynchronně po startu — jinak by mohl
+        // závodit s mock loaderem (přepsal by jím nasazená testovací data) nebo
+        // s první příchozí rezervací (viz komentář u recomputeOccupiedSpotsInTransaction
+        // v OccupancyBackfill.kt). Dvě UPDATE na málo řádků, na latenci startu to nic
+        // nepřidá.
+        try {
+            recomputeOccupiedSpotsInTransaction()
+        } catch (e: Exception) {
+            println("⚠️ occupancy backfill failed (non-fatal): ${e.message}")
         }
     }
 }

@@ -5,7 +5,6 @@ import cz.svitaninymburk.projects.reservations.plugins.configureDatabases
 import cz.svitaninymburk.projects.reservations.plugins.startPaymentCheck
 import cz.svitaninymburk.projects.reservations.plugins.startWalletResetJobs
 import cz.svitaninymburk.projects.reservations.plugins.startSeriesScheduleBackfill
-import cz.svitaninymburk.projects.reservations.plugins.startOccupancyBackfill
 import cz.svitaninymburk.projects.reservations.plugins.configureRouting
 import cz.svitaninymburk.projects.reservations.plugins.configureSecurity
 import cz.svitaninymburk.projects.reservations.plugins.configureSentry
@@ -31,7 +30,6 @@ fun Application.main() {
     startPaymentCheck()
     startWalletResetJobs()
     startSeriesScheduleBackfill()
-    startOccupancyBackfill()
     configureSecurity()
     configureRouting()
     configureSentry()
