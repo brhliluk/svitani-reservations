@@ -114,7 +114,7 @@ val appModule = module {
 
     // Attendance
     single<AttendanceRepository> { ExposedAttendanceRepository() }
-    single { AttendanceService(get(), get()) }
+    single { AttendanceService(get(), get(), get(), get()) }
 
     // Settings
     single { ExposedAppSettingsRepository() } bind AppSettingsRepository::class

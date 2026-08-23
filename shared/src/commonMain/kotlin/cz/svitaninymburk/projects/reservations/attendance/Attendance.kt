@@ -9,6 +9,8 @@ data class AttendanceEntry(
     val contactName: String,
     val seatCount: Int,
     val checkedIn: Boolean,
+    /** true = přihlášený na celý kurz, false = jednorázová (drop-in) rezervace. */
+    val isCourseEnrollee: Boolean = false,
 )
 
 @Serializable

@@ -1,12 +1,17 @@
 package cz.svitaninymburk.projects.reservations
 
+import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.repository.attendance.InMemoryAttendanceRepository
+import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
+import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
+import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
 import cz.svitaninymburk.projects.reservations.service.AttendanceService
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -14,57 +19,138 @@ import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 class AttendanceServiceSpec {
-    private fun reservation(instanceId: Uuid, name: String, status: Reservation.Status = Reservation.Status.CONFIRMED) =
-        Reservation(
-            id = Uuid.random(),
-            reference = Reference.Instance(instanceId),
-            contactName = name,
-            contactEmail = "$name@x.cz",
-            totalPrice = 0.0,
-            status = status,
-            createdAt = Clock.System.now(),
-            customValues = emptyMap(),
-            paymentType = PaymentInfo.Type.entries.first(),
-        )
+
+    private val seriesId = Uuid.parse("00000000-0000-0000-0000-0000000000a1")
+    private val definitionId = Uuid.parse("00000000-0000-0000-0000-0000000000b1")
+
+    private fun service(
+        resRepo: InMemoryReservationRepository = InMemoryReservationRepository(),
+        attRepo: InMemoryAttendanceRepository = InMemoryAttendanceRepository(),
+        instanceRepo: InMemoryEventInstanceRepository = InMemoryEventInstanceRepository(),
+        optOutRepo: InMemorySeriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
+    ) = AttendanceService(
+        reservationRepository = resRepo,
+        attendanceRepository = attRepo,
+        eventInstanceRepository = instanceRepo,
+        seriesLessonOptOutRepository = optOutRepo,
+    )
+
+    private fun reservation(
+        reference: Reference,
+        name: String,
+        status: Reservation.Status = Reservation.Status.CONFIRMED,
+    ) = Reservation(
+        id = Uuid.random(),
+        reference = reference,
+        contactName = name,
+        contactEmail = "$name@x.cz",
+        totalPrice = 0.0,
+        status = status,
+        createdAt = Clock.System.now(),
+        customValues = emptyMap(),
+        paymentType = PaymentInfo.Type.entries.first(),
+    )
+
+    private fun lesson(id: Uuid, series: Uuid? = null) = EventInstance(
+        id = id,
+        definitionId = definitionId,
+        seriesId = series,
+        title = "Lekce",
+        description = "",
+        startDateTime = LocalDateTime(2026, 9, 1, 10, 0),
+        endDateTime = LocalDateTime(2026, 9, 1, 11, 0),
+        price = 100.0,
+        capacity = 10,
+    )
 
     @Test
     fun listsAttendanceForInstance() = runBlocking {
         val instanceId = Uuid.random()
         val resRepo = InMemoryReservationRepository()
-        val r1 = reservation(instanceId, "Alice")
+        val r1 = reservation(Reference.Instance(instanceId), "Alice")
         resRepo.save(r1)
-        val attRepo = InMemoryAttendanceRepository()
-        val service = AttendanceService(resRepo, attRepo)
+        val svc = service(resRepo = resRepo)
 
-        val result = service.getAttendance(instanceId)
+        val result = svc.getAttendance(instanceId)
         assertTrue(result.isRight())
         val entries = result.getOrNull()!!.entries
         assertEquals(1, entries.size)
         assertEquals(false, entries.first().checkedIn)
 
-        service.setAttendance(r1.id, instanceId, true)
-        assertEquals(true, service.getAttendance(instanceId).getOrNull()!!.entries.first().checkedIn)
+        svc.setAttendance(r1.id, instanceId, true)
+        assertEquals(true, svc.getAttendance(instanceId).getOrNull()!!.entries.first().checkedIn)
     }
 
     @Test
     fun cancelledReservationsAreExcluded() = runBlocking {
         val instanceId = Uuid.random()
         val resRepo = InMemoryReservationRepository()
-        val active = reservation(instanceId, "Alice", Reservation.Status.CONFIRMED)
-        val cancelled = reservation(instanceId, "Bob", Reservation.Status.CANCELLED)
-        resRepo.save(active)
-        resRepo.save(cancelled)
-        val service = AttendanceService(resRepo, InMemoryAttendanceRepository())
+        resRepo.save(reservation(Reference.Instance(instanceId), "Alice", Reservation.Status.CONFIRMED))
+        resRepo.save(reservation(Reference.Instance(instanceId), "Bob", Reservation.Status.CANCELLED))
 
-        val result = service.getAttendance(instanceId).getOrNull()!!
+        val result = service(resRepo = resRepo).getAttendance(instanceId).getOrNull()!!
         assertEquals(1, result.entries.size)
         assertEquals("Alice", result.entries.first().contactName)
     }
 
     @Test
     fun setAttendanceReturnsNotFoundForMissingReservation() = runBlocking {
-        val service = AttendanceService(InMemoryReservationRepository(), InMemoryAttendanceRepository())
-        val result = service.setAttendance(Uuid.random(), Uuid.random(), true)
+        val result = service().setAttendance(Uuid.random(), Uuid.random(), true)
         assertTrue(result.isLeft())
+    }
+
+    @Test
+    fun `prezencka lekce obsahuje ucastniky kurzu krome omluvenych`() = runBlocking {
+        val lessonId = Uuid.parse("00000000-0000-0000-0000-0000000000c1")
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val resRepo = InMemoryReservationRepository()
+        val optOutRepo = InMemorySeriesLessonOptOutRepository()
+        instanceRepo.create(lesson(lessonId, series = seriesId))
+
+        resRepo.save(reservation(Reference.Instance(lessonId), "Dropin"))
+        resRepo.save(reservation(Reference.Series(seriesId), "Kurzista"))
+        val omluveny = resRepo.save(reservation(Reference.Series(seriesId), "Omluveny"))
+        optOutRepo.save(
+            SeriesLessonOptOut(
+                id = Uuid.random(),
+                reservationId = omluveny.id,
+                instanceId = lessonId,
+                optedOutAt = Clock.System.now(),
+                isLateCancellation = false,
+            )
+        )
+
+        val list = service(
+            resRepo = resRepo,
+            instanceRepo = instanceRepo,
+            optOutRepo = optOutRepo,
+        ).getAttendance(lessonId).getOrNull()!!
+
+        assertEquals(
+            listOf("Dropin", "Kurzista"),
+            list.entries.map { it.contactName }.sorted(),
+            "omluvený účastník kurzu v prezenčce být nemá",
+        )
+        assertEquals(
+            mapOf("Dropin" to false, "Kurzista" to true),
+            list.entries.associate { it.contactName to it.isCourseEnrollee },
+        )
+    }
+
+    @Test
+    fun `odskrtnuti ucastnika kurzu plati jen pro jednu lekci`() = runBlocking {
+        val lekceA = Uuid.parse("00000000-0000-0000-0000-0000000000c1")
+        val lekceB = Uuid.parse("00000000-0000-0000-0000-0000000000c2")
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val resRepo = InMemoryReservationRepository()
+        instanceRepo.create(lesson(lekceA, series = seriesId))
+        instanceRepo.create(lesson(lekceB, series = seriesId))
+        val kurzista = resRepo.save(reservation(Reference.Series(seriesId), "Kurzista"))
+
+        val svc = service(resRepo = resRepo, instanceRepo = instanceRepo)
+        svc.setAttendance(kurzista.id, lekceA, true)
+
+        assertEquals(true, svc.getAttendance(lekceA).getOrNull()!!.entries.single().checkedIn)
+        assertEquals(false, svc.getAttendance(lekceB).getOrNull()!!.entries.single().checkedIn)
     }
 }
