@@ -152,7 +152,7 @@ fun Route.mobileSecuredRoutes() {
             post("attendance/{reservationId}") {
                 if (!call.requireAdmin(authService)) return@post
                 val req = call.receive<SetAttendanceRequest>()
-                call.respondEither(attendanceService.setAttendance(req.reservationId, req.checkedIn))
+                call.respondEither(attendanceService.setAttendance(req.reservationId, req.instanceId, req.checkedIn))
             }
         }
     }

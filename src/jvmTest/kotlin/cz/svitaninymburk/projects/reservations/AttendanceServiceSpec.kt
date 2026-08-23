@@ -42,7 +42,7 @@ class AttendanceServiceSpec {
         assertEquals(1, entries.size)
         assertEquals(false, entries.first().checkedIn)
 
-        service.setAttendance(r1.id, true)
+        service.setAttendance(r1.id, instanceId, true)
         assertEquals(true, service.getAttendance(instanceId).getOrNull()!!.entries.first().checkedIn)
     }
 
@@ -64,7 +64,7 @@ class AttendanceServiceSpec {
     @Test
     fun setAttendanceReturnsNotFoundForMissingReservation() = runBlocking {
         val service = AttendanceService(InMemoryReservationRepository(), InMemoryAttendanceRepository())
-        val result = service.setAttendance(Uuid.random(), true)
+        val result = service.setAttendance(Uuid.random(), Uuid.random(), true)
         assertTrue(result.isLeft())
     }
 }

@@ -19,17 +19,21 @@ class AttendanceService(
     suspend fun getAttendance(eventInstanceId: Uuid): Either<AttendanceError.Get, AttendanceList> {
         val reservations = reservationRepository.findByReference(Reference.Instance(eventInstanceId))
             .filter { it.status != Reservation.Status.CANCELLED && it.status != Reservation.Status.REJECTED && it.status != Reservation.Status.WAITLISTED }
-        val flags = attendanceRepository.checkedInFlags(reservations.map { it.id })
+        val flags = attendanceRepository.checkedInFlags(eventInstanceId, reservations.map { it.id })
         val entries = reservations.map {
             AttendanceEntry(it.id, it.contactName, it.seatCount, flags[it.id] == true)
         }
         return AttendanceList(eventInstanceId, entries).right()
     }
 
-    suspend fun setAttendance(reservationId: Uuid, checkedIn: Boolean): Either<AttendanceError.Set, Unit> {
+    suspend fun setAttendance(
+        reservationId: Uuid,
+        instanceId: Uuid,
+        checkedIn: Boolean,
+    ): Either<AttendanceError.Set, Unit> {
         val exists = reservationRepository.findById(reservationId) != null
         if (!exists) return AttendanceError.ReservationNotFound.left()
-        attendanceRepository.setCheckedIn(reservationId, checkedIn)
+        attendanceRepository.setCheckedIn(reservationId, instanceId, checkedIn)
         return Unit.right()
     }
 }

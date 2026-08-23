@@ -52,6 +52,12 @@ fun Application.configureDatabases() {
             println("⚠️ lector_email migration failed (non-fatal, data may need manual migration): ${e.message}")
         }
 
+        try {
+            migrateAttendanceToPerLessonKey()
+        } catch (e: Exception) {
+            println("⚠️ reservation_attendance key migration failed (non-fatal): ${e.message}")
+        }
+
         val instancesPublishMissing = !columnExists("event_instances", "is_published")
         val seriesPublishMissing = !columnExists("event_series", "is_published")
 
@@ -112,6 +118,52 @@ internal fun JdbcTransaction.columnExists(table: String, column: String): Boolea
     exec("SELECT count(*) FROM pragma_table_info('$table') WHERE name = '$column'") { rs ->
         rs.next() && rs.getInt(1) > 0
     } ?: false
+
+/**
+ * Prezence se dřív klíčovala jen na rezervaci. Účastník kurzu má jedinou rezervaci
+ * napříč všemi lekcemi série, takže se klíč rozšiřuje na (rezervace, lekce).
+ *
+ * SQLite primární klíč nezmění, proto rebuild tabulky. Historická docházka se
+ * mapuje na instanci z `reference_id` své rezervace; řádky u rezervací na sérii
+ * se namapovat nedají a zahazují se. Idempotentní: existuje-li už `instance_id`,
+ * nedělá nic.
+ */
+internal fun JdbcTransaction.migrateAttendanceToPerLessonKey() {
+    if (columnExists("reservation_attendance", "instance_id")) return
+
+    exec("""
+        CREATE TABLE reservation_attendance_new (
+            reservation_id TEXT NOT NULL,
+            instance_id TEXT NOT NULL,
+            checked_in INTEGER NOT NULL DEFAULT 0,
+            checked_in_at TEXT NULL,
+            CONSTRAINT pk_reservation_attendance PRIMARY KEY (reservation_id, instance_id),
+            CONSTRAINT fk_reservation_attendance_reservation
+                FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE CASCADE
+        )
+    """.trimIndent())
+
+    exec("""
+        INSERT INTO reservation_attendance_new (reservation_id, instance_id, checked_in, checked_in_at)
+        SELECT a.reservation_id, r.reference_id, a.checked_in, a.checked_in_at
+          FROM reservation_attendance a
+          JOIN reservations r ON r.id = a.reservation_id
+         WHERE r.reference_type = 'INSTANCE'
+    """.trimIndent())
+
+    val prenesenych = exec("SELECT count(*) FROM reservation_attendance_new") { rs ->
+        rs.next(); rs.getInt(1)
+    } ?: 0
+    val puvodnich = exec("SELECT count(*) FROM reservation_attendance") { rs ->
+        rs.next(); rs.getInt(1)
+    } ?: 0
+    if (puvodnich > prenesenych) {
+        println("⚠️ reservation_attendance: zahozeno ${puvodnich - prenesenych} nenamapovatelných řádků docházky")
+    }
+
+    exec("DROP TABLE reservation_attendance")
+    exec("ALTER TABLE reservation_attendance_new RENAME TO reservation_attendance")
+}
 
 // Po přidání sloupce is_published zveřejní všechny existující řádky, aby události
 // vytvořené před touto funkcí zůstaly veřejně viditelné. Idempotentní: spustí se jen

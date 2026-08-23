@@ -20,5 +20,6 @@ data class AttendanceList(
 @Serializable
 data class SetAttendanceRequest(
     val reservationId: Uuid,
+    val instanceId: Uuid,
     val checkedIn: Boolean,
 )

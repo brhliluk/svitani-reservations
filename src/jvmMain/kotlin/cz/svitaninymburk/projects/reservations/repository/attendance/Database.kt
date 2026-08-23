@@ -16,25 +16,32 @@ object ReservationAttendanceTable : Table("reservation_attendance") {
         refColumn = ReservationsTable.id,
         onDelete = ReferenceOption.CASCADE
     )
+    val instanceId = uuid("instance_id")
     val checkedIn = bool("checked_in").default(false)
     val checkedInAt = timestamp("checked_in_at").nullable()
 
-    override val primaryKey = PrimaryKey(reservationId)
+    override val primaryKey = PrimaryKey(reservationId, instanceId)
 }
 
 class ExposedAttendanceRepository : AttendanceRepository {
 
-    override suspend fun isCheckedIn(reservationId: Uuid): Boolean = dbQuery {
+    override suspend fun isCheckedIn(reservationId: Uuid, instanceId: Uuid): Boolean = dbQuery {
         ReservationAttendanceTable.selectAll()
-            .where { ReservationAttendanceTable.reservationId eq reservationId }
+            .where {
+                (ReservationAttendanceTable.reservationId eq reservationId) and
+                    (ReservationAttendanceTable.instanceId eq instanceId)
+            }
             .singleOrNull()
             ?.get(ReservationAttendanceTable.checkedIn) ?: false
     }
 
-    override suspend fun setCheckedIn(reservationId: Uuid, checkedIn: Boolean) = dbQuery {
+    override suspend fun setCheckedIn(reservationId: Uuid, instanceId: Uuid, checkedIn: Boolean) = dbQuery {
         val now = if (checkedIn) Clock.System.now() else null
         val updatedRows = ReservationAttendanceTable.update(
-            { ReservationAttendanceTable.reservationId eq reservationId }
+            {
+                (ReservationAttendanceTable.reservationId eq reservationId) and
+                    (ReservationAttendanceTable.instanceId eq instanceId)
+            }
         ) { row ->
             row[ReservationAttendanceTable.checkedIn] = checkedIn
             row[ReservationAttendanceTable.checkedInAt] = now
@@ -42,17 +49,21 @@ class ExposedAttendanceRepository : AttendanceRepository {
         if (updatedRows == 0) {
             ReservationAttendanceTable.insert { row ->
                 row[ReservationAttendanceTable.reservationId] = reservationId
+                row[ReservationAttendanceTable.instanceId] = instanceId
                 row[ReservationAttendanceTable.checkedIn] = checkedIn
                 row[ReservationAttendanceTable.checkedInAt] = now
             }
         }
     }
 
-    override suspend fun checkedInFlags(reservationIds: List<Uuid>): Map<Uuid, Boolean> = dbQuery {
+    override suspend fun checkedInFlags(instanceId: Uuid, reservationIds: List<Uuid>): Map<Uuid, Boolean> = dbQuery {
         if (reservationIds.isEmpty()) return@dbQuery emptyMap()
 
         val found = ReservationAttendanceTable.selectAll()
-            .where { ReservationAttendanceTable.reservationId inList reservationIds }
+            .where {
+                (ReservationAttendanceTable.instanceId eq instanceId) and
+                    (ReservationAttendanceTable.reservationId inList reservationIds)
+            }
             .associate { row ->
                 row[ReservationAttendanceTable.reservationId] to row[ReservationAttendanceTable.checkedIn]
             }
