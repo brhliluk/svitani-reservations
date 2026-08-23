@@ -7,6 +7,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
+import cz.svitaninymburk.projects.reservations.repository.event.INACTIVE_RESERVATION_STATUSES
 import cz.svitaninymburk.projects.reservations.repository.payment.NewPaymentEvent
 import cz.svitaninymburk.projects.reservations.repository.payment.PaymentEventRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
@@ -101,12 +102,31 @@ class AdminDashboardService(
         val pendingPaymentsCount = pendingReservations.size
 
         val todaysInstances = eventInstanceRepository.findByDateRange(todayStart, todayEnd)
+            .filter { !it.isCancelled }
         val todaysInstanceIds = todaysInstances.map { it.id }.toSet()
 
-        val todayParticipantsCount = allReservations
-            .filter { it.status != Reservation.Status.CANCELLED && it.status != Reservation.Status.WAITLISTED }
+        // Musí sedět s prezenčkou lekce (AttendanceService.getAttendance): přihláška
+        // na kurz je jedna rezervace na sérii, takže se do počtu nepropíše sama od
+        // sebe — připočítá se za každou dnešní lekci té série, mínus ti, kdo se
+        // z konkrétní lekce omluvili.
+        val activeReservations = allReservations.filter { it.status !in INACTIVE_RESERVATION_STATUSES }
+
+        val todayDirectParticipants = activeReservations
             .filter { it.reference is Reference.Instance && it.reference.id in todaysInstanceIds }
             .sumOf { it.seatCount }
+
+        val todayEnrolledParticipants = todaysInstances.sumOf { instance ->
+            val seriesId = instance.seriesId ?: return@sumOf 0
+            val optedOut = seriesLessonOptOutRepository.findByInstance(instance.id)
+                .map { it.reservationId }
+                .toSet()
+            activeReservations
+                .filter { it.reference is Reference.Series && it.reference.id == seriesId }
+                .filterNot { it.id in optedOut }
+                .sumOf { it.seatCount }
+        }
+
+        val todayParticipantsCount = todayDirectParticipants + todayEnrolledParticipants
 
         val instancesThisWeek = eventInstanceRepository.findByDateRange(now, endOfWeek).filter { !it.isCancelled }
         val freeSpotsThisWeek = instancesThisWeek.sumOf { maxOf(0, it.capacity - it.occupiedSpots) }
