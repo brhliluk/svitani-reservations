@@ -149,7 +149,7 @@ class SeriesLessonOptOutServiceTest {
     )
 
     @Test
-    fun `opt out decrements instance occupied spots`() = runBlocking {
+    fun `opt out nesaha na ulozeny citac lekce`() = runBlocking {
         val instanceRepo = InMemoryEventInstanceRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val reservationRepo = InMemoryReservationRepository()
@@ -174,16 +174,59 @@ class SeriesLessonOptOutServiceTest {
         val result = service.cancelReservation(reservation.id, instance.id)
         assertTrue(result.isRight(), "Expected Right but got: $result")
 
-        // opt-out record saved
         val savedOptOut = optOutRepo.findByReservationAndInstance(reservation.id, instance.id)
-        assertNotNull(savedOptOut, "Expected opt-out record to be saved")
+        assertNotNull(savedOptOut, "omluvenka se musí uložit — ta je nově tím odečtem")
         assertEquals(reservation.id, savedOptOut.reservationId)
         assertEquals(instance.id, savedOptOut.instanceId)
 
-        // occupied spots decremented
-        val updatedInstance = instanceRepo.get(instance.id)
-        assertNotNull(updatedInstance)
-        assertEquals(0, updatedInstance.occupiedSpots)
+        assertEquals(
+            instance.occupiedSpots,
+            instanceRepo.get(instance.id)?.occupiedSpots,
+            "uložený čítač lekce se omluvou nemění; obsazenost se dopočítává ze SeriesLessonLoad",
+        )
+        assertEquals(
+            series.occupiedSpots,
+            seriesRepo.get(series.id)?.occupiedSpots,
+            "přihláška na kurz trvá dál, jen na jednu lekci nedorazí",
+        )
+    }
+
+    @Test
+    fun `opt out posune cekatele z poradniku lekce`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val optOutRepo = InMemorySeriesLessonOptOutRepository()
+
+        val series = makeSeries()
+        seriesRepo.create(series)
+
+        val instance = makeInstance(series.id, startDateTime = LocalDateTime(2099, 12, 1, 10, 0))
+        instanceRepo.create(instance)
+
+        val reservation = makeSeriesReservation(series.id)
+        reservationRepo.save(reservation)
+
+        // Čekatel v pořadníku té konkrétní lekce.
+        val cekatel = reservationRepo.save(
+            makeInstanceReservation(instance.id).copy(status = Reservation.Status.WAITLISTED)
+        )
+
+        val service = makeService(
+            instanceRepo = instanceRepo,
+            seriesRepo = seriesRepo,
+            reservationRepo = reservationRepo,
+            optOutRepo = optOutRepo,
+        )
+
+        val result = service.cancelReservation(reservation.id, instance.id)
+        assertTrue(result.isRight(), "Expected Right but got: $result")
+
+        assertEquals(
+            Reservation.Status.PENDING_PAYMENT,
+            reservationRepo.findById(cekatel.id)?.status,
+            "uvolněné místo má dostat první čekatel v pořadníku lekce",
+        )
     }
 
     @Test

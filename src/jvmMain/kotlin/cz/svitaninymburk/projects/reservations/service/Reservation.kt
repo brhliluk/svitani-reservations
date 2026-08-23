@@ -471,7 +471,9 @@ open class ReservationService(
                     isLateCancellation = isLate,
                 )
             )
-            eventInstanceRepository.decrementOccupiedSpots(instanceId, reservation.seatCount)
+            // Odečtem je nově sama existence omluvenky — uložený čítač lekce drží
+            // jen přímé rezervace, takže by ho tenhle dekrement stáhl do záporu.
+            promoteFromWaitlist(Reference.Instance(instanceId), freedSeats = reservation.seatCount)
 
             emailService.sendLessonOptOutNotice(
                 toEmail = reservation.contactEmail,
