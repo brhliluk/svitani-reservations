@@ -9,8 +9,11 @@ import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
-import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.isFreePrice
+import cz.svitaninymburk.projects.reservations.ui.util.ReservationStatusBadge
+import cz.svitaninymburk.projects.reservations.ui.util.canBeMarkedAsPaid
+import cz.svitaninymburk.projects.reservations.ui.util.reservationStatusBadge
+import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.ReservationExpandedDetails
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.util.humanReadable
@@ -119,8 +122,9 @@ private fun IComponent.ParticipantRow(
     val currentStrings by strings
 
     // Určení vzhledu řádku podle stavu a typu platby
-    val isPaid = participant.status == Reservation.Status.CONFIRMED
-    val isCash = participant.paymentType == PaymentInfo.Type.ON_SITE
+    val badge = reservationStatusBadge(participant.status, participant.paymentType, participant.totalPrice)
+    val isPaid = badge == ReservationStatusBadge.PAID || badge == ReservationStatusBadge.FREE
+    val isCash = badge == ReservationStatusBadge.ON_SITE
 
     tr(className = if (!isPaid && isCash) "bg-info/5" else "") {
         td {
@@ -138,35 +142,47 @@ private fun IComponent.ParticipantRow(
         }
         td { +"${participant.seatCount}" }
         td(className = if (!isPaid && isCash) "font-bold text-info" else "") {
-            +"${participant.totalPrice} ${currentStrings.currency}"
+            +totalPriceLabel(participant.totalPrice, currentStrings)
         }
         td {
             div(className = "flex flex-col gap-1 items-start") {
-                if (isPaid) {
-                    div(className = "badge badge-success gap-1") {
+                when (badge) {
+                    ReservationStatusBadge.CANCELLED -> div(className = "badge badge-error gap-1") {
+                        span(className = "icon-[heroicons--x-mark] size-3")
+                        +currentStrings.cancelled
+                    }
+                    ReservationStatusBadge.WAITLISTED -> div(className = "badge badge-secondary badge-outline gap-1 whitespace-nowrap") {
+                        span(className = "icon-[heroicons--queue-list] size-3")
+                        +currentStrings.waitlistedStatus
+                    }
+                    ReservationStatusBadge.FREE -> div(className = "badge badge-success badge-outline gap-1") {
+                        span(className = "icon-[heroicons--gift] size-3")
+                        +currentStrings.free
+                    }
+                    ReservationStatusBadge.PAID -> div(className = "badge badge-success gap-1") {
                         span(className = "icon-[heroicons--check] size-3")
                         +currentStrings.paid
                     }
-                } else if (isCash) {
-                    div(className = "badge badge-info badge-outline gap-1") {
+                    ReservationStatusBadge.ON_SITE -> div(className = "badge badge-info badge-outline gap-1") {
                         span(className = "icon-[heroicons--banknotes] size-3")
                         +currentStrings.statusOnSiteBadge
                     }
-                } else {
-                    div(className = "badge badge-warning gap-1") {
+                    ReservationStatusBadge.WAITING -> div(className = "badge badge-warning gap-1") {
                         span(className = "icon-[heroicons--clock] size-3")
                         +currentStrings.statusWaiting
                     }
                 }
 
-                span(className = "text-xs text-base-content/60 font-medium") {
-                    if (isCash) +currentStrings.paymentMethodCash else +currentStrings.bankTransfer
+                if (!isFreePrice(participant.totalPrice)) {
+                    span(className = "text-xs text-base-content/60 font-medium") {
+                        if (isCash) +currentStrings.paymentMethodCash else +currentStrings.bankTransfer
+                    }
                 }
             }
         }
         td(className = "text-right") {
             div(className = "flex justify-end items-center gap-1") {
-                if (!isPaid) {
+                if (canBeMarkedAsPaid(badge)) {
                     button(className = "btn btn-xs inline-flex items-center gap-1 tooltip tooltip-left ${if (isCash) "btn-outline btn-info" else "btn-ghost text-success"}") {
                         attribute("data-tip", if (isCash) currentStrings.tooltipAcceptCash else currentStrings.tooltipMarkPaid)
                         onClick { onConfirmPayment() }

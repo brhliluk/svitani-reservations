@@ -15,7 +15,8 @@ import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
-import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.ui.util.ReservationStatusBadge
+import cz.svitaninymburk.projects.reservations.ui.util.reservationStatusBadge
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonItem
 import cz.svitaninymburk.projects.reservations.service.AuthenticatedReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
@@ -120,7 +121,7 @@ fun IComponent.MyReservationsList(userId: Uuid) {
 @Composable
 private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick: () -> Unit) {
     val currentStrings by strings
-    val badge = reservationBadge(item)
+    val badge = reservationStatusBadge(item.status, item.paymentType, item.totalPrice)
     val scope = rememberCoroutineScope()
 
     val authenticatedService = getService<AuthenticatedReservationServiceInterface>(RpcSerializersModules)
@@ -215,21 +216,29 @@ private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick:
                     }
                     div(className = "flex flex-col items-start sm:items-end gap-1 shrink-0") {
                         when (badge) {
-                            ReservationBadge.PAID -> div(className = "badge badge-success gap-1") {
+                            ReservationStatusBadge.PAID -> div(className = "badge badge-success gap-1") {
                                 span(className = "icon-[heroicons--check] size-3")
                                 +currentStrings.paid
                             }
-                            ReservationBadge.FREE -> div(className = "badge badge-success badge-outline gap-1") {
+                            ReservationStatusBadge.FREE -> div(className = "badge badge-success badge-outline gap-1") {
                                 span(className = "icon-[heroicons--gift] size-3")
                                 +currentStrings.free
                             }
-                            ReservationBadge.ON_SITE -> div(className = "badge badge-info badge-outline gap-1") {
+                            ReservationStatusBadge.ON_SITE -> div(className = "badge badge-info badge-outline gap-1") {
                                 span(className = "icon-[heroicons--banknotes] size-3")
                                 +currentStrings.statusOnSiteBadge
                             }
-                            ReservationBadge.WAITING -> div(className = "badge badge-warning gap-1") {
+                            // Náhradník tu záměrně zůstává u dosavadního "Čeká" —
+                            // admin přehledy ho pojmenovávají "Náhradník".
+                            ReservationStatusBadge.WAITLISTED,
+                            ReservationStatusBadge.WAITING -> div(className = "badge badge-warning gap-1") {
                                 span(className = "icon-[heroicons--clock] size-3")
                                 +currentStrings.statusWaiting
+                            }
+                            // Zrušené rezervace se do přehledu nedostanou (getReservations je filtruje).
+                            ReservationStatusBadge.CANCELLED -> div(className = "badge badge-error gap-1") {
+                                span(className = "icon-[heroicons--x-mark] size-3")
+                                +currentStrings.cancelled
                             }
                         }
                     }

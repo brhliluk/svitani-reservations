@@ -11,7 +11,8 @@ import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.ui.util.ReservationStatusBadge
+import cz.svitaninymburk.projects.reservations.ui.util.reservationStatusBadge
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
@@ -143,7 +144,7 @@ fun IComponent.AdminAttendanceScreen(eventId: String, isSeries: Boolean) {
                                         }
                                     } else {
                                         data.participants.forEachIndexed { index, participant ->
-                                            val isPaid = participant.status == Reservation.Status.CONFIRMED
+                                            val badge = reservationStatusBadge(participant.status, participant.paymentType, participant.totalPrice)
 
                                             tr {
                                                 td(className = "text-base-content/60 text-sm") { +"${index + 1}" }
@@ -168,7 +169,12 @@ fun IComponent.AdminAttendanceScreen(eventId: String, isSeries: Boolean) {
 
                                                 // Payment status
                                                 td {
-                                                    if (isPaid) {
+                                                    if (badge == ReservationStatusBadge.FREE) {
+                                                        div(className = "badge badge-success badge-outline gap-1 print:border print:border-green-600 print:bg-transparent print:text-green-700") {
+                                                            span(className = "icon-[heroicons--gift] size-3 print:hidden")
+                                                            +currentStrings.free
+                                                        }
+                                                    } else if (badge == ReservationStatusBadge.PAID) {
                                                         div(className = "badge badge-success gap-1 print:border print:border-green-600 print:bg-transparent print:text-green-700") {
                                                             span(className = "icon-[heroicons--check] size-3 print:hidden")
                                                             +currentStrings.paid

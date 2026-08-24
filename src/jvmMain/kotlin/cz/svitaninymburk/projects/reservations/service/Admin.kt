@@ -44,6 +44,7 @@ import cz.svitaninymburk.projects.reservations.wallet.WalletTransactionReason
 import cz.svitaninymburk.projects.reservations.wallet.WalletsPage
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.isFreePrice
 import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.util.captureEmailError
 import cz.svitaninymburk.projects.reservations.util.humanReadable
@@ -379,7 +380,7 @@ class AdminDashboardService(
                         dateInfo = "Od ${s.startDate.humanReadable} (${s.lessonCount} lekcí)",
                         capacity = s.capacity,
                         occupiedSpots = s.occupiedSpots,
-                        priceString = "${s.price} Kč",
+                        priceString = adminPriceLabel(s.price),
                         isPublished = s.isPublished,
                         isCancelled = s.isCancelled,
                         isPast = isSeriesPast(s),
@@ -397,7 +398,7 @@ class AdminDashboardService(
                         dateInfo = i.startDateTime.humanReadable,
                         capacity = i.capacity,
                         occupiedSpots = i.occupiedSpots,
-                        priceString = "${i.price} Kč",
+                        priceString = adminPriceLabel(i.price),
                         isPublished = i.isPublished,
                         isCancelled = i.isCancelled,
                         isPast = isInstancePast(i),
@@ -413,7 +414,7 @@ class AdminDashboardService(
                     dateInfo = "Šablona",
                     capacity = d.defaultCapacity,
                     occupiedSpots = 0,
-                    priceString = "${d.defaultPrice} Kč",
+                    priceString = adminPriceLabel(d.defaultPrice),
                     isDefinitionOnly = true,
                 )
             }
@@ -1218,3 +1219,10 @@ class AdminDashboardService(
             else walletService.adminDebit(id, amount, note)
         }.mapLeft { AdminError.WalletOperationFailed }
 }
+
+/**
+ * Popisek ceny pro admin seznamy. Skládá se na serveru, kde není i18n po ruce
+ * (proto je měna napevno česky, jako doteď) — nula je „Zdarma", ne „0.0 Kč".
+ */
+internal fun adminPriceLabel(price: Double): String =
+    if (isFreePrice(price)) "Zdarma" else "$price Kč"

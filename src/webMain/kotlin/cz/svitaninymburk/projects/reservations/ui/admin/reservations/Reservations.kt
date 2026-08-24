@@ -10,11 +10,15 @@ import androidx.compose.runtime.setValue
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
+import cz.svitaninymburk.projects.reservations.reservation.isFreePrice
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
+import cz.svitaninymburk.projects.reservations.ui.util.ReservationStatusBadge
+import cz.svitaninymburk.projects.reservations.ui.util.canBeMarkedAsPaid
+import cz.svitaninymburk.projects.reservations.ui.util.reservationStatusBadge
+import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
@@ -169,9 +173,10 @@ fun IComponent.AdminReservationsScreen() {
                                         }
                                     } else {
                                         data.items.forEach { res ->
-                                            val isPaid = res.status == Reservation.Status.CONFIRMED
-                                            val isCash = res.paymentType == PaymentInfo.Type.ON_SITE
-                                            val isCancelled = res.status == Reservation.Status.CANCELLED
+                                            val badge = reservationStatusBadge(res.status, res.paymentType, res.totalPrice)
+                                            val isPaid = badge == ReservationStatusBadge.PAID || badge == ReservationStatusBadge.FREE
+                                            val isCash = badge == ReservationStatusBadge.ON_SITE
+                                            val isCancelled = badge == ReservationStatusBadge.CANCELLED
                                             val isExpanded = expandedId == res.id
 
                                             val trClass = when {
@@ -197,7 +202,7 @@ fun IComponent.AdminReservationsScreen() {
                                                 }
                                                 td { +"${res.seatCount}" }
                                                 td(className = if (!isPaid && isCash) "font-bold text-info" else "") {
-                                                    div { +"${res.totalPrice} ${currentStrings.currency}" }
+                                                    div { +totalPriceLabel(res.totalPrice, currentStrings) }
                                                     if (!res.variableSymbol.isNullOrBlank()) {
                                                         div(className = "text-xs font-mono text-base-content/40 mt-1") {
                                                             +"${currentStrings.variableSymbol}: ${res.variableSymbol}"
@@ -206,36 +211,43 @@ fun IComponent.AdminReservationsScreen() {
                                                 }
                                                 td {
                                                     div(className = "flex flex-col gap-1 items-start") {
-                                                        if (isCancelled) {
-                                                            div(className = "badge badge-error gap-1") {
+                                                        when (badge) {
+                                                            ReservationStatusBadge.CANCELLED -> div(className = "badge badge-error gap-1") {
                                                                 span(className = "icon-[heroicons--x-mark] size-3")
                                                                 +currentStrings.cancelled
                                                             }
-                                                        } else if (isPaid) {
-                                                            div(className = "badge badge-success gap-1") {
+                                                            ReservationStatusBadge.WAITLISTED -> div(className = "badge badge-secondary badge-outline gap-1 whitespace-nowrap") {
+                                                                span(className = "icon-[heroicons--queue-list] size-3")
+                                                                +currentStrings.waitlistedStatus
+                                                            }
+                                                            ReservationStatusBadge.FREE -> div(className = "badge badge-success badge-outline gap-1") {
+                                                                span(className = "icon-[heroicons--gift] size-3")
+                                                                +currentStrings.free
+                                                            }
+                                                            ReservationStatusBadge.PAID -> div(className = "badge badge-success gap-1") {
                                                                 span(className = "icon-[heroicons--check] size-3")
                                                                 +currentStrings.paid
                                                             }
-                                                        } else if (isCash) {
-                                                            div(className = "badge badge-info badge-outline gap-1 whitespace-nowrap") {
+                                                            ReservationStatusBadge.ON_SITE -> div(className = "badge badge-info badge-outline gap-1 whitespace-nowrap") {
                                                                 span(className = "icon-[heroicons--banknotes] size-3")
                                                                 +currentStrings.statusOnSiteBadge
                                                             }
-                                                        } else {
-                                                            div(className = "badge badge-warning gap-1") {
+                                                            ReservationStatusBadge.WAITING -> div(className = "badge badge-warning gap-1") {
                                                                 span(className = "icon-[heroicons--clock] size-3")
                                                                 +currentStrings.statusWaiting
                                                             }
                                                         }
-                                                        span(className = "text-xs text-base-content/60 font-medium") {
-                                                            val isWallet = res.walletDeductedAmount >= res.totalPrice && res.totalPrice > 0
-                                                            val isPartialWallet = res.walletDeductedAmount > 0 && !isWallet
-                                                            when {
-                                                                isWallet -> +currentStrings.paymentMethodWallet
-                                                                isPartialWallet && isCash -> +currentStrings.paymentMethodCashAndWallet
-                                                                isPartialWallet -> +currentStrings.paymentMethodBankTransferAndWallet
-                                                                isCash -> +currentStrings.paymentMethodCash
-                                                                else -> +currentStrings.bankTransfer
+                                                        if (!isFreePrice(res.totalPrice)) {
+                                                            span(className = "text-xs text-base-content/60 font-medium") {
+                                                                val isWallet = res.walletDeductedAmount >= res.totalPrice && res.totalPrice > 0
+                                                                val isPartialWallet = res.walletDeductedAmount > 0 && !isWallet
+                                                                when {
+                                                                    isWallet -> +currentStrings.paymentMethodWallet
+                                                                    isPartialWallet && isCash -> +currentStrings.paymentMethodCashAndWallet
+                                                                    isPartialWallet -> +currentStrings.paymentMethodBankTransferAndWallet
+                                                                    isCash -> +currentStrings.paymentMethodCash
+                                                                    else -> +currentStrings.bankTransfer
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -244,7 +256,7 @@ fun IComponent.AdminReservationsScreen() {
                                                 td(className = "text-right") {
                                                     if (!isCancelled) {
                                                         div(className = "flex justify-end items-center gap-1") {
-                                                            if (!isPaid) {
+                                                            if (canBeMarkedAsPaid(badge)) {
                                                                 button(className = "btn btn-xs inline-flex items-center gap-1 tooltip tooltip-left ${if (isCash) "btn-outline btn-info" else "btn-ghost text-success"}") {
                                                                     attribute("data-tip", if (isCash) currentStrings.tooltipAcceptCash else currentStrings.tooltipMarkPaid)
                                                                     onClick {
