@@ -39,6 +39,27 @@ internal fun JdbcTransaction.recomputeOccupiedSpotsInTransaction() {
                AND r.status NOT IN ('CANCELLED','REJECTED','WAITLISTED')
         )
     """.trimIndent())
+
+    // Pořadník se počítá po přihláškách, ne po místech: attemptToReserveWaitlistSpot
+    // zvedá čítač o 1 a strop se kontroluje jako occupiedWaitlist + 1 <= waitlistCapacity.
+    // Proto COUNT(*), ne SUM(seat_count).
+    exec("""
+        UPDATE event_instances SET occupied_waitlist = (
+            SELECT COUNT(*) FROM reservations r
+             WHERE r.reference_type = 'INSTANCE'
+               AND r.reference_id = event_instances.id
+               AND r.status = 'WAITLISTED'
+        )
+    """.trimIndent())
+
+    exec("""
+        UPDATE event_series SET occupied_waitlist = (
+            SELECT COUNT(*) FROM reservations r
+             WHERE r.reference_type = 'SERIES'
+               AND r.reference_id = event_series.id
+               AND r.status = 'WAITLISTED'
+        )
+    """.trimIndent())
 }
 
 /**

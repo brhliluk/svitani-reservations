@@ -270,9 +270,12 @@ open class ReservationService(
             }
             if (!acquired) break
 
+            // O jednu přihlášku, ne o počet míst: zápis do pořadníku ho zvedá
+            // o 1 (attemptToReserveWaitlistSpot) a strop se kontroluje stejně,
+            // takže odečítat po místech by čítač táhlo do záporu.
             when (reference) {
-                is Reference.Instance -> eventInstanceRepository.decrementOccupiedWaitlist(reference.id, candidate.seatCount)
-                is Reference.Series -> eventSeriesRepository.decrementOccupiedWaitlist(reference.id, candidate.seatCount)
+                is Reference.Instance -> eventInstanceRepository.decrementOccupiedWaitlist(reference.id, 1)
+                is Reference.Series -> eventSeriesRepository.decrementOccupiedWaitlist(reference.id, 1)
             }
 
             val variableSymbol = generateUniqueVariableSymbol()
@@ -539,21 +542,45 @@ open class ReservationService(
                 // rezervace bez zátěže kurzu) — pro e-mail lektorovi to čte znovu přes
                 // repository, které při čtení dopočítá zátěž kurzu (SeriesAwareEventInstanceRepository),
                 // aby se obsazenost lekce shodovala s potvrzovacím e-mailem účastníkovi (viz výš).
-                val updatedSpots = when (reservation.reference) {
-                    is Reference.Instance -> {
-                        eventInstanceRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
-                        eventInstanceRepository.get(reservation.reference.id)?.occupiedSpots
+                // Čekatel v pořadníku žádné místo nedrží — drží jen přihlášku. Strhnout
+                // mu occupiedSpots by čítač stáhlo do záporu a posouvat není koho,
+                // protože se žádné místo neuvolnilo. Ubere se jen jedna přihláška
+                // z pořadníku, protože po přihláškách se pořadník i napočítává
+                // (attemptToReserveWaitlistSpot zvedá o 1).
+                val wasWaitlisted = reservation.status == Reservation.Status.WAITLISTED
+
+                val updatedSpots = if (wasWaitlisted) {
+                    when (reservation.reference) {
+                        is Reference.Instance -> eventInstanceRepository.decrementOccupiedWaitlist(reservation.reference.id, 1)
+                        is Reference.Series -> eventSeriesRepository.decrementOccupiedWaitlist(reservation.reference.id, 1)
                     }
-                    is Reference.Series -> {
-                        eventSeriesRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
-                        eventSeriesRepository.get(reservation.reference.id)?.occupiedSpots
+                    when (target) {
+                        is ReservationTarget.Instance -> target.event.occupiedSpots
+                        is ReservationTarget.Series -> target.series.occupiedSpots
                     }
-                } ?: when (target) {
-                    is ReservationTarget.Instance -> (target.event.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
-                    is ReservationTarget.Series -> (target.series.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
+                } else {
+                    // decrementOccupiedSpots vrací jen zúžený uložený sloupec (přímé
+                    // rezervace bez zátěže kurzu) — pro e-mail lektorovi to čte znovu přes
+                    // repository, které při čtení dopočítá zátěž kurzu (SeriesAwareEventInstanceRepository),
+                    // aby se obsazenost lekce shodovala s potvrzovacím e-mailem účastníkovi (viz výš).
+                    when (reservation.reference) {
+                        is Reference.Instance -> {
+                            eventInstanceRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
+                            eventInstanceRepository.get(reservation.reference.id)?.occupiedSpots
+                        }
+                        is Reference.Series -> {
+                            eventSeriesRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
+                            eventSeriesRepository.get(reservation.reference.id)?.occupiedSpots
+                        }
+                    } ?: when (target) {
+                        is ReservationTarget.Instance -> (target.event.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
+                        is ReservationTarget.Series -> (target.series.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
+                    }
                 }
 
-                promoteFromWaitlist(reservation.reference, freedSeats = reservation.seatCount)
+                if (!wasWaitlisted) {
+                    promoteFromWaitlist(reservation.reference, freedSeats = reservation.seatCount)
+                }
 
                 val customerEmailResult = emailService.sendCancellationNotice(cancelledReservation.contactEmail, target.title, cancelledReservation.id, cancelledReservation.locale)
 

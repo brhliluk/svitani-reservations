@@ -23,8 +23,8 @@ class OccupancyBackfillTest {
         val dbFile = File.createTempFile("occupancy-backfill", ".db").also { it.deleteOnExit() }
         Database.connect("jdbc:sqlite:${dbFile.absolutePath}", driver = "org.sqlite.JDBC")
         transaction {
-            exec("CREATE TABLE event_instances (id TEXT PRIMARY KEY, occupied_spots INTEGER NOT NULL)")
-            exec("CREATE TABLE event_series (id TEXT PRIMARY KEY, occupied_spots INTEGER NOT NULL)")
+            exec("CREATE TABLE event_instances (id TEXT PRIMARY KEY, occupied_spots INTEGER NOT NULL, occupied_waitlist INTEGER NOT NULL)")
+            exec("CREATE TABLE event_series (id TEXT PRIMARY KEY, occupied_spots INTEGER NOT NULL, occupied_waitlist INTEGER NOT NULL)")
             exec("""
                 CREATE TABLE reservations (
                     id TEXT PRIMARY KEY,
@@ -35,12 +35,16 @@ class OccupancyBackfillTest {
                 )
             """.trimIndent())
 
-            exec("INSERT INTO event_instances VALUES ('$lekce', -2)")
-            exec("INSERT INTO event_series VALUES ('$kurz', 99)")
+            exec("INSERT INTO event_instances VALUES ('$lekce', -2, 7)")
+            exec("INSERT INTO event_series VALUES ('$kurz', 99, -3)")
             exec("INSERT INTO reservations VALUES ('r1', '$lekce', 'INSTANCE', 2, 'CONFIRMED')")
             exec("INSERT INTO reservations VALUES ('r2', '$lekce', 'INSTANCE', 1, 'CANCELLED')")
             exec("INSERT INTO reservations VALUES ('r3', '$kurz', 'SERIES', 3, 'PENDING_PAYMENT')")
             exec("INSERT INTO reservations VALUES ('r4', '$kurz', 'SERIES', 5, 'WAITLISTED')")
+            // Dva čekatelé na lekci, dohromady 4 místa — pořadník se ale počítá
+            // po přihláškách, takže výsledek musí být 2, ne 4.
+            exec("INSERT INTO reservations VALUES ('r5', '$lekce', 'INSTANCE', 3, 'WAITLISTED')")
+            exec("INSERT INTO reservations VALUES ('r6', '$lekce', 'INSTANCE', 1, 'WAITLISTED')")
         }
     }
 
@@ -54,6 +58,26 @@ class OccupancyBackfillTest {
         exec("SELECT occupied_spots FROM event_series WHERE id = '$kurz'") { rs ->
             rs.next(); rs.getInt(1)
         } ?: -1
+    }
+
+    private fun instanceWaitlist(): Int = transaction {
+        exec("SELECT occupied_waitlist FROM event_instances WHERE id = '$lekce'") { rs ->
+            rs.next(); rs.getInt(1)
+        } ?: -1
+    }
+
+    private fun seriesWaitlist(): Int = transaction {
+        exec("SELECT occupied_waitlist FROM event_series WHERE id = '$kurz'") { rs ->
+            rs.next(); rs.getInt(1)
+        } ?: -1
+    }
+
+    @Test
+    fun `backfill prepocte i poradnik, po prihlaskach ne po mistech`() = runBlocking {
+        recomputeOccupiedSpots()
+
+        assertEquals(2, instanceWaitlist(), "dva čekatelé (3 + 1 místo) jsou dvě přihlášky, ne čtyři")
+        assertEquals(1, seriesWaitlist(), "jeden čekatel s pěti místy je jedna přihláška; záporná hodnota zmizí")
     }
 
     @Test
