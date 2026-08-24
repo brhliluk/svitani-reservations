@@ -228,9 +228,12 @@ private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick:
                                 span(className = "icon-[heroicons--banknotes] size-3")
                                 +currentStrings.statusOnSiteBadge
                             }
-                            // Náhradník tu záměrně zůstává u dosavadního "Čeká" —
-                            // admin přehledy ho pojmenovávají "Náhradník".
-                            ReservationStatusBadge.WAITLISTED,
+                            // Pořadník má vlastní jméno: "Čeká" se u něj čte jako
+                            // "čeká na platbu", i když se čeká na uvolněné místo.
+                            ReservationStatusBadge.WAITLISTED -> div(className = "badge badge-secondary badge-outline gap-1 whitespace-nowrap") {
+                                span(className = "icon-[heroicons--queue-list] size-3")
+                                +currentStrings.waitlistedStatus
+                            }
                             ReservationStatusBadge.WAITING -> div(className = "badge badge-warning gap-1") {
                                 span(className = "icon-[heroicons--clock] size-3")
                                 +currentStrings.statusWaiting
