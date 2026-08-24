@@ -98,6 +98,7 @@ interface AppStrings : ErrorStrings {
     val variableSymbol: String
     val reservationCancelledMessage: String
     val reservationPaidMessage: String
+    val reservationFreeMessage: String
     val copied: String
 
     // Reservation Statuses

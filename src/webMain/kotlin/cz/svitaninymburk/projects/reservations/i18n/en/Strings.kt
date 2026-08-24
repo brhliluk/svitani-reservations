@@ -80,6 +80,7 @@ object EnStrings : AppStrings {
     override val variableSymbol = "VS"
     override val reservationCancelledMessage = "This reservation is cancelled."
     override val reservationPaidMessage = "Everything is paid. We look forward to seeing you!"
+    override val reservationFreeMessage = "This event is free of charge. We look forward to seeing you!"
     override val copied = "Copied"
 
     // Reservation Statuses

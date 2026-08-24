@@ -80,6 +80,7 @@ object CsStrings : AppStrings {
     override val variableSymbol = "VS"
     override val reservationCancelledMessage = "Tato rezervace je zrušena."
     override val reservationPaidMessage = "Vše je uhrazeno. Těšíme se na vás!"
+    override val reservationFreeMessage = "Tato akce je zdarma. Těšíme se na vás!"
     override val copied = "Zkopírováno"
 
     // Reservation Statuses

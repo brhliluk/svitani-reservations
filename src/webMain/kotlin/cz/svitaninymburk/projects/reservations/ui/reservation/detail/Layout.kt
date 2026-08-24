@@ -14,6 +14,7 @@ import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.shareSvgAsPng
 import cz.svitaninymburk.projects.reservations.ui.components.CancellationPolicyBox
 import cz.svitaninymburk.projects.reservations.ui.reservation.CustomFieldsDisplay
+import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
@@ -35,7 +36,7 @@ fun IComponent.ReservationDetailLayout(
     onBackToDashboard: () -> Unit
 ) {
     val currentStrings by strings
-    val uiState = remember(reservation.status, currentStrings) { getReservationUiState(reservation, target, currentStrings) }
+    val uiState = remember(reservation.status, reservation.isFree, currentStrings) { getReservationUiState(reservation, target, currentStrings) }
     val qrCodeService = remember { QrCodeService() }
 
     val qrCodeSvg = remember(reservation, accountNumber, uiState.showPaymentInfo) {
@@ -84,7 +85,7 @@ fun IComponent.ReservationDetailLayout(
                             }
                             DetailRow(currentStrings.name, reservation.contactName)
                             DetailRow(currentStrings.seatCountLabel, "${reservation.seatCount}")
-                            DetailRow(currentStrings.totalPrice, "${reservation.totalPrice} Kč")
+                            DetailRow(currentStrings.totalPrice, totalPriceLabel(reservation.totalPrice, currentStrings))
                             if (reservation.walletDeductedAmount > 0.0) {
                                 DetailRow(currentStrings.walletCreditApplied, "− ${reservation.walletDeductedAmount.toInt()} Kč")
                                 DetailRow(currentStrings.remainingToPay, "${reservation.unpaidAmount.toInt()} Kč")
@@ -164,6 +165,7 @@ fun IComponent.ReservationDetailLayout(
                                 span(className = "size-24 ${uiState.iconClass}")
                                 p(className = "text-xl font-medium") {
                                     if (reservation.status == Reservation.Status.CANCELLED) +currentStrings.reservationCancelledMessage
+                                    else if (reservation.isFree) +currentStrings.reservationFreeMessage
                                     else +currentStrings.reservationPaidMessage
                                 }
                             }
@@ -185,7 +187,7 @@ fun IComponent.ReservationDetailLayout(
 
 // --- LOGIKA STAVŮ (Configuration) ---
 
-private data class ReservationUiState(
+internal data class ReservationUiState(
     val title: String,
     val subtitle: String,
     val statusLabel: String,
@@ -198,9 +200,32 @@ private data class ReservationUiState(
     val canBeCancelled: Boolean
 )
 
-private fun getReservationUiState(reservation: Reservation, reservationTarget: ReservationTarget?, strings: AppStrings): ReservationUiState {
+internal fun getReservationUiState(reservation: Reservation, reservationTarget: ReservationTarget?, strings: AppStrings): ReservationUiState {
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
     val canCancel = reservationTarget != null && now < reservationTarget.startDateTime
+
+    // Za akci zdarma se nikde neplatí, takže tu nemá co dělat QR kód ani
+    // "Nezaplaceno" — a to i u historických rezervací, které v DB zůstaly ve stavu
+    // PENDING_PAYMENT (viz confirmFreeReservations v plugins/FreeReservationsBackfill.kt).
+    // Pořadník a zrušené rezervace si dál řeší vlastní větve níž.
+    val isFreeAndActive = reservation.isFree && (
+        reservation.status == Reservation.Status.PENDING_PAYMENT ||
+            reservation.status == Reservation.Status.CONFIRMED
+        )
+    if (isFreeAndActive) {
+        return ReservationUiState(
+            title = strings.reservationConfirmed,
+            subtitle = strings.everythingIsOK,
+            statusLabel = strings.free,
+            headerBgClass = "bg-success/10",
+            iconBgClass = "bg-success/20 text-success",
+            iconClass = "icon-[heroicons--check-circle] text-success",
+            textColorClass = "text-success",
+            showPaymentInfo = false,
+            canBeCancelled = canCancel,
+        )
+    }
+
     return when (reservation.status) {
         // 1. NOVÁ / ČEKÁ NA PLATBU
         Reservation.Status.PENDING_PAYMENT -> {

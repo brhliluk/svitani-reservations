@@ -14,6 +14,7 @@ import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonItem
 import cz.svitaninymburk.projects.reservations.service.AuthenticatedReservationServiceInterface
@@ -119,8 +120,7 @@ fun IComponent.MyReservationsList(userId: Uuid) {
 @Composable
 private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick: () -> Unit) {
     val currentStrings by strings
-    val isPaid = item.status == Reservation.Status.CONFIRMED
-    val isOnSite = item.paymentType == PaymentInfo.Type.ON_SITE
+    val badge = reservationBadge(item)
     val scope = rememberCoroutineScope()
 
     val authenticatedService = getService<AuthenticatedReservationServiceInterface>(RpcSerializersModules)
@@ -214,16 +214,20 @@ private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick:
                         }
                     }
                     div(className = "flex flex-col items-start sm:items-end gap-1 shrink-0") {
-                        when {
-                            isPaid -> div(className = "badge badge-success gap-1") {
+                        when (badge) {
+                            ReservationBadge.PAID -> div(className = "badge badge-success gap-1") {
                                 span(className = "icon-[heroicons--check] size-3")
                                 +currentStrings.paid
                             }
-                            isOnSite -> div(className = "badge badge-info badge-outline gap-1") {
+                            ReservationBadge.FREE -> div(className = "badge badge-success badge-outline gap-1") {
+                                span(className = "icon-[heroicons--gift] size-3")
+                                +currentStrings.free
+                            }
+                            ReservationBadge.ON_SITE -> div(className = "badge badge-info badge-outline gap-1") {
                                 span(className = "icon-[heroicons--banknotes] size-3")
                                 +currentStrings.statusOnSiteBadge
                             }
-                            else -> div(className = "badge badge-warning gap-1") {
+                            ReservationBadge.WAITING -> div(className = "badge badge-warning gap-1") {
                                 span(className = "icon-[heroicons--clock] size-3")
                                 +currentStrings.statusWaiting
                             }
@@ -238,11 +242,15 @@ private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick:
                     +"${item.seatCount} ${currentStrings.persons}"
                 }
                 div(className = "flex items-center gap-3") {
-                    span(className = "text-base-content/60") {
-                        if (isOnSite) +currentStrings.paymentMethodCash else +currentStrings.bankTransfer
+                    // U rezervace zdarma by "Převodem" vedle "Zdarma" jen protiřečilo samo sobě.
+                    if (!item.isFree) {
+                        span(className = "text-base-content/60") {
+                            if (item.paymentType == PaymentInfo.Type.ON_SITE) +currentStrings.paymentMethodCash
+                            else +currentStrings.bankTransfer
+                        }
                     }
                     span(className = "font-bold text-primary") {
-                        +"${item.totalPrice} ${currentStrings.currency}"
+                        +totalPriceLabel(item.totalPrice, currentStrings)
                     }
                 }
             }

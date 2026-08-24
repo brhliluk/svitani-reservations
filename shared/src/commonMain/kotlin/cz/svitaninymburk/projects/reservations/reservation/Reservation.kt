@@ -12,6 +12,9 @@ import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 
+/** Nulová (nebo záporná) cena znamená, že se nic neplatí. Jediné místo, kde ta hranice žije. */
+fun isFreePrice(totalPrice: Double): Boolean = totalPrice <= 0.0
+
 @Serializable
 data class Reservation(
     val id: Uuid,
@@ -39,6 +42,14 @@ data class Reservation(
     val walletDeductedAmount: Double = 0.0,
 ) {
     val unpaidAmount: Double get() = totalPrice - paidAmount
+
+    /**
+     * Rezervace, za kterou se nic neplatí. Server podle toho rezervaci zakládá
+     * rovnou potvrzenou a UI podle toho skrývá platební instrukce (i u
+     * historických rezervací, které v DB ještě zůstaly ve stavu PENDING_PAYMENT).
+     */
+    val isFree: Boolean get() = isFreePrice(totalPrice)
+
     @Serializable
     enum class Status {
         PENDING_PAYMENT,
@@ -155,7 +166,9 @@ data class MyReservationListItem(
     val paymentType: PaymentInfo.Type,
     val variableSymbol: String?,
     val isSeries: Boolean,
-)
+) {
+    val isFree: Boolean get() = isFreePrice(totalPrice)
+}
 
 @Serializable
 data class SeriesLessonItem(

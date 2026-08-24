@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.i18n
 
+import cz.svitaninymburk.projects.reservations.reservation.isFreePrice
+
 import kotlinx.datetime.LocalDate
 
 interface EmailStrings {
@@ -83,7 +85,7 @@ object CsEmailStrings : EmailStrings {
         "Rezervace potvrzena: $eventTitle – $eventDate"
     override val reservationConfirmationHeading = "Děkujeme za rezervaci!"
     override fun reservationConfirmationBody(eventTitle: String, eventDate: String, contactName: String, seatCount: Int, totalPrice: Double) =
-        "Dobrý den $contactName,\n\nVaše rezervace na akci $eventTitle ($eventDate) je potvrzena.\nPočet míst: $seatCount\nCelková cena: $totalPrice Kč"
+        "Dobrý den $contactName,\n\nVaše rezervace na akci $eventTitle ($eventDate) je potvrzena.\nPočet míst: $seatCount\nCelková cena: ${if (isFreePrice(totalPrice)) "Zdarma" else "$totalPrice Kč"}"
     override val reservationPaymentDetails = "Pokud jste ještě neplatili, platební údaje:"
     override val reservationPrice = "Cena:"
     override val reservationPaymentQrPrompt = "Pro dokončení prosím uhraďte částku pomocí QR kódu níže:"
@@ -173,7 +175,7 @@ object EnEmailStrings : EmailStrings {
         "Reservation confirmed: $eventTitle – $eventDate"
     override val reservationConfirmationHeading = "Thank you for your reservation!"
     override fun reservationConfirmationBody(eventTitle: String, eventDate: String, contactName: String, seatCount: Int, totalPrice: Double) =
-        "Hello $contactName,\n\nYour reservation for $eventTitle ($eventDate) is confirmed.\nSeats: $seatCount\nTotal: $totalPrice CZK"
+        "Hello $contactName,\n\nYour reservation for $eventTitle ($eventDate) is confirmed.\nSeats: $seatCount\nTotal: ${if (isFreePrice(totalPrice)) "Free" else "$totalPrice CZK"}"
     override val reservationPaymentDetails = "If you haven't paid yet, here are the payment details:"
     override val reservationPrice = "Price:"
     override val reservationPaymentQrPrompt = "To complete your reservation, please pay using the QR code below:"

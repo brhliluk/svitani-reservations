@@ -123,6 +123,15 @@ fun Application.configureDatabases() {
             println("⚠️ custom_fields key deduplication failed (non-fatal): ${e.message}")
         }
 
+        try {
+            val potvrzenych = confirmFreeReservations()
+            if (potvrzenych > 0) {
+                println("ℹ️ rezervace zdarma: $potvrzenych historických rezervací přepsáno na CONFIRMED/FREE")
+            }
+        } catch (e: Exception) {
+            println("⚠️ free reservations backfill failed (non-fatal): ${e.message}")
+        }
+
         // Musí doběhnout synchronně tady, ne asynchronně po startu — jinak by mohl
         // závodit s mock loaderem (přepsal by jím nasazená testovací data) nebo
         // s první příchozí rezervací (viz komentář u recomputeOccupiedSpotsInTransaction

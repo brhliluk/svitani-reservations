@@ -279,8 +279,11 @@ open class ReservationService(
             }
 
             val variableSymbol = generateUniqueVariableSymbol()
+            // Povýšení z pořadníku u akce zdarma nesmí skončit ve "čeká na platbu" —
+            // viz stejné rozhodnutí v createReservationFlow.
             val promoted = candidate.copy(
-                status = Reservation.Status.PENDING_PAYMENT,
+                status = if (candidate.isFree) Reservation.Status.CONFIRMED else Reservation.Status.PENDING_PAYMENT,
+                paymentType = if (candidate.isFree) PaymentInfo.Type.FREE else candidate.paymentType,
                 variableSymbol = variableSymbol,
             )
             reservationRepository.save(promoted)
@@ -325,6 +328,18 @@ open class ReservationService(
         val variableSymbol = generateUniqueVariableSymbol()
             ?: raise(ReservationError.SystemError("Unable to generate unique Variable Symbol"))
 
+        val totalPrice = calculateTotalPrice(
+            basePrice = pricePerSeat,
+            seatCount = requestData.seatCount,
+            customFields = target.customFields,
+            customValues = requestData.customValues,
+        )
+        // Akce zdarma nemá kam posílat platbu, takže rezervace vzniká rovnou
+        // potvrzená: jinak by detail nabízel QR kód na 0 Kč a admin přehled by ji
+        // vedl mezi nezaplacenými (Admin.kt), včetně zbytečného dotazování FIO
+        // (hasPendingReservations v repository/reservation/Database.kt).
+        val isFree = totalPrice <= 0.0
+
         val reservation = Reservation(
             id = Uuid.random(),
             reference = reference,
@@ -333,15 +348,10 @@ open class ReservationService(
             contactName = requestData.contactName,
             contactEmail = requestData.contactEmail,
             contactPhone = PhoneNumber.normalize(requestData.contactPhone) ?: requestData.contactPhone,
-            paymentType = requestData.paymentType,
+            paymentType = if (isFree) PaymentInfo.Type.FREE else requestData.paymentType,
             customValues = requestData.customValues,
-            totalPrice = calculateTotalPrice(
-                basePrice = pricePerSeat,
-                seatCount = requestData.seatCount,
-                customFields = target.customFields,
-                customValues = requestData.customValues,
-            ),
-            status = Reservation.Status.PENDING_PAYMENT,
+            totalPrice = totalPrice,
+            status = if (isFree) Reservation.Status.CONFIRMED else Reservation.Status.PENDING_PAYMENT,
             createdAt = Clock.System.now(),
             variableSymbol = variableSymbol,
             locale = requestData.locale,
