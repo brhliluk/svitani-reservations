@@ -58,6 +58,7 @@ fun IComponent.SeriesLessonsCard(
                                     lesson = lesson,
                                     isTogglingDropIn = togglingDropInId == lesson.id,
                                     onToggleDropIn = { onToggleDropIn(lesson) },
+                                    onOpenDetail = { router.navigate("/admin/events/instance/${lesson.id}") },
                                     onEdit = { router.navigate("/admin/events/instance/${lesson.id}/edit") },
                                     onCancel = { onCancelLesson(lesson) },
                                 )
@@ -75,6 +76,7 @@ private fun IComponent.LessonRow(
     lesson: EventInstance,
     isTogglingDropIn: Boolean,
     onToggleDropIn: () -> Unit,
+    onOpenDetail: () -> Unit,
     onEdit: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -106,6 +108,11 @@ private fun IComponent.LessonRow(
         }
         td(className = "text-right") {
             div(className = "flex justify-end gap-1") {
+                button(className = "btn btn-ghost btn-xs") {
+                    title(currentStrings.detail)
+                    span(className = "icon-[heroicons--eye] size-4")
+                    onClick { onOpenDetail() }
+                }
                 if (!lesson.isCancelled) {
                     button(className = "btn btn-ghost btn-xs") {
                         span(className = "icon-[heroicons--pencil] size-4")
