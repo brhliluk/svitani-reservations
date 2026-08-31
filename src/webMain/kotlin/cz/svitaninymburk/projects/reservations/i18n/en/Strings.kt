@@ -346,8 +346,8 @@ object EnStrings : AppStrings {
     override val lessonTimeLabel = "Lesson start time"
     override val lessonDayPlaceholder = "— Not selected —"
     override val lessonSchedule = "Schedule"
-    override fun lessonScheduleText(dayName: String, startTime: String, endTime: String) =
-        "every $dayName $startTime–$endTime"
+    override fun lessonScheduleText(dayIndex: Int, startTime: String, endTime: String) =
+        "every ${dayName(dayIndex)} $startTime–$endTime"
     override val autoFillAlert = "End date and lesson count were prefilled from the template. You can edit them."
     override val seriesOverrideHeading = "Edits for this course"
     override val seriesOverrideDescription = "Prefilled from template. Changes apply only to this course."

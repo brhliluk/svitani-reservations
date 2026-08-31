@@ -365,7 +365,8 @@ interface AppStrings : ErrorStrings {
     val lessonTimeLabel: String
     val lessonDayPlaceholder: String
     val lessonSchedule: String
-    fun lessonScheduleText(dayName: String, startTime: String, endTime: String): String
+    /** Popis rozvrhu lekcí. [dayIndex] je 0 = pondělí, aby si každý jazyk poradil se skloňováním sám. */
+    fun lessonScheduleText(dayIndex: Int, startTime: String, endTime: String): String
     val autoFillAlert: String
     val seriesOverrideHeading: String
     val seriesOverrideDescription: String

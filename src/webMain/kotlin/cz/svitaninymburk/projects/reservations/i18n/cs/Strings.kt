@@ -346,8 +346,8 @@ object CsStrings : AppStrings {
     override val lessonTimeLabel = "Čas začátku lekce"
     override val lessonDayPlaceholder = "— Nevybráno —"
     override val lessonSchedule = "Rozvrh"
-    override fun lessonScheduleText(dayName: String, startTime: String, endTime: String) =
-        "každou $dayName $startTime–$endTime"
+    override fun lessonScheduleText(dayIndex: Int, startTime: String, endTime: String) =
+        "${everyDay.getOrElse(dayIndex) { "" }} $startTime–$endTime".trim()
     override val autoFillAlert = "Datum konce a počet lekcí byly předvyplněny ze šablony. Můžete je upravit."
     override val seriesOverrideHeading = "Úpravy pro tento kurz"
     override val seriesOverrideDescription = "Předvyplněno ze šablony. Změny se projeví pouze u tohoto kurzu."
@@ -524,6 +524,11 @@ object CsStrings : AppStrings {
     )
     private val shortDays = listOf(
         "Po", "Út", "St", "Čt", "Pá", "So", "Ne"
+    )
+    /** Akuzativ se shodou v rodě — "každou středu", ne "každou středa". */
+    private val everyDay = listOf(
+        "každé pondělí", "každé úterý", "každou středu", "každý čtvrtek",
+        "každý pátek", "každou sobotu", "každou neděli"
     )
 
     override fun monthName(index: Int) = months.getOrElse(index) { "" }

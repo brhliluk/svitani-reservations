@@ -91,7 +91,7 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                         span(className = "icon-[heroicons--clock] size-5 text-primary/70")
                         span {
                             +currentStrings.lessonScheduleText(
-                                dayName = currentStrings.dayName(dow.ordinal),
+                                dayIndex = dow.ordinal,
                                 startTime = "${startT.hour}:${startT.minute.toString().padStart(2, '0')}",
                                 endTime = "${endT.hour}:${endT.minute.toString().padStart(2, '0')}",
                             )
