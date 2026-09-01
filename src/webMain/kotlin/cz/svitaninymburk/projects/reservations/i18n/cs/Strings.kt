@@ -457,6 +457,8 @@ object CsStrings : AppStrings {
     override val tooltipMarkPaid = "Označit jako zaplacené"
     override val buttonCollect = "Vybrat"
     override val tooltipCancelReservation = "Zrušit rezervaci"
+    override val fromSeriesBadge = "z kurzu"
+    override val tooltipOpenSeries = "Otevřít kurz"
     override val modalConfirmPaymentTitle = "Potvrdit platbu"
     override val modalCancelReservationTitle = "Zrušit rezervaci"
     override val modalConfirmPaymentMsgPre = "Opravdu chcete označit rezervaci pro účastníka "

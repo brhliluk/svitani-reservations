@@ -453,6 +453,8 @@ object EnStrings : AppStrings {
     override val tooltipMarkPaid = "Mark as paid"
     override val buttonCollect = "Collect"
     override val tooltipCancelReservation = "Cancel reservation"
+    override val fromSeriesBadge = "from course"
+    override val tooltipOpenSeries = "Open course"
     override val modalConfirmPaymentTitle = "Confirm payment"
     override val modalCancelReservationTitle = "Cancel reservation"
     override val modalConfirmPaymentMsgPre = "Do you really want to mark the reservation for participant "

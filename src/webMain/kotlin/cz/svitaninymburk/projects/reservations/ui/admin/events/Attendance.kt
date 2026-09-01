@@ -151,7 +151,15 @@ fun IComponent.AdminAttendanceScreen(eventId: String, isSeries: Boolean) {
 
                                                 // Screen: combined name + email + phone
                                                 td(className = "print:hidden") {
-                                                    div(className = "font-bold") { +participant.contactName }
+                                                    div(className = "flex items-center gap-2") {
+                                                        div(className = "font-bold") { +participant.contactName }
+                                                        if (participant.fromSeries) {
+                                                            div(className = "badge badge-secondary badge-outline badge-sm gap-1 whitespace-nowrap") {
+                                                                span(className = "icon-[heroicons--academic-cap] size-3")
+                                                                +currentStrings.fromSeriesBadge
+                                                            }
+                                                        }
+                                                    }
                                                     div(className = "text-xs text-base-content/50") {
                                                         val contact = listOfNotNull(participant.contactEmail, participant.contactPhone?.let { PhoneNumber.format(it) }).joinToString(" • ")
                                                         +contact

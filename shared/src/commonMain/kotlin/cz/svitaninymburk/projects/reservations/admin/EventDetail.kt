@@ -21,6 +21,8 @@ data class AdminEventDetailData(
     val waitlist: List<AdminParticipantRow> = emptyList(),
     val waitlistCapacity: Int = 0,
     val isCancelled: Boolean = false,
+    /** U lekce kurzu id té série — kvůli prokliku na kurz u řádků s [AdminParticipantRow.fromSeries]. */
+    val seriesId: Uuid? = null,
 )
 
 @Serializable
@@ -35,4 +37,9 @@ data class AdminParticipantRow(
     val paymentType: PaymentInfo.Type,
     val createdAt: Instant,
     val customValues: Map<String, CustomFieldValue>,
+    /**
+     * true = přihláška na celý kurz, která drží místo i na téhle lekci.
+     * Rezervace patří sérii, ne lekci — akce nad ní se dělají na detailu kurzu.
+     */
+    val fromSeries: Boolean = false,
 )

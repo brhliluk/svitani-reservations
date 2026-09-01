@@ -208,6 +208,7 @@ class AdminDashboardService(
         val waitlistCapacity: Int
         val customFields: List<CustomFieldDefinition>
         var isCancelled = false
+        var lessonSeriesId: Uuid? = null
 
         if (isSeries) {
             val series = ensureNotNull(eventSeriesRepository.get(eventId)) { AdminError.EventSeriesNotFound(eventId) }
@@ -227,6 +228,7 @@ class AdminDashboardService(
             waitlistCapacity = instance.waitlistCapacity
             customFields = instance.customFields
             isCancelled = instance.isCancelled
+            lessonSeriesId = instance.seriesId
         }
 
         val reference = if (isSeries) Reference.Series(eventId) else Reference.Instance(eventId)
@@ -251,10 +253,30 @@ class AdminDashboardService(
             customValues = res.customValues,
         )
 
-        val participants = activeReservations
+        val directParticipants = activeReservations
             .filter { it.status != Reservation.Status.WAITLISTED }
             .sortedBy { it.createdAt }
             .map { toRow(it) }
+
+        // Účastníci kurzu drží místo i na jednotlivé lekci (dopočítává to
+        // SeriesAwareEventInstanceRepository do occupiedSpots), ale rezervaci mají
+        // na sérii — bez tohohle doplnění by seznam neseděl na obsazenost v hlavičce.
+        // Kdo se z lekce omluvil, ten její kapacitu neukrajuje a do seznamu nepatří;
+        // stejné odečtení dělá SeriesLessonLoad nad tím samým čítačem.
+        val seriesParticipants = lessonSeriesId?.let { seriesId ->
+            val optedOutReservationIds = seriesLessonOptOutRepository.findByInstance(eventId)
+                .map { it.reservationId }
+                .toSet()
+            reservationRepository.findByReference(Reference.Series(seriesId))
+                .filter { it.status !in INACTIVE_RESERVATION_STATUSES }
+                .filter { it.id !in optedOutReservationIds }
+                .sortedBy { it.createdAt }
+                .map { toRow(it).copy(fromSeries = true) }
+        }.orEmpty()
+
+        // Přihlášky na kurz jdou za přímé rezervace, ne mezi ně — v tabulce i na
+        // vytištěné prezenčce tak drží pohromadě a je vidět, odkud se berou.
+        val participants = directParticipants + seriesParticipants
 
         val waitlist = activeReservations
             .filter { it.status == Reservation.Status.WAITLISTED }
@@ -273,6 +295,7 @@ class AdminDashboardService(
             waitlist = waitlist,
             waitlistCapacity = waitlistCapacity,
             isCancelled = isCancelled,
+            seriesId = lessonSeriesId,
         )
     }
 

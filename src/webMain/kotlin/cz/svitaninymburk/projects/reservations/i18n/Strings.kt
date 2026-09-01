@@ -470,6 +470,8 @@ interface AppStrings : ErrorStrings {
     val tooltipMarkPaid: String
     val buttonCollect: String
     val tooltipCancelReservation: String
+    val fromSeriesBadge: String
+    val tooltipOpenSeries: String
     val modalConfirmPaymentTitle: String
     val modalCancelReservationTitle: String
     val modalConfirmPaymentMsgPre: String

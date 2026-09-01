@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
@@ -93,6 +94,7 @@ fun IComponent.ParticipantsCard(
                             data.participants.forEach { participant ->
                                 ParticipantRow(
                                     participant = participant,
+                                    seriesId = data.seriesId,
                                     customFields = data.customFields,
                                     isExpanded = expandedId == participant.reservationId,
                                     onToggleExpanded = {
@@ -113,6 +115,7 @@ fun IComponent.ParticipantsCard(
 @Composable
 private fun IComponent.ParticipantRow(
     participant: AdminParticipantRow,
+    seriesId: Uuid?,
     customFields: List<CustomFieldDefinition>,
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
@@ -120,6 +123,7 @@ private fun IComponent.ParticipantRow(
     onCancelReservation: () -> Unit,
 ) {
     val currentStrings by strings
+    val router = Router.current
 
     // Určení vzhledu řádku podle stavu a typu platby
     val badge = reservationStatusBadge(participant.status, participant.paymentType, participant.totalPrice)
@@ -135,7 +139,15 @@ private fun IComponent.ParticipantRow(
             }
         }
         td {
-            div(className = "font-bold") { +participant.contactName }
+            div(className = "flex items-center gap-2") {
+                div(className = "font-bold") { +participant.contactName }
+                if (participant.fromSeries) {
+                    div(className = "badge badge-secondary badge-outline badge-sm gap-1 whitespace-nowrap") {
+                        span(className = "icon-[heroicons--academic-cap] size-3")
+                        +currentStrings.fromSeriesBadge
+                    }
+                }
+            }
             div(className = "text-xs text-base-content/50") {
                 +"${participant.contactEmail} • ${participant.contactPhone?.let { PhoneNumber.format(it) } ?: ""}"
             }
@@ -182,19 +194,31 @@ private fun IComponent.ParticipantRow(
         }
         td(className = "text-right") {
             div(className = "flex justify-end items-center gap-1") {
-                if (canBeMarkedAsPaid(badge)) {
-                    button(className = "btn btn-xs inline-flex items-center gap-1 tooltip tooltip-left ${if (isCash) "btn-outline btn-info" else "btn-ghost text-success"}") {
-                        attribute("data-tip", if (isCash) currentStrings.tooltipAcceptCash else currentStrings.tooltipMarkPaid)
-                        onClick { onConfirmPayment() }
-                        span(className = "icon-[heroicons--check-circle] size-5 flex-none")
-                        if (isCash) +currentStrings.buttonCollect
+                // Přihláška na kurz se platí i ruší jako celek, ne po lekcích —
+                // odsud vede jen proklik na detail kurzu, kde ty akce dávají smysl.
+                if (participant.fromSeries) {
+                    if (seriesId != null) {
+                        button(className = "btn btn-ghost btn-xs tooltip tooltip-left") {
+                            attribute("data-tip", currentStrings.tooltipOpenSeries)
+                            onClick { router.navigate("/admin/events/series/$seriesId") }
+                            span(className = "icon-[heroicons--arrow-top-right-on-square] size-5")
+                        }
                     }
-                }
+                } else {
+                    if (canBeMarkedAsPaid(badge)) {
+                        button(className = "btn btn-xs inline-flex items-center gap-1 tooltip tooltip-left ${if (isCash) "btn-outline btn-info" else "btn-ghost text-success"}") {
+                            attribute("data-tip", if (isCash) currentStrings.tooltipAcceptCash else currentStrings.tooltipMarkPaid)
+                            onClick { onConfirmPayment() }
+                            span(className = "icon-[heroicons--check-circle] size-5 flex-none")
+                            if (isCash) +currentStrings.buttonCollect
+                        }
+                    }
 
-                button(className = "btn btn-ghost btn-xs text-error tooltip tooltip-left") {
-                    attribute("data-tip", currentStrings.tooltipCancelReservation)
-                    onClick { onCancelReservation() }
-                    span(className = "icon-[heroicons--trash] size-5")
+                    button(className = "btn btn-ghost btn-xs text-error tooltip tooltip-left") {
+                        attribute("data-tip", currentStrings.tooltipCancelReservation)
+                        onClick { onCancelReservation() }
+                        span(className = "icon-[heroicons--trash] size-5")
+                    }
                 }
             }
         }
