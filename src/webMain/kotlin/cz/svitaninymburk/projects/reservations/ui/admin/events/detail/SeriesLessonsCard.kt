@@ -47,6 +47,7 @@ fun IComponent.SeriesLessonsCard(
                             tr {
                                 th { +currentStrings.tableHeaderDate }
                                 th { +currentStrings.tableHeaderTime }
+                                th { +currentStrings.occupancyStatTitle }
                                 th { +currentStrings.status }
                                 th { +currentStrings.lessonIndividualLabel }
                                 th(className = "text-right") { +currentStrings.tableHeaderActions }
@@ -85,6 +86,17 @@ private fun IComponent.LessonRow(
     tr {
         td(className = "font-medium") { +lesson.startDateTime.date.humanReadable }
         td { +"${lesson.startDateTime.hour}:${lesson.startDateTime.minute.toString().padStart(2, '0')} – ${lesson.endDateTime.hour}:${lesson.endDateTime.minute.toString().padStart(2, '0')}" }
+        td {
+            val isFull = lesson.occupiedSpots >= lesson.capacity
+            div(className = "flex items-center gap-2") {
+                span(className = if (isFull && !lesson.isCancelled) "text-error font-bold" else "") {
+                    +"${lesson.occupiedSpots} / ${lesson.capacity}"
+                }
+                if (isFull && !lesson.isCancelled) {
+                    div(className = "badge badge-error badge-xs") { +currentStrings.capacityFull }
+                }
+            }
+        }
         td {
             if (lesson.isCancelled) {
                 div(className = "badge badge-error badge-sm") { +currentStrings.lessonCancelledBadge }
