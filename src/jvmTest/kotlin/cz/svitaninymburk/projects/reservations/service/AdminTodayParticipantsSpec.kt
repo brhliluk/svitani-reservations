@@ -23,6 +23,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
+import cz.svitaninymburk.projects.reservations.testWaitlistPromoter
 
 /**
  * Počítadlo "dnešních účastníků" na nástěnce musí sedět s prezenčkou lekce:
@@ -61,6 +62,7 @@ class AdminTodayParticipantsSpec {
         ),
         seriesLessonOptOutRepository = optOutRepo,
         seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
+        waitlistPromoter = testWaitlistPromoter(instanceRepo, seriesRepo, reservationRepo),
     )
 
     private fun todayAt(hour: Int): LocalDateTime {

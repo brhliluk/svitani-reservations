@@ -74,6 +74,7 @@ class AdminDashboardService(
     private val refundService: RefundService,
     private val seriesLessonOptOutRepository: SeriesLessonOptOutRepository,
     private val seriesScheduleRefresher: SeriesScheduleRefresher,
+    private val waitlistPromoter: WaitlistPromoter,
 ): AdminServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -825,6 +826,12 @@ class AdminDashboardService(
             )
         )
 
+        // Zvednutá kapacita uvolní místa, na která se mají posunout náhradníci — jinak
+        // by v pořadníku zůstali svítit i u lekce, kde je volno.
+        if (request.capacity > existing.capacity) {
+            waitlistPromoter.promoteAfterCapacityIncrease(Reference.Instance(id))
+        }
+
         // Send reschedule notification if datetime changed and instance belongs to a series
         if (previousStartDateTime != request.startDateTime && existing.seriesId != null) {
             val seriesId = existing.seriesId!!
@@ -876,6 +883,12 @@ class AdminDashboardService(
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
             )
         )
+
+        // Kurz má vlastní pořadník (viz waitlist_capacity na event_series), takže zvednutá
+        // kapacita posune náhradníky stejně jako u jednorázové lekce.
+        if (request.capacity > existing.capacity) {
+            waitlistPromoter.promoteAfterCapacityIncrease(Reference.Series(id))
+        }
 
         // Změna ceny za lekci je vědomý zásah do celého kurzu: přepíše i lekce s ručně
         // upravenou cenou. Vyprázdnění pole vrátí lekce na cenu kurzu — přesně to slibuje

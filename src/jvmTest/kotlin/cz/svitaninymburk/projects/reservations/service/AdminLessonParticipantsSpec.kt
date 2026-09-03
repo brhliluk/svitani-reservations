@@ -23,6 +23,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
+import cz.svitaninymburk.projects.reservations.testWaitlistPromoter
 
 /**
  * Seznam účastníků lekce musí sedět s obsazeností nad ním: přihláška na kurz drží
@@ -63,6 +64,7 @@ class AdminLessonParticipantsSpec {
         ),
         seriesLessonOptOutRepository = optOutRepo,
         seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
+        waitlistPromoter = testWaitlistPromoter(instanceRepo, seriesRepo, reservationRepo),
     )
 
     private fun lesson(id: Uuid, series: Uuid?) = EventInstance(

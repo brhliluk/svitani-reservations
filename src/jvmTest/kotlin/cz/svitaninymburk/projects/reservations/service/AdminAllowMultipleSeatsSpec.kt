@@ -27,6 +27,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
 import kotlin.uuid.Uuid
+import cz.svitaninymburk.projects.reservations.testWaitlistPromoter
 
 /**
  * Admin nastavuje "povolit rezervaci více míst" na šabloně, kurzu i jednorázové akci —
@@ -62,6 +63,7 @@ class AdminAllowMultipleSeatsSpec {
             ),
             seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
             seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
+            waitlistPromoter = testWaitlistPromoter(instanceRepo, seriesRepo, InMemoryReservationRepository()),
         )
     }
 

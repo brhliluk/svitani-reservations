@@ -24,6 +24,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
+import cz.svitaninymburk.projects.reservations.testWaitlistPromoter
 
 class AdminCancelTest {
 
@@ -53,6 +54,7 @@ class AdminCancelTest {
         ),
         seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
         seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
+        waitlistPromoter = testWaitlistPromoter(instanceRepo, seriesRepo, reservationRepo),
     )
 
     private fun futureInstance(seriesId: Uuid? = null) = EventInstance(

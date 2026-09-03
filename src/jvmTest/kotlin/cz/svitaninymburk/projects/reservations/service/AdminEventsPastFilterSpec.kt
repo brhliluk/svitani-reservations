@@ -23,6 +23,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
 import kotlin.uuid.Uuid
+import cz.svitaninymburk.projects.reservations.testWaitlistPromoter
 
 class AdminEventsPastFilterSpec {
 
@@ -51,6 +52,7 @@ class AdminEventsPastFilterSpec {
         ),
         seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
         seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
+        waitlistPromoter = testWaitlistPromoter(instanceRepo, seriesRepo, InMemoryReservationRepository()),
     )
 
     private fun definition(id: Uuid, title: String = "Def") = EventDefinition(

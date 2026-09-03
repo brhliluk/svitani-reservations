@@ -19,6 +19,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
+import cz.svitaninymburk.projects.reservations.testWaitlistPromoter
 
 class AdminPublishToggleSpec {
 
@@ -46,6 +47,7 @@ class AdminPublishToggleSpec {
         ),
         seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
         seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
+        waitlistPromoter = testWaitlistPromoter(instanceRepo, seriesRepo, InMemoryReservationRepository()),
     )
 
     @Test

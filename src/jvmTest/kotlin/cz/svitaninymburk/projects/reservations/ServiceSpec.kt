@@ -107,6 +107,7 @@ class AdminEditDeleteSpec {
             refundService = refundService,
             seriesLessonOptOutRepository = optOutRepo,
             seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
+            waitlistPromoter = testWaitlistPromoter(instanceRepo, seriesRepo, reservationRepo),
         )
     }
 
@@ -1419,6 +1420,7 @@ class PaymentEventSpec {
             refundService = stubRefundService(),
             seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
             seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
+            waitlistPromoter = testWaitlistPromoter(instanceRepo, seriesRepo, reservationRepo),
         )
 
         val result = service.markReservationAsPaid(reservation.id)
@@ -1452,6 +1454,7 @@ class PaymentEventSpec {
             refundService = stubRefundService(),
             seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
             seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
+            waitlistPromoter = testWaitlistPromoter(instanceRepo, seriesRepo, InMemoryReservationRepository()),
         )
 
         val result = service.getPaymentEvents(page = 0, pageSize = 10)
@@ -1486,6 +1489,7 @@ class PaymentEventSpec {
             refundService = stubRefundService(),
             seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
             seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
+            waitlistPromoter = testWaitlistPromoter(instanceRepo, seriesRepo, InMemoryReservationRepository()),
         )
 
         val page0 = service.getPaymentEvents(page = 0, pageSize = 3)
@@ -1518,6 +1522,7 @@ class PaginationSpec {
         refundService = stubRefundService(),
         seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
         seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
+        waitlistPromoter = testWaitlistPromoter(instanceRepo, seriesRepo, reservationRepo),
     )
 
     private fun makeDefinition(title: String = "Def", id: Uuid = Uuid.random()) = EventDefinition(
