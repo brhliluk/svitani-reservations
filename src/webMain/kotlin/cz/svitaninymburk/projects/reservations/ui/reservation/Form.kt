@@ -431,9 +431,15 @@ fun IComponent.ReservationModal(
                 }
             }
 
+            // Backdrop musí být během odesílání zamčený stejně jako Zrušit/Zavřít —
+            // jinak klik mimo modal odmountuje spinner, request běží dál neviditelně
+            // a uživatel si myslí, že se nic nestalo.
             div(className = "modal-backdrop") {
-                onClick { onClose() }
-                button { +currentStrings.close }
+                onClick { if (!isSubmitting) onClose() }
+                button {
+                    disabled(isSubmitting)
+                    +currentStrings.close
+                }
             }
         }
     }

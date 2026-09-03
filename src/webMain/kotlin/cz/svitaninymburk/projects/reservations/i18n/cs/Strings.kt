@@ -102,6 +102,9 @@ object CsStrings : AppStrings {
 
     // Reservation errors
     override val reservationFailed: (String) -> String = { "Rezervace se nezdařila: $it" }
+    override val reservationOutcomeUnknown =
+        "Spojení se serverem se přerušilo, takže nevíme, jestli rezervace prošla. " +
+            "Zkontrolujte si prosím e-mail nebo Moje rezervace, než to zkusíte znovu."
 
     // Auth messages
     override val registrationSuccess = "Registrace úspěšná! Potvrzení jsme poslali na váš email."

@@ -29,6 +29,8 @@ import dev.kilua.html.button
 import dev.kilua.html.div
 import dev.kilua.html.span
 import dev.kilua.rpc.getService
+import web.console.console
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
 
@@ -75,30 +77,41 @@ fun IComponent.EventPreviewScreen(eventId: String, isSeries: Boolean, currentUse
         }
     }
 
+    // Reset ve finally — viz DashboardScreen.submitReservation: Kilua RPC při chybě
+    // vyhazuje výjimku, takže `isSubmitting = false` po suspend volání je nedosažitelné
+    // a spinner by zůstal viset navždy.
     suspend fun submitReservation(target: ReservationTarget, formData: ReservationFormData) {
         isSubmitting = true
-        val result = when {
-            formData.asWaitlist && target is ReservationTarget.Instance -> reservationService.joinWaitlistInstance(
-                request = formData.toCreateInstanceReservationRequest(target.id),
-                userId = currentUser.id
-            )
-            formData.asWaitlist && target is ReservationTarget.Series -> reservationService.joinWaitlistSeries(
-                request = formData.toCreateSeriesReservationRequest(target.id),
-                userId = currentUser.id
-            )
-            target is ReservationTarget.Instance -> reservationService.reserveInstance(
-                request = formData.toCreateInstanceReservationRequest(target.id),
-                userId = currentUser.id
-            )
-            else -> reservationService.reserveSeries(
-                request = formData.toCreateSeriesReservationRequest((target as ReservationTarget.Series).id),
-                userId = currentUser.id
-            )
+        try {
+            val result = when {
+                formData.asWaitlist && target is ReservationTarget.Instance -> reservationService.joinWaitlistInstance(
+                    request = formData.toCreateInstanceReservationRequest(target.id),
+                    userId = currentUser.id
+                )
+                formData.asWaitlist && target is ReservationTarget.Series -> reservationService.joinWaitlistSeries(
+                    request = formData.toCreateSeriesReservationRequest(target.id),
+                    userId = currentUser.id
+                )
+                target is ReservationTarget.Instance -> reservationService.reserveInstance(
+                    request = formData.toCreateInstanceReservationRequest(target.id),
+                    userId = currentUser.id
+                )
+                else -> reservationService.reserveSeries(
+                    request = formData.toCreateSeriesReservationRequest((target as ReservationTarget.Series).id),
+                    userId = currentUser.id
+                )
+            }
+            result
+                .onRight { reservation -> router.navigate("/reservation/${reservation.id}") }
+                .onLeft { error -> toastMessage = error.localizedMessage(currentStrings) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            console.error("Reservation submit failed: ${e.message}")
+            toastMessage = currentStrings.reservationOutcomeUnknown
+        } finally {
+            isSubmitting = false
         }
-        isSubmitting = false
-        result
-            .onRight { reservation -> router.navigate("/reservation/${reservation.id}") }
-            .onLeft { error -> toastMessage = error.localizedMessage(currentStrings) }
     }
 
     div(className = "min-h-screen bg-base-200 flex flex-col") {

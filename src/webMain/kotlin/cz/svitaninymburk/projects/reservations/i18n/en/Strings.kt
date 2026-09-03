@@ -102,6 +102,9 @@ object EnStrings : AppStrings {
 
     // Reservation errors
     override val reservationFailed: (String) -> String = { "Reservation failed: $it" }
+    override val reservationOutcomeUnknown =
+        "The connection was interrupted, so we don't know whether your reservation went through. " +
+            "Please check your email or My reservations before trying again."
 
     // Auth messages
     override val registrationSuccess = "Registration successful! We sent a confirmation to your email."

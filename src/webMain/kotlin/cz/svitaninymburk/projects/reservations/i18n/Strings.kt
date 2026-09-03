@@ -122,6 +122,10 @@ interface AppStrings : ErrorStrings {
     // Reservation errors
     val reservationFailed: (String) -> String
 
+    // Spojení se přerušilo po odeslání — rezervace mohla vzniknout i nevzniknout.
+    // Nesmí tvrdit, že selhala, jinak uživatel odešle znovu a vznikne duplicita.
+    val reservationOutcomeUnknown: String
+
     // Auth messages
     val registrationSuccess: String
     val forgotPasswordEmailSent: String

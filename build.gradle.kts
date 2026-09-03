@@ -90,6 +90,7 @@ kotlin {
                 implementation(libs.kilua.ssr.server)
                 implementation(libs.ktor.server.netty)
                 implementation(libs.ktor.server.compression)
+                implementation(libs.ktor.server.callLogging)
                 implementation(libs.ktor.server.contentNegotiation)
                 implementation(libs.ktor.contentNegotiation.json)
                 implementation(libs.ktor.server.auth)

@@ -67,7 +67,7 @@ class GmailEmailService(
         bankAccount: String,
         qrCodeImage: ByteArray?,
         icalBytes: ByteArray,
-    ): Either<EmailError.SendReservationConfirmation, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendReservationConfirmation, Unit> = either { withContext(Dispatchers.IO) { catch({
         val email = setupEmail()
         val s = emailStringsFor(reservation.locale)
 
@@ -117,12 +117,12 @@ class GmailEmailService(
         email.setHtmlMsg(htmlMessage)
         email.setTextMsg(s.reservationHtmlFallback)
 
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendReservationConfirmationFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendReservationConfirmationFailed(e.fullMessage()))
+    } } }
 
-    override suspend fun sendCancellationNotice(toEmail: String, eventTitle: String, reservationId: kotlin.uuid.Uuid, locale: String): Either<EmailError.SendCancellation, Unit> = either { withContext(Dispatchers.IO) {
+    override suspend fun sendCancellationNotice(toEmail: String, eventTitle: String, reservationId: kotlin.uuid.Uuid, locale: String): Either<EmailError.SendCancellation, Unit> = either { withContext(Dispatchers.IO) { catch({
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(toEmail)
@@ -135,12 +135,12 @@ class GmailEmailService(
         } } })
         email.setTextMsg(s.cancellationBody(eventTitle) + "\n" + s.reservationViewLink(url))
 
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendCancellationFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendCancellationFailed(e.fullMessage()))
+    } } }
 
-    override suspend fun sendPaymentReceivedConfirmation(reservation: Reservation): Either<EmailError.SendPaymentConfirmation, Unit> = either { withContext(Dispatchers.IO) {
+    override suspend fun sendPaymentReceivedConfirmation(reservation: Reservation): Either<EmailError.SendPaymentConfirmation, Unit> = either { withContext(Dispatchers.IO) { catch({
         val s = emailStringsFor(reservation.locale)
         val email = setupEmail()
         email.addTo(reservation.contactEmail)
@@ -155,17 +155,17 @@ class GmailEmailService(
         } } })
         email.setTextMsg(s.paymentReceivedBody(event?.title) + "\n" + s.reservationViewLink(url))
 
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendPaymentConfirmationFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendPaymentConfirmationFailed(e.fullMessage()))
+    } } }
 
     override suspend fun sendPaymentNotPaidInFull(
         reservation: Reservation,
         paymentInfo: BankTransaction,
         bankAccount: String,
         qrCodeImage: ByteArray,
-    ): Either<EmailError.SendPaymentNotPaidInFull, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendPaymentNotPaidInFull, Unit> = either { withContext(Dispatchers.IO) { catch({
         val s = emailStringsFor(reservation.locale)
         val email = setupEmail()
         email.addTo(reservation.contactEmail)
@@ -192,12 +192,12 @@ class GmailEmailService(
             p { +s.reservationViewLink("$appBaseUrl/reservation/${reservation.id}") }
         } } })
 
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendPaymentNotPaidInFullFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendPaymentNotPaidInFullFailed(e.fullMessage()))
+    } } }
 
-    override suspend fun sendPasswordResetEmail(toEmail: String, resetToken: String): Either<EmailError.SendPasswordReset, Unit> = either {
+    override suspend fun sendPasswordResetEmail(toEmail: String, resetToken: String): Either<EmailError.SendPasswordReset, Unit> = either { withContext(Dispatchers.IO) { catch({
         val s = emailStringsFor("cs") // TODO: pass locale when interface supports it
         val email = setupEmail()
         email.addTo(toEmail)
@@ -213,10 +213,10 @@ class GmailEmailService(
             }
         } } })
 
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendPasswordResetFailed(e.fullMessage()))
-        }
-    }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendPasswordResetFailed(e.fullMessage()))
+    } } }
 
     override suspend fun sendLessonRescheduledNotification(
         toEmail: String,
@@ -225,16 +225,16 @@ class GmailEmailService(
         oldDateTime: LocalDateTime,
         newDateTime: LocalDateTime,
         locale: String,
-    ): Either<EmailError.SendLessonRescheduled, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendLessonRescheduled, Unit> = either { withContext(Dispatchers.IO) { catch({
         val email = setupEmail()
         val s = emailStringsFor(locale)
         email.addTo(toEmail)
         email.subject = s.lessonRescheduledSubject(seriesTitle)
         email.setTextMsg(s.lessonRescheduledBody(contactName, seriesTitle, oldDateTime.humanReadable, newDateTime.humanReadable))
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendLessonRescheduledFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendLessonRescheduledFailed(e.fullMessage()))
+    } } }
 
     override suspend fun sendLessonCancelledNotification(
         toEmail: String,
@@ -242,16 +242,16 @@ class GmailEmailService(
         seriesTitle: String,
         lessonDateTime: LocalDateTime,
         locale: String,
-    ): Either<EmailError.SendLessonCancelled, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendLessonCancelled, Unit> = either { withContext(Dispatchers.IO) { catch({
         val email = setupEmail()
         val s = emailStringsFor(locale)
         email.addTo(toEmail)
         email.subject = s.lessonCancelledSubject(seriesTitle)
         email.setTextMsg(s.lessonCancelledBody(contactName, seriesTitle, lessonDateTime.humanReadable))
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendLessonCancelledFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendLessonCancelledFailed(e.fullMessage()))
+    } } }
 
     override suspend fun sendLectorReservationNotification(
         lectorEmail: String,
@@ -263,17 +263,17 @@ class GmailEmailService(
         occupiedSpots: Int,
         capacity: Int,
         locale: String,
-    ): Either<EmailError.SendLectorReservation, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendLectorReservation, Unit> = either { withContext(Dispatchers.IO) { catch({
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(lectorEmail)
         email.subject = s.lectorReservationSubject(eventTitle)
         val formattedPhone = contactPhone?.let { PhoneNumber.format(it) }
         email.setTextMsg(s.lectorReservationBody(contactName, contactEmail, formattedPhone, seatCount, eventTitle, occupiedSpots, capacity))
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendLectorReservationFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendLectorReservationFailed(e.fullMessage()))
+    } } }
 
     override suspend fun sendLectorCancellationNotification(
         lectorEmail: String,
@@ -283,16 +283,16 @@ class GmailEmailService(
         occupiedSpots: Int,
         capacity: Int,
         locale: String,
-    ): Either<EmailError.SendLectorCancellation, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendLectorCancellation, Unit> = either { withContext(Dispatchers.IO) { catch({
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(lectorEmail)
         email.subject = s.lectorCancellationSubject(eventTitle)
         email.setTextMsg(s.lectorCancellationBody(contactName, eventTitle, seatCount, occupiedSpots, capacity))
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendLectorCancellationFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendLectorCancellationFailed(e.fullMessage()))
+    } } }
 
     override suspend fun sendLessonOptOutNotice(
         toEmail: String,
@@ -300,16 +300,16 @@ class GmailEmailService(
         lessonDate: kotlinx.datetime.LocalDate,
         isLateCancellation: Boolean,
         locale: String,
-    ): Either<EmailError.SendCancellation, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendCancellation, Unit> = either { withContext(Dispatchers.IO) { catch({
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(toEmail)
         email.subject = s.lessonOptOutSubject(eventTitle)
         email.setTextMsg(s.lessonOptOutBody(eventTitle, lessonDate, isLateCancellation))
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendCancellationFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendCancellationFailed(e.fullMessage()))
+    } } }
 
     override suspend fun sendLectorLessonOptOutNotification(
         lectorEmail: String,
@@ -318,16 +318,16 @@ class GmailEmailService(
         lessonDate: kotlinx.datetime.LocalDate,
         isLateCancellation: Boolean,
         locale: String,
-    ): Either<EmailError.SendLectorCancellation, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendLectorCancellation, Unit> = either { withContext(Dispatchers.IO) { catch({
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(lectorEmail)
         email.subject = s.lectorLessonOptOutSubject(eventTitle)
         email.setTextMsg(s.lectorLessonOptOutBody(contactName, eventTitle, lessonDate, isLateCancellation))
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendLectorCancellationFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendLectorCancellationFailed(e.fullMessage()))
+    } } }
 
     override suspend fun sendWalletCredited(
         toEmail: String,
@@ -337,7 +337,7 @@ class GmailEmailService(
         resetMonth: Int,
         resetDay: Int,
         locale: String,
-    ): Either<EmailError.SendWallet, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendWallet, Unit> = either { withContext(Dispatchers.IO) { catch({
         val strings = emailStringsFor(locale)
         val resetDate = "%02d. %02d.".format(resetDay, resetMonth)
         val walletLink = "$appBaseUrl/wallet/$walletCode"
@@ -345,10 +345,10 @@ class GmailEmailService(
         email.addTo(toEmail)
         email.subject = strings.walletCreditedSubject("%.0f".format(creditedAmount))
         email.setHtmlMsg(strings.walletCreditedBody(walletCode, "%.0f".format(creditedAmount), "%.0f".format(newBalance), resetDate, walletLink))
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendWalletFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendWalletFailed(e.fullMessage()))
+    } } }
 
     override suspend fun sendWalletApplied(
         toEmail: String,
@@ -356,17 +356,17 @@ class GmailEmailService(
         deductedAmount: Double,
         remainingBalance: Double,
         locale: String,
-    ): Either<EmailError.SendWallet, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendWallet, Unit> = either { withContext(Dispatchers.IO) { catch({
         val strings = emailStringsFor(locale)
         val walletLink = "$appBaseUrl/wallet/$walletCode"
         val email = setupEmail()
         email.addTo(toEmail)
         email.subject = strings.walletAppliedSubject()
         email.setHtmlMsg(strings.walletAppliedBody(walletCode, "%.0f".format(deductedAmount), "%.0f".format(remainingBalance), walletLink))
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendWalletFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendWalletFailed(e.fullMessage()))
+    } } }
 
     override suspend fun sendWalletResetWarning(
         toEmail: String,
@@ -375,7 +375,7 @@ class GmailEmailService(
         resetMonth: Int,
         resetDay: Int,
         locale: String,
-    ): Either<EmailError.SendWallet, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendWallet, Unit> = either { withContext(Dispatchers.IO) { catch({
         val strings = emailStringsFor(locale)
         val resetDate = "%02d. %02d.".format(resetDay, resetMonth)
         val walletLink = "$appBaseUrl/wallet/$walletCode"
@@ -383,10 +383,10 @@ class GmailEmailService(
         email.addTo(toEmail)
         email.subject = strings.walletResetWarningSubject(resetDate)
         email.setHtmlMsg(strings.walletResetWarningBody("%.0f".format(currentBalance), walletCode, resetDate, walletLink))
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendWalletFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendWalletFailed(e.fullMessage()))
+    } } }
 
     override suspend fun sendWaitlistConfirmation(
         toEmail: String,
@@ -394,7 +394,7 @@ class GmailEmailService(
         contactName: String,
         reservationId: Uuid,
         locale: String,
-    ): Either<EmailError.SendWaitlistConfirmation, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendWaitlistConfirmation, Unit> = either { withContext(Dispatchers.IO) { catch({
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(toEmail)
@@ -406,10 +406,10 @@ class GmailEmailService(
             p { +s.reservationViewLink(url) }
         } } })
         email.setTextMsg(s.waitlistConfirmationBody(eventTitle, contactName) + "\n" + s.reservationViewLink(url))
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendWaitlistConfirmationFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendWaitlistConfirmationFailed(e.fullMessage()))
+    } } }
 
     override suspend fun sendWaitlistPromotion(
         toEmail: String,
@@ -418,7 +418,7 @@ class GmailEmailService(
         bankAccount: String,
         qrCodeImage: ByteArray?,
         icalBytes: ByteArray,
-    ): Either<EmailError.SendWaitlistPromotion, Unit> = either { withContext(Dispatchers.IO) {
+    ): Either<EmailError.SendWaitlistPromotion, Unit> = either { withContext(Dispatchers.IO) { catch({
         val email = setupEmail()
         val s = emailStringsFor(reservation.locale)
         email.addTo(toEmail)
@@ -453,10 +453,10 @@ class GmailEmailService(
         } } }
         email.setHtmlMsg(htmlMessage)
         email.setTextMsg(s.reservationHtmlFallback)
-        catch({ email.send() }) { e: EmailException ->
-            raise(EmailError.SendWaitlistPromotionFailed(e.fullMessage()))
-        }
-    } }
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendWaitlistPromotionFailed(e.fullMessage()))
+    } } }
 }
 
 class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService {
