@@ -558,6 +558,32 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
         rows.map { it.toEventInstance(emailsMap[it[EventInstancesTable.id]] ?: emptyList()) }
     }
 
+    private fun scheduledPredicate(from: LocalDateTime?, until: LocalDateTime?): Op<Boolean> {
+        var predicate: Op<Boolean> =
+            (EventInstancesTable.isPublished eq true) and (EventInstancesTable.isCancelled eq false)
+        if (from != null) predicate = predicate and (EventInstancesTable.endDateTime greaterEq from)
+        if (until != null) predicate = predicate and (EventInstancesTable.endDateTime less until)
+        return predicate
+    }
+
+    override suspend fun findScheduledPaged(from: LocalDateTime?, page: Int, pageSize: Int): List<EventInstance> = dbQuery {
+        val rows = EventInstancesTable.selectAll()
+            .where { scheduledPredicate(from, null) }
+            .orderBy(EventInstancesTable.startDateTime, SortOrder.ASC)
+            .limit(pageSize)
+            .offset(page.toLong() * pageSize)
+            .toList()
+        val ids = rows.map { it[EventInstancesTable.id] }
+        val emailsMap = getOwnerEmailsMap(EntityType.INSTANCE, ids)
+        rows.map { it.toEventInstance(emailsMap[it[EventInstancesTable.id]] ?: emptyList()) }
+    }
+
+    override suspend fun countScheduled(from: LocalDateTime?, until: LocalDateTime?): Long = dbQuery {
+        EventInstancesTable.selectAll()
+            .where { scheduledPredicate(from, until) }
+            .count()
+    }
+
     override suspend fun findBySeries(seriesId: Uuid): List<EventInstance> = dbQuery {
         val rows = EventInstancesTable.selectAll()
             .where { EventInstancesTable.seriesId eq seriesId }

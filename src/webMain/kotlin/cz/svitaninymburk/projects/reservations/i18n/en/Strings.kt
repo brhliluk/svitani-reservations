@@ -162,6 +162,7 @@ object EnStrings : AppStrings {
     override val dashboardFreeSpotsDesc = "In events this week"
     override val dashboardUpcomingEvents = "Upcoming events"
     override val dashboardNoUpcomingEvents = "No upcoming events."
+    override val dashboardShowAllEvents = "Show all"
     override val dashboardPendingReservations = "Recent unpaid reservations"
     override val dashboardAllPaid = "All reservations are paid!"
 
@@ -179,6 +180,10 @@ object EnStrings : AppStrings {
     // Admin Layout / Sidebar
     override val adminPanel = "Admin Panel"
     override val adminNavTitle = "Administration"
+    override val navSchedule = "Schedule"
+    override val adminScheduleSubtitle = "All events and course lessons in chronological order"
+    override val scheduleEmpty = "No events to show."
+    override val tableHeaderType = "Type"
     override val navEvents = "Events & Courses"
     override val navReservations = "Reservations"
     override val navUsers = "Users"

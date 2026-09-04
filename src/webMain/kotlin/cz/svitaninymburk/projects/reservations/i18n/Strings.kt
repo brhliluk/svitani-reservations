@@ -182,6 +182,7 @@ interface AppStrings : ErrorStrings {
     val dashboardFreeSpotsDesc: String
     val dashboardUpcomingEvents: String
     val dashboardNoUpcomingEvents: String
+    val dashboardShowAllEvents: String
     val dashboardPendingReservations: String
     val dashboardAllPaid: String
 
@@ -199,6 +200,10 @@ interface AppStrings : ErrorStrings {
     // Admin Layout / Sidebar
     val adminPanel: String
     val adminNavTitle: String
+    val navSchedule: String
+    val adminScheduleSubtitle: String
+    val scheduleEmpty: String
+    val tableHeaderType: String
     val navEvents: String
     val navReservations: String
     val navUsers: String

@@ -16,6 +16,7 @@ import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.error.AdminError
 import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
 import cz.svitaninymburk.projects.reservations.admin.EventsPage
+import cz.svitaninymburk.projects.reservations.admin.SchedulePage
 import cz.svitaninymburk.projects.reservations.admin.SeriesInstancesPage
 import cz.svitaninymburk.projects.reservations.admin.PaymentEventsPage
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
@@ -25,6 +26,7 @@ import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
 import cz.svitaninymburk.projects.reservations.admin.AdminPendingReservation
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
+import cz.svitaninymburk.projects.reservations.admin.AdminScheduleItem
 import cz.svitaninymburk.projects.reservations.admin.AdminUpcomingEvent
 import cz.svitaninymburk.projects.reservations.admin.AdminUserListItem
 import cz.svitaninymburk.projects.reservations.event.AddSeriesLessonRequest
@@ -452,6 +454,45 @@ class AdminDashboardService(
         } catch (e: Exception) {
             e.printStackTrace()
             raise(AdminError.FailedToGetEvents("Nepodařilo se načíst katalog událostí: ${e.message}"))
+        }
+    }
+
+    override suspend fun getSchedule(page: Int, pageSize: Int, includePast: Boolean): Either<AdminError.GetSchedule, SchedulePage> = either {
+        ensure(page >= 0) { AdminError.FailedToGetSchedule("Neplatná stránka.") }
+        ensure(pageSize in 1..200) { AdminError.FailedToGetSchedule("Neplatná velikost stránky.") }
+        try {
+            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            // Bez minulosti se okno posouvá podle konce termínu, aby právě probíhající
+            // akce ze seznamu nadcházejících nezmizela.
+            val from = if (includePast) null else now
+
+            val (totalCount, pastCount, rows) = parZip(
+                { eventInstanceRepository.countScheduled(from = from) },
+                { eventInstanceRepository.countScheduled(until = now) },
+                { eventInstanceRepository.findScheduledPaged(from, page, pageSize) },
+            ) { total, past, items -> Triple(total, past, items) }
+
+            SchedulePage(
+                items = rows.map { instance ->
+                    AdminScheduleItem(
+                        id = instance.id,
+                        title = instance.title,
+                        startDateTime = instance.startDateTime,
+                        endDateTime = instance.endDateTime,
+                        seriesId = instance.seriesId,
+                        capacity = instance.capacity,
+                        occupiedSpots = instance.occupiedSpots,
+                        isPast = instance.endDateTime < now,
+                    )
+                },
+                page = page,
+                pageSize = pageSize,
+                totalCount = totalCount,
+                pastCount = pastCount,
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            raise(AdminError.FailedToGetSchedule("Nepodařilo se načíst rozvrh: ${e.message}"))
         }
     }
 

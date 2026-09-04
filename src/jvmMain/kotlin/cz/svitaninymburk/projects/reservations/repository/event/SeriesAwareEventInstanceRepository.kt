@@ -64,6 +64,9 @@ class SeriesAwareEventInstanceRepository(
     override suspend fun findBySeries(seriesId: Uuid): List<EventInstance> =
         enrich(delegate.findBySeries(seriesId))
 
+    override suspend fun findScheduledPaged(from: LocalDateTime?, page: Int, pageSize: Int): List<EventInstance> =
+        enrich(delegate.findScheduledPaged(from, page, pageSize))
+
     // --- zápis ---
 
     override suspend fun create(instance: EventInstance): EventInstance =
@@ -90,6 +93,9 @@ class SeriesAwareEventInstanceRepository(
         delegate.deleteAllByDefinitionId(definitionId)
 
     override suspend fun countBySeries(seriesId: Uuid): Long = delegate.countBySeries(seriesId)
+
+    override suspend fun countScheduled(from: LocalDateTime?, until: LocalDateTime?): Long =
+        delegate.countScheduled(from, until)
 
     override suspend fun setCancelled(id: Uuid) = delegate.setCancelled(id)
 

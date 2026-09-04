@@ -12,6 +12,7 @@ import kotlin.uuid.Uuid
     @Serializable @SerialName("event_detail") sealed interface GetEventDetail : AdminError
     @Serializable @SerialName("reservations") sealed interface GetReservations : AdminError
     @Serializable @SerialName("events") sealed interface GetEvents : AdminError
+    @Serializable @SerialName("schedule") sealed interface GetSchedule : AdminError
     @Serializable @SerialName("create_event") sealed interface CreateEvent : AdminError
     @Serializable @SerialName("create_series") sealed interface CreateSeries : AdminError
     @Serializable @SerialName("get_users") sealed interface GetUsers : AdminError
@@ -34,6 +35,7 @@ import kotlin.uuid.Uuid
     @Serializable data class FailedToMarkReservationPaid(val message: String) : MarkReservationPaid
     @Serializable data class FailedToGetReservations(val message: String) : GetReservations
     @Serializable data class FailedToGetEvents(val message: String) : GetEvents
+    @Serializable data class FailedToGetSchedule(val message: String) : GetSchedule
     @Serializable data class FailedToCreateEvent(val message: String) : CreateEvent
     @Serializable data class FailedToCreateSeries(val message: String) : CreateSeries
     @Serializable data class ReservationNotFound(val id: Uuid): MarkReservationPaid
@@ -81,6 +83,7 @@ fun AdminError.localizedMessage(strings: ErrorStrings): String = when (this) {
     is AdminError.FailedToMarkReservationPaid -> message
     is AdminError.FailedToGetReservations -> message
     is AdminError.FailedToGetEvents -> message
+    is AdminError.FailedToGetSchedule -> message
     is AdminError.FailedToCreateEvent -> message
     is AdminError.FailedToCreateSeries -> message
     is AdminError.ReservationNotFound -> strings.errorAdminReservationNotFound

@@ -89,7 +89,14 @@ fun IComponent.AdminDashboardScreen() {
                     // LEVÝ SLOUPEC: Události
                     div(className = "card bg-base-100 shadow-sm") {
                         div(className = "card-body p-6") {
-                            h2(className = "card-title text-lg mb-4") { +currentStrings.dashboardUpcomingEvents }
+                            div(className = "flex items-center justify-between mb-4") {
+                                h2(className = "card-title text-lg") { +currentStrings.dashboardUpcomingEvents }
+                                button(className = "btn btn-ghost btn-xs gap-1 text-primary") {
+                                    onClick { router.navigate("/admin/schedule") }
+                                    +currentStrings.dashboardShowAllEvents
+                                    span(className = "icon-[heroicons--arrow-right] size-3")
+                                }
+                            }
                             div(className = "flex flex-col gap-4") {
                                 if (data.upcomingEvents.isEmpty()) {
                                     p(className = "text-sm text-base-content/50 italic") { +currentStrings.dashboardNoUpcomingEvents }

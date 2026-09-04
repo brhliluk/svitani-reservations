@@ -29,6 +29,15 @@ interface EventInstanceRepository {
 
     suspend fun findByDateRange(from: LocalDateTime, to: LocalDateTime): List<EventInstance>
 
+    /**
+     * Chronologický výpis zveřejněných nezrušených termínů, ASC podle `startDateTime`.
+     *
+     * `from`/`until` se porovnávají proti `endDateTime`, aby právě probíhající akce
+     * ještě patřila mezi nadcházející.
+     */
+    suspend fun findScheduledPaged(from: LocalDateTime?, page: Int, pageSize: Int): List<EventInstance>
+    suspend fun countScheduled(from: LocalDateTime? = null, until: LocalDateTime? = null): Long
+
     suspend fun incrementOccupiedSpots(instanceId: Uuid, amount: Int): Int?
     suspend fun decrementOccupiedSpots(instanceId: Uuid, amount: Int): Int?
 

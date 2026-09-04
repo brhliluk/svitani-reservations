@@ -26,6 +26,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.AdminEventCreateC
 import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.AdminEventDetailScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.events.EventPreviewScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AdminEventsScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.schedule.AdminScheduleScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.payments.AdminPaymentsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.AdminReservationsScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.settings.AdminSettingsScreen
@@ -111,6 +112,13 @@ fun IComponent.MainLayout() {
                 view {
                     AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                         AdminDashboardScreen()
+                    }
+                }
+                route("/schedule") {
+                    view {
+                        AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                            AdminScheduleScreen()
+                        }
                     }
                 }
                 route("/events") {

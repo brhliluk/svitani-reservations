@@ -113,6 +113,19 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
         return instances.values.filter { instance -> instance.startDateTime in from..to }.toList()
     }
 
+    private fun scheduled(from: LocalDateTime?, until: LocalDateTime?): List<EventInstance> =
+        instances.values
+            .filter { it.isPublished && !it.isCancelled }
+            .filter { from == null || it.endDateTime >= from }
+            .filter { until == null || it.endDateTime < until }
+            .sortedBy { it.startDateTime }
+
+    override suspend fun findScheduledPaged(from: LocalDateTime?, page: Int, pageSize: Int): List<EventInstance> =
+        scheduled(from, null).drop(page * pageSize).take(pageSize)
+
+    override suspend fun countScheduled(from: LocalDateTime?, until: LocalDateTime?): Long =
+        scheduled(from, until).size.toLong()
+
     override suspend fun incrementOccupiedSpots(instanceId: Uuid, amount: Int): Int? {
         return instances.computeIfPresent(instanceId) { _, currentInstance ->
             currentInstance.copy(occupiedSpots = currentInstance.occupiedSpots + amount)

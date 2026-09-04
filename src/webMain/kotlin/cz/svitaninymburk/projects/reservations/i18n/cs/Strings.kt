@@ -162,6 +162,7 @@ object CsStrings : AppStrings {
     override val dashboardFreeSpotsDesc = "Na akcích v tomto týdnu"
     override val dashboardUpcomingEvents = "Nejbližší události"
     override val dashboardNoUpcomingEvents = "Žádné nadcházející události."
+    override val dashboardShowAllEvents = "Zobrazit vše"
     override val dashboardPendingReservations = "Poslední neuhrazené rezervace"
     override val dashboardAllPaid = "Všechny rezervace jsou uhrazené!"
 
@@ -179,6 +180,10 @@ object CsStrings : AppStrings {
     // Admin Layout / Sidebar
     override val adminPanel = "Admin Panel"
     override val adminNavTitle = "Administrace"
+    override val navSchedule = "Rozvrh"
+    override val adminScheduleSubtitle = "Všechny akce a lekce kurzů podle času konání"
+    override val scheduleEmpty = "Žádné události k zobrazení."
+    override val tableHeaderType = "Typ"
     override val navEvents = "Události a Kurzy"
     override val navReservations = "Rezervace"
     override val navUsers = "Uživatelé"

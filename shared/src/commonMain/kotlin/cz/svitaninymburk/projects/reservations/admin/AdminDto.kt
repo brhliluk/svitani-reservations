@@ -31,6 +31,30 @@ data class AdminUpcomingEvent(
     val capacity: Int,
 )
 
+/** Jeden termín (jednorázová akce nebo lekce kurzu) v chronologickém rozvrhu. */
+@Serializable
+data class AdminScheduleItem(
+    val id: Uuid,
+    val title: String,
+    val startDateTime: LocalDateTime,
+    val endDateTime: LocalDateTime,
+    /** Když není null, jde o lekci kurzu. */
+    val seriesId: Uuid? = null,
+    val capacity: Int,
+    val occupiedSpots: Int,
+    val isPast: Boolean,
+)
+
+@Serializable
+data class SchedulePage(
+    val items: List<AdminScheduleItem>,
+    val page: Int,
+    val pageSize: Int,
+    val totalCount: Long,
+    /** Kolik termínů už proběhlo — klient si z toho spočítá, na jakou stránku skočit. */
+    val pastCount: Long,
+)
+
 @Serializable
 data class AdminPendingReservation(
     val id: Uuid,

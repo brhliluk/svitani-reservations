@@ -92,6 +92,13 @@ fun IComponent.AdminLayout(
                     }
                     li {
                         a(className = "rounded-lg hover:bg-base-200 transition-colors") {
+                            onClick { router.navigate("/admin/schedule") }
+                            span(className = "icon-[heroicons--clock] size-5 text-primary/70")
+                            +currentStrings.navSchedule
+                        }
+                    }
+                    li {
+                        a(className = "rounded-lg hover:bg-base-200 transition-colors") {
                             onClick { router.navigate("/admin/events") }
                             span(className = "icon-[heroicons--calendar-days] size-5 text-primary/70")
                             +currentStrings.navEvents
