@@ -85,7 +85,7 @@ class EventVisibilitySpec {
     }
 
     @Test
-    fun `getDashboardData reflects refreshed series lessonCount including cancelled`() = runBlocking {
+    fun `getDashboardData reflects refreshed series lessonCount excluding cancelled`() = runBlocking {
         val instanceRepo = InMemoryEventInstanceRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val theSeries = series(published = true) // stored lessonCount = 5
@@ -97,6 +97,6 @@ class EventVisibilitySpec {
 
         val data = service(instanceRepo, seriesRepo).getDashboardData().getOrNull()!!
 
-        assertEquals(3, data.series.single { it.id == theSeries.id }.lessonCount)
+        assertEquals(2, data.series.single { it.id == theSeries.id }.lessonCount)
     }
 }

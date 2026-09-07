@@ -67,7 +67,7 @@ class SeriesScheduleRefresherSpec {
     }
 
     @Test
-    fun `refresh recomputes dates and lessonCount from lessons including cancelled`() = runBlocking {
+    fun `refresh recomputes dates and lessonCount from lessons, skipping cancelled ones`() = runBlocking {
         val (refresher, seriesRepo, instanceRepo) = fixture()
         val series = makeSeries()
         seriesRepo.create(series)
@@ -80,8 +80,26 @@ class SeriesScheduleRefresherSpec {
         val updated = seriesRepo.get(series.id)
         assertNotNull(updated)
         assertEquals(LocalDate(2026, 6, 1), updated.startDate)
-        assertEquals(LocalDate(2026, 6, 15), updated.endDate)
-        assertEquals(3, updated.lessonCount)
+        // The cancelled 15. 6. lesson does not extend the course term either.
+        assertEquals(LocalDate(2026, 6, 8), updated.endDate)
+        assertEquals(2, updated.lessonCount)
+    }
+
+    @Test
+    fun `refresh reports zero lessons when every lesson is cancelled but keeps the term`() = runBlocking {
+        val (refresher, seriesRepo, instanceRepo) = fixture()
+        val series = makeSeries()
+        seriesRepo.create(series)
+        instanceRepo.create(makeLesson(series.id, LocalDateTime(2026, 6, 1, 17, 0), LocalDateTime(2026, 6, 1, 18, 0), isCancelled = true))
+        instanceRepo.create(makeLesson(series.id, LocalDateTime(2026, 6, 8, 17, 0), LocalDateTime(2026, 6, 8, 18, 0), isCancelled = true))
+
+        refresher.refresh(series.id)
+
+        val updated = seriesRepo.get(series.id)
+        assertNotNull(updated)
+        assertEquals(0, updated.lessonCount)
+        assertEquals(LocalDate(2026, 6, 1), updated.startDate)
+        assertEquals(LocalDate(2026, 6, 8), updated.endDate)
     }
 
     @Test

@@ -48,6 +48,9 @@ interface EventInstanceRepository {
     suspend fun findBySeriesPaged(seriesId: Uuid, page: Int, pageSize: Int): List<EventInstance>
     suspend fun findBySeries(seriesId: Uuid): List<EventInstance>
     suspend fun countBySeries(seriesId: Uuid): Long
+
+    /** Počet lekcí kurzu bez zrušených — to, co uživatel vnímá jako „počet lekcí“. */
+    suspend fun countActiveBySeries(seriesId: Uuid): Long
     suspend fun setCancelled(id: Uuid)
 }
 

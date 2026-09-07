@@ -115,7 +115,7 @@ class EventServiceDetailSpec {
     }
 
     @Test
-    fun `getSeriesDetail returns refreshed lessonCount including cancelled`() = runBlocking {
+    fun `getSeriesDetail returns refreshed lessonCount excluding cancelled`() = runBlocking {
         val instanceRepo = InMemoryEventInstanceRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val series = makeSeries() // stored lessonCount = 10
@@ -128,7 +128,7 @@ class EventServiceDetailSpec {
 
         val result = service.getSeriesDetail(series.id)
 
-        assertEquals(3, result.getOrNull()?.series?.lessonCount)
+        assertEquals(2, result.getOrNull()?.series?.lessonCount)
     }
 
     @Test

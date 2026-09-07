@@ -192,7 +192,7 @@ class AdminEditDeleteSpec {
     }
 
     @Test
-    fun `getEventSeriesForEdit returns refreshed lessonCount including cancelled`() = runBlocking {
+    fun `getEventSeriesForEdit returns refreshed lessonCount excluding cancelled`() = runBlocking {
         val defRepo = InMemoryEventDefinitionRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val instanceRepo = InMemoryEventInstanceRepository()
@@ -207,7 +207,7 @@ class AdminEditDeleteSpec {
         val result = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
             .getEventSeriesForEdit(series.id)
 
-        assertEquals(3, result.getOrNull()?.lessonCount)
+        assertEquals(2, result.getOrNull()?.lessonCount)
     }
 
     // --- get event detail ---
@@ -231,7 +231,7 @@ class AdminEditDeleteSpec {
         assertTrue(result.isRight())
         val subtitle = result.getOrNull()?.subtitle
         assertNotNull(subtitle)
-        assertContains(subtitle, "3 lekcí")
+        assertContains(subtitle, "2 lekcí")
         assertTrue(!subtitle.contains("8 lekcí"), "subtitle should not contain the stale stored count: $subtitle")
     }
 

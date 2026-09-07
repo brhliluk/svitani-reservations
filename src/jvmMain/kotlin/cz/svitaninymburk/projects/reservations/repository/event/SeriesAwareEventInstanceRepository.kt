@@ -94,6 +94,8 @@ class SeriesAwareEventInstanceRepository(
 
     override suspend fun countBySeries(seriesId: Uuid): Long = delegate.countBySeries(seriesId)
 
+    override suspend fun countActiveBySeries(seriesId: Uuid): Long = delegate.countActiveBySeries(seriesId)
+
     override suspend fun countScheduled(from: LocalDateTime?, until: LocalDateTime?): Long =
         delegate.countScheduled(from, until)
 

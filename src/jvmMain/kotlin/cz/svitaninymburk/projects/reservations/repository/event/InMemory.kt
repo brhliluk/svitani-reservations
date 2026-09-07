@@ -84,6 +84,9 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
     override suspend fun countBySeries(seriesId: Uuid): Long =
         instances.values.count { it.seriesId == seriesId }.toLong()
 
+    override suspend fun countActiveBySeries(seriesId: Uuid): Long =
+        instances.values.count { it.seriesId == seriesId && !it.isCancelled }.toLong()
+
     override suspend fun create(instance: EventInstance): EventInstance {
         val id = instance.id
         val newInstance = instance.copy(id = instance.id)

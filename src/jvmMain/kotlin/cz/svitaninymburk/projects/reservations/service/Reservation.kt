@@ -164,7 +164,7 @@ open class ReservationService(
         val isReserved = eventSeriesRepository.attemptToReserveSpots(series.id, request.seatCount)
         ensure(isReserved) { ReservationError.CapacityExceeded }
 
-        val seriesTarget = ReservationTarget.Series(series.copy(lessonCount = eventInstanceRepository.countBySeries(series.id).toInt()))
+        val seriesTarget = ReservationTarget.Series(series.copy(lessonCount = eventInstanceRepository.countActiveBySeries(series.id).toInt()))
 
         createReservationFlow(
             reference = Reference.Series(series.id),

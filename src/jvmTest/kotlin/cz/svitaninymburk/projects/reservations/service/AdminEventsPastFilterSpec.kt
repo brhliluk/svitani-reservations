@@ -156,7 +156,7 @@ class AdminEventsPastFilterSpec {
         val page = svc.getAllEvents(0, 20, includePast = false).getOrNull()!!
         val seriesItem = page.items.first { it.isSeries }
 
-        assertTrue(seriesItem.dateInfo.contains("3 lekcí"), "dateInfo was: ${seriesItem.dateInfo}")
+        assertTrue(seriesItem.dateInfo.contains("2 lekcí"), "dateInfo was: ${seriesItem.dateInfo}")
         assertFalse(seriesItem.dateInfo.contains("5 lekcí"), "dateInfo should not contain the stale stored count: ${seriesItem.dateInfo}")
     }
 }

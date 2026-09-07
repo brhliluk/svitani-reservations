@@ -116,7 +116,7 @@ class ReservationTargetLessonCountSpec {
         waitlistCapacity = 2,
         startDate = LocalDate(2099, 1, 1),
         endDate = LocalDate(2099, 3, 1),
-        lessonCount = 8, // stale stored value — real instance count below is 3
+        lessonCount = 8, // stale stored value — real active instance count below is 2
         isPublished = true,
     )
 
@@ -162,7 +162,7 @@ class ReservationTargetLessonCountSpec {
 
         assertNotNull(result.getOrNull(), "Expected Right but got $result")
         val target = assertIs<ReservationTarget.Series>(emailService.lastConfirmationTarget)
-        assertEquals(3, target.series.lessonCount)
+        assertEquals(2, target.series.lessonCount)
     }
 
     @Test
@@ -212,6 +212,6 @@ class ReservationTargetLessonCountSpec {
 
         assertNotNull(result.getOrNull(), "Expected Right but got $result")
         val target = assertIs<ReservationTarget.Series>(emailService.lastPromotionTarget)
-        assertEquals(3, target.series.lessonCount)
+        assertEquals(2, target.series.lessonCount)
     }
 }

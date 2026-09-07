@@ -600,6 +600,12 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             .count()
     }
 
+    override suspend fun countActiveBySeries(seriesId: Uuid): Long = dbQuery {
+        EventInstancesTable.selectAll()
+            .where { (EventInstancesTable.seriesId eq seriesId) and (EventInstancesTable.isCancelled eq false) }
+            .count()
+    }
+
     override suspend fun create(instance: EventInstance): EventInstance = dbQuery {
         EventInstancesTable.insert { row ->
             row[id] = instance.id

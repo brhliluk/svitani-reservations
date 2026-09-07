@@ -95,7 +95,7 @@ class WaitlistPromoter(
 
             val target: ReservationTarget? = when (reference) {
                 is Reference.Instance -> eventInstanceRepository.get(reference.id)?.let { ReservationTarget.Instance(it) }
-                is Reference.Series -> eventSeriesRepository.get(reference.id)?.let { ReservationTarget.Series(it.copy(lessonCount = eventInstanceRepository.countBySeries(it.id).toInt())) }
+                is Reference.Series -> eventSeriesRepository.get(reference.id)?.let { ReservationTarget.Series(it.copy(lessonCount = eventInstanceRepository.countActiveBySeries(it.id).toInt())) }
             }
 
             if (target != null) {
