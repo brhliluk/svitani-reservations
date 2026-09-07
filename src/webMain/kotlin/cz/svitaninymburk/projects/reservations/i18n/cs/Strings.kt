@@ -549,6 +549,8 @@ object CsStrings : AppStrings {
     override val createdAt = "Vytvořeno"
     override val showDetails = "Zobrazit detaily"
     override val hideDetails = "Skrýt detaily"
+    override val expandAllDetails = "Rozbalit vše"
+    override val collapseAllDetails = "Sbalit vše"
     override val yes = "Ano"
     override val no = "Ne"
 

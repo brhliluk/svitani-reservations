@@ -541,6 +541,8 @@ object EnStrings : AppStrings {
     override val createdAt = "Created"
     override val showDetails = "Show details"
     override val hideDetails = "Hide details"
+    override val expandAllDetails = "Expand all"
+    override val collapseAllDetails = "Collapse all"
     override val yes = "Yes"
     override val no = "No"
 

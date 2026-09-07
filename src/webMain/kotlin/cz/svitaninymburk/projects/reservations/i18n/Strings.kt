@@ -543,6 +543,8 @@ interface AppStrings : ErrorStrings {
     val createdAt: String
     val showDetails: String
     val hideDetails: String
+    val expandAllDetails: String
+    val collapseAllDetails: String
     val yes: String
     val no: String
 

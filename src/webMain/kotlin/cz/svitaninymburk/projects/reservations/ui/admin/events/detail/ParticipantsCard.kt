@@ -34,7 +34,9 @@ fun IComponent.ParticipantsCard(
     onCancelReservation: (AdminParticipantRow) -> Unit,
 ) {
     val currentStrings by strings
-    var expandedId by remember { mutableStateOf<Uuid?>(null) }
+    var expandedIds by remember { mutableStateOf<Set<Uuid>>(emptySet()) }
+    val allExpanded = data.participants.isNotEmpty() &&
+        data.participants.all { it.reservationId in expandedIds }
 
     div(className = "card bg-base-100 shadow-sm") {
         div(className = "card-body p-0") {
@@ -44,6 +46,16 @@ fun IComponent.ParticipantsCard(
                     h2(className = "font-bold text-lg") { +currentStrings.tableHeaderParticipant }
                 }
                 div(className = "flex items-center gap-2") {
+                    if (data.participants.isNotEmpty()) {
+                        button(className = "btn btn-ghost btn-sm gap-2") {
+                            onClick {
+                                expandedIds = if (allExpanded) emptySet()
+                                else data.participants.map { it.reservationId }.toSet()
+                            }
+                            span(className = "size-4 " + if (allExpanded) "icon-[heroicons--chevron-up]" else "icon-[heroicons--chevron-down]")
+                            +if (allExpanded) currentStrings.collapseAllDetails else currentStrings.expandAllDetails
+                        }
+                    }
                     button(className = "btn btn-primary btn-sm gap-2") {
                         disabled(isLoadingReservationTarget)
                         onClick { onAddReservation(false) }
@@ -96,9 +108,13 @@ fun IComponent.ParticipantsCard(
                                     participant = participant,
                                     seriesId = data.seriesId,
                                     customFields = data.customFields,
-                                    isExpanded = expandedId == participant.reservationId,
+                                    isExpanded = participant.reservationId in expandedIds,
                                     onToggleExpanded = {
-                                        expandedId = if (expandedId == participant.reservationId) null else participant.reservationId
+                                        expandedIds = if (participant.reservationId in expandedIds) {
+                                            expandedIds - participant.reservationId
+                                        } else {
+                                            expandedIds + participant.reservationId
+                                        }
                                     },
                                     onConfirmPayment = { onConfirmPayment(participant) },
                                     onCancelReservation = { onCancelReservation(participant) },
