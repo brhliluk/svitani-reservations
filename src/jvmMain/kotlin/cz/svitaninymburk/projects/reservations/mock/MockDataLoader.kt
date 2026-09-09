@@ -116,6 +116,11 @@ class MockDataLoader: KoinComponent {
                     label = "Kdo dítě vyzvedává (pokud ne rodič)",
                     isRequired = false,
                     isMultiline = false
+                ),
+                BooleanFieldDefinition(
+                    key = "consent",
+                    label = "Souhlasím s podmínkami účasti",
+                    isRequired = true
                 )
             )
         )
@@ -174,7 +179,7 @@ class MockDataLoader: KoinComponent {
             endDate = today.plus(DatePeriod(days = 7 + (10 * 7))),
             lessonCount = 10,
             description = "Keramika pro začátečníky",
-            customFields = listOf(),
+            customFields = defCeramics.customFields,
             isPublished = true,
         )
         seriesRepo.create(seriesCeramics)
@@ -220,6 +225,7 @@ class MockDataLoader: KoinComponent {
             capacity = 1,
             occupiedSpots = 0,
             description = defParty.description,
+            customFields = defParty.customFields,
             isPublished = true,
         ))
 

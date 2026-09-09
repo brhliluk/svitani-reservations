@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.event.TextValue
 import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
+import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.CustomFieldValidation
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isCustomFieldValid
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -26,11 +27,11 @@ import kotlin.uuid.Uuid
  *  Povinná vlastní pole: co dělá dnešní validace vs. co navrhuju
  * ============================================================================
  *
- * Tenhle soubor je podklad k rozhodnutí, ne hotová oprava. `isCustomFieldValid`
- * je produkční funkce, jak je dnes nasazená. `proposedIsCustomFieldValid` níž je
- * návrh — schválně žije tady v testu, aby v produkci neležel nepoužitý kód.
- * Až se návrh schválí, přesune se do
- * `ui/reservation/usecase/ReservationFormUseCases.kt` na místo té stávající.
+ * Tenhle soubor je podklad k rozhodnutí, ne hotová oprava. Obě varianty žijí
+ * v `isCustomFieldValid` za přepínačem [CustomFieldValidation], aby se dalo obojí
+ * proklikat v běžící aplikaci (`?validation=proposed`, viz
+ * `ValidationVariantSwitch.kt`). Až se jedna varianta vybere, druhá i s přepínačem
+ * zmizí a tenhle spec se přepíše na tu zvolenou.
  *
  * Dnešní podoba:
  *
@@ -81,40 +82,6 @@ private fun target(fields: List<CustomFieldDefinition>) = ReservationTarget.Inst
     )
 )
 
-/**
- * NÁVRH: kontroluje obsah podle typu, ne `toString()` obálky.
- *
- *  - text: musí mít neprázdný obsah (mezery se nepočítají),
- *  - číslo: musí být vyplněné a v případě zadaných hranic i uvnitř nich,
- *  - zaškrtávátko: povinné znamená zaškrtnuté,
- *  - časový rozsah: beze změny.
- *
- * Špatný typ hodnoty pro dané pole se bere jako nevyplněno — dnešní `value != null`
- * by ho pustil dál.
- */
-private fun proposedIsCustomFieldValid(
-    field: CustomFieldDefinition,
-    value: CustomFieldValue?,
-    target: ReservationTarget,
-): Boolean {
-    if (!field.isRequired) return true
-    return when (field) {
-        is TextFieldDefinition -> (value as? TextValue)?.value?.isNotBlank() == true
-        is NumberFieldDefinition -> {
-            val number = (value as? NumberValue)?.value ?: return false
-            val aboveMin = field.min?.let { number >= it.toFloat() } ?: true
-            val belowMax = field.max?.let { number <= it.toFloat() } ?: true
-            aboveMin && belowMax
-        }
-        is BooleanFieldDefinition -> (value as? BooleanValue)?.value == true
-        is TimeRangeFieldDefinition -> {
-            val range = value as? TimeRangeValue ?: return false
-            val window = target.startDateTime.time..target.endDateTime.time
-            range.from < range.to && range.from in window && range.to in window
-        }
-    }
-}
-
 // --- Pomůcky, aby se oba pohledy vyhodnocovaly na úplně stejném vstupu ---
 
 private class Case(
@@ -124,8 +91,8 @@ private class Case(
     val value: CustomFieldValue?,
 ) {
     private val target = target(listOf(definition))
-    val current: Boolean get() = isCustomFieldValid(definition, value, target)
-    val proposed: Boolean get() = proposedIsCustomFieldValid(definition, value, target)
+    val current: Boolean get() = isCustomFieldValid(definition, value, target, CustomFieldValidation.CURRENT)
+    val proposed: Boolean get() = isCustomFieldValid(definition, value, target, CustomFieldValidation.PROPOSED)
 }
 
 private val TEXT = TextFieldDefinition(key = "pozn", label = "Poznámka", isRequired = true)

@@ -1,11 +1,14 @@
 package cz.svitaninymburk.projects.reservations.ui.reservation.usecase
 
 import cz.svitaninymburk.projects.reservations.event.BooleanFieldDefinition
+import cz.svitaninymburk.projects.reservations.event.BooleanValue
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.event.NumberFieldDefinition
+import cz.svitaninymburk.projects.reservations.event.NumberValue
 import cz.svitaninymburk.projects.reservations.event.PriceModifier
 import cz.svitaninymburk.projects.reservations.event.TextFieldDefinition
+import cz.svitaninymburk.projects.reservations.event.TextValue
 import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
 import cz.svitaninymburk.projects.reservations.event.hoursFromRange
@@ -76,6 +79,13 @@ fun formatPriceHours(hours: Double): String {
 // --- Validace ---
 
 /**
+ * DOČASNÉ: dvě podoby validace povinných vlastních polí vedle sebe, aby šlo obě
+ * proklikat v běžící aplikaci. Rozdíly popisuje `RequiredCustomFieldSpec`.
+ * Po rozhodnutí zůstane jedna a tenhle enum zmizí.
+ */
+enum class CustomFieldValidation { CURRENT, PROPOSED }
+
+/**
  * Kontakt: jméno, příjmení, e-mail a telefon. E-mail se hlídá jen na zavináč —
  * důkladnější ověření dělá server, formulář jen nechce pustit očividný nesmysl.
  */
@@ -106,21 +116,43 @@ fun isCustomFieldValid(
     field: CustomFieldDefinition,
     value: CustomFieldValue?,
     target: ReservationTarget,
+    variant: CustomFieldValidation = CustomFieldValidation.CURRENT,
 ): Boolean {
     if (!field.isRequired) return true
-    return when (field) {
-        is BooleanFieldDefinition -> true
-        is TextFieldDefinition, is NumberFieldDefinition -> value != null && value.toString().isNotBlank()
-        is TimeRangeFieldDefinition -> {
-            val range = value as? TimeRangeValue ?: return false
-            val window = target.startDateTime.time..target.endDateTime.time
-            range.from < range.to && range.from in window && range.to in window
+    val window = target.startDateTime.time..target.endDateTime.time
+    return when (variant) {
+        CustomFieldValidation.CURRENT -> when (field) {
+            is BooleanFieldDefinition -> true
+            is TextFieldDefinition, is NumberFieldDefinition -> value != null && value.toString().isNotBlank()
+            is TimeRangeFieldDefinition -> {
+                val range = value as? TimeRangeValue ?: return false
+                range.from < range.to && range.from in window && range.to in window
+            }
+        }
+        // Návrh: kontroluje obsah podle typu, ne toString() obálky. Špatný typ
+        // hodnoty pro dané pole se bere jako nevyplněno.
+        CustomFieldValidation.PROPOSED -> when (field) {
+            is TextFieldDefinition -> (value as? TextValue)?.value?.isNotBlank() == true
+            is NumberFieldDefinition -> {
+                val number = (value as? NumberValue)?.value ?: return false
+                val aboveMin = field.min?.let { number >= it.toFloat() } ?: true
+                val belowMax = field.max?.let { number <= it.toFloat() } ?: true
+                aboveMin && belowMax
+            }
+            is BooleanFieldDefinition -> (value as? BooleanValue)?.value == true
+            is TimeRangeFieldDefinition -> {
+                val range = value as? TimeRangeValue ?: return false
+                range.from < range.to && range.from in window && range.to in window
+            }
         }
     }
 }
 
-fun areCustomFieldsValid(target: ReservationTarget, values: Map<String, CustomFieldValue>): Boolean =
-    target.customFields.all { isCustomFieldValid(it, values[it.key], target) }
+fun areCustomFieldsValid(
+    target: ReservationTarget,
+    values: Map<String, CustomFieldValue>,
+    variant: CustomFieldValidation = CustomFieldValidation.CURRENT,
+): Boolean = target.customFields.all { isCustomFieldValid(it, values[it.key], target, variant) }
 
 fun isReservationFormValid(
     target: ReservationTarget?,
@@ -130,10 +162,11 @@ fun isReservationFormValid(
     phone: String,
     seats: Int,
     customValues: Map<String, CustomFieldValue>,
+    variant: CustomFieldValidation = CustomFieldValidation.CURRENT,
 ): Boolean =
     isContactValid(firstName, lastName, email, phone) &&
         seats > 0 &&
-        (target == null || areCustomFieldsValid(target, customValues))
+        (target == null || areCustomFieldsValid(target, customValues, variant))
 
 // --- UseCase třídy (tenké) ---
 
