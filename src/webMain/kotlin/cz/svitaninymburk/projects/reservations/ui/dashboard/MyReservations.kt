@@ -3,33 +3,26 @@ package cz.svitaninymburk.projects.reservations.ui.dashboard
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import app.softwork.routingcompose.Router
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
-import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
-import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
+import cz.svitaninymburk.projects.reservations.ui.components.SeriesLessonsSection
+import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.MyReservationPaymentMethod
+import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.cardOpensOnTitleOnly
+import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.myReservationPaymentMethod
+import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.ReservationStatusBadge
 import cz.svitaninymburk.projects.reservations.ui.util.reservationStatusBadge
-import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonsView
-import cz.svitaninymburk.projects.reservations.service.AuthenticatedReservationServiceInterface
-import cz.svitaninymburk.projects.reservations.ui.components.SeriesLessonsSection
-import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
-import cz.svitaninymburk.projects.reservations.ui.util.Loading
+import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.html.button
 import dev.kilua.html.div
 import dev.kilua.html.h1
 import dev.kilua.html.main
-import dev.kilua.html.p
 import dev.kilua.html.span
-import dev.kilua.rpc.getService
 import kotlin.uuid.Uuid
 
 @Composable
@@ -61,33 +54,19 @@ fun IComponent.MyReservationsScreen(userId: Uuid, onBackClick: () -> Unit) {
 fun IComponent.MyReservationsList(userId: Uuid) {
     val currentStrings by strings
     val router = Router.current
-    val reservationService = getService<AuthenticatedReservationServiceInterface>(RpcSerializersModules)
+    val scope = rememberCoroutineScope()
+    val model = remember(userId) { buildMyReservationsModel(scope, userId) }
 
-    var retryTrigger by remember { mutableStateOf(0) }
+    LaunchedEffect(userId) { model.load() }
 
-    val uiState by produceState<MyReservationsUiState>(
-        initialValue = MyReservationsUiState.Loading,
-        key1 = retryTrigger,
-        key2 = userId,
-    ) {
-        value = MyReservationsUiState.Loading
-        try {
-            reservationService.getReservations(userId)
-                .onRight { items -> value = MyReservationsUiState.Success(items) }
-                .onLeft { error -> value = MyReservationsUiState.Error(error.localizedMessage(currentStrings)) }
-        } catch (e: Exception) {
-            value = MyReservationsUiState.Error(currentStrings.loadingError(e.message ?: "unknown"))
-        }
-    }
-
-    when (val state = uiState) {
+    when (val state = model.uiState) {
         is MyReservationsUiState.Loading -> Loading()
         is MyReservationsUiState.Error -> {
             div(className = "alert alert-error") {
                 span(className = "icon-[heroicons--exclamation-circle] size-6")
                 span { +state.message }
                 button(className = "btn btn-sm min-h-11") {
-                    onClick { retryTrigger++ }
+                    onClick { model.retry() }
                     +currentStrings.retry
                 }
             }
@@ -112,38 +91,24 @@ fun IComponent.MyReservationsList(userId: Uuid) {
 @Composable
 private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick: () -> Unit) {
     val currentStrings by strings
+    val scope = rememberCoroutineScope()
+    val model = remember(item.id) { buildReservationCardModel(scope, item.id, item.isSeries) }
+
     val badge = reservationStatusBadge(item.status, item.paymentType, item.totalPrice)
-
-    val reservationService = getService<ReservationServiceInterface>(RpcSerializersModules)
-
-    var isExpanded by remember { mutableStateOf(false) }
-    var lessonsState by remember { mutableStateOf<LessonsLoadState>(LessonsLoadState.Idle) }
-    var lessonsRefreshTrigger by remember { mutableStateOf(0) }
-
-    // Termíny kurzu chodí přes guest-callable getSeriesLessons — pro majitele vrací
-    // totéž a stejnou metodu volá i hostovský detail rezervace.
-    LaunchedEffect(isExpanded, lessonsRefreshTrigger) {
-        if (isExpanded && item.isSeries) {
-            lessonsState = LessonsLoadState.Loading
-            reservationService.getSeriesLessons(item.id)
-                .onRight { view -> lessonsState = LessonsLoadState.Success(view) }
-                .onLeft { error -> lessonsState = LessonsLoadState.Error(error.localizedMessage(currentStrings)) }
-        }
-    }
-
+    val titleOnly = cardOpensOnTitleOnly(item)
 
     div(className = "card bg-base-100 shadow-sm border border-base-200 hover:shadow-md transition-shadow") {
         div(className = "card-body p-4 sm:p-5 gap-3") {
 
             // Card header — clickable title area for navigation
-            div(className = "${if (!item.isSeries) "cursor-pointer" else ""}") {
-                if (!item.isSeries) onClick { onCardClick() }
+            div(className = "${if (!titleOnly) "cursor-pointer" else ""}") {
+                if (!titleOnly) onClick { onCardClick() }
                 div(className = "flex flex-col sm:flex-row justify-between gap-2 sm:items-start") {
                     div(className = "flex flex-col gap-1 min-w-0") {
                         div(
-                            className = "font-bold text-base sm:text-lg text-base-content truncate ${if (item.isSeries) "cursor-pointer hover:text-primary transition-colors" else ""}"
+                            className = "font-bold text-base sm:text-lg text-base-content truncate ${if (titleOnly) "cursor-pointer hover:text-primary transition-colors" else ""}"
                         ) {
-                            if (item.isSeries) onClick { onCardClick() }
+                            if (titleOnly) onClick { onCardClick() }
                             +item.eventTitle
                         }
                         div(className = "flex items-center gap-2 text-sm text-base-content/60") {
@@ -191,11 +156,12 @@ private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick:
                     +"${item.seatCount} ${currentStrings.persons}"
                 }
                 div(className = "flex items-center gap-3") {
-                    // U rezervace zdarma by "Převodem" vedle "Zdarma" jen protiřečilo samo sobě.
-                    if (!item.isFree) {
+                    myReservationPaymentMethod(item)?.let { method ->
                         span(className = "text-base-content/60") {
-                            if (item.paymentType == PaymentInfo.Type.ON_SITE) +currentStrings.paymentMethodCash
-                            else +currentStrings.bankTransfer
+                            when (method) {
+                                MyReservationPaymentMethod.CASH -> +currentStrings.paymentMethodCash
+                                MyReservationPaymentMethod.TRANSFER -> +currentStrings.bankTransfer
+                            }
                         }
                     }
                     span(className = "font-bold text-primary") {
@@ -208,19 +174,16 @@ private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick:
             if (item.isSeries) {
                 div(className = "border-t border-base-200 pt-2 mt-1") {
                     button(className = "btn btn-ghost btn-xs gap-1 text-base-content/60 hover:text-primary") {
-                        onClick {
-                            isExpanded = !isExpanded
-                            if (isExpanded) lessonsState = LessonsLoadState.Loading
-                        }
-                        span(className = "icon-[heroicons--${if (isExpanded) "chevron-up" else "chevron-down"}] size-4")
-                        +if (isExpanded) currentStrings.showLess else currentStrings.courseLessons
+                        onClick { model.toggleExpanded() }
+                        span(className = "icon-[heroicons--${if (model.isExpanded) "chevron-up" else "chevron-down"}] size-4")
+                        +if (model.isExpanded) currentStrings.showLess else currentStrings.courseLessons
                     }
                 }
 
                 // Expanded lessons area
-                if (isExpanded) {
+                if (model.isExpanded) {
                     div(className = "flex flex-col gap-2 mt-2 animate-fade-in") {
-                        when (val state = lessonsState) {
+                        when (val state = model.lessonsState) {
                             is LessonsLoadState.Idle, is LessonsLoadState.Loading -> {
                                 div(className = "flex justify-center py-3") {
                                     span(className = "loading loading-spinner loading-sm text-primary")
@@ -236,7 +199,7 @@ private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick:
                                 SeriesLessonsSection(
                                     reservationId = item.id,
                                     view = state.view,
-                                    onLessonsChanged = { lessonsRefreshTrigger++ },
+                                    onLessonsChanged = { model.reloadLessons() },
                                 )
                             }
                         }
@@ -245,18 +208,4 @@ private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick:
             }
         }
     }
-
-}
-
-private sealed interface LessonsLoadState {
-    data object Idle : LessonsLoadState
-    data object Loading : LessonsLoadState
-    data class Success(val view: SeriesLessonsView) : LessonsLoadState
-    data class Error(val message: String) : LessonsLoadState
-}
-
-private sealed interface MyReservationsUiState {
-    data object Loading : MyReservationsUiState
-    data class Success(val items: List<MyReservationListItem>) : MyReservationsUiState
-    data class Error(val message: String) : MyReservationsUiState
 }
