@@ -1,54 +1,31 @@
 package cz.svitaninymburk.projects.reservations.ui.admin
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import app.softwork.routingcompose.Router
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
-import cz.svitaninymburk.projects.reservations.error.localizedMessage
-import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
-import cz.svitaninymburk.projects.reservations.ui.auth.ChangePasswordDialog
+import cz.svitaninymburk.projects.reservations.ui.admin.usecase.CapacityLevel
+import cz.svitaninymburk.projects.reservations.ui.admin.usecase.capacityLevel
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
-import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
-import dev.kilua.rpc.getService
-import cz.svitaninymburk.projects.reservations.util.humanReadable
-import kotlinx.coroutines.launch
-
-private sealed interface AdminDashboardUiState {
-    data object Loading : AdminDashboardUiState
-    data class Success(val data: AdminDashboardData) : AdminDashboardUiState
-    data class Error(val message: String) : AdminDashboardUiState
-}
 
 @Composable
 fun IComponent.AdminDashboardScreen() {
     val router = Router.current
-    val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
     val currentStrings by strings
+    val model = remember { buildAdminDashboardModel(scope) }
 
-    var refreshTrigger by remember { mutableStateOf(0) }
-    var toastData by remember { mutableStateOf<ToastData?>(null) }
-    var showChangePassword by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { model.load() }
 
-    // Stažení dat z backendu
-    val uiState by produceState<AdminDashboardUiState>(initialValue = AdminDashboardUiState.Loading, key1 = refreshTrigger) {
-        adminService.getDashboardSummary()
-            .onRight { value = AdminDashboardUiState.Success(it) }
-            .onLeft { value = AdminDashboardUiState.Error(it.localizedMessage(currentStrings)) }
-    }
-
-    when (val state = uiState) {
+    when (val state = model.uiState) {
         is AdminDashboardUiState.Loading -> Loading()
         is AdminDashboardUiState.Error -> {
             div(className = "alert alert-error") { +currentStrings.loadingError(state.message) }
@@ -120,18 +97,13 @@ fun IComponent.AdminDashboardScreen() {
                                     p(className = "text-sm text-base-content/50 italic") { +currentStrings.dashboardAllPaid }
                                 } else {
                                     data.pendingReservations.forEach { res ->
-                                        AdminPendingReservationRow(res.contactName, res.eventName, "${res.totalPrice} ${currentStrings.currency}", "${currentStrings.variableSymbol}: ${res.variableSymbol}") {
-                                            scope.launch {
-                                                adminService.markReservationAsPaid(res.id)
-                                                    .onRight {
-                                                        toastData = ToastData(currentStrings.toastPaymentConfirmed(res.contactName), ToastType.Success)
-                                                        refreshTrigger++
-                                                    }
-                                                    .onLeft { error ->
-                                                        toastData = ToastData(error.localizedMessage(currentStrings), ToastType.Error)
-                                                    }
-                                            }
-                                        }
+                                        AdminPendingReservationRow(
+                                            name = res.contactName,
+                                            eventName = res.eventName,
+                                            price = "${res.totalPrice} ${currentStrings.currency}",
+                                            vs = "${currentStrings.variableSymbol}: ${res.variableSymbol}",
+                                            onMarkAsPaid = { model.markAsPaid(res.id, res.contactName) },
+                                        )
                                     }
                                 }
                             }
@@ -139,18 +111,11 @@ fun IComponent.AdminDashboardScreen() {
                     }
                 }
             }
+
             Toast(
-                message = toastData?.message,
-                type = toastData?.type ?: ToastType.Success,
-                onDismiss = { toastData = null }
-            )
-            ChangePasswordDialog(
-                isOpen = showChangePassword,
-                onClose = { showChangePassword = false },
-                onSuccess = {
-                    showChangePassword = false
-                    toastData = ToastData(currentStrings.passwordChanged, ToastType.Success)
-                }
+                message = model.toast?.message,
+                type = model.toast?.type ?: ToastType.Success,
+                onDismiss = { model.dismissToast() },
             )
         }
     }
@@ -159,8 +124,12 @@ fun IComponent.AdminDashboardScreen() {
 @Composable
 fun IComponent.AdminUpcomingEventRow(title: String, time: String, occupied: Int, capacity: Int, onClick: () -> Unit) {
     val currentStrings by strings
-    val isFull = occupied >= capacity
-    val progressClass = if (isFull) "progress-error" else if (occupied.toDouble() / capacity > 0.8) "progress-warning" else "progress-success"
+    val level = capacityLevel(occupied, capacity)
+    val progressClass = when (level) {
+        CapacityLevel.FULL -> "progress-error"
+        CapacityLevel.NEARLY_FULL -> "progress-warning"
+        CapacityLevel.OK -> "progress-success"
+    }
 
     div(className = "flex flex-col gap-2 p-3 bg-base-200/50 rounded-lg hover:bg-base-200 transition-colors cursor-pointer") {
         onClick { onClick() }
@@ -172,7 +141,7 @@ fun IComponent.AdminUpcomingEventRow(title: String, time: String, occupied: Int,
                     +time
                 }
             }
-            if (isFull) {
+            if (level == CapacityLevel.FULL) {
                 div(className = "badge badge-error badge-sm font-bold") { +currentStrings.capacityFull }
             } else {
                 div(className = "text-xs font-bold text-base-content/70") { +"$occupied / $capacity" }
