@@ -1,11 +1,11 @@
 package cz.svitaninymburk.projects.reservations.ui.reservation
 
 import cz.svitaninymburk.projects.reservations.event.BooleanFieldDefinition
-import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.NumberFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.PriceModifier
 import cz.svitaninymburk.projects.reservations.event.TextFieldDefinition
+import cz.svitaninymburk.projects.reservations.event.BooleanValue
 import cz.svitaninymburk.projects.reservations.event.TextValue
 import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
@@ -125,33 +125,20 @@ class ReservationFormValidationSpec {
     }
 
     @Test
-    fun requiredCheckboxPassesEvenUnchecked() {
-        // "Povinné" u zaškrtávátka znamená, že se má zobrazit, ne že musí být ano.
+    fun requiredCheckboxMustBeChecked() {
         val t = target(listOf(BooleanFieldDefinition(key = "souhlas", label = "Souhlas", isRequired = true)))
-        assertTrue(areCustomFieldsValid(t, emptyMap()))
+        assertFalse(areCustomFieldsValid(t, emptyMap()))
+        assertFalse(areCustomFieldsValid(t, mapOf("souhlas" to BooleanValue("souhlas", false))))
+        assertTrue(areCustomFieldsValid(t, mapOf("souhlas" to BooleanValue("souhlas", true))))
     }
 
     @Test
-    fun untouchedRequiredTextBlocksSubmitting() {
+    fun requiredTextNeedsNonBlankContent() {
         val t = target(listOf(TextFieldDefinition(key = "pozn", label = "Poznámka", isRequired = true)))
         assertFalse(areCustomFieldsValid(t, emptyMap()))
-        assertTrue(areCustomFieldsValid(t, mapOf("pozn" to TextValue("pozn", "něco") as CustomFieldValue)))
-    }
-
-    /**
-     * POZOR: tenhle test popisuje chování, které formulář má, ne chování, které
-     * je správné. Kontrola je `value.toString().isNotBlank()`, ale TextValue je
-     * data class, takže toString() vrací "TextValue(fieldKey=pozn, value=)" a
-     * blank není nikdy. renderCustomField navíc zapisuje hodnotu do mapy při
-     * každém stisku klávesy a nikdy ji neodebere, takže vyplnit povinné pole a
-     * zase ho vymazat projde. Až se to opraví, test má spadnout — a má se
-     * přepsat, ne smazat.
-     */
-    @Test
-    fun requiredTextPassesOnceTouchedEvenIfCleared() {
-        val t = target(listOf(TextFieldDefinition(key = "pozn", label = "Poznámka", isRequired = true)))
-        assertTrue(areCustomFieldsValid(t, mapOf("pozn" to TextValue("pozn", "") as CustomFieldValue)))
-        assertTrue(areCustomFieldsValid(t, mapOf("pozn" to TextValue("pozn", "   ") as CustomFieldValue)))
+        // Vyplnit a zase vymazat neprojde — klíč v mapě zůstává, obsah ne.
+        assertFalse(areCustomFieldsValid(t, mapOf("pozn" to TextValue("pozn", ""))))
+        assertTrue(areCustomFieldsValid(t, mapOf("pozn" to TextValue("pozn", "něco"))))
     }
 
     @Test
@@ -183,7 +170,7 @@ class ReservationFormValidationSpec {
                 NumberFieldDefinition(key = "chybi", label = "Chybí", isRequired = true),
             )
         )
-        assertFalse(areCustomFieldsValid(t, mapOf("ok" to TextValue("ok", "ano") as CustomFieldValue)))
+        assertFalse(areCustomFieldsValid(t, mapOf("ok" to TextValue("ok", "ano"))))
     }
 }
 

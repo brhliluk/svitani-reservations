@@ -9,8 +9,6 @@ import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.ui.components.CancellationPolicyBox
-import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.CustomFieldValidation
-import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.activeCustomFieldValidation
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.formatPriceHours
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.timeMultiplierHours
 import cz.svitaninymburk.projects.reservations.ui.util.label
@@ -66,20 +64,6 @@ fun IComponent.ReservationModal(
                 if (asWaitlist) {
                     p(className = "text-sm text-base-content/70 mt-1 mb-2") {
                         +currentStrings.substituteInfoNote
-                    }
-                }
-
-                // DOČASNÉ: ukazatel, která varianta validace povinných polí běží.
-                // Odstranit spolu s CustomFieldValidation, až se jedna vybere.
-                val variant = activeCustomFieldValidation
-                div(className = "alert py-2 text-sm mt-2 ${if (variant == CustomFieldValidation.PROPOSED) "alert-info" else "alert-warning"}") {
-                    span(className = "icon-[heroicons--beaker] size-4")
-                    span {
-                        if (variant == CustomFieldValidation.PROPOSED) {
-                            +"Validace: NÁVRH — prázdné povinné pole a nezaškrtnutý souhlas neprojdou, číslo se hlídá na min/max"
-                        } else {
-                            +"Validace: DNEŠNÍ STAV — vyplněné a vymazané povinné pole projde, povinný souhlas projde nezaškrtnutý"
-                        }
                     }
                 }
 
@@ -195,7 +179,7 @@ fun IComponent.ReservationModal(
                         div(className = "divider text-xs text-base-content/50 my-1") { +currentStrings.moreDetails }
 
                         target.customFields.forEach { field ->
-                            renderCustomField(field, model.customValues, target, variant)
+                            renderCustomField(field, model.customValues, target)
                         }
                     }
 

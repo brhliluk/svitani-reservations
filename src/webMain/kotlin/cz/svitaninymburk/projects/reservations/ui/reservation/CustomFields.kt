@@ -14,7 +14,6 @@ import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
-import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.CustomFieldValidation
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isCustomFieldValid
 import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
@@ -45,13 +44,12 @@ fun IComponent.renderCustomField(
     field: CustomFieldDefinition,
     stateMap: MutableMap<String, CustomFieldValue>,
     target: ReservationTarget? = null,
-    variant: CustomFieldValidation = CustomFieldValidation.CURRENT,
 ) {
     // Zpětná vazba u pole musí říkat totéž, co rozhoduje o tlačítku Rezervovat —
-    // proto se ptá stejné funkce, se stejnou variantou. Kdyby si počítala vlastní
-    // pravidlo, šlo by dojít ke svítící chybě u pole, které odeslání nebrání.
+    // proto se ptá stejné funkce. Kdyby si počítala vlastní pravidlo, šlo by
+    // dojít ke svítící chybě u pole, které odeslání nebrání, nebo naopak.
     val invalid = field.isRequired && target != null &&
-        !isCustomFieldValid(field, stateMap[field.key], target, variant)
+        !isCustomFieldValid(field, stateMap[field.key], target)
     // Nedotčené pole nekřičí červeně; hvězdička u labelu stačí.
     val touched = stateMap[field.key] != null
     when (field) {

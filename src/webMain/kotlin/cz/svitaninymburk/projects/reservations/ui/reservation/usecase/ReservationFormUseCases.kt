@@ -79,13 +79,6 @@ fun formatPriceHours(hours: Double): String {
 // --- Validace ---
 
 /**
- * DOČASNÉ: dvě podoby validace povinných vlastních polí vedle sebe, aby šlo obě
- * proklikat v běžící aplikaci. Rozdíly popisuje `RequiredCustomFieldSpec`.
- * Po rozhodnutí zůstane jedna a tenhle enum zmizí.
- */
-enum class CustomFieldValidation { CURRENT, PROPOSED }
-
-/**
  * Kontakt: jméno, příjmení, e-mail a telefon. E-mail se hlídá jen na zavináč —
  * důkladnější ověření dělá server, formulář jen nechce pustit očividný nesmysl.
  */
@@ -96,54 +89,42 @@ fun isContactValid(firstName: String, lastName: String, email: String, phone: St
         PhoneNumber.isValid(phone)
 
 /**
- * Vlastní pole akce. Nepovinné pole projde vždy; u povinného záleží na typu:
+ * Vlastní pole akce. Nepovinné pole projde vždy; u povinného se kontroluje
+ * obsah podle typu:
  *
- *  - zaškrtávátko projde i nezaškrtnuté — "povinné" u něj znamená, že se má
- *    zobrazit, ne že musí být ano,
- *  - text a číslo musí mít vyplněnou hodnotu,
- *  - časový rozsah musí být neprázdný (od < do) a celý uvnitř doby akce;
- *    prázdná hodnota u povinného rozsahu neprojde.
+ *  - text musí mít neprázdný obsah — mezery se nepočítají,
+ *  - číslo musí být vyplněné a v případě zadaných hranic i uvnitř nich
+ *    (`imaskNumeric` u vstupu je jen pomůcka, `max` neomezuje),
+ *  - zaškrtávátko musí být zaškrtnuté; povinný souhlas s podmínkami je přesně
+ *    ten případ, pro který to platí,
+ *  - časový rozsah musí být neprázdný (od < do) a celý uvnitř doby akce.
  *
- * POZOR na `value.toString()` u textu a čísla: [CustomFieldValue] jsou data
- * classy, takže `toString()` vrací `TextValue(fieldKey=..., value=)` a nikdy
- * není blank. Kontrola tedy reálně stojí jen na `value != null`, což u
- * vymazaného pole neplatí — `renderCustomField` zapisuje `TextValue` do mapy
- * při každém stisku klávesy a už ji nikdy neodebere, takže vyplnit povinné
- * pole a zase ho smazat projde. Chování obrazovky se tím nemění, refaktoring
- * ho přenáší tak, jak bylo — viz `requiredTextPassesOnceTouchedEvenIfCleared`.
+ * Špatný typ hodnoty pro dané pole se bere jako nevyplněno. Nekontroluje se
+ * `value != null`, ale skutečný obsah: `CustomFieldValue` jsou data classy, u
+ * kterých `toString()` vrací `TextValue(fieldKey=..., value=)` a blank tedy
+ * není nikdy — a `renderCustomField` zapisuje hodnotu do mapy při každém
+ * stisku klávesy a nikdy ji neodebere, takže na přítomnost klíče se spolehnout
+ * nelze.
  */
 fun isCustomFieldValid(
     field: CustomFieldDefinition,
     value: CustomFieldValue?,
     target: ReservationTarget,
-    variant: CustomFieldValidation = CustomFieldValidation.CURRENT,
 ): Boolean {
     if (!field.isRequired) return true
-    val window = target.startDateTime.time..target.endDateTime.time
-    return when (variant) {
-        CustomFieldValidation.CURRENT -> when (field) {
-            is BooleanFieldDefinition -> true
-            is TextFieldDefinition, is NumberFieldDefinition -> value != null && value.toString().isNotBlank()
-            is TimeRangeFieldDefinition -> {
-                val range = value as? TimeRangeValue ?: return false
-                range.from < range.to && range.from in window && range.to in window
-            }
+    return when (field) {
+        is TextFieldDefinition -> (value as? TextValue)?.value?.isNotBlank() == true
+        is NumberFieldDefinition -> {
+            val number = (value as? NumberValue)?.value ?: return false
+            val aboveMin = field.min?.let { number >= it.toFloat() } ?: true
+            val belowMax = field.max?.let { number <= it.toFloat() } ?: true
+            aboveMin && belowMax
         }
-        // Návrh: kontroluje obsah podle typu, ne toString() obálky. Špatný typ
-        // hodnoty pro dané pole se bere jako nevyplněno.
-        CustomFieldValidation.PROPOSED -> when (field) {
-            is TextFieldDefinition -> (value as? TextValue)?.value?.isNotBlank() == true
-            is NumberFieldDefinition -> {
-                val number = (value as? NumberValue)?.value ?: return false
-                val aboveMin = field.min?.let { number >= it.toFloat() } ?: true
-                val belowMax = field.max?.let { number <= it.toFloat() } ?: true
-                aboveMin && belowMax
-            }
-            is BooleanFieldDefinition -> (value as? BooleanValue)?.value == true
-            is TimeRangeFieldDefinition -> {
-                val range = value as? TimeRangeValue ?: return false
-                range.from < range.to && range.from in window && range.to in window
-            }
+        is BooleanFieldDefinition -> (value as? BooleanValue)?.value == true
+        is TimeRangeFieldDefinition -> {
+            val range = value as? TimeRangeValue ?: return false
+            val window = target.startDateTime.time..target.endDateTime.time
+            range.from < range.to && range.from in window && range.to in window
         }
     }
 }
@@ -151,8 +132,7 @@ fun isCustomFieldValid(
 fun areCustomFieldsValid(
     target: ReservationTarget,
     values: Map<String, CustomFieldValue>,
-    variant: CustomFieldValidation = CustomFieldValidation.CURRENT,
-): Boolean = target.customFields.all { isCustomFieldValid(it, values[it.key], target, variant) }
+): Boolean = target.customFields.all { isCustomFieldValid(it, values[it.key], target) }
 
 fun isReservationFormValid(
     target: ReservationTarget?,
@@ -162,11 +142,10 @@ fun isReservationFormValid(
     phone: String,
     seats: Int,
     customValues: Map<String, CustomFieldValue>,
-    variant: CustomFieldValidation = CustomFieldValidation.CURRENT,
 ): Boolean =
     isContactValid(firstName, lastName, email, phone) &&
         seats > 0 &&
-        (target == null || areCustomFieldsValid(target, customValues, variant))
+        (target == null || areCustomFieldsValid(target, customValues))
 
 // --- UseCase třídy (tenké) ---
 

@@ -12,7 +12,6 @@ import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.WalletLookup
-import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.activeCustomFieldValidation
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.effectivePaymentType
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isCompleteWalletCode
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isReservationFormValid
@@ -84,7 +83,6 @@ class ReservationFormModel(
             phone = phone,
             seats = seats,
             customValues = customValues,
-            variant = activeCustomFieldValidation,
         )
 
     // --- Editace ---
