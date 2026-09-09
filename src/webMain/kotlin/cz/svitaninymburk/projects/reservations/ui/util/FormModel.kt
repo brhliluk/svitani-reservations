@@ -1,24 +1,25 @@
-package cz.svitaninymburk.projects.reservations.ui.auth
+package cz.svitaninymburk.projects.reservations.ui.util
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import arrow.core.Either
 import cz.svitaninymburk.projects.reservations.error.AppError
-import cz.svitaninymburk.projects.reservations.ui.util.ScreenModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
- * Základ pro přihlašovací dialogy. Chyba u nich patří do alertu v dialogu, ne
- * do toastu — dialog zůstává otevřený a uživatel musí u pole vidět, co je
- * špatně. `ScreenModel.run` sype chyby do toastu, proto tady vlastní [submit].
+ * Základ pro formuláře, které chybu ukazují u sebe, ne toastem — dialog nebo
+ * karta zůstává otevřená a uživatel musí u pole vidět, co je špatně.
+ * `ScreenModel.run` sype chyby do toastu, proto tady vlastní [submit].
  *
- * Zabaluje i to, co měl každý z pěti dialogů opsané: loading příznak, vynulování
- * předchozí chyby a záchytný `catch` na cokoli, co RPC nepředpokládá.
+ * Zabaluje i to, co si každý takový formulář opisoval: loading příznak,
+ * vynulování předchozí chyby a záchytný `catch` na cokoli, co RPC nepředpokládá.
+ * Používají to přihlašovací dialogy (`ui/auth`) i vyhledání peněženky
+ * (`ui/wallet`).
  */
-abstract class AuthFormModel(scope: CoroutineScope) : ScreenModel(scope) {
+abstract class FormModel(scope: CoroutineScope) : ScreenModel(scope) {
 
     var isLoading by mutableStateOf(false); private set
     var errorMessage: String? by mutableStateOf(null)

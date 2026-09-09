@@ -2,16 +2,11 @@ package cz.svitaninymburk.projects.reservations.ui.wallet
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
-import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.reservation.detail.CopyToClipboardButton
-import cz.svitaninymburk.projects.reservations.wallet.WalletInfo
+import cz.svitaninymburk.projects.reservations.ui.util.walletResetDateLabel
 import dev.kilua.core.IComponent
 import dev.kilua.form.text.text
 import dev.kilua.html.button
@@ -20,20 +15,12 @@ import dev.kilua.html.h1
 import dev.kilua.html.label
 import dev.kilua.html.p
 import dev.kilua.html.span
-import dev.kilua.rpc.getService
-import kotlinx.coroutines.launch
 
 @Composable
 fun IComponent.WalletScreen(initialCode: String = "", initialEmail: String = "") {
     val scope = rememberCoroutineScope()
     val currentStrings by strings
-    val reservationService = getService<ReservationServiceInterface>(RpcSerializersModules)
-
-    var code by remember { mutableStateOf(initialCode) }
-    var email by remember { mutableStateOf(initialEmail) }
-    var isLoading by remember { mutableStateOf(false) }
-    var walletInfo by remember { mutableStateOf<WalletInfo?>(null) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val model = remember { buildWalletLookupModel(scope, initialCode, initialEmail) }
 
     div(className = "min-h-screen bg-base-200 flex items-center justify-center p-4") {
         div(className = "card w-full max-w-md bg-base-100 shadow-xl") {
@@ -49,9 +36,9 @@ fun IComponent.WalletScreen(initialCode: String = "", initialEmail: String = "")
                         label(className = "label pb-1") {
                             span(className = "label-text font-medium") { +currentStrings.walletCode }
                         }
-                        text(value = code, className = "input input-bordered w-full font-mono") {
+                        text(value = model.code, className = "input input-bordered w-full font-mono") {
                             placeholder("SVIT-XXXX-XXXX")
-                            onInput { code = value ?: "" }
+                            onInput { model.setCode(value ?: "") }
                         }
                     }
 
@@ -59,45 +46,29 @@ fun IComponent.WalletScreen(initialCode: String = "", initialEmail: String = "")
                         label(className = "label pb-1") {
                             span(className = "label-text font-medium") { +currentStrings.walletLookupEmailLabel }
                         }
-                        text(value = email, className = "input input-bordered w-full") {
+                        text(value = model.email, className = "input input-bordered w-full") {
                             placeholder("vas@email.cz")
-                            onInput { email = value ?: "" }
+                            onInput { model.setEmail(value ?: "") }
+                            onKeydown { e -> if (e.key == "Enter") model.lookUp() }
                         }
                     }
 
-                    if (errorMessage != null) {
+                    model.errorMessage?.let { message ->
                         div(className = "alert alert-error text-sm py-2") {
                             span(className = "icon-[heroicons--exclamation-circle] size-5")
-                            span { +errorMessage!! }
+                            span { +message }
                         }
                     }
 
                     button(className = "btn btn-primary w-full") {
-                        disabled(isLoading || code.isBlank() || email.isBlank())
-                        if (isLoading) span(className = "loading loading-spinner loading-sm")
-                        onClick {
-                            isLoading = true
-                            errorMessage = null
-                            walletInfo = null
-                            scope.launch {
-                                reservationService.getWalletInfo(code.trim(), email.trim()).fold(
-                                    ifRight = { info ->
-                                        walletInfo = info
-                                        isLoading = false
-                                    },
-                                    ifLeft = { error ->
-                                        errorMessage = error.localizedMessage(currentStrings)
-                                        isLoading = false
-                                    }
-                                )
-                            }
-                        }
+                        disabled(model.isLoading || !model.canLookUp)
+                        if (model.isLoading) span(className = "loading loading-spinner loading-sm")
+                        onClick { model.lookUp() }
                         +currentStrings.walletLookupSubmit
                     }
                 }
 
-                if (walletInfo != null) {
-                    val info = walletInfo!!
+                model.walletInfo?.let { info ->
                     div(className = "divider my-0")
                     div(className = "flex flex-col gap-4") {
                         if (!info.emailMatches) {
@@ -116,7 +87,7 @@ fun IComponent.WalletScreen(initialCode: String = "", initialEmail: String = "")
                                     +"${info.balance.toInt()} ${currentStrings.currency}"
                                 }
                                 div(className = "stat-desc") {
-                                    +"${currentStrings.walletExpiresOn}: ${info.seasonResetDay}. ${info.seasonResetMonth}."
+                                    +"${currentStrings.walletExpiresOn}: ${walletResetDateLabel(info.seasonResetDay, info.seasonResetMonth)}"
                                 }
                             }
                         }

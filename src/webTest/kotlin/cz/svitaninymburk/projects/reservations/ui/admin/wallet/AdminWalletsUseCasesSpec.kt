@@ -1,7 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.wallet
 
 import cz.svitaninymburk.projects.reservations.ui.admin.wallet.usecase.canAdjustWallet
-import cz.svitaninymburk.projects.reservations.ui.admin.wallet.usecase.walletResetDateLabel
+import cz.svitaninymburk.projects.reservations.ui.util.walletResetDateLabel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

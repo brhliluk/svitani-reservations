@@ -8,6 +8,7 @@ import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import cz.svitaninymburk.projects.reservations.service.UserServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.auth.usecase.AuthMutations
+import cz.svitaninymburk.projects.reservations.ui.util.FormModel
 import cz.svitaninymburk.projects.reservations.ui.auth.usecase.UserPasswordMutations
 import cz.svitaninymburk.projects.reservations.ui.auth.usecase.isChangePasswordFormValid
 import cz.svitaninymburk.projects.reservations.ui.auth.usecase.isLoginFormValid
@@ -21,7 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 class LoginModel(
     scope: CoroutineScope,
     private val auth: AuthMutations,
-) : AuthFormModel(scope) {
+) : FormModel(scope) {
 
     var email by mutableStateOf(""); private set
     var password by mutableStateOf(""); private set
@@ -44,7 +45,7 @@ class LoginModel(
 class RegisterModel(
     scope: CoroutineScope,
     private val auth: AuthMutations,
-) : AuthFormModel(scope) {
+) : FormModel(scope) {
 
     var name by mutableStateOf(""); private set
     var surname by mutableStateOf(""); private set
@@ -86,7 +87,7 @@ class RegisterModel(
 class ForgotPasswordModel(
     scope: CoroutineScope,
     private val auth: AuthMutations,
-) : AuthFormModel(scope) {
+) : FormModel(scope) {
 
     var email by mutableStateOf(""); private set
 
@@ -109,7 +110,7 @@ class ForgotPasswordModel(
 class ChangePasswordModel(
     scope: CoroutineScope,
     private val user: UserPasswordMutations,
-) : AuthFormModel(scope) {
+) : FormModel(scope) {
 
     var oldPassword by mutableStateOf(""); private set
     var newPassword by mutableStateOf(""); private set
@@ -136,7 +137,7 @@ class ResetPasswordModel(
     scope: CoroutineScope,
     private val auth: AuthMutations,
     private val token: String,
-) : AuthFormModel(scope) {
+) : FormModel(scope) {
 
     var password by mutableStateOf(""); private set
     var passwordConfirm by mutableStateOf(""); private set

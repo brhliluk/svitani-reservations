@@ -10,7 +10,7 @@ import cz.svitaninymburk.projects.reservations.service.AppSettingsServiceInterfa
 import cz.svitaninymburk.projects.reservations.ui.admin.wallet.usecase.AdminWalletsMutations
 import cz.svitaninymburk.projects.reservations.ui.admin.wallet.usecase.AdminWalletsQueries
 import cz.svitaninymburk.projects.reservations.ui.admin.wallet.usecase.canAdjustWallet
-import cz.svitaninymburk.projects.reservations.ui.admin.wallet.usecase.walletResetDateLabel
+import cz.svitaninymburk.projects.reservations.ui.util.walletResetDateLabel
 import cz.svitaninymburk.projects.reservations.ui.util.ScreenModel
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
 import cz.svitaninymburk.projects.reservations.wallet.WalletTransaction

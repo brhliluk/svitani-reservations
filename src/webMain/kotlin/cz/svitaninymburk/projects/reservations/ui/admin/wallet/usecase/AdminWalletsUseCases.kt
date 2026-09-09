@@ -17,9 +17,6 @@ const val WALLETS_PAGE_SIZE = 20
 fun canAdjustWallet(amount: Double?, note: String): Boolean =
     amount != null && amount > 0 && note.isNotBlank()
 
-/** "15. 8." — den a měsíc, kdy kredit propadá. */
-fun walletResetDateLabel(day: Int, month: Int): String = "$day. $month."
-
 // --- UseCase třídy (tenké, vrací Either) ---
 
 class AdminWalletsQueries(
