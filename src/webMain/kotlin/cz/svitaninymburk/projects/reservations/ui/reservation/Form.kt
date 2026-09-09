@@ -3,30 +3,16 @@ package cz.svitaninymburk.projects.reservations.ui.reservation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
-import cz.svitaninymburk.projects.reservations.event.BooleanFieldDefinition
-import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
-import cz.svitaninymburk.projects.reservations.event.NumberFieldDefinition
-import cz.svitaninymburk.projects.reservations.event.TextFieldDefinition
-import cz.svitaninymburk.projects.reservations.event.PriceModifier
-import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
-import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
-import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
-import cz.svitaninymburk.projects.reservations.event.hoursFromRange
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.util.PhoneNumber
-import cz.svitaninymburk.projects.reservations.ui.components.CancellationPolicyBox
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
-import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.components.CancellationPolicyBox
+import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.formatPriceHours
+import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.timeMultiplierHours
 import cz.svitaninymburk.projects.reservations.ui.util.label
 import cz.svitaninymburk.projects.reservations.user.User
-import cz.svitaninymburk.projects.reservations.wallet.WalletInfo
 import dev.kilua.core.IComponent
 import dev.kilua.form.Autocomplete
 import dev.kilua.form.InputType
@@ -41,8 +27,6 @@ import dev.kilua.html.label
 import dev.kilua.html.option
 import dev.kilua.html.p
 import dev.kilua.html.span
-import dev.kilua.rpc.getService
-import kotlinx.coroutines.launch
 import web.events.Event
 import web.html.HTMLSelectElement
 
@@ -56,57 +40,20 @@ fun IComponent.ReservationModal(
     onClose: () -> Unit,
     onSubmit: (ReservationTarget, ReservationFormData) -> Unit
 ) {
+    if (target == null) return
+
     val currentStrings by strings
     val scope = rememberCoroutineScope()
-    val reservationService = getService<ReservationServiceInterface>(RpcSerializersModules)
-
-    // Stavy formuláře — prefill z přihlášeného uživatele (User model nemá telefon)
-    var firstName by remember(target, user) { mutableStateOf(user?.name.orEmpty()) }
-    var lastName by remember(target, user) { mutableStateOf(user?.surname.orEmpty()) }
-    var email by remember(target, user) { mutableStateOf(user?.email.orEmpty()) }
-    var phone by remember(target) { mutableStateOf("") }
-    var seats by remember(target) { mutableStateOf(1) }
-    var seatsExceeded by remember(target) { mutableStateOf(false) }
-    var paymentType by remember(target) { mutableStateOf(PaymentInfo.Type.BANK_TRANSFER) }
-    val customValuesState = remember(target) { mutableStateMapOf<String, CustomFieldValue>() }
-    var walletCode by remember(target) { mutableStateOf(initialWalletCode ?: "") }
-    var walletInfo by remember(target) { mutableStateOf<WalletInfo?>(null) }
-    var walletExpanded by remember(target) { mutableStateOf(initialWalletCode != null) }
-
-    LaunchedEffect(target) {
-        if (walletCode.length == 14 && email.isNotBlank()) {
-            walletInfo = reservationService.getWalletInfo(walletCode, email).getOrNull()
-        }
+    val model = remember(target, user) {
+        buildReservationFormModel(scope, target, user, initialWalletCode, asWaitlist)
     }
 
-    val isValid =
-        firstName.isNotBlank() &&
-        lastName.isNotBlank() &&
-        email.contains("@") &&
-        PhoneNumber.isValid(phone) &&
-        seats > 0 &&
-        (target?.customFields?.all { field ->
-            (if (!field.isRequired) true
-            else {
-                val value = customValuesState[field.key]
-                when (field) {
-                    is BooleanFieldDefinition -> true
-                    is TextFieldDefinition, is NumberFieldDefinition -> value != null && value.toString().isNotBlank()
-                    is TimeRangeFieldDefinition -> {
-                        val range = (value as? TimeRangeValue) ?: return@all false
-                        range.from < range.to
-                                && range.from in target.startDateTime.time..target.endDateTime.time
-                                && range.to in target.startDateTime.time..target.endDateTime.time
-                    }
-                }
-            })
-        } ?: true)
+    LaunchedEffect(target) { model.lookUpWallet() }
 
-    if (target != null) {
-        div(className = "modal modal-open modal-bottom sm:modal-middle bg-base-300/65 z-50") {
-            div(className = "modal-box bg-base-100 shadow-xl border border-base-200 max-h-[92vh] overflow-hidden rounded-t-2xl sm:rounded-2xl flex flex-col p-0") {
+    div(className = "modal modal-open modal-bottom sm:modal-middle bg-base-300/65 z-50") {
+        div(className = "modal-box bg-base-100 shadow-xl border border-base-200 max-h-[92vh] overflow-hidden rounded-t-2xl sm:rounded-2xl flex flex-col p-0") {
 
-                div(className = "overflow-y-auto flex-1 p-4 sm:p-6") {
+            div(className = "overflow-y-auto flex-1 p-4 sm:p-6") {
 
                 // --- HLAVIČKA ---
                 h3(className = "font-bold text-lg flex items-center gap-2") {
@@ -122,36 +69,20 @@ fun IComponent.ReservationModal(
 
                 // Cena info
                 div(className = "py-4") {
-                    val total = calculateTotalPrice(
-                        basePrice = target.price,
-                        seatCount = seats,
-                        customFields = target.customFields,
-                        customValues = customValuesState,
-                    )
-                    val walletDeduction = walletInfo?.let { minOf(it.balance, total) } ?: 0.0
-
                     div(className = "stats shadow w-full bg-base-200/50") {
                         div(className = "stat py-2") {
                             div(className = "stat-title") { +currentStrings.formTotalPrice }
                             div(className = "stat-value text-primary text-xl sm:text-2xl") {
-                                if (total == 0.0) +currentStrings.free else +"$total ${currentStrings.currency}"
+                                if (model.total == 0.0) +currentStrings.free
+                                else +"${model.total} ${currentStrings.currency}"
                             }
                             div(className = "stat-desc") {
-                                val timeField = target.customFields
-                                    .filterIsInstance<TimeRangeFieldDefinition>()
-                                    .firstOrNull { it.priceModifier is PriceModifier.TimeMultiplier }
-                                val hours = timeField?.let { f ->
-                                    (customValuesState[f.key] as? TimeRangeValue)
-                                        ?.takeIf { it.to > it.from }
-                                        ?.let { v -> hoursFromRange(v) }
-                                }
                                 // Bez volby počtu míst je "× 1 osob" jen šum — rozpad ceny ho vynechá.
                                 val seatsPart =
-                                    if (target.allowMultipleSeats) " × $seats ${currentStrings.persons}" else ""
+                                    if (target.allowMultipleSeats) " × ${model.seats} ${currentStrings.persons}" else ""
+                                val hours = timeMultiplierHours(target, model.customValues)
                                 if (hours != null) {
-                                    val rounded = kotlin.math.round(hours * 10) / 10.0
-                                    val displayHours = if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
-                                    +"${target.price} ${currentStrings.currency}$seatsPart × $displayHours ${currentStrings.hours}"
+                                    +"${target.price} ${currentStrings.currency}$seatsPart × ${formatPriceHours(hours)} ${currentStrings.hours}"
                                 } else {
                                     +"${target.price} ${currentStrings.currency}$seatsPart"
                                 }
@@ -159,18 +90,17 @@ fun IComponent.ReservationModal(
                         }
                     }
 
-                    if (walletDeduction > 0.0) {
-                        val afterWallet = total - walletDeduction
+                    if (model.deduction > 0.0) {
                         div(className = "mt-2 bg-success/10 border border-success/30 rounded-xl px-4 py-3 flex flex-col gap-1 text-sm") {
                             div(className = "flex justify-between") {
                                 span(className = "text-base-content/60") { +currentStrings.walletCreditApplied }
-                                span(className = "font-medium text-success") { +"− ${walletDeduction.toInt()} ${currentStrings.currency}" }
+                                span(className = "font-medium text-success") { +"− ${model.deduction.toInt()} ${currentStrings.currency}" }
                             }
                             div(className = "flex justify-between font-semibold") {
                                 span { +currentStrings.remainingToPay }
                                 span(className = "text-primary") {
-                                    if (afterWallet == 0.0) +currentStrings.free
-                                    else +"${afterWallet.toInt()} ${currentStrings.currency}"
+                                    if (model.remaining == 0.0) +currentStrings.free
+                                    else +"${model.remaining.toInt()} ${currentStrings.currency}"
                                 }
                             }
                         }
@@ -188,12 +118,12 @@ fun IComponent.ReservationModal(
                                 span(className = "label-text") { +currentStrings.nameLabel }
                                 span(className = "text-error") { +"*" }
                             }
-                            text(value = firstName, className = "input input-bordered input-lg sm:input-md w-full", name = "given-name") {
+                            text(value = model.firstName, className = "input input-bordered input-lg sm:input-md w-full", name = "given-name") {
                                 id("reservation-name")
                                 autocomplete(Autocomplete.GivenName)
                                 placeholder(currentStrings.nameHint)
                                 attribute("aria-required", "true")
-                                onInput { firstName = value ?: "" }
+                                onInput { model.setFirstName(value ?: "") }
                             }
                         }
                         label(className = "form-control w-full") {
@@ -201,12 +131,12 @@ fun IComponent.ReservationModal(
                                 span(className = "label-text") { +currentStrings.surnameLabel }
                                 span(className = "text-error") { +"*" }
                             }
-                            text(value = lastName, className = "input input-bordered input-lg sm:input-md w-full", name = "family-name") {
+                            text(value = model.lastName, className = "input input-bordered input-lg sm:input-md w-full", name = "family-name") {
                                 id("reservation-surname")
                                 autocomplete(Autocomplete.FamilyName)
                                 placeholder(currentStrings.surnameHint)
                                 attribute("aria-required", "true")
-                                onInput { lastName = value ?: "" }
+                                onInput { model.setLastName(value ?: "") }
                             }
                         }
                     }
@@ -217,19 +147,12 @@ fun IComponent.ReservationModal(
                             span(className = "label-text") { +currentStrings.emailLabel }
                             span(className = "text-error") { +"*" }
                         }
-                        text(value = email, type = InputType.Email, className = "input input-bordered input-lg sm:input-md w-full", name = "email") {
+                        text(value = model.email, type = InputType.Email, className = "input input-bordered input-lg sm:input-md w-full", name = "email") {
                             id("reservation-email")
                             autocomplete(Autocomplete.Email)
                             placeholder(currentStrings.emailHint)
                             attribute("aria-required", "true")
-                            onInput {
-                                email = value ?: ""
-                                if (walletCode.length == 14) {
-                                    scope.launch {
-                                        walletInfo = reservationService.getWalletInfo(walletCode, email).getOrNull()
-                                    }
-                                }
-                            }
+                            onInput { model.setEmail(value ?: "") }
                         }
                     }
 
@@ -239,15 +162,13 @@ fun IComponent.ReservationModal(
                             span(className = "label-text") { +currentStrings.phoneLabel }
                             span(className = "text-error") { +"*" }
                         }
-                        text(value = phone, type = InputType.Tel, className = "input input-bordered input-lg sm:input-md w-full", name = "tel") {
+                        text(value = model.phone, type = InputType.Tel, className = "input input-bordered input-lg sm:input-md w-full", name = "tel") {
                             id("reservation-phone")
                             autocomplete(Autocomplete.Tel)
                             placeholder(currentStrings.phoneHint)
                             attribute("aria-required", "true")
-                            onInput { phone = value ?: "" }
-                            onEvent<Event>("blur") {
-                                if (phone.isNotBlank()) phone = PhoneNumber.format(phone)
-                            }
+                            onInput { model.setPhone(value ?: "") }
+                            onEvent<Event>("blur") { model.normalizePhone() }
                         }
                         div(className = "label") {
                             span(className = "label-text-alt text-base-content/60") { +currentStrings.phoneHintAlt }
@@ -258,19 +179,12 @@ fun IComponent.ReservationModal(
                         div(className = "divider text-xs text-base-content/50 my-1") { +currentStrings.moreDetails }
 
                         target.customFields.forEach { field ->
-                            renderCustomField(field, customValuesState, target)
+                            renderCustomField(field, model.customValues, target)
                         }
                     }
 
                     // 4. Počet míst a Platba
                     div(className = "grid grid-cols-1 sm:grid-cols-3 gap-3") {
-                        val totalForPayment = calculateTotalPrice(
-                            basePrice = target.price,
-                            seatCount = seats,
-                            customFields = target.customFields,
-                            customValues = customValuesState,
-                        )
-                        val afterWallet = totalForPayment - (walletInfo?.let { minOf(it.balance, totalForPayment) } ?: 0.0)
 
                         // Počet míst — u akcí bez volby počtu míst se pole nezobrazuje a rezervuje se 1 místo
                         if (target.allowMultipleSeats) {
@@ -279,19 +193,11 @@ fun IComponent.ReservationModal(
                                     span(className = "label-text") { +currentStrings.seatCountLabel }
                                     span(className = "text-error") { +"*" }
                                 }
-                                text(value = seats.toString(), type = InputType.Number, className = "input input-bordered input-lg sm:input-md w-full") {
-                                    onInput {
-                                        val typed = this.value?.toIntOrNull()
-                                        seats = target.clampSeatCount(typed)
-                                        seatsExceeded = target.exceedsRemainingCapacity(typed)
-                                    }
-                                    onChange {
-                                        val typed = this.value?.toIntOrNull()
-                                        seats = target.clampSeatCount(typed)
-                                        seatsExceeded = target.exceedsRemainingCapacity(typed)
-                                    }
+                                text(value = model.seats.toString(), type = InputType.Number, className = "input input-bordered input-lg sm:input-md w-full") {
+                                    onInput { model.setSeats(this.value?.toIntOrNull()) }
+                                    onChange { model.setSeats(this.value?.toIntOrNull()) }
                                 }
-                                if (seatsExceeded) {
+                                if (model.seatsExceeded) {
                                     p(className = "text-warning text-sm mt-1") {
                                         +currentStrings.seatCountMaxReached(target.maxCapacity)
                                     }
@@ -300,7 +206,7 @@ fun IComponent.ReservationModal(
                         }
 
                         // Typ platby — skryto pokud peněženka pokrývá celou cenu
-                        if (afterWallet > 0.0) {
+                        if (model.showsPaymentPicker) {
                             // Bez pole s počtem míst zabere platba celou šířku mřížky.
                             val paymentSpan = if (target.allowMultipleSeats) "sm:col-span-2" else "sm:col-span-3"
                             label(className = "form-control w-full $paymentSpan") {
@@ -314,9 +220,10 @@ fun IComponent.ReservationModal(
                                     }
 
                                     onChange { event ->
-                                        val targetSelect = event.target as? HTMLSelectElement
-                                        val selectedValue = targetSelect?.value
-                                        paymentType = PaymentInfo.Type.valueOf(selectedValue ?: PaymentInfo.Type.BANK_TRANSFER.name)
+                                        val selectedValue = (event.target as? HTMLSelectElement)?.value
+                                        model.setPaymentType(
+                                            PaymentInfo.Type.valueOf(selectedValue ?: PaymentInfo.Type.BANK_TRANSFER.name)
+                                        )
                                     }
                                 }
                             }
@@ -325,49 +232,34 @@ fun IComponent.ReservationModal(
 
                     // Slevový kód peněženky
                     label(className = "flex items-center gap-2 cursor-pointer w-fit") {
-                        checkBox(value = walletExpanded, className = "checkbox checkbox-sm") {
-                            onChange {
-                                walletExpanded = value
-                                if (!walletExpanded) {
-                                    walletCode = ""
-                                    walletInfo = null
-                                }
-                            }
+                        checkBox(value = model.walletExpanded, className = "checkbox checkbox-sm") {
+                            onChange { model.setWalletExpanded(value) }
                         }
                         span(className = "label-text") { +currentStrings.walletHasCode }
                     }
-                    if (walletExpanded) {
+                    if (model.walletExpanded) {
                         label(className = "form-control w-full") {
                             div(className = "label") {
                                 span(className = "label-text") { +currentStrings.walletCode }
                             }
-                            text(value = walletCode, className = "input input-bordered input-lg sm:input-md w-full") {
+                            text(value = model.walletCode, className = "input input-bordered input-lg sm:input-md w-full") {
                                 placeholder(currentStrings.walletCodePlaceholder)
-                                onInput {
-                                    walletCode = value ?: ""
-                                    if (walletCode.length == 14) {
-                                        scope.launch {
-                                            walletInfo = reservationService.getWalletInfo(walletCode, email).getOrNull()
-                                        }
-                                    } else {
-                                        walletInfo = null
-                                    }
-                                }
+                                onInput { model.setWalletCode(value ?: "") }
                             }
                             div(className = "label") {
                                 span(className = "label-text-alt text-base-content/50") { +currentStrings.walletCodeHint }
                             }
-                            if (walletInfo != null) {
+                            model.walletInfo?.let { info ->
                                 div(className = "label pt-0") {
                                     span(className = "label-text-alt text-success font-medium") {
-                                        +"${currentStrings.walletBalance}: ${walletInfo!!.balance.toInt()} ${currentStrings.currency}"
+                                        +"${currentStrings.walletBalance}: ${info.balance.toInt()} ${currentStrings.currency}"
                                     }
                                 }
-                            }
-                            if (walletInfo != null && !walletInfo!!.emailMatches) {
-                                div(className = "alert alert-warning py-2 text-sm mt-1") {
-                                    span(className = "icon-[heroicons--exclamation-triangle] size-4")
-                                    span { +currentStrings.walletEmailMismatchWarning }
+                                if (!info.emailMatches) {
+                                    div(className = "alert alert-warning py-2 text-sm mt-1") {
+                                        span(className = "icon-[heroicons--exclamation-triangle] size-4")
+                                        span { +currentStrings.walletEmailMismatchWarning }
+                                    }
                                 }
                             }
                         }
@@ -382,64 +274,47 @@ fun IComponent.ReservationModal(
                     +currentStrings.requiredFieldLegend
                 }
 
-                } // end scrollable content
+            } // end scrollable content
 
-                // --- STICKY FOOTER ---
-                div(className = "flex-shrink-0 border-t border-base-200 bg-base-100 px-4 sm:px-6 py-3 flex items-center gap-3") {
-                    div(className = "flex-1 min-w-0") {
-                        val footerTotal = calculateTotalPrice(
-                            basePrice = target.price,
-                            seatCount = seats,
-                            customFields = target.customFields,
-                            customValues = customValuesState,
-                        )
-                        val footerWallet = walletInfo?.let { minOf(it.balance, footerTotal) } ?: 0.0
-                        val footerDisplay = footerTotal - footerWallet
-                        div(className = "text-xs text-base-content/60") {
-                            if (footerWallet > 0.0) +currentStrings.remainingToPay else +currentStrings.formTotalPrice
-                        }
-                        div(className = "font-semibold text-primary") {
-                            if (footerDisplay == 0.0) +currentStrings.free
-                            else +"${footerDisplay.toInt()} ${currentStrings.currency}"
-                        }
+            // --- STICKY FOOTER ---
+            div(className = "flex-shrink-0 border-t border-base-200 bg-base-100 px-4 sm:px-6 py-3 flex items-center gap-3") {
+                div(className = "flex-1 min-w-0") {
+                    div(className = "text-xs text-base-content/60") {
+                        if (model.deduction > 0.0) +currentStrings.remainingToPay else +currentStrings.formTotalPrice
                     }
-                    button(className = "btn btn-ghost min-h-10 h-10") {
-                        disabled(isSubmitting)
-                        onClick { if (!isSubmitting) onClose() }
-                        +currentStrings.cancel
+                    div(className = "font-semibold text-primary") {
+                        if (model.remaining == 0.0) +currentStrings.free
+                        else +"${model.remaining.toInt()} ${currentStrings.currency}"
                     }
-                    button(className = "btn btn-primary px-6 min-h-10 h-10") {
-                        disabled(!isValid || isSubmitting)
-                        onClick {
-                            if (!isSubmitting) {
-                                val t = calculateTotalPrice(target.price, seats, target.customFields, customValuesState)
-                                val wd = walletInfo?.let { minOf(it.balance, t) } ?: 0.0
-                                val effectivePaymentType = if (wd == t) PaymentInfo.Type.FREE else paymentType
-                                onSubmit(
-                                    target,
-                                    ReservationFormData(firstName, lastName, email, phone, if (asWaitlist) 1 else seats, effectivePaymentType, customValuesState, currentStrings.locale, walletCode.ifBlank { null }, asWaitlist)
-                                )
-                            }
-                        }
-                        if (isSubmitting) {
-                            span(className = "loading loading-spinner loading-sm")
-                        } else if (isValid) {
-                            span(className = "icon-[heroicons--check] size-5")
-                        }
-                        +currentStrings.reserve
+                }
+                button(className = "btn btn-ghost min-h-10 h-10") {
+                    disabled(isSubmitting)
+                    onClick { if (!isSubmitting) onClose() }
+                    +currentStrings.cancel
+                }
+                button(className = "btn btn-primary px-6 min-h-10 h-10") {
+                    disabled(!model.isValid || isSubmitting)
+                    onClick {
+                        if (!isSubmitting) onSubmit(target, model.formData(currentStrings.locale))
                     }
+                    if (isSubmitting) {
+                        span(className = "loading loading-spinner loading-sm")
+                    } else if (model.isValid) {
+                        span(className = "icon-[heroicons--check] size-5")
+                    }
+                    +currentStrings.reserve
                 }
             }
+        }
 
-            // Backdrop musí být během odesílání zamčený stejně jako Zrušit/Zavřít —
-            // jinak klik mimo modal odmountuje spinner, request běží dál neviditelně
-            // a uživatel si myslí, že se nic nestalo.
-            div(className = "modal-backdrop") {
-                onClick { if (!isSubmitting) onClose() }
-                button {
-                    disabled(isSubmitting)
-                    +currentStrings.close
-                }
+        // Backdrop musí být během odesílání zamčený stejně jako Zrušit/Zavřít —
+        // jinak klik mimo modal odmountuje spinner, request běží dál neviditelně
+        // a uživatel si myslí, že se nic nestalo.
+        div(className = "modal-backdrop") {
+            onClick { if (!isSubmitting) onClose() }
+            button {
+                disabled(isSubmitting)
+                +currentStrings.close
             }
         }
     }
