@@ -151,7 +151,7 @@ object CsStrings : AppStrings {
     override val timeRangeError = "Čas je mimo povolený rozsah"
     override val customFieldRequiredError = "Vyplňte prosím toto pole"
     override val customFieldCheckboxRequiredError = "Bez zaškrtnutí nelze rezervovat"
-    override val numberRangeHint: (String, String) -> String = { min, max -> "Rozsah: $min–$max" }
+    override val numberRangeHint: (String, String) -> String = { min, max -> "($min–$max)" }
     override val numberRangeError: (String, String) -> String = { min, max -> "Hodnota musí být mezi $min a $max" }
 
     // Calendar

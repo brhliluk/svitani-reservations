@@ -95,19 +95,16 @@ fun IComponent.renderCustomField(
             val showError = invalid && touched
             label(className = "form-control w-full") {
                 div(className = "label") {
-                    div(className = "flex flex-col gap-0.5") {
-                        div(className = "flex items-center gap-0.5") {
-                            span(className = "label-text") { +field.label }
-                            if (field.isRequired) span(className = "text-error") { +"*" }
-                        }
-                        // Hranice se ukazují stejně jako u časového rozsahu, ať je
-                        // vidět dřív, než do pole někdo napíše nesmysl.
-                        if (field.min != null && field.max != null) {
-                            span(className = "label-text-alt text-base-content/60") {
-                                +currentStrings.numberRangeHint(field.min.toString(), field.max.toString())
-                            }
+                    span(className = "label-text") { +field.label }
+                    // Hranice patří k názvu pole, ať je vidět dřív, než do něj
+                    // někdo napíše nesmysl — proto v závorce za labelem, ne na
+                    // vlastním řádku pod ním.
+                    if (field.min != null && field.max != null) {
+                        span(className = "label-text text-base-content/60") {
+                            +" ${currentStrings.numberRangeHint(field.min.toString(), field.max.toString())}"
                         }
                     }
+                    if (field.isRequired) span(className = "text-error") { +"*" }
                 }
                 text(
                     value = (stateMap[field.key] as? NumberValue)?.value?.toString(),
@@ -150,12 +147,11 @@ fun IComponent.renderCustomField(
                     span(className = "label-text font-medium") { +field.label }
                     if (field.isRequired) span(className = "text-error") { +"*" }
                 }
-                // Tady se hlásí i nedotčený stav: nezaškrtnuté zaškrtávátko je
-                // jediné povinné pole, u kterého uživatel nemá jak zjistit, že
-                // brání odeslání — nic tam nepíše, jen to nekliknul.
-                if (invalid) {
+                // Až po dotčení, stejně jako u ostatních polí — nedotčené
+                // zaškrtávátko nemá co vytýkat, hvězdička u labelu stačí.
+                if (invalid && touched) {
                     div(className = "label pt-0") {
-                        span(className = "label-text-alt ${if (touched) "text-error" else "text-base-content/60"}") {
+                        span(className = "label-text-alt text-error") {
                             +currentStrings.customFieldCheckboxRequiredError
                         }
                     }
