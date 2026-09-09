@@ -16,6 +16,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.pageSlice
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.ui.util.Pagination
 import dev.kilua.core.IComponent
 import dev.kilua.form.check.checkBox
 import dev.kilua.form.form
@@ -225,21 +226,13 @@ fun IComponent.AdminEventsScreen() {
                                                     tr {
                                                         td {
                                                             attribute("colspan", "6")
-                                                            div(className = "flex items-center justify-center gap-3 py-1") {
-                                                                button(className = "btn btn-ghost btn-xs") {
-                                                                    disabled(childPage == 0)
-                                                                    onClick { if (childPage > 0) model.setChildPage(def.id, childPage - 1) }
-                                                                    +currentStrings.paginationPrevious
-                                                                }
-                                                                span(className = "text-xs text-base-content/50") {
-                                                                    +currentStrings.paginationPageOf(childPage + 1, totalChildPages)
-                                                                }
-                                                                button(className = "btn btn-ghost btn-xs") {
-                                                                    disabled(childPage >= totalChildPages - 1)
-                                                                    onClick { if (childPage < totalChildPages - 1) model.setChildPage(def.id, childPage + 1) }
-                                                                    +currentStrings.paginationNext
-                                                                }
-                                                            }
+                                                            Pagination(
+                                                                page = childPage,
+                                                                totalPages = totalChildPages,
+                                                                onPageChange = { model.setChildPage(def.id, it) },
+                                                                className = "flex items-center justify-center gap-3 py-1",
+                                                                compact = true,
+                                                            )
                                                         }
                                                     }
                                                 }
@@ -252,21 +245,12 @@ fun IComponent.AdminEventsScreen() {
 
                         // Definition-level pagination
                         if (data.totalDefinitionCount > DEFINITIONS_PAGE_SIZE) {
-                            div(className = "flex items-center justify-center gap-4 mt-2") {
-                                button(className = "btn btn-outline btn-sm") {
-                                    disabled(model.definitionsPage == 0)
-                                    onClick { if (model.definitionsPage > 0) model.setDefinitionsPage(model.definitionsPage - 1) }
-                                    +currentStrings.paginationPrevious
-                                }
-                                span(className = "text-sm text-base-content/70") {
-                                    +currentStrings.paginationPageOf(model.definitionsPage + 1, totalDefinitionPages)
-                                }
-                                button(className = "btn btn-outline btn-sm") {
-                                    disabled(model.definitionsPage >= totalDefinitionPages - 1)
-                                    onClick { if (model.definitionsPage < totalDefinitionPages - 1) model.setDefinitionsPage(model.definitionsPage + 1) }
-                                    +currentStrings.paginationNext
-                                }
-                            }
+                            Pagination(
+                                page = model.definitionsPage,
+                                totalPages = totalDefinitionPages,
+                                onPageChange = { model.setDefinitionsPage(it) },
+                                className = "flex items-center justify-center gap-4 mt-2",
+                            )
                         }
                     }
                 }

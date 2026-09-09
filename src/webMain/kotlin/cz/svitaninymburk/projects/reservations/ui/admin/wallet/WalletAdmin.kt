@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.ui.util.pageCount
+import cz.svitaninymburk.projects.reservations.ui.util.Pagination
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
 import dev.kilua.core.IComponent
@@ -111,21 +112,11 @@ fun IComponent.AdminWalletsScreen() {
                     }
 
                     // --- 3. PAGINATION ---
-                    div(className = "flex items-center justify-center gap-4 mt-4") {
-                        button(className = "btn btn-outline btn-sm") {
-                            disabled(model.page == 0)
-                            onClick { model.goToPage(model.page - 1) }
-                            +currentStrings.paginationPrevious
-                        }
-                        span(className = "text-sm text-base-content/70") {
-                            +currentStrings.paginationPageOf(model.page + 1, totalPages)
-                        }
-                        button(className = "btn btn-outline btn-sm") {
-                            disabled(model.page >= totalPages - 1)
-                            onClick { if (model.page < totalPages - 1) model.goToPage(model.page + 1) }
-                            +currentStrings.paginationNext
-                        }
-                    }
+                    Pagination(
+                        page = model.page,
+                        totalPages = totalPages,
+                        onPageChange = { model.goToPage(it) },
+                    )
                 }
             }
         }

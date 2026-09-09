@@ -17,6 +17,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.canBeMarkedAsPaid
 import cz.svitaninymburk.projects.reservations.ui.util.pageCount
 import cz.svitaninymburk.projects.reservations.ui.util.reservationStatusBadge
 import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
+import cz.svitaninymburk.projects.reservations.ui.util.Pagination
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.form.check.checkBox
@@ -241,21 +242,11 @@ fun IComponent.AdminReservationsScreen() {
 
                 // --- 3. PAGINATION ---
                 if (data.totalCount > RESERVATIONS_PAGE_SIZE) {
-                    div(className = "flex items-center justify-center gap-4 mt-4") {
-                        button(className = "btn btn-outline btn-sm") {
-                            disabled(model.page == 0)
-                            onClick { model.goToPage(model.page - 1) }
-                            +currentStrings.paginationPrevious
-                        }
-                        span(className = "text-sm text-base-content/70") {
-                            +currentStrings.paginationPageOf(model.page + 1, totalPages)
-                        }
-                        button(className = "btn btn-outline btn-sm") {
-                            disabled(model.page >= totalPages - 1)
-                            onClick { if (model.page < totalPages - 1) model.goToPage(model.page + 1) }
-                            +currentStrings.paginationNext
-                        }
-                    }
+                    Pagination(
+                        page = model.page,
+                        totalPages = totalPages,
+                        onPageChange = { model.goToPage(it) },
+                    )
                 }
             }
         }
