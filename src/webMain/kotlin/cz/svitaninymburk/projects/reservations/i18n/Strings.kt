@@ -635,6 +635,10 @@ interface AppStrings : ErrorStrings {
     val adminWalletDebitButton: String
     val lessonRefundAmount: String
     val walletExpiresOn: String
+    val adminWalletTransactions: String
+    val adminWalletNoTransactions: String
+    val tableHeaderReason: String
+    val tableHeaderNote: String
 
     // Wallet lookup page
     val walletLookupTitle: String
