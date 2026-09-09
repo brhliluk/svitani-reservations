@@ -8,7 +8,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.admin.AdminScheduleItem
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.ui.admin.events.usecase.pageCount
+import cz.svitaninymburk.projects.reservations.ui.util.pageCount
 import cz.svitaninymburk.projects.reservations.ui.admin.schedule.usecase.SCHEDULE_PAGE_SIZE
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast

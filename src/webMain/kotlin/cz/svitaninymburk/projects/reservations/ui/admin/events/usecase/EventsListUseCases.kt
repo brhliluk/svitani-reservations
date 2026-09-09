@@ -3,7 +3,6 @@ package cz.svitaninymburk.projects.reservations.ui.admin.events.usecase
 import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
 import cz.svitaninymburk.projects.reservations.admin.EventsPage
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
-import kotlin.math.ceil
 import kotlin.uuid.Uuid
 
 const val DEFINITIONS_PAGE_SIZE = 20
@@ -18,12 +17,6 @@ fun childrenByDefinition(data: EventsPage): Map<Uuid?, List<AdminEventListItem>>
     data.items.filter { !it.isDefinitionOnly }
         .groupBy { it.definitionId }
         .mapValues { (_, children) -> children.sortedBy { it.dateInfo } }
-
-fun pageCount(totalItems: Long, pageSize: Int): Int =
-    maxOf(1, ceil(totalItems.toDouble() / pageSize).toInt())
-
-fun <T> pageSlice(items: List<T>, page: Int, pageSize: Int): List<T> =
-    items.drop(page * pageSize).take(pageSize)
 
 // --- UseCase třídy (tenké, vrací Either) ---
 

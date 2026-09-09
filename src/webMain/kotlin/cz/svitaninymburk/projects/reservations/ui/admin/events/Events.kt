@@ -11,8 +11,8 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.usecase.CHILDREN_
 import cz.svitaninymburk.projects.reservations.ui.admin.events.usecase.DEFINITIONS_PAGE_SIZE
 import cz.svitaninymburk.projects.reservations.ui.admin.events.usecase.childrenByDefinition
 import cz.svitaninymburk.projects.reservations.ui.admin.events.usecase.definitionRows
-import cz.svitaninymburk.projects.reservations.ui.admin.events.usecase.pageCount
-import cz.svitaninymburk.projects.reservations.ui.admin.events.usecase.pageSlice
+import cz.svitaninymburk.projects.reservations.ui.util.pageCount
+import cz.svitaninymburk.projects.reservations.ui.util.pageSlice
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType

@@ -4,8 +4,8 @@ import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
 import cz.svitaninymburk.projects.reservations.admin.EventsPage
 import cz.svitaninymburk.projects.reservations.ui.admin.events.usecase.childrenByDefinition
 import cz.svitaninymburk.projects.reservations.ui.admin.events.usecase.definitionRows
-import cz.svitaninymburk.projects.reservations.ui.admin.events.usecase.pageCount
-import cz.svitaninymburk.projects.reservations.ui.admin.events.usecase.pageSlice
+import cz.svitaninymburk.projects.reservations.ui.util.pageCount
+import cz.svitaninymburk.projects.reservations.ui.util.pageSlice
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.uuid.Uuid
