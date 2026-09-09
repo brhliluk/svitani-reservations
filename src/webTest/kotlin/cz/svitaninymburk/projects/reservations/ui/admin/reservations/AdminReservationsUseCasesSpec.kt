@@ -2,19 +2,11 @@ package cz.svitaninymburk.projects.reservations.ui.admin.reservations
 
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.usecase.ReservationPaymentMethod
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.usecase.reservationPaymentMethod
-import cz.svitaninymburk.projects.reservations.ui.admin.reservations.usecase.searchQueryOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class AdminReservationsUseCasesSpec {
-
-    @Test
-    fun searchQueryOfTreatsBlankInputAsNoSearch() {
-        assertNull(searchQueryOf(""))
-        assertNull(searchQueryOf("   "))
-        assertEquals("Novák", searchQueryOf("Novák"))
-    }
 
     @Test
     fun freeReservationHasNoPaymentMethod() {

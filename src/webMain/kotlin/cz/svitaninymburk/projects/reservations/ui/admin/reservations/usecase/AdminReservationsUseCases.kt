@@ -10,12 +10,6 @@ const val RESERVATIONS_PAGE_SIZE = 20
 // --- Pure helpery (testovatelné bez RPC) ---
 
 /**
- * Prázdný nebo mezerový dotaz není hledání — do RPC posíláme `null`, aby se
- * vrátil celý přehled, ne nulový výsledek pro prázdný řetězec.
- */
-fun searchQueryOf(input: String): String? = input.takeIf { it.isNotBlank() }
-
-/**
  * Jak byla rezervace zaplacená. Peněženka může platbu pokrýt celou i jen z části
  * a doplatek pak jde buď na místě, nebo převodem — proto to není jeden příznak,
  * ale pět stavů. U akce zdarma není co platit a vrací se `null`.

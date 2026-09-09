@@ -13,8 +13,8 @@ import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterfa
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.usecase.AdminReservationsMutations
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.usecase.AdminReservationsQueries
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.usecase.RESERVATIONS_PAGE_SIZE
-import cz.svitaninymburk.projects.reservations.ui.admin.reservations.usecase.searchQueryOf
 import cz.svitaninymburk.projects.reservations.ui.util.ScreenModel
+import cz.svitaninymburk.projects.reservations.ui.util.searchQueryOf
 import dev.kilua.core.IComponent
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.CoroutineScope

@@ -1,71 +1,29 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.users
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.admin.AdminUserListItem
-import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
-import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.admin.users.usecase.filterUsers
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
-import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
-import dev.kilua.form.form
 import dev.kilua.form.text.text
 import dev.kilua.html.*
-import dev.kilua.rpc.getService
-import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
-
-private sealed interface AdminUsersUiState {
-    data object Loading : AdminUsersUiState
-    data class Success(val data: List<AdminUserListItem>) : AdminUsersUiState
-    data class Error(val message: String) : AdminUsersUiState
-}
-
-private enum class UserAction { CHANGE_ROLE, DELETE }
-
-private data class PendingUserAction(
-    val type: UserAction,
-    val userId: Uuid,
-    val userName: String,
-    val currentRole: User.Role,
-)
 
 @Composable
 fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
-    val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
-    val authService = getService<AuthServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
     val currentStrings by strings
+    val model = remember { buildAdminUsersModel(scope, currentUserId) }
 
-    var refreshTrigger by remember { mutableStateOf(0) }
-    var toastData by remember { mutableStateOf<ToastData?>(null) }
-    var pendingAction by remember { mutableStateOf<PendingUserAction?>(null) }
-
-    var searchInput by remember { mutableStateOf("") }
-    var activeSearchQuery by remember { mutableStateOf<String?>(null) }
-    var resettingPasswordForId by remember { mutableStateOf<kotlin.uuid.Uuid?>(null) }
-    var isModalLoading by remember { mutableStateOf(false) }
-
-    val uiState by produceState<AdminUsersUiState>(
-        initialValue = AdminUsersUiState.Loading,
-        key1 = refreshTrigger
-    ) {
-        value = AdminUsersUiState.Loading
-        adminService.getAllUsers()
-            .onRight { value = AdminUsersUiState.Success(it) }
-            .onLeft { value = AdminUsersUiState.Error(it.localizedMessage(currentStrings)) }
-    }
+    LaunchedEffect(Unit) { model.load() }
 
     div(className = "flex flex-col gap-6 animate-fade-in") {
 
@@ -81,25 +39,20 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
                     span(className = "absolute inset-y-0 left-3 flex items-center pointer-events-none text-base-content/50") {
                         span(className = "icon-[heroicons--magnifying-glass] size-5")
                     }
-                    text(value = searchInput, className = "input input-bordered w-full pl-10") {
+                    text(value = model.searchInput, className = "input input-bordered w-full pl-10") {
                         placeholder(currentStrings.usersSearchPlaceholder)
-                        onInput { searchInput = value ?: "" }
-                        onKeyup { event ->
-                            if (event.key == "Enter") activeSearchQuery = searchInput.takeIf { it.isNotBlank() }
-                        }
+                        onInput { model.searchInput = value ?: "" }
+                        onKeyup { event -> if (event.key == "Enter") model.submitSearch() }
                     }
                 }
                 button(className = "btn btn-primary") {
-                    onClick { activeSearchQuery = searchInput.takeIf { it.isNotBlank() } }
+                    onClick { model.submitSearch() }
                     +currentStrings.search
                 }
-                if (!activeSearchQuery.isNullOrBlank()) {
+                if (!model.activeSearchQuery.isNullOrBlank()) {
                     button(className = "btn btn-ghost tooltip") {
                         attribute("data-tip", currentStrings.clearSearch)
-                        onClick {
-                            searchInput = ""
-                            activeSearchQuery = null
-                        }
+                        onClick { model.clearSearch() }
                         span(className = "icon-[heroicons--x-mark] size-5")
                     }
                 }
@@ -107,7 +60,7 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
         }
 
         // --- 2. TABLE ---
-        when (val state = uiState) {
+        when (val state = model.uiState) {
             is AdminUsersUiState.Loading -> Loading()
             is AdminUsersUiState.Error -> {
                 div(className = "alert alert-error") {
@@ -116,14 +69,7 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
                 }
             }
             is AdminUsersUiState.Success -> {
-                val data = if (!activeSearchQuery.isNullOrBlank()) {
-                    val q = activeSearchQuery!!.lowercase()
-                    state.data.filter {
-                        it.name.lowercase().contains(q) ||
-                        it.surname.lowercase().contains(q) ||
-                        it.email.lowercase().contains(q)
-                    }
-                } else state.data
+                val data = filterUsers(state.data, model.activeSearchQuery)
 
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body p-0") {
@@ -145,7 +91,8 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
                                             td {
                                                 attribute("colspan", "6")
                                                 div(className = "text-center text-base-content/50 py-8") {
-                                                    if (activeSearchQuery != null) +currentStrings.noUsersForSearch(activeSearchQuery!!)
+                                                    val query = model.activeSearchQuery
+                                                    if (query != null) +currentStrings.noUsersForSearch(query)
                                                     else +currentStrings.noUsers
                                                 }
                                             }
@@ -208,52 +155,26 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
                                                     div(className = "flex justify-end gap-1") {
                                                         button(className = "btn btn-ghost btn-xs tooltip tooltip-left") {
                                                             attribute("data-tip", currentStrings.tooltipChangeRole)
-                                                            onClick {
-                                                                pendingAction = PendingUserAction(
-                                                                    type = UserAction.CHANGE_ROLE,
-                                                                    userId = user.id,
-                                                                    userName = "${user.name} ${user.surname}",
-                                                                    currentRole = user.role,
-                                                                )
-                                                            }
+                                                            onClick { model.requestRoleChange(user) }
                                                             span(className = "icon-[heroicons--arrows-right-left] size-5")
                                                         }
                                                         if (user.authType == AdminUserListItem.AuthType.EMAIL) {
+                                                            val isResetting = model.resettingPasswordForId == user.id
                                                             button(className = "btn btn-ghost btn-xs tooltip tooltip-left") {
                                                                 attribute("data-tip", currentStrings.tooltipResetPassword)
-                                                                disabled(resettingPasswordForId == user.id)
-                                                                if (resettingPasswordForId == user.id) {
+                                                                disabled(isResetting)
+                                                                if (isResetting) {
                                                                     span(className = "loading loading-spinner loading-xs")
                                                                 } else {
                                                                     span(className = "icon-[heroicons--envelope] size-5")
                                                                 }
-                                                                onClick {
-                                                                    resettingPasswordForId = user.id
-                                                                    scope.launch {
-                                                                        authService.requestPasswordReset(user.email)
-                                                                            .onRight {
-                                                                                resettingPasswordForId = null
-                                                                                toastData = ToastData(currentStrings.forgotPasswordEmailSent, ToastType.Success)
-                                                                            }
-                                                                            .onLeft { error ->
-                                                                                resettingPasswordForId = null
-                                                                                toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
-                                                                            }
-                                                                    }
-                                                                }
+                                                                onClick { model.resetPassword(user) }
                                                             }
                                                         }
-                                                        if (user.id != currentUserId) {
+                                                        if (model.canDelete(user)) {
                                                             button(className = "btn btn-ghost btn-xs text-error tooltip tooltip-left") {
                                                                 attribute("data-tip", currentStrings.tooltipDeleteUser)
-                                                                onClick {
-                                                                    pendingAction = PendingUserAction(
-                                                                        type = UserAction.DELETE,
-                                                                        userId = user.id,
-                                                                        userName = "${user.name} ${user.surname}",
-                                                                        currentRole = user.role,
-                                                                    )
-                                                                }
+                                                                onClick { model.requestDelete(user) }
                                                                 span(className = "icon-[heroicons--trash] size-5")
                                                             }
                                                         }
@@ -271,81 +192,19 @@ fun IComponent.AdminUsersScreen(currentUserId: Uuid) {
         }
     }
 
-    // --- 3. MODAL ---
-    if (pendingAction != null) {
-        val action = pendingAction!!
-        val newRole = if (action.currentRole == User.Role.ADMIN) User.Role.USER else User.Role.ADMIN
-
-        div(className = "modal modal-open") {
-            div(className = "modal-box") {
-                h3(className = "font-bold text-lg") {
-                    if (action.type == UserAction.CHANGE_ROLE) +currentStrings.modalChangeRoleTitle
-                    else +currentStrings.modalDeleteUserTitle
-                }
-                p(className = "py-4") {
-                    if (action.type == UserAction.CHANGE_ROLE) {
-                        +currentStrings.modalChangeRoleMsgPre
-                        strong { +action.userName }
-                        +currentStrings.modalChangeRoleMsgMid
-                        strong { +(if (newRole == User.Role.ADMIN) currentStrings.roleAdmin else currentStrings.roleUser) }
-                        +currentStrings.modalChangeRoleMsgPost
-                    } else {
-                        +currentStrings.modalDeleteUserMsgPre
-                        strong { +action.userName }
-                        +currentStrings.modalDeleteUserMsgPost
-                    }
-                }
-                div(className = "modal-action") {
-                    button(className = "btn") {
-                        disabled(isModalLoading)
-                        onClick { pendingAction = null }
-                        +currentStrings.modalBack
-                    }
-                    button(className = "btn ${if (action.type == UserAction.CHANGE_ROLE) "btn-primary" else "btn-error"}") {
-                        disabled(isModalLoading)
-                        if (isModalLoading) span(className = "loading loading-spinner loading-sm")
-                        onClick {
-                            isModalLoading = true
-                            scope.launch {
-                                if (action.type == UserAction.CHANGE_ROLE) {
-                                    adminService.updateUserRole(action.userId, newRole)
-                                        .onRight {
-                                            isModalLoading = false
-                                            toastData = ToastData(currentStrings.toastRoleChanged(action.userName), ToastType.Success)
-                                            refreshTrigger++
-                                        }
-                                        .onLeft { error ->
-                                            isModalLoading = false
-                                            toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
-                                        }
-                                } else {
-                                    adminService.deleteUser(action.userId)
-                                        .onRight {
-                                            isModalLoading = false
-                                            toastData = ToastData(currentStrings.toastUserDeleted(action.userName), ToastType.Success)
-                                            refreshTrigger++
-                                        }
-                                        .onLeft { error ->
-                                            isModalLoading = false
-                                            toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
-                                        }
-                                }
-                                pendingAction = null
-                            }
-                        }
-                        if (action.type == UserAction.CHANGE_ROLE) +currentStrings.modalConfirmAction else +currentStrings.modalConfirmCancelAction
-                    }
-                }
-            }
-            form(className = "modal-backdrop") {
-                button { onClick { pendingAction = null }; +currentStrings.close }
-            }
-        }
+    // --- 3. MODAL A TOAST ---
+    model.pendingAction?.let { action ->
+        UserActionModal(
+            action = action,
+            isLoading = model.isModalLoading,
+            onConfirm = { model.confirmPendingAction(action) },
+            onDismiss = { model.dismissPendingAction() },
+        )
     }
 
     Toast(
-        message = toastData?.message,
-        type = toastData?.type ?: ToastType.Success,
-        onDismiss = { toastData = null }
+        message = model.toast?.message,
+        type = model.toast?.type ?: ToastType.Success,
+        onDismiss = { model.dismissToast() },
     )
 }
