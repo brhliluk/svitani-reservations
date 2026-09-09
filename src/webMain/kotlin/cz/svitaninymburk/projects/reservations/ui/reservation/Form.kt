@@ -195,7 +195,7 @@ fun IComponent.ReservationModal(
                         div(className = "divider text-xs text-base-content/50 my-1") { +currentStrings.moreDetails }
 
                         target.customFields.forEach { field ->
-                            renderCustomField(field, model.customValues, target)
+                            renderCustomField(field, model.customValues, target, variant)
                         }
                     }
 

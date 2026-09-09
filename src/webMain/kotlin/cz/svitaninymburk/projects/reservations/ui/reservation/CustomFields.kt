@@ -14,6 +14,8 @@ import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
+import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.CustomFieldValidation
+import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isCustomFieldValid
 import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
 import dev.kilua.form.NumberFormControl
@@ -43,24 +45,45 @@ fun IComponent.renderCustomField(
     field: CustomFieldDefinition,
     stateMap: MutableMap<String, CustomFieldValue>,
     target: ReservationTarget? = null,
+    variant: CustomFieldValidation = CustomFieldValidation.CURRENT,
 ) {
+    // Zpětná vazba u pole musí říkat totéž, co rozhoduje o tlačítku Rezervovat —
+    // proto se ptá stejné funkce, se stejnou variantou. Kdyby si počítala vlastní
+    // pravidlo, šlo by dojít ke svítící chybě u pole, které odeslání nebrání.
+    val invalid = field.isRequired && target != null &&
+        !isCustomFieldValid(field, stateMap[field.key], target, variant)
+    // Nedotčené pole nekřičí červeně; hvězdička u labelu stačí.
+    val touched = stateMap[field.key] != null
     when (field) {
         // --- TEXT ---
         is TextFieldDefinition -> {
+            val currentStrings by strings
             label(className = "form-control w-full") {
                 div(className = "label") {
                     span(className = "label-text") { +field.label }
                     if (field.isRequired) span(className = "text-error") { +"*" }
                 }
 
+                val showError = invalid && touched
                 if (field.isMultiline) {
-                    textArea(value = (stateMap[field.key] as? TextValue)?.value, className = "textarea textarea-bordered h-24") {
+                    textArea(
+                        value = (stateMap[field.key] as? TextValue)?.value,
+                        className = "textarea textarea-bordered h-24${if (showError) " textarea-error" else ""}",
+                    ) {
                         onInput { stateMap[field.key] = TextValue(field.key, this.value ?: "") }
                     }
                 } else {
-                    text(value = (stateMap[field.key] as? TextValue)?.value, className = "input input-bordered w-full") {
+                    text(
+                        value = (stateMap[field.key] as? TextValue)?.value,
+                        className = "input input-bordered w-full${if (showError) " input-error" else ""}",
+                    ) {
                         required(field.isRequired)
                         onInput { stateMap[field.key] = TextValue(field.key, this.value ?: "") }
+                    }
+                }
+                if (showError) {
+                    div(className = "label pt-0") {
+                        span(className = "label-text-alt text-error") { +currentStrings.customFieldRequiredError }
                     }
                 }
             }
@@ -68,12 +91,29 @@ fun IComponent.renderCustomField(
 
         // --- NUMBER ---
         is NumberFieldDefinition -> {
+            val currentStrings by strings
+            val showError = invalid && touched
             label(className = "form-control w-full") {
                 div(className = "label") {
-                    span(className = "label-text") { +field.label }
-                    if (field.isRequired) span(className = "text-error") { +"*" }
+                    div(className = "flex flex-col gap-0.5") {
+                        div(className = "flex items-center gap-0.5") {
+                            span(className = "label-text") { +field.label }
+                            if (field.isRequired) span(className = "text-error") { +"*" }
+                        }
+                        // Hranice se ukazují stejně jako u časového rozsahu, ať je
+                        // vidět dřív, než do pole někdo napíše nesmysl.
+                        if (field.min != null && field.max != null) {
+                            span(className = "label-text-alt text-base-content/60") {
+                                +currentStrings.numberRangeHint(field.min.toString(), field.max.toString())
+                            }
+                        }
+                    }
                 }
-                text(value = (stateMap[field.key] as? NumberValue)?.value?.toString(), type = InputType.Number, className = "input input-bordered w-full") {
+                text(
+                    value = (stateMap[field.key] as? NumberValue)?.value?.toString(),
+                    type = InputType.Number,
+                    className = "input input-bordered w-full${if (showError) " input-error" else ""}",
+                ) {
                     imaskNumeric {
                         field.max?.let { max(it) }
                         field.min?.let { min(it) }
@@ -81,18 +121,45 @@ fun IComponent.renderCustomField(
                     required(field.isRequired)
                     onInput { stateMap[field.key] = NumberValue(field.key, this.value?.toFloatOrNull() ?: 0f) }
                 }
+                if (showError) {
+                    div(className = "label pt-0") {
+                        span(className = "label-text-alt text-error") {
+                            if (field.min != null && field.max != null) {
+                                +currentStrings.numberRangeError(field.min.toString(), field.max.toString())
+                            } else {
+                                +currentStrings.customFieldRequiredError
+                            }
+                        }
+                    }
+                }
             }
         }
 
         // --- BOOLEAN ---
         is BooleanFieldDefinition -> {
-            label(className = "label cursor-pointer justify-start gap-4 mt-2") {
-                checkBox(value = (stateMap[field.key] as? BooleanValue)?.value ?: false, className = "checkbox checkbox-primary") {
-                    required(field.isRequired)
-                    onChange { stateMap[field.key] = BooleanValue(field.key, this.value) }
+            val currentStrings by strings
+            div(className = "form-control w-full") {
+                label(className = "label cursor-pointer justify-start gap-4 mt-2") {
+                    checkBox(
+                        value = (stateMap[field.key] as? BooleanValue)?.value ?: false,
+                        className = "checkbox checkbox-primary${if (invalid && touched) " checkbox-error" else ""}",
+                    ) {
+                        required(field.isRequired)
+                        onChange { stateMap[field.key] = BooleanValue(field.key, this.value) }
+                    }
+                    span(className = "label-text font-medium") { +field.label }
+                    if (field.isRequired) span(className = "text-error") { +"*" }
                 }
-                span(className = "label-text font-medium") { +field.label }
-                if (field.isRequired) span(className = "text-error") { +"*" }
+                // Tady se hlásí i nedotčený stav: nezaškrtnuté zaškrtávátko je
+                // jediné povinné pole, u kterého uživatel nemá jak zjistit, že
+                // brání odeslání — nic tam nepíše, jen to nekliknul.
+                if (invalid) {
+                    div(className = "label pt-0") {
+                        span(className = "label-text-alt ${if (touched) "text-error" else "text-base-content/60"}") {
+                            +currentStrings.customFieldCheckboxRequiredError
+                        }
+                    }
+                }
             }
         }
 

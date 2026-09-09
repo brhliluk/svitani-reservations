@@ -149,6 +149,10 @@ object EnStrings : AppStrings {
     override val retry = "Try again"
     override val timeRangeHint: (String, String) -> String = { from, to -> "Range: $from–$to" }
     override val timeRangeError = "Time is outside the allowed range"
+    override val customFieldRequiredError = "Please fill in this field"
+    override val customFieldCheckboxRequiredError = "You must check this to reserve"
+    override val numberRangeHint: (String, String) -> String = { min, max -> "Range: $min–$max" }
+    override val numberRangeError: (String, String) -> String = { min, max -> "Value must be between $min and $max" }
 
     // Calendar
     override val more: (Int) -> String = { "+$it more" }

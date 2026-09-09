@@ -169,6 +169,10 @@ interface AppStrings : ErrorStrings {
     val retry: String
     val timeRangeHint: (String, String) -> String
     val timeRangeError: String
+    val customFieldRequiredError: String
+    val customFieldCheckboxRequiredError: String
+    val numberRangeHint: (String, String) -> String
+    val numberRangeError: (String, String) -> String
 
     // Calendar
     val more: (Int) -> String
