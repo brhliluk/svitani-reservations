@@ -72,6 +72,18 @@ fun Application.configureDatabases() {
         val instancesPublishMissing = !columnExists("event_instances", "is_published")
         val seriesPublishMissing = !columnExists("event_series", "is_published")
 
+        // Musí doběhnout PŘED MigrationUtils — ty nově zakládají unique index na
+        // (reservation_id, instance_id) a na datech s duplicitou by DDL selhalo
+        // a shodilo start aplikace.
+        try {
+            val smazano = deduplicateSeriesLessonOptOuts()
+            if (smazano > 0) {
+                println("ℹ️ omluvenky z lekcí: $smazano duplicitních záznamů odstraněno")
+            }
+        } catch (e: Exception) {
+            println("⚠️ series_lesson_opt_outs deduplication failed (non-fatal): ${e.message}")
+        }
+
         SchemaUtils.create(
             UsersTable,
             RefreshTokensTable,
@@ -309,6 +321,33 @@ internal fun JdbcTransaction.backfillCustomFieldsFromTemplates() {
 // Idempotentní: řádky s unikátními klíči nechá být. Pro přejmenování nepoužije klíč,
 // který se už vyskytuje v hodnotách existujících rezervací na daný termín/kurz, aby
 // opravené pole nezdědilo hodnotu po dávno smazaném poli.
+/**
+ * Nechá na každou dvojici (rezervace, lekce) jen nejstarší omluvenku. Duplicity
+ * mohly vzniknout dvojklikem, než na tabulce byl unique index — a bez jejich
+ * odstranění by se ten index nedal založit. Vrací počet smazaných řádků.
+ */
+internal fun JdbcTransaction.deduplicateSeriesLessonOptOuts(): Int {
+    // Tabulka nemusí ještě existovat (první spuštění) — pak není co dedupovat.
+    val exists = exec(
+        "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='series_lesson_opt_outs'"
+    ) { rs -> rs.next() && rs.getInt(1) > 0 } ?: false
+    if (!exists) return 0
+
+    val keepOldest = """
+        SELECT MIN(rowid) FROM series_lesson_opt_outs
+        GROUP BY reservation_id, instance_id
+    """.trimIndent()
+
+    val duplicates = exec(
+        "SELECT count(*) FROM series_lesson_opt_outs WHERE rowid NOT IN ($keepOldest)"
+    ) { rs -> if (rs.next()) rs.getInt(1) else 0 } ?: 0
+
+    if (duplicates > 0) {
+        exec("DELETE FROM series_lesson_opt_outs WHERE rowid NOT IN ($keepOldest)")
+    }
+    return duplicates
+}
+
 internal fun JdbcTransaction.deduplicateCustomFieldKeys() {
     val reservedKeysByReference = mutableMapOf<Uuid, MutableSet<String>>()
     ReservationsTable

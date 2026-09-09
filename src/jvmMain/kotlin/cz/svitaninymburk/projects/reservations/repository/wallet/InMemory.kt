@@ -2,6 +2,7 @@ package cz.svitaninymburk.projects.reservations.repository.wallet
 
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
 import cz.svitaninymburk.projects.reservations.wallet.WalletTransaction
+import cz.svitaninymburk.projects.reservations.wallet.WalletTransactionReason
 import kotlin.time.Clock
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.uuid.Uuid
@@ -27,6 +28,13 @@ class InMemoryWalletRepository : WalletRepository {
     override suspend fun findByCode(code: String) = wallets.values.find { it.code == code }
     override suspend fun findByRegisteredUserId(userId: Uuid) = wallets.values.find { it.registeredUserId == userId }
     override suspend fun findByEmail(email: String) = wallets.values.find { it.ownerEmail == email }
+
+    override suspend fun findAnonymousByEmail(email: String) = wallets.values
+        .filter { it.registeredUserId == null && it.ownerEmail.equals(email, ignoreCase = true) }
+        .minByOrNull { it.createdAt }
+
+    override suspend fun sumCreditedForReservation(reservationId: Uuid, reason: WalletTransactionReason): Double =
+        transactions.values.filter { it.reservationId == reservationId && it.reason == reason }.sumOf { it.amount }
 
     override suspend fun updateBalance(walletId: Uuid, newBalance: Double): Wallet {
         val updated = wallets[walletId]!!.copy(balance = newBalance)

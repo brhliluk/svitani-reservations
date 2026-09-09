@@ -94,6 +94,15 @@ class InMemorySeriesLessonOptOutRepository : SeriesLessonOptOutRepository {
         return optOut
     }
 
+    override suspend fun saveIfAbsent(optOut: SeriesLessonOptOut): SeriesLessonOptOut? = synchronized(optOuts) {
+        val duplicate = optOuts.values.any {
+            it.reservationId == optOut.reservationId && it.instanceId == optOut.instanceId
+        }
+        if (duplicate) return@synchronized null
+        optOuts[optOut.id] = optOut
+        optOut
+    }
+
     override suspend fun findByReservationAndInstance(reservationId: Uuid, instanceId: Uuid): SeriesLessonOptOut? =
         optOuts.values.find { it.reservationId == reservationId && it.instanceId == instanceId }
 

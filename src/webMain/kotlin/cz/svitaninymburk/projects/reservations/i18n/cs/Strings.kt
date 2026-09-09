@@ -441,6 +441,14 @@ object CsStrings : AppStrings {
     override val lessonOptedOut = "Odhlášeno"
     override val lessonOptOutLate = "Pozdní odhlášení"
     override val toastLessonOptOut = "Odhlášení z lekce bylo zaznamenáno."
+    override val lessonOptOutCreditInfo: (String) -> String = { amount ->
+        "Do peněženky se vrátí $amount Kč."
+    }
+    override val lessonOptOutDeadlineInfo: (String) -> String = { deadline ->
+        "Nárok na kredit platí do $deadline."
+    }
+    override val lessonOptOutIrreversible = "Odhlášení nelze vzít zpět — místo se hned nabídne dalším zájemcům."
+    override val errorLoadingTitle = "Chyba načítání"
 
     // Event Detail
     override val occupancyStatTitle = "Obsazenost"

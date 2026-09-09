@@ -74,8 +74,24 @@ interface WalletRepository {
     suspend fun findByCode(code: String): Wallet?
     suspend fun findByRegisteredUserId(userId: Uuid): Wallet?
     suspend fun findByEmail(email: String): Wallet?
+
+    /**
+     * Nejstarší peněženka bez účtu na daný e-mail. Omluvenky z lekcí chodí po jedné,
+     * takže bez tohohle by každá založila novou peněženku s novým kódem a kredit by
+     * se roztříštil. Duplicity na e-mail v datech být můžou (dřív je zakládalo
+     * opakované storno), proto nejstarší a ne singleOrNull.
+     */
+    suspend fun findAnonymousByEmail(email: String): Wallet?
     suspend fun updateBalance(walletId: Uuid, newBalance: Double): Wallet
     suspend fun addToBalance(walletId: Uuid, delta: Double): Wallet
+    /**
+     * Součet už připsaného kreditu daného druhu pro jednu rezervaci. Strop na
+     * omluvenky se musí počítat ze skutečně vyplacených částek — odhad „počet
+     * omluvenek × sazba" by podstřelil člověka, který se odhlásil ještě před
+     * zaplacením a tehdy nedostal nic.
+     */
+    suspend fun sumCreditedForReservation(reservationId: Uuid, reason: WalletTransactionReason): Double
+
     suspend fun insertTransaction(tx: NewWalletTransaction): WalletTransaction
     suspend fun getTransactions(walletId: Uuid): List<WalletTransaction>
     suspend fun findAll(page: Int, pageSize: Int): List<Wallet>
@@ -112,6 +128,26 @@ class ExposedWalletRepository : WalletRepository {
 
     override suspend fun findByEmail(email: String): Wallet? = dbQuery {
         WalletsTable.selectAll().where { WalletsTable.ownerEmail eq email }.singleOrNull()?.toWallet()
+    }
+
+    override suspend fun findAnonymousByEmail(email: String): Wallet? = dbQuery {
+        WalletsTable.selectAll()
+            .where { (WalletsTable.ownerEmail.lowerCase() eq email.lowercase()) and WalletsTable.registeredUserId.isNull() }
+            .orderBy(WalletsTable.createdAt, SortOrder.ASC)
+            .firstOrNull()
+            ?.toWallet()
+    }
+
+    override suspend fun sumCreditedForReservation(
+        reservationId: Uuid,
+        reason: WalletTransactionReason,
+    ): Double = dbQuery {
+        WalletTransactionsTable.selectAll()
+            .where {
+                (WalletTransactionsTable.reservationId eq reservationId) and
+                        (WalletTransactionsTable.reason eq reason)
+            }
+            .sumOf { it[WalletTransactionsTable.amount] }
     }
 
     override suspend fun updateBalance(walletId: Uuid, newBalance: Double): Wallet = dbQuery {

@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
 import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
+import cz.svitaninymburk.projects.reservations.repository.event.INACTIVE_RESERVATION_STATUSES
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutRepository
@@ -25,7 +26,7 @@ import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
 import cz.svitaninymburk.projects.reservations.reservation.ReservationRequestData
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonItem
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
-import cz.svitaninymburk.projects.reservations.reservation.SeriesReservationDetail
+import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonsView
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
@@ -49,7 +50,33 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
+
+
+/**
+ * Provoz běží v Praze a podle Prahy se počítá i uzávěrka omluvenek (18:00 den předem).
+ * Produkce nemá připnuté TZ, takže currentSystemDefault() by na UTC hostu pustil
+ * omluvenku z lekce, která už dvě hodiny běží.
+ */
+internal val OPT_OUT_TIMEZONE = TimeZone.of("Europe/Prague")
+
+/**
+ * Uzávěrka pro storno/omluvenku s nárokem na kredit: 18:00 den předem. Jediné
+ * místo, kde to pravidlo žije — posílá se i klientovi, protože prohlížeč nemá
+ * databázi časových pásem a sám by ji spočítal v zóně návštěvníka.
+ */
+internal fun refundDeadlineFor(start: LocalDateTime): Instant =
+    start.date.minus(1, DateTimeUnit.DAY).atTime(18, 0).toInstant(OPT_OUT_TIMEZONE)
+
+/**
+ * Rezervaci bez účtu chrání jen znalost UUID — stejná laťka, jakou má odjakživa
+ * zrušení celé rezervace. Registrovanou rezervaci smí měnit jen její majitel;
+ * anonymnímu volajícímu se otevřít nesmí, jinak by přihlášení uživatelé měli
+ * slabší ochranu než dnes.
+ */
+internal fun Reservation.isAccessibleBy(callerUserId: Uuid?): Boolean =
+    registeredUserId == null || registeredUserId == callerUserId
 
 
 open class ReservationService(
@@ -67,6 +94,10 @@ open class ReservationService(
     private val walletEmailService: WalletEmailService,
     private val appSettingsProvider: AppSettingsProvider,
     private val refundService: RefundService = RefundService(walletService, walletEmailService, appSettingsProvider),
+    private val seriesLessonsReader: SeriesLessonsReader = SeriesLessonsReader(
+        eventInstanceRepository,
+        seriesLessonOptOutRepository,
+    ),
     private val waitlistPromoter: WaitlistPromoter = WaitlistPromoter(
         eventInstanceRepository,
         eventSeriesRepository,
@@ -115,7 +146,32 @@ open class ReservationService(
             if (position >= 0) position + 1 else null
         } else null
 
-        ReservationDetail(reservation, target, qrCodeService.accountNumber, waitlistPosition)
+        ReservationDetail(
+            reservation = reservation,
+            target = target,
+            accountNumber = qrCodeService.accountNumber,
+            waitlistPosition = waitlistPosition,
+            cancellationDeadline = target?.let { refundDeadlineFor(it.startDateTime) },
+        )
+    }
+
+    override suspend fun getSeriesLessons(reservationId: Uuid): Either<ReservationError.GetDetail, SeriesLessonsView> = either {
+        val reservation = ensureNotNull(reservationRepository.findById(reservationId)) { ReservationError.ReservationNotFound }
+        ensure(reservation.reference is Reference.Series) { ReservationError.ReservationNotFound }
+        // Neprozrazovat existenci cizí rezervace — proto všechno na ReservationNotFound.
+        ensure(reservation.isAccessibleBy(currentCallerUserId())) { ReservationError.ReservationNotFound }
+
+        val seriesId = reservation.reference.id
+        val lessonRefundAmount = eventSeriesRepository.get(seriesId)?.lessonRefundAmount
+
+        SeriesLessonsView(
+            lessons = seriesLessonsReader.lessonsFor(reservationId, seriesId),
+            paidAmount = reservation.paidAmount,
+            alreadyRefunded = walletService.refundedForLessonOptOuts(reservationId),
+            lessonRefundAmount = lessonRefundAmount,
+            seatCount = reservation.seatCount,
+            isAnonymousReservation = reservation.registeredUserId == null,
+        )
     }
 
 
@@ -397,11 +453,14 @@ open class ReservationService(
         val reservation = ensureNotNull(reservationRepository.findById(reservationId)) { ReservationError.ReservationNotFound }
 
         if (instanceId != null) {
-            // Lesson opt-out path — verify that the caller owns this reservation
-            val callerUuid = currentCallerUserId()
-            ensure(callerUuid != null && reservation.registeredUserId == callerUuid) {
+            // Omluvenka z jedné lekce. Rezervaci bez účtu chrání jen znalost UUID —
+            // stejná laťka jako u zrušení celé rezervace níž; registrovanou její majitel.
+            ensure(reservation.isAccessibleBy(currentCallerUserId())) {
                 ReservationError.ReservationNotFound  // Don't reveal existence to non-owner
             }
+            // Zrušená rezervace už kredit dostala a čekatel nedrží místo, které by šlo
+            // uvolnit — bez téhle kontroly jde po stornu inkasovat kredit ještě jednou.
+            ensure(reservation.status !in INACTIVE_RESERVATION_STATUSES) { ReservationError.ReservationNotFound }
 
             ensure(reservation.reference is Reference.Series) { ReservationError.NotASeriesReservation }
             val seriesId = reservation.reference.id
@@ -412,29 +471,48 @@ open class ReservationService(
             ensure(instance.seriesId == seriesId) { ReservationError.InstanceNotInSeries }
             ensure(!instance.isCancelled) { ReservationError.EventAlreadyFinished }
             ensure(
-                Clock.System.now() < instance.startDateTime.toInstant(TimeZone.currentSystemDefault())
+                Clock.System.now() < instance.startDateTime.toInstant(OPT_OUT_TIMEZONE)
             ) { ReservationError.EventAlreadyStarted }
             ensure(
                 seriesLessonOptOutRepository.findByReservationAndInstance(reservationId, instanceId) == null
             ) { ReservationError.AlreadyOptedOut }
 
             val now = Clock.System.now()
-            val timezone = TimeZone.of("Europe/Prague")
-            val deadlineInstant = instance.startDateTime.date
-                .minus(1, DateTimeUnit.DAY)
-                .atTime(18, 0)
-                .toInstant(timezone)
-            val isLate = now > deadlineInstant
+            val isLate = now > refundDeadlineFor(instance.startDateTime)
 
-            seriesLessonOptOutRepository.save(
-                SeriesLessonOptOut(
-                    id = Uuid.random(),
-                    reservationId = reservationId,
-                    instanceId = instanceId,
-                    optedOutAt = now,
-                    isLateCancellation = isLate,
+            // Kredit i peněženku řešíme JEŠTĚ PŘED zápisem omluvenky. Neshoda e-mailu
+            // u peněženky je uživatelská chyba k opakování — kdyby se vyhodila až po
+            // zápisu, byl by člověk odhlášený, čekatel posunutý a druhý pokus by spadl
+            // na AlreadyOptedOut.
+            val series = eventSeriesRepository.get(seriesId)
+            val perLesson = (series?.lessonRefundAmount ?: 0.0) * reservation.seatCount
+            // Skutečně vyplacené částky z účetnictví peněženky, ne odhad z počtu
+            // omluvenek — kdo se odhlásil ještě před zaplacením, nedostal nic a
+            // nesmí mu to ukrajovat ze stropu.
+            val alreadyRefunded = walletService.refundedForLessonOptOuts(reservationId)
+            val refundAmount: Double = when {
+                reservation.paidAmount <= 0.0 -> 0.0  // nothing was paid, no refund
+                isLate -> 0.0  // late cancellation, no refund
+                // Souhrn omluvenek nesmí přerůst zaplacenou částku — lessonRefundAmount
+                // je volná admin hodnota nezávislá na ceně kurzu.
+                else -> minOf(perLesson, reservation.paidAmount - alreadyRefunded).coerceAtLeast(0.0)
+            }
+            val wallet: Wallet? =
+                if (refundAmount > 0.0) resolveWalletFor(reservation, walletCode, force) else null
+
+            // saveIfAbsent, ne save — kontrola výš běží v jiné transakci, takže
+            // dvojklik by jinak uložil dvě omluvenky a místo by se odečetlo dvakrát.
+            ensureNotNull(
+                seriesLessonOptOutRepository.saveIfAbsent(
+                    SeriesLessonOptOut(
+                        id = Uuid.random(),
+                        reservationId = reservationId,
+                        instanceId = instanceId,
+                        optedOutAt = now,
+                        isLateCancellation = isLate,
+                    )
                 )
-            )
+            ) { ReservationError.AlreadyOptedOut }
             // Odečtem je nově sama existence omluvenky — uložený čítač lekce drží
             // jen přímé rezervace, takže by ho tenhle dekrement stáhl do záporu.
             waitlistPromoter.promote(Reference.Instance(instanceId), freedSeats = reservation.seatCount)
@@ -459,20 +537,7 @@ open class ReservationService(
                 ).onLeft { captureEmailError(logger, "Failed to send owner opt-out email to $ownerEmail: $it") }
             }
 
-            // Wallet credit for lesson opt-out
-            val optOut = seriesLessonOptOutRepository.findByReservationAndInstance(reservationId, instanceId)
-            val series = eventSeriesRepository.get(reservation.reference.id)
-            val refundAmount: Double = when {
-                reservation.paidAmount <= 0.0 -> 0.0  // nothing was paid, no refund
-                optOut?.isLateCancellation == true -> 0.0  // late cancellation, no refund
-                else -> series?.lessonRefundAmount ?: 0.0
-            }
-            if (refundAmount > 0.0) {
-                // registeredUserId is always non-null here: the opt-out path enforces
-                // callerUuid != null && reservation.registeredUserId == callerUuid above.
-                val wallet: Wallet = walletService.findOrCreateForRegisteredUser(
-                    reservation.registeredUserId!!, reservation.contactEmail
-                )
+            if (wallet != null) {
                 val outcome = refundService.refundFixedAmount(
                     wallet, reservation, refundAmount, WalletTransactionReason.LESSON_OPT_OUT_REFUND
                 )
@@ -633,23 +698,38 @@ open class ReservationService(
         return parseOwnerEmails(emails.toList())
     }
 
+    /**
+     * Peněženka, do které se má vrátit kredit. Registrovaná rezervace má peněženku
+     * svázanou s účtem; u rezervace bez účtu se jde podle kódu, který člověk zadal,
+     * a bez něj podle kontaktního e-mailu.
+     */
+    private suspend fun Raise<ReservationError.CancelReservation>.resolveWalletFor(
+        reservation: Reservation,
+        walletCode: String?,
+        force: Boolean,
+    ): Wallet {
+        val registeredUserId = reservation.registeredUserId
+        if (registeredUserId != null) {
+            return walletService.findOrCreateForRegisteredUser(registeredUserId, reservation.contactEmail)
+        }
+        return walletService.resolveAnonymousWalletForRepeatedRefund(walletCode, reservation.contactEmail, force)
+            .mapLeft { e ->
+                when (e) {
+                    WalletError.NotFound -> ReservationError.WalletNotFound
+                    WalletError.EmailMismatch -> ReservationError.WalletEmailMismatch
+                }
+            }
+            .bind()
+    }
+
 }
 
 open class AuthenticatedReservationService(
     private val eventInstanceRepository: EventInstanceRepository,
     private val eventSeriesRepository: EventSeriesRepository,
     private val reservationRepository: ReservationRepository,
-    private val seriesLessonOptOutRepository: SeriesLessonOptOutRepository,
 ) : AuthenticatedReservationServiceInterface {
 
-    /** Returns the authenticated caller's UUID from the JWT principal, or null if unavailable. */
-    internal open suspend fun currentCallerUserId(): Uuid? {
-        val idString = currentCall()
-            ?.principal<JWTPrincipal>()
-            ?.payload?.getClaim("id")?.asString()
-            ?: return null
-        return runCatching { Uuid.parse(idString) }.getOrNull()
-    }
     override suspend fun getReservations(userId: Uuid): Either<ReservationError.GetAll, List<MyReservationListItem>> = either {
         val reservations = reservationRepository.getAll(userId)
             .filter { it.status != Reservation.Status.CANCELLED }
@@ -699,39 +779,4 @@ open class AuthenticatedReservationService(
             isSeries = isSeries,
         )
 
-    override suspend fun getSeriesReservationDetail(
-        reservationId: Uuid,
-    ): Either<ReservationError.GetDetail, SeriesReservationDetail> = either {
-        val reservation = ensureNotNull(reservationRepository.findById(reservationId)) {
-            ReservationError.ReservationNotFound
-        }
-        ensure(reservation.reference is Reference.Series) {
-            ReservationError.ReservationNotFound
-        }
-
-        // Ownership check: only the owner may view their reservation details
-        val callerUuid = currentCallerUserId()
-        ensure(callerUuid != null && reservation.registeredUserId == callerUuid) {
-            ReservationError.ReservationNotFound  // Don't reveal existence to non-owner
-        }
-        val seriesId = reservation.reference.id
-
-        val instances = eventInstanceRepository.findBySeries(seriesId)
-        val optOuts = seriesLessonOptOutRepository.findByReservation(reservationId)
-        val optOutMap = optOuts.associateBy { it.instanceId }
-
-        val lessons = instances.map { instance ->
-            val optOut = optOutMap[instance.id]
-            SeriesLessonItem(
-                instanceId = instance.id,
-                startDateTime = instance.startDateTime,
-                endDateTime = instance.endDateTime,
-                isCancelled = instance.isCancelled,
-                isOptedOut = optOut != null,
-                isLateCancellation = optOut?.isLateCancellation ?: false,
-            )
-        }
-
-        SeriesReservationDetail(reservation = reservation, lessons = lessons)
-    }
 }

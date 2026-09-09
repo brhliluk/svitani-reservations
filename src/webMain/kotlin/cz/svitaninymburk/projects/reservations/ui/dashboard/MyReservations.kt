@@ -6,7 +6,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
@@ -17,28 +16,20 @@ import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
 import cz.svitaninymburk.projects.reservations.ui.util.ReservationStatusBadge
 import cz.svitaninymburk.projects.reservations.ui.util.reservationStatusBadge
-import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonItem
+import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonsView
 import cz.svitaninymburk.projects.reservations.service.AuthenticatedReservationServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.components.SeriesLessonsSection
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
-import cz.svitaninymburk.projects.reservations.ui.util.Toast
-import cz.svitaninymburk.projects.reservations.ui.util.ToastData
-import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.html.button
 import dev.kilua.html.div
-import dev.kilua.html.dialogRef
 import dev.kilua.html.h1
-import dev.kilua.html.h3
 import dev.kilua.html.main
 import dev.kilua.html.p
 import dev.kilua.html.span
 import dev.kilua.rpc.getService
-import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
-import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 @Composable
@@ -122,78 +113,24 @@ fun IComponent.MyReservationsList(userId: Uuid) {
 private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick: () -> Unit) {
     val currentStrings by strings
     val badge = reservationStatusBadge(item.status, item.paymentType, item.totalPrice)
-    val scope = rememberCoroutineScope()
 
-    val authenticatedService = getService<AuthenticatedReservationServiceInterface>(RpcSerializersModules)
     val reservationService = getService<ReservationServiceInterface>(RpcSerializersModules)
 
     var isExpanded by remember { mutableStateOf(false) }
     var lessonsState by remember { mutableStateOf<LessonsLoadState>(LessonsLoadState.Idle) }
     var lessonsRefreshTrigger by remember { mutableStateOf(0) }
 
-    var toastData by remember { mutableStateOf<ToastData?>(null) }
-    var pendingOptOutLesson by remember { mutableStateOf<SeriesLessonItem?>(null) }
-
-    // Load lessons when expanded
+    // Termíny kurzu chodí přes guest-callable getSeriesLessons — pro majitele vrací
+    // totéž a stejnou metodu volá i hostovský detail rezervace.
     LaunchedEffect(isExpanded, lessonsRefreshTrigger) {
         if (isExpanded && item.isSeries) {
             lessonsState = LessonsLoadState.Loading
-            authenticatedService.getSeriesReservationDetail(item.id)
-                .onRight { detail -> lessonsState = LessonsLoadState.Success(detail.lessons) }
+            reservationService.getSeriesLessons(item.id)
+                .onRight { view -> lessonsState = LessonsLoadState.Success(view) }
                 .onLeft { error -> lessonsState = LessonsLoadState.Error(error.localizedMessage(currentStrings)) }
         }
     }
 
-    // Opt-out confirmation dialog
-    val optOutDialog = dialogRef(className = "modal") {
-        div(className = "modal-box") {
-            h3(className = "font-bold text-lg text-warning flex items-center gap-2") {
-                span(className = "icon-[heroicons--exclamation-triangle] size-6")
-                +currentStrings.lessonOptOutConfirmTitle
-            }
-
-            val lesson = pendingOptOutLesson
-            if (lesson != null) {
-                p(className = "py-4") {
-                    +currentStrings.lessonOptOutConfirmBody(lesson.startDateTime.humanReadable)
-                }
-            }
-
-            div(className = "modal-action") {
-                button(className = "btn") {
-                    onClick {
-                        this@dialogRef.element.close()
-                        pendingOptOutLesson = null
-                    }
-                    +currentStrings.cancel
-                }
-
-                button(className = "btn btn-warning text-white") {
-                    onClick {
-                        val pendingLesson = pendingOptOutLesson
-                        this@dialogRef.element.close()
-                        pendingOptOutLesson = null
-
-                        if (pendingLesson != null) {
-                            scope.launch {
-                                reservationService.cancelReservation(
-                                    reservationId = item.id,
-                                    instanceId = pendingLesson.instanceId,
-                                ).onRight {
-                                    toastData = ToastData(currentStrings.toastLessonOptOut, ToastType.Success)
-                                    lessonsRefreshTrigger++
-                                }.onLeft { error ->
-                                    toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
-                                }
-                            }
-                        }
-                    }
-                    +currentStrings.lessonOptOut
-                }
-            }
-        }
-        onClick { event -> if (event.target == this@dialogRef.element) this@dialogRef.element.close() }
-    }
 
     div(className = "card bg-base-100 shadow-sm border border-base-200 hover:shadow-md transition-shadow") {
         div(className = "card-body p-4 sm:p-5 gap-3") {
@@ -296,19 +233,11 @@ private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick:
                                 }
                             }
                             is LessonsLoadState.Success -> {
-                                if (state.lessons.isEmpty()) {
-                                    p(className = "text-sm text-base-content/50 italic py-2") { +currentStrings.noLessonsYet }
-                                } else {
-                                    state.lessons.forEach { lesson ->
-                                        LessonRow(
-                                            lesson = lesson,
-                                            onOptOutClick = {
-                                                pendingOptOutLesson = lesson
-                                                optOutDialog.element.showModal()
-                                            }
-                                        )
-                                    }
-                                }
+                                SeriesLessonsSection(
+                                    reservationId = item.id,
+                                    view = state.view,
+                                    onLessonsChanged = { lessonsRefreshTrigger++ },
+                                )
                             }
                         }
                     }
@@ -317,54 +246,12 @@ private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick:
         }
     }
 
-    Toast(
-        message = toastData?.message,
-        type = toastData?.type ?: ToastType.Success,
-        onDismiss = { toastData = null }
-    )
-}
-
-@Composable
-private fun IComponent.LessonRow(lesson: SeriesLessonItem, onOptOutClick: () -> Unit) {
-    val currentStrings by strings
-    val isPast = lesson.startDateTime.toInstant(TimeZone.currentSystemDefault()) < Clock.System.now()
-
-    div(className = "flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-lg bg-base-200/50 text-sm") {
-        div(className = "flex items-center gap-2 text-base-content/70") {
-            span(className = "icon-[heroicons--clock] size-4 shrink-0")
-            span { +lesson.startDateTime.humanReadable }
-            when {
-                lesson.isCancelled -> div(className = "badge badge-error badge-sm gap-1") {
-                    +currentStrings.lessonCancelledBadge
-                }
-                lesson.isOptedOut -> {
-                    div(className = "badge badge-warning badge-sm gap-1") {
-                        +currentStrings.lessonOptedOut
-                    }
-                    if (lesson.isLateCancellation) {
-                        div(className = "badge badge-ghost badge-sm gap-1") {
-                            +currentStrings.lessonOptOutLate
-                        }
-                    }
-                }
-                else -> {}
-            }
-        }
-
-        if (!lesson.isCancelled && !lesson.isOptedOut && !isPast) {
-            button(className = "btn btn-outline btn-warning btn-xs gap-1 shrink-0") {
-                span(className = "icon-[heroicons--arrow-left-end-on-rectangle] size-3")
-                +currentStrings.lessonOptOut
-                onClick { onOptOutClick() }
-            }
-        }
-    }
 }
 
 private sealed interface LessonsLoadState {
     data object Idle : LessonsLoadState
     data object Loading : LessonsLoadState
-    data class Success(val lessons: List<SeriesLessonItem>) : LessonsLoadState
+    data class Success(val view: SeriesLessonsView) : LessonsLoadState
     data class Error(val message: String) : LessonsLoadState
 }
 

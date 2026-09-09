@@ -455,6 +455,10 @@ interface AppStrings : ErrorStrings {
     val lessonOptedOut: String
     val lessonOptOutLate: String
     val toastLessonOptOut: String
+    val lessonOptOutCreditInfo: (amount: String) -> String
+    val lessonOptOutDeadlineInfo: (deadline: String) -> String
+    val lessonOptOutIrreversible: String
+    val errorLoadingTitle: String
 
     // Event Detail
     val occupancyStatTitle: String

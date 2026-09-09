@@ -33,7 +33,11 @@ fun IComponent.ReservationDetailLayout(
     accountNumber: String,
     waitlistPosition: Int? = null,
     onCancelReservation: () -> Unit,
-    onBackToDashboard: () -> Unit
+    onBackToDashboard: () -> Unit,
+    /** Jsou k dispozici termíny kurzu? U jednorázových akcí ne. */
+    hasLessons: Boolean = false,
+    /** Termíny kurzu; vykreslí se jen když [hasLessons]. */
+    lessonsSlot: @Composable IComponent.() -> Unit = {},
 ) {
     val currentStrings by strings
     val uiState = remember(reservation.status, reservation.isFree, currentStrings) { getReservationUiState(reservation, target, currentStrings) }
@@ -171,6 +175,16 @@ fun IComponent.ReservationDetailLayout(
                             }
                         }
                     }
+                }
+            }
+
+            // --- TERMÍNY KURZU ---
+            if (hasLessons) {
+                div(className = "p-8 lg:p-12 pt-6 border-t border-base-200 flex flex-col gap-3") {
+                    h2(className = "text-xs font-bold uppercase tracking-widest text-base-content/50") {
+                        +currentStrings.seriesLessonsHeading
+                    }
+                    lessonsSlot()
                 }
             }
 

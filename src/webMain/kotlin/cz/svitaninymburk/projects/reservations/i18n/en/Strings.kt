@@ -437,6 +437,14 @@ object EnStrings : AppStrings {
     override val lessonOptedOut = "Unsubscribed"
     override val lessonOptOutLate = "Late cancellation"
     override val toastLessonOptOut = "You have been unsubscribed from the lesson."
+    override val lessonOptOutCreditInfo: (String) -> String = { amount ->
+        "You will receive $amount CZK wallet credit."
+    }
+    override val lessonOptOutDeadlineInfo: (String) -> String = { deadline ->
+        "Credit is available until $deadline."
+    }
+    override val lessonOptOutIrreversible = "Unsubscribing cannot be undone — the spot is offered to others right away."
+    override val errorLoadingTitle = "Loading error"
 
     // Event Detail
     override val occupancyStatTitle = "Occupancy"

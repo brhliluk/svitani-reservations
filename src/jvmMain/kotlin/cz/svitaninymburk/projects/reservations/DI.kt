@@ -137,7 +137,7 @@ val appModule = module {
     single { BackendQrCodeGenerator(get(), get()) } bind QrCodeGeneratorService::class
     single { WaitlistPromoter(get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz") }
     single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get(), waitlistPromoter = get()) } bind ReservationServiceInterface::class
-    single { AuthenticatedReservationService(get(), get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
+    single { AuthenticatedReservationService(get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
     single { PaymentPairingService(get(), get(), get(), get(), get(), get()) }
     single { SeriesScheduleRefresher(get(), get()) }
     single { AdminService(get()) }

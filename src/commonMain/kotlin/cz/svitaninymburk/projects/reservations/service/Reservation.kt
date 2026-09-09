@@ -8,7 +8,7 @@ import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservati
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
-import cz.svitaninymburk.projects.reservations.reservation.SeriesReservationDetail
+import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonsView
 import cz.svitaninymburk.projects.reservations.wallet.WalletInfo
 import dev.kilua.rpc.annotations.RpcService
 import kotlin.uuid.Uuid
@@ -18,6 +18,12 @@ import kotlin.uuid.Uuid
 interface ReservationServiceInterface {
     suspend fun get(id: Uuid): Either<ReservationError.Get, Reservation>
     suspend fun getDetail(id: Uuid): Either<ReservationError.GetDetail, ReservationDetail>
+
+    /**
+     * Termíny kurzu pro odhlašovací UI. Chodí i bez přihlášení — rezervaci bez účtu
+     * chrání jen znalost UUID, registrovanou její majitel.
+     */
+    suspend fun getSeriesLessons(reservationId: Uuid): Either<ReservationError.GetDetail, SeriesLessonsView>
     suspend fun reserveInstance(request: CreateInstanceReservationRequest, userId: Uuid?): Either<ReservationError.CreateReservation, Reservation>
     suspend fun reserveSeries(request: CreateSeriesReservationRequest, userId: Uuid?): Either<ReservationError.CreateReservation, Reservation>
     suspend fun joinWaitlistInstance(request: CreateInstanceReservationRequest, userId: Uuid?): Either<ReservationError.CreateReservation, Reservation>
@@ -34,7 +40,4 @@ interface ReservationServiceInterface {
 @RpcService
 interface AuthenticatedReservationServiceInterface {
     suspend fun getReservations(userId: Uuid): Either<ReservationError.GetAll, List<MyReservationListItem>>
-    suspend fun getSeriesReservationDetail(
-        reservationId: Uuid,
-    ): Either<ReservationError.GetDetail, SeriesReservationDetail>
 }

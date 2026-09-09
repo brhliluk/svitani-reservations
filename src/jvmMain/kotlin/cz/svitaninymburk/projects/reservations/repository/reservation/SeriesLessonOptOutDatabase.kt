@@ -4,6 +4,7 @@ import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
@@ -22,10 +23,27 @@ object SeriesLessonOptOutsTable : Table("series_lesson_opt_outs") {
     val optedOutAt = timestamp("opted_out_at")
     val isLateCancellation = bool("is_late_cancellation")
     override val primaryKey = PrimaryKey(id)
+
+    init {
+        // Kontrola duplicity a insert běží v oddělených transakcích, takže dvojklik
+        // dokáže uložit dva řádky. Dvě omluvenky na tutéž lekci pak odečtou místo
+        // dvakrát a shodí každé další čtení té rezervace. Constraint je jediné
+        // spolehlivé místo, kde to zarazit.
+        uniqueIndex("ux_series_lesson_opt_outs_reservation_instance", reservationId, instanceId)
+        // findByInstance se volá v cyklu přes všechny dnešní lekce (Admin.getDashboardSummary).
+        index("ix_series_lesson_opt_outs_instance", false, instanceId)
+    }
 }
 
 interface SeriesLessonOptOutRepository {
     suspend fun save(optOut: SeriesLessonOptOut): SeriesLessonOptOut
+
+    /**
+     * Uloží omluvenku, nebo vrátí null, pokud na tu dvojici (rezervace, lekce) už
+     * jedna je. Kontrola předem nestačí — běží v jiné transakci než insert, takže
+     * dvojklik jí proklouzne; poslední slovo má unique index.
+     */
+    suspend fun saveIfAbsent(optOut: SeriesLessonOptOut): SeriesLessonOptOut?
     suspend fun findByReservationAndInstance(reservationId: Uuid, instanceId: Uuid): SeriesLessonOptOut?
     suspend fun findByReservation(reservationId: Uuid): List<SeriesLessonOptOut>
     suspend fun findByInstance(instanceId: Uuid): List<SeriesLessonOptOut>
@@ -47,6 +65,13 @@ class ExposedSeriesLessonOptOutRepository(private val database: Database? = null
         optOut
     }
 
+    override suspend fun saveIfAbsent(optOut: SeriesLessonOptOut): SeriesLessonOptOut? =
+        try {
+            save(optOut)
+        } catch (e: ExposedSQLException) {
+            if (e.isUniqueConstraintViolation()) null else throw e
+        }
+
     override suspend fun findByReservationAndInstance(reservationId: Uuid, instanceId: Uuid): SeriesLessonOptOut? =
         query {
             SeriesLessonOptOutsTable.selectAll()
@@ -55,7 +80,9 @@ class ExposedSeriesLessonOptOutRepository(private val database: Database? = null
                             (SeriesLessonOptOutsTable.instanceId eq instanceId)
                 }
                 .map { it.toSeriesLessonOptOut() }
-                .singleOrNull()
+                // firstOrNull, ne singleOrNull — kdyby se do dat historicky dostala
+                // duplicita, nesmí kvůli tomu spadnout každé další čtení rezervace.
+                .firstOrNull()
         }
 
     override suspend fun findByReservation(reservationId: Uuid): List<SeriesLessonOptOut> = query {
@@ -78,3 +105,12 @@ fun ResultRow.toSeriesLessonOptOut(): SeriesLessonOptOut = SeriesLessonOptOut(
     optedOutAt = this[SeriesLessonOptOutsTable.optedOutAt],
     isLateCancellation = this[SeriesLessonOptOutsTable.isLateCancellation],
 )
+
+/**
+ * SQLite hlásí porušení unique indexu jako SQLITE_CONSTRAINT (kód 19); přesná
+ * podoba zprávy se mezi verzemi ovladače liší, proto se testuje volně.
+ */
+private fun ExposedSQLException.isUniqueConstraintViolation(): Boolean {
+    val text = message.orEmpty().lowercase()
+    return "unique constraint" in text || "constraint failed" in text
+}

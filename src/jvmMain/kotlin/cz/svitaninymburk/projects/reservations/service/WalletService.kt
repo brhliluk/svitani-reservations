@@ -54,6 +54,27 @@ class WalletService(private val repo: WalletRepository) {
         return wallet.right()
     }
 
+    /** Kolik kreditu už rezervace dostala za omluvenky z lekcí. */
+    suspend fun refundedForLessonOptOuts(reservationId: Uuid): Double =
+        repo.sumCreditedForReservation(reservationId, WalletTransactionReason.LESSON_OPT_OUT_REFUND)
+
+    /**
+     * Peněženka pro opakované refundy hosta (omluvenky z lekcí chodí po jedné).
+     * Bez zadaného kódu se nejdřív podívá podle e-mailu — [resolveAnonymousWallet]
+     * by pokaždé založila novou peněženku s novým kódem a kredit by se roztříštil
+     * do několika nepoužitelných kousků.
+     */
+    suspend fun resolveAnonymousWalletForRepeatedRefund(
+        code: String?,
+        contactEmail: String,
+        force: Boolean,
+    ): Either<WalletError.ResolveAnonymous, Wallet> {
+        if (code == null) {
+            repo.findAnonymousByEmail(contactEmail)?.let { return it.right() }
+        }
+        return resolveAnonymousWallet(code, contactEmail, force)
+    }
+
     /**
      * Validate a wallet code for use during reservation creation.
      * Returns WalletNotFound or WalletEmpty if invalid.

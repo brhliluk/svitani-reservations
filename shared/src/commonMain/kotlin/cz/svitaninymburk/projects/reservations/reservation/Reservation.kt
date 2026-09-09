@@ -153,6 +153,8 @@ data class ReservationDetail(
     val target: ReservationTarget?,
     val accountNumber: String,
     val waitlistPosition: Int? = null,
+    /** Uzávěrka pro storno s nárokem na kredit, spočítaná serverem. */
+    val cancellationDeadline: Instant? = null,
 )
 
 @Serializable
@@ -178,12 +180,34 @@ data class SeriesLessonItem(
     val isCancelled: Boolean,
     val isOptedOut: Boolean,
     val isLateCancellation: Boolean,
+    /**
+     * Absolutní začátek lekce a uzávěrka pro včasnou omluvenku, obojí spočítané
+     * serverem v provozní zóně. Prohlížeč nemá databázi časových pásem, takže by
+     * si je sám spočítal v zóně návštěvníka a sliboval jiný termín, než jaký
+     * backend uplatní.
+     */
+    val startsAt: Instant? = null,
+    val optOutDeadline: Instant? = null,
 )
 
+/**
+ * Termíny kurzu tak, jak je potřebuje odhlašovací UI. Neveze celou rezervaci —
+ * chodí i na rezervace bez účtu, které chrání jen znalost UUID, takže se
+ * kontaktní údaje ven netahají.
+ */
 @Serializable
-data class SeriesReservationDetail(
-    val reservation: Reservation,
+data class SeriesLessonsView(
     val lessons: List<SeriesLessonItem>,
+    /** Kolik je na rezervaci zaplaceno — pro náhled kreditu v dialogu. */
+    val paidAmount: Double,
+    /** Kolik už bylo za včasné omluvenky vráceno — kredit se stropuje zaplacenou částkou. */
+    val alreadyRefunded: Double,
+    /** Kredit za jednu včas odhlášenou lekci a jedno místo; null = kurz kredit nevrací. */
+    val lessonRefundAmount: Double? = null,
+    /** Počet míst rezervace — omluvenka uvolní všechna, takže se kredit násobí. */
+    val seatCount: Int = 1,
+    /** Rezervace bez účtu — UI musí nabídnout pole na kód peněženky. */
+    val isAnonymousReservation: Boolean = false,
 )
 
 @Serializable
