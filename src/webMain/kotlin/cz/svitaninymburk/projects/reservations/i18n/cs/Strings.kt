@@ -150,6 +150,10 @@ object CsStrings : AppStrings {
     override val timeRangeHint: (String, String) -> String = { from, to -> "Rozsah: $from–$to" }
     override val timeRangeError = "Čas je mimo povolený rozsah"
     override val customFieldRequiredError = "Vyplňte prosím toto pole"
+    override val resetPasswordTitle = "Nové heslo"
+    override val resetPasswordNewLabel = "Zadejte nové heslo"
+    override val resetPasswordConfirmLabel = "Potvrzení hesla"
+    override val resetPasswordSubmit = "Uložit heslo"
     override val customFieldCheckboxRequiredError = "Bez zaškrtnutí nelze rezervovat"
     override val numberRangeHint: (String, String) -> String = { min, max -> "($min–$max)" }
     override val numberRangeError: (String, String) -> String = { min, max -> "Hodnota musí být mezi $min a $max" }

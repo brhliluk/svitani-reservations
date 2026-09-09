@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import cz.svitaninymburk.projects.reservations.auth.HashingService
+import cz.svitaninymburk.projects.reservations.auth.MIN_PASSWORD_LENGTH
 import cz.svitaninymburk.projects.reservations.error.UserError
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.user.User
@@ -52,7 +53,7 @@ open class UserService(
     }
 
     override suspend fun changePassword(oldPassword: String, newPassword: String): Either<UserError.ChangePassword, Unit> = either {
-        ensure(newPassword.length >= 6) { UserError.WeakPassword }
+        ensure(newPassword.length >= MIN_PASSWORD_LENGTH) { UserError.WeakPassword }
         val userId = ensureNotNull(currentUserId()) { UserError.UserNotFound("") }
         val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId.toString()) }
         ensure(user is User.Email) { UserError.NotEmailUser }

@@ -47,3 +47,10 @@ fun User.toDto(walletCode: String? = null) = UserDto(
     role = this.role,
     walletCode = walletCode,
 )
+/**
+ * Minimální délka hesla. Ve `shared`, protože ji musí znát obě strany —
+ * formulář, aby nepustil odeslání, a `UserService.changePassword`, aby ji
+ * vynutil. Dokud byla opsaná na čtyřech místech, mohly se rozejít a klient by
+ * pustil heslo, které server odmítne.
+ */
+const val MIN_PASSWORD_LENGTH = 6

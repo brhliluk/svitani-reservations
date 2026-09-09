@@ -1,18 +1,15 @@
 package cz.svitaninymburk.projects.reservations.ui.auth
 
-import androidx.compose.runtime.*
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
-import cz.svitaninymburk.projects.reservations.auth.LoginRequest
-import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import dev.kilua.core.IComponent
 import dev.kilua.form.Autocomplete
 import dev.kilua.form.text.password
 import dev.kilua.form.text.text
 import dev.kilua.html.*
-import dev.kilua.rpc.getService
-import kotlinx.coroutines.launch
 
 @Composable
 fun IComponent.LoginDialog(
@@ -24,115 +21,64 @@ fun IComponent.LoginDialog(
 ) {
     if (!isOpen) return
 
-    val authService = getService<AuthServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
-
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     val currentStrings by strings
+    val model = remember { buildLoginModel(scope) }
 
-    val isFormValid = email.isNotBlank() && password.isNotBlank()
+    fun login() = model.login(onLoggedIn = { onLogin(); onClose() })
 
-    fun login() {
-        if (isLoading) return
-        isLoading = true
-        errorMessage = null
+    AuthDialog(title = currentStrings.loginTitle, onClose = onClose) {
 
-        scope.launch {
-            try {
-                authService.login(LoginRequest(email, password))
-                    .onRight {
-                        isLoading = false
-                        onLogin()
-                        onClose()
-                    }
-                    .onLeft {
-                        isLoading = false
-                        errorMessage = it.localizedMessage(currentStrings)
-                    }
-            } catch (e: Exception) {
-                isLoading = false
-                errorMessage = currentStrings.errorProcessingRequest
+        div(className = "form-control w-full") {
+            label(className = "label") { span(className = "label-text") { +currentStrings.emailLabel } }
+
+            text(value = model.email, className = "input input-bordered w-full") {
+                placeholder("vas@email.cz")
+                autocomplete(Autocomplete.Username)
+                attribute("aria-required", "true")
+                onInput { model.setEmail(value ?: "") }
             }
         }
-    }
 
-    div(className = "modal modal-open modal-bottom sm:modal-middle") {
-        div(className = "modal-box") {
-            button(className = "btn btn-sm btn-circle btn-ghost absolute right-2 top-2") {
-                attribute("aria-label", currentStrings.close)
-                onClick { onClose() }
-                +"✕"
+        div(className = "form-control w-full mt-4") {
+            label(className = "label pt-1") { span(className = "label-text font-medium") { +currentStrings.passwordLabel } }
+
+            password(value = model.password, className = "input input-bordered w-full") {
+                placeholder("······")
+                autocomplete(Autocomplete.CurrentPassword)
+                attribute("aria-required", "true")
+                onInput { model.setPassword(value ?: "") }
+                onKeydown { e -> if (e.key == "Enter") login() }
             }
 
-            h3(className = "font-bold text-lg mb-4") { +currentStrings.loginTitle }
+            label(className = "label p-0 mt-2") {
+                span(className = "label-text-alt") { +"" }
 
-            div(className = "form-control w-full") {
-                label(className = "label") { span(className = "label-text") { +currentStrings.emailLabel } }
-
-                text(value = email, className = "input input-bordered w-full") {
-                    placeholder("vas@email.cz")
-                    autocomplete(Autocomplete.Username)
-                    attribute("aria-required", "true")
-                    onInput { email = value ?: "" }
-                }
-            }
-
-            div(className = "form-control w-full mt-4") {
-                label(className = "label pt-1") { span(className = "label-text font-medium") { +currentStrings.passwordLabel } }
-
-                password(value = password, className = "input input-bordered w-full") {
-                    placeholder("······")
-                    autocomplete(Autocomplete.CurrentPassword)
-                    attribute("aria-required", "true")
-                    onInput { password = value ?: "" }
-                    onKeydown { e -> if (e.key == "Enter") login() }
-                }
-
-                label(className = "label p-0 mt-2") {
-                    span(className = "label-text-alt") { +"" }
-
-                    a(className = "label-text-alt link link-hover text-primary text-sm cursor-pointer") {
-                        href("#")
-                        onClick { onSwitchToForgottenPassword() }
-                        +currentStrings.forgotPasswordLink
-                    }
-                }
-            }
-
-            if (errorMessage != null) {
-                div(className = "alert alert-error mt-4 text-sm py-2") {
-                    span(className = "icon-[heroicons--exclamation-circle] size-5")
-                    span { +errorMessage!! }
-                }
-            }
-
-            div(className = "modal-action") {
-                button(className = "btn btn-primary w-full") {
-                    disabled(isLoading || !isFormValid)
-                    if (isLoading) span(className = "loading loading-spinner")
-                    +currentStrings.logIn
-                    onClick { login() }
-                }
-            }
-
-            div(className = "text-center mt-4 text-sm") {
-                +currentStrings.noAccountYet
-                +" "
-                a(className = "link link-primary cursor-pointer") {
-                    onClick { onSwitchToRegister() }
-                    +currentStrings.signUpLink
+                a(className = "label-text-alt link link-hover text-primary text-sm cursor-pointer") {
+                    href("#")
+                    onClick { onSwitchToForgottenPassword() }
+                    +currentStrings.forgotPasswordLink
                 }
             }
         }
 
-        div(className = "modal-backdrop") {
-            button {
-                attribute("aria-label", currentStrings.close)
-                onClick { onClose() }
+        AuthErrorAlert(model.errorMessage)
+
+        div(className = "modal-action") {
+            button(className = "btn btn-primary w-full") {
+                disabled(model.isLoading || !model.isFormValid)
+                if (model.isLoading) span(className = "loading loading-spinner")
+                +currentStrings.logIn
+                onClick { login() }
+            }
+        }
+
+        div(className = "text-center mt-4 text-sm") {
+            +currentStrings.noAccountYet
+            +" "
+            a(className = "link link-primary cursor-pointer") {
+                onClick { onSwitchToRegister() }
+                +currentStrings.signUpLink
             }
         }
     }

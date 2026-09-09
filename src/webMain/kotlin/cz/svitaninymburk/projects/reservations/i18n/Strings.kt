@@ -170,6 +170,10 @@ interface AppStrings : ErrorStrings {
     val timeRangeHint: (String, String) -> String
     val timeRangeError: String
     val customFieldRequiredError: String
+    val resetPasswordTitle: String
+    val resetPasswordNewLabel: String
+    val resetPasswordConfirmLabel: String
+    val resetPasswordSubmit: String
     val customFieldCheckboxRequiredError: String
     val numberRangeHint: (String, String) -> String
     val numberRangeError: (String, String) -> String
