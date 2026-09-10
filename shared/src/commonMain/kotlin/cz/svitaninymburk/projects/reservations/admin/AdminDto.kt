@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.admin
 
+import cz.svitaninymburk.projects.reservations.audit.AuditEvent
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.event.EventInstance
@@ -112,6 +113,14 @@ data class AdminUserListItem(
     @Serializable
     enum class AuthType { EMAIL, GOOGLE }
 }
+
+@Serializable
+data class AuditLogPage(
+    val items: List<AuditEvent>,
+    val page: Int,
+    val pageSize: Int,
+    val totalCount: Long,
+)
 
 @Serializable
 data class PaymentEventsPage(

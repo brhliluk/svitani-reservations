@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.i18n.en
 
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import cz.svitaninymburk.projects.reservations.i18n.AppStrings
 
 
@@ -214,6 +215,57 @@ object EnStrings : AppStrings {
     override val paymentTypeCash = "Cash"
     override val paymentTypeFree = "Free"
     override val noPayments = "No payments recorded yet."
+
+    // Event history (audit log)
+    override val auditTitle = "History"
+    override val auditSubtitle = "Sign-ups, cancellations, payments and sent e-mails"
+    override val auditShow = "Show history"
+    override val auditHide = "Hide history"
+    override val auditEmpty = "No entries yet."
+    override val auditColumnTime = "When"
+    override val auditColumnEvent = "What happened"
+    override val auditColumnWho = "Who it concerns"
+    override val auditColumnDetail = "Details"
+    override val auditFilterAll = "All"
+    override val auditCategoryReservation = "Reservations"
+    override val auditCategoryEmail = "E-mails"
+    override val auditCategoryPayment = "Payments"
+    override val auditOutcomeFailure = "Not sent"
+    override val auditActorSystem = "system"
+    override val auditOpenReservation = "Open reservation"
+    override val auditOpenLesson = "Open lesson"
+    override val auditOpenWallet = "Open wallet"
+    override fun auditEventLabel(type: AuditEventType): String = when (type) {
+        AuditEventType.RESERVATION_CREATED -> "New reservation"
+        AuditEventType.RESERVATION_WAITLIST_JOINED -> "Joined waitlist"
+        AuditEventType.RESERVATION_WAITLIST_PROMOTED -> "Promoted from waitlist"
+        AuditEventType.RESERVATION_CANCELLED -> "Reservation cancelled"
+        AuditEventType.RESERVATION_LESSON_OPT_OUT -> "Lesson opt-out"
+        AuditEventType.LESSON_RESCHEDULED -> "Lesson rescheduled"
+        AuditEventType.LESSON_CANCELLED -> "Lesson cancelled"
+        AuditEventType.EVENT_CANCELLED -> "Event cancelled"
+        AuditEventType.PAYMENT_PAIRED_AUTO -> "Payment matched from bank"
+        AuditEventType.PAYMENT_PAIRED_MANUAL -> "Payment confirmed manually"
+        AuditEventType.PAYMENT_PARTIAL -> "Underpayment"
+        AuditEventType.PAYMENT_UNMATCHED -> "Unmatched payment"
+        AuditEventType.PAYMENT_REFUNDED -> "Credit refunded"
+        AuditEventType.EMAIL_RESERVATION_CONFIRMATION -> "E-mail: reservation confirmation"
+        AuditEventType.EMAIL_CANCELLATION_NOTICE -> "E-mail: cancellation"
+        AuditEventType.EMAIL_PAYMENT_RECEIVED -> "E-mail: payment received"
+        AuditEventType.EMAIL_PAYMENT_NOT_PAID_IN_FULL -> "E-mail: underpayment"
+        AuditEventType.EMAIL_PASSWORD_RESET -> "E-mail: password reset"
+        AuditEventType.EMAIL_LESSON_RESCHEDULED -> "E-mail: lesson rescheduled"
+        AuditEventType.EMAIL_LESSON_CANCELLED -> "E-mail: lesson cancelled"
+        AuditEventType.EMAIL_LESSON_OPT_OUT -> "E-mail: lesson opt-out"
+        AuditEventType.EMAIL_WAITLIST_CONFIRMATION -> "E-mail: waitlist confirmation"
+        AuditEventType.EMAIL_WAITLIST_PROMOTION -> "E-mail: waitlist promotion"
+        AuditEventType.EMAIL_LECTOR_RESERVATION -> "Lecturer e-mail: new reservation"
+        AuditEventType.EMAIL_LECTOR_CANCELLATION -> "Lecturer e-mail: cancellation"
+        AuditEventType.EMAIL_LECTOR_LESSON_OPT_OUT -> "Lecturer e-mail: lesson opt-out"
+        AuditEventType.EMAIL_WALLET_CREDITED -> "E-mail: credit added"
+        AuditEventType.EMAIL_WALLET_APPLIED -> "E-mail: credit applied"
+        AuditEventType.EMAIL_WALLET_RESET_WARNING -> "E-mail: credit expiring soon"
+    }
     override val paginationPrevious = "Previous"
     override val paginationNext = "Next"
     override val paginationPageOf: (Int, Int) -> String = { current, total -> "Page $current of $total" }

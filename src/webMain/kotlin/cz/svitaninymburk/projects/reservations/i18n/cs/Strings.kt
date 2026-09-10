@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.i18n.cs
 
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import cz.svitaninymburk.projects.reservations.i18n.AppStrings
 
 
@@ -214,6 +215,57 @@ object CsStrings : AppStrings {
     override val paymentTypeCash = "Hotově"
     override val paymentTypeFree = "Zdarma"
     override val noPayments = "Zatím nebyly zaznamenány žádné platby."
+
+    // Historie událostí (audit log)
+    override val auditTitle = "Historie"
+    override val auditSubtitle = "Přihlášky, odhlášky, platby a odeslané e-maily"
+    override val auditShow = "Zobrazit historii"
+    override val auditHide = "Skrýt historii"
+    override val auditEmpty = "Zatím tu není žádný záznam."
+    override val auditColumnTime = "Kdy"
+    override val auditColumnEvent = "Co se stalo"
+    override val auditColumnWho = "Koho se týká"
+    override val auditColumnDetail = "Podrobnosti"
+    override val auditFilterAll = "Vše"
+    override val auditCategoryReservation = "Rezervace"
+    override val auditCategoryEmail = "E-maily"
+    override val auditCategoryPayment = "Platby"
+    override val auditOutcomeFailure = "Neodesláno"
+    override val auditActorSystem = "systém"
+    override val auditOpenReservation = "Otevřít rezervaci"
+    override val auditOpenLesson = "Otevřít lekci"
+    override val auditOpenWallet = "Otevřít peněženku"
+    override fun auditEventLabel(type: AuditEventType): String = when (type) {
+        AuditEventType.RESERVATION_CREATED -> "Nová rezervace"
+        AuditEventType.RESERVATION_WAITLIST_JOINED -> "Zápis do pořadníku"
+        AuditEventType.RESERVATION_WAITLIST_PROMOTED -> "Posun z pořadníku"
+        AuditEventType.RESERVATION_CANCELLED -> "Storno rezervace"
+        AuditEventType.RESERVATION_LESSON_OPT_OUT -> "Omluvenka z lekce"
+        AuditEventType.LESSON_RESCHEDULED -> "Lekce přesunuta"
+        AuditEventType.LESSON_CANCELLED -> "Lekce zrušena"
+        AuditEventType.EVENT_CANCELLED -> "Akce zrušena"
+        AuditEventType.PAYMENT_PAIRED_AUTO -> "Platba spárována z banky"
+        AuditEventType.PAYMENT_PAIRED_MANUAL -> "Platba potvrzena ručně"
+        AuditEventType.PAYMENT_PARTIAL -> "Nedoplatek"
+        AuditEventType.PAYMENT_UNMATCHED -> "Nespárovaná platba"
+        AuditEventType.PAYMENT_REFUNDED -> "Vrácení kreditu"
+        AuditEventType.EMAIL_RESERVATION_CONFIRMATION -> "E-mail: potvrzení rezervace"
+        AuditEventType.EMAIL_CANCELLATION_NOTICE -> "E-mail: storno"
+        AuditEventType.EMAIL_PAYMENT_RECEIVED -> "E-mail: platba přijata"
+        AuditEventType.EMAIL_PAYMENT_NOT_PAID_IN_FULL -> "E-mail: nedoplatek"
+        AuditEventType.EMAIL_PASSWORD_RESET -> "E-mail: reset hesla"
+        AuditEventType.EMAIL_LESSON_RESCHEDULED -> "E-mail: lekce přesunuta"
+        AuditEventType.EMAIL_LESSON_CANCELLED -> "E-mail: lekce zrušena"
+        AuditEventType.EMAIL_LESSON_OPT_OUT -> "E-mail: omluvenka"
+        AuditEventType.EMAIL_WAITLIST_CONFIRMATION -> "E-mail: zápis do pořadníku"
+        AuditEventType.EMAIL_WAITLIST_PROMOTION -> "E-mail: posun z pořadníku"
+        AuditEventType.EMAIL_LECTOR_RESERVATION -> "E-mail lektorovi: nová rezervace"
+        AuditEventType.EMAIL_LECTOR_CANCELLATION -> "E-mail lektorovi: storno"
+        AuditEventType.EMAIL_LECTOR_LESSON_OPT_OUT -> "E-mail lektorovi: omluvenka"
+        AuditEventType.EMAIL_WALLET_CREDITED -> "E-mail: připsán kredit"
+        AuditEventType.EMAIL_WALLET_APPLIED -> "E-mail: uplatněn kredit"
+        AuditEventType.EMAIL_WALLET_RESET_WARNING -> "E-mail: kredit brzy propadne"
+    }
     override val paginationPrevious = "Předchozí"
     override val paginationNext = "Další"
     override val paginationPageOf: (Int, Int) -> String = { current, total -> "Strana $current z $total" }

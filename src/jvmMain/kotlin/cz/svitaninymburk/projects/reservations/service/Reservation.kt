@@ -31,6 +31,12 @@ import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.user.User
+import cz.svitaninymburk.projects.reservations.audit.AuditActorType
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
+import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
+import cz.svitaninymburk.projects.reservations.util.AuditSubject
+import cz.svitaninymburk.projects.reservations.util.auditSubjectFor
+import cz.svitaninymburk.projects.reservations.util.withAuditSubject
 import cz.svitaninymburk.projects.reservations.util.captureEmailError
 import cz.svitaninymburk.projects.reservations.util.currentCall
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
@@ -93,6 +99,7 @@ open class ReservationService(
     private val walletService: WalletService,
     private val walletEmailService: WalletEmailService,
     private val appSettingsProvider: AppSettingsProvider,
+    private val audit: AuditService = AuditService(InMemoryAuditRepository()),
     private val refundService: RefundService = RefundService(walletService, walletEmailService, appSettingsProvider),
     private val seriesLessonsReader: SeriesLessonsReader = SeriesLessonsReader(
         eventInstanceRepository,
@@ -125,6 +132,14 @@ open class ReservationService(
             ?.payload?.getClaim("role")?.asString()
         return role == User.Role.ADMIN.name
     }
+
+    /**
+     * Rezervace vznikají i bez přihlášení, takže se aktér nedá vždy vzít z JWT.
+     * Admin zůstane adminem, jinak je to zákazník s adresou z formuláře.
+     */
+    private suspend fun actorFor(reservation: Reservation): AuditService.Actor =
+        if (isAdminCaller()) audit.currentActor()
+        else AuditService.Actor(AuditActorType.CUSTOMER, reservation.contactEmail)
 
     override suspend fun get(id: Uuid): Either<ReservationError.Get, Reservation> = either {
         reservationRepository.findById(id) ?: raise(ReservationError.ReservationNotFound)
@@ -159,7 +174,9 @@ open class ReservationService(
         val reservation = ensureNotNull(reservationRepository.findById(reservationId)) { ReservationError.ReservationNotFound }
         ensure(reservation.reference is Reference.Series) { ReservationError.ReservationNotFound }
         // Neprozrazovat existenci cizí rezervace — proto všechno na ReservationNotFound.
-        ensure(reservation.isAccessibleBy(currentCallerUserId())) { ReservationError.ReservationNotFound }
+        // Admin vidí i cizí: z historie v adminu vede proklik na /reservation/{id}
+        // a bez tohohle by se mu sekce lekcí u registrovaného uživatele nenačetla.
+        ensure(isAdminCaller() || reservation.isAccessibleBy(currentCallerUserId())) { ReservationError.ReservationNotFound }
 
         val seriesId = reservation.reference.id
         val lessonRefundAmount = eventSeriesRepository.get(seriesId)?.lessonRefundAmount
@@ -309,15 +326,29 @@ open class ReservationService(
         val saved = reservationRepository.save(reservation)
         logger.info("Waitlist signup id=${saved.id} ref=$reference seats=${saved.seatCount} status=${saved.status}")
 
-        emailService.sendWaitlistConfirmation(
-            toEmail = saved.contactEmail,
-            eventTitle = target.title,
-            contactName = saved.contactName,
+        val subject = auditSubjectFor(target, saved.id)
+        audit.record(
+            type = AuditEventType.RESERVATION_WAITLIST_JOINED,
+            actor = actorFor(saved),
+            subjectLabel = saved.contactName,
+            seriesId = subject.seriesId,
+            instanceId = subject.instanceId,
             reservationId = saved.id,
-            locale = saved.locale,
-        ).onLeft { captureEmailError(logger, "Failed to send waitlist confirmation email for reservation ${saved.id}: $it") }
+            amount = saved.totalPrice,
+            detail = "${saved.seatCount}× místo",
+        )
 
-        return saved
+        return withAuditSubject(subject) {
+            emailService.sendWaitlistConfirmation(
+                toEmail = saved.contactEmail,
+                eventTitle = target.title,
+                contactName = saved.contactName,
+                reservationId = saved.id,
+                locale = saved.locale,
+            ).onLeft { captureEmailError(logger, "Failed to send waitlist confirmation email for reservation ${saved.id}: $it") }
+
+            saved
+        }
     }
 
     private suspend fun Raise<ReservationError.CreateReservation>.createReservationFlow(
@@ -366,82 +397,98 @@ open class ReservationService(
                 "status=${savedReservation.status} payment=${savedReservation.paymentType} vs=$variableSymbol"
         )
 
-        // Apply wallet debit if code provided
-        if (walletCode != null) {
-            val walletResult = walletService.validateForReservation(walletCode)
-            if (walletResult.isRight()) {
-                val wallet = walletResult.getOrNull()!!
-                val deductAmount = minOf(wallet.balance, reservation.totalPrice)
-                if (deductAmount > 0.0) {
-                    walletService.debit(wallet.id, deductAmount, WalletTransactionReason.RESERVATION_DEBIT, reservation.id)
-                    val fullyPaid = deductAmount == reservation.totalPrice
-                    savedReservation = reservationRepository.save(
-                        reservation.copy(
-                            walletId = wallet.id,
-                            walletDeductedAmount = deductAmount,
-                            paidAmount = deductAmount,
-                            status = if (fullyPaid) Reservation.Status.CONFIRMED else reservation.status,
-                            paymentType = if (fullyPaid) PaymentInfo.Type.FREE else reservation.paymentType,
+        val subject = auditSubjectFor(target, savedReservation.id)
+        audit.record(
+            type = AuditEventType.RESERVATION_CREATED,
+            actor = actorFor(savedReservation),
+            subjectLabel = savedReservation.contactName,
+            seriesId = subject.seriesId,
+            instanceId = subject.instanceId,
+            reservationId = savedReservation.id,
+            amount = savedReservation.totalPrice,
+            detail = "${savedReservation.seatCount}× místo, stav ${savedReservation.status}, VS $variableSymbol",
+        )
+
+        // Odsud dál se posílají maily; subjekt v kontextu jim dá vazbu na akci,
+        // kterou samy neznají — nesou jen adresu a název.
+        return withAuditSubject(subject) {
+            // Apply wallet debit if code provided
+            if (walletCode != null) {
+                val walletResult = walletService.validateForReservation(walletCode)
+                if (walletResult.isRight()) {
+                    val wallet = walletResult.getOrNull()!!
+                    val deductAmount = minOf(wallet.balance, reservation.totalPrice)
+                    if (deductAmount > 0.0) {
+                        walletService.debit(wallet.id, deductAmount, WalletTransactionReason.RESERVATION_DEBIT, reservation.id)
+                        val fullyPaid = deductAmount == reservation.totalPrice
+                        savedReservation = reservationRepository.save(
+                            reservation.copy(
+                                walletId = wallet.id,
+                                walletDeductedAmount = deductAmount,
+                                paidAmount = deductAmount,
+                                status = if (fullyPaid) Reservation.Status.CONFIRMED else reservation.status,
+                                paymentType = if (fullyPaid) PaymentInfo.Type.FREE else reservation.paymentType,
+                            )
                         )
-                    )
-                    walletEmailService.sendWalletApplied(
-                        toEmail = reservation.contactEmail,
-                        walletCode = wallet.code,
-                        deductedAmount = deductAmount,
-                        remainingBalance = wallet.balance - deductAmount,
-                        locale = reservation.locale,
-                    ).onLeft { captureEmailError(logger, "Failed to send wallet applied email to ${reservation.contactEmail}: $it") }
+                        walletEmailService.sendWalletApplied(
+                            toEmail = reservation.contactEmail,
+                            walletCode = wallet.code,
+                            deductedAmount = deductAmount,
+                            remainingBalance = wallet.balance - deductAmount,
+                            locale = reservation.locale,
+                        ).onLeft { captureEmailError(logger, "Failed to send wallet applied email to ${reservation.contactEmail}: $it") }
+                    }
+                }
+                // If wallet validation fails (not found / empty), silently ignore and proceed without wallet
+            }
+
+            val qrImage: ByteArray? = if (savedReservation.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
+                qrCodeService.generateQrPng(savedReservation)
+            } else null
+
+            val icalBytes = when (target) {
+                is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, savedReservation.id, appBaseUrl)
+                is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, savedReservation.id, appBaseUrl)
+            }.toByteArray(Charsets.UTF_8)
+
+            emailService.sendReservationConfirmation(
+                toEmail = savedReservation.contactEmail,
+                reservation = savedReservation,
+                target = target,
+                bankAccount = qrCodeService.accountNumber,
+                qrCodeImage = qrImage,
+                icalBytes = icalBytes,
+            ).onLeft { captureEmailError(logger, "Failed to send confirmation email for reservation ${savedReservation.id}: $it") }
+
+            val ownerEmails = resolveOwnerEmails(target)
+            if (ownerEmails.isNotEmpty()) {
+                val newOccupiedSpots = when (target) {
+                    is ReservationTarget.Instance -> target.event.occupiedSpots + savedReservation.seatCount
+                    is ReservationTarget.Series -> target.series.occupiedSpots + savedReservation.seatCount
+                }
+                val capacity = when (target) {
+                    is ReservationTarget.Instance -> target.event.capacity
+                    is ReservationTarget.Series -> target.series.capacity
+                }
+                ownerEmails.forEach { email ->
+                    lectorEmailService.sendLectorReservationNotification(
+                        lectorEmail = email,
+                        contactName = savedReservation.contactName,
+                        contactEmail = savedReservation.contactEmail,
+                        contactPhone = savedReservation.contactPhone,
+                        seatCount = savedReservation.seatCount,
+                        eventTitle = target.title,
+                        occupiedSpots = newOccupiedSpots,
+                        capacity = capacity,
+                        locale = savedReservation.locale,
+                    ).onLeft { captureEmailError(logger, "Failed to send owner reservation email to $email: $it") }
                 }
             }
-            // If wallet validation fails (not found / empty), silently ignore and proceed without wallet
+
+            paymentTrigger.notifyNewReservation()
+
+            savedReservation
         }
-
-        val qrImage: ByteArray? = if (savedReservation.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
-            qrCodeService.generateQrPng(savedReservation)
-        } else null
-
-        val icalBytes = when (target) {
-            is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, savedReservation.id, appBaseUrl)
-            is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, savedReservation.id, appBaseUrl)
-        }.toByteArray(Charsets.UTF_8)
-
-        emailService.sendReservationConfirmation(
-            toEmail = savedReservation.contactEmail,
-            reservation = savedReservation,
-            target = target,
-            bankAccount = qrCodeService.accountNumber,
-            qrCodeImage = qrImage,
-            icalBytes = icalBytes,
-        ).onLeft { captureEmailError(logger, "Failed to send confirmation email for reservation ${savedReservation.id}: $it") }
-
-        val ownerEmails = resolveOwnerEmails(target)
-        if (ownerEmails.isNotEmpty()) {
-            val newOccupiedSpots = when (target) {
-                is ReservationTarget.Instance -> target.event.occupiedSpots + savedReservation.seatCount
-                is ReservationTarget.Series -> target.series.occupiedSpots + savedReservation.seatCount
-            }
-            val capacity = when (target) {
-                is ReservationTarget.Instance -> target.event.capacity
-                is ReservationTarget.Series -> target.series.capacity
-            }
-            ownerEmails.forEach { email ->
-                lectorEmailService.sendLectorReservationNotification(
-                    lectorEmail = email,
-                    contactName = savedReservation.contactName,
-                    contactEmail = savedReservation.contactEmail,
-                    contactPhone = savedReservation.contactPhone,
-                    seatCount = savedReservation.seatCount,
-                    eventTitle = target.title,
-                    occupiedSpots = newOccupiedSpots,
-                    capacity = capacity,
-                    locale = savedReservation.locale,
-                ).onLeft { captureEmailError(logger, "Failed to send owner reservation email to $email: $it") }
-            }
-        }
-
-        paymentTrigger.notifyNewReservation()
-
-        return savedReservation
     }
 
     override suspend fun cancelReservation(
@@ -517,24 +564,44 @@ open class ReservationService(
             // jen přímé rezervace, takže by ho tenhle dekrement stáhl do záporu.
             waitlistPromoter.promote(Reference.Instance(instanceId), freedSeats = reservation.seatCount)
 
-            emailService.sendLessonOptOutNotice(
-                toEmail = reservation.contactEmail,
-                eventTitle = instance.title,
-                lessonDate = instance.startDateTime.date,
-                isLateCancellation = isLate,
-                locale = reservation.locale,
-            ).onLeft { captureEmailError(logger, "Failed to send opt-out email to ${reservation.contactEmail}: $it") }
+            audit.record(
+                type = AuditEventType.RESERVATION_LESSON_OPT_OUT,
+                actor = actorFor(reservation),
+                subjectLabel = reservation.contactName,
+                seriesId = seriesId,
+                instanceId = instanceId,
+                reservationId = reservationId,
+                amount = refundAmount,
+                detail = if (isLate) "pozdní omluvenka, bez vrácení kreditu" else "omluvenka z lekce",
+            )
 
-            val ownerEmails = parseOwnerEmails(instance.ownerEmails)
-            ownerEmails.forEach { ownerEmail ->
-                lectorEmailService.sendLectorLessonOptOutNotification(
-                    lectorEmail = ownerEmail,
-                    contactName = reservation.contactName,
+            withAuditSubject(
+                AuditSubject(
+                    seriesId = seriesId,
+                    instanceId = instanceId,
+                    reservationId = reservationId,
+                    label = instance.title,
+                )
+            ) {
+                emailService.sendLessonOptOutNotice(
+                    toEmail = reservation.contactEmail,
                     eventTitle = instance.title,
                     lessonDate = instance.startDateTime.date,
                     isLateCancellation = isLate,
                     locale = reservation.locale,
-                ).onLeft { captureEmailError(logger, "Failed to send owner opt-out email to $ownerEmail: $it") }
+                ).onLeft { captureEmailError(logger, "Failed to send opt-out email to ${reservation.contactEmail}: $it") }
+
+                val ownerEmails = parseOwnerEmails(instance.ownerEmails)
+                ownerEmails.forEach { ownerEmail ->
+                    lectorEmailService.sendLectorLessonOptOutNotification(
+                        lectorEmail = ownerEmail,
+                        contactName = reservation.contactName,
+                        eventTitle = instance.title,
+                        lessonDate = instance.startDateTime.date,
+                        isLateCancellation = isLate,
+                        locale = reservation.locale,
+                    ).onLeft { captureEmailError(logger, "Failed to send owner opt-out email to $ownerEmail: $it") }
+                }
             }
 
             if (wallet != null) {
@@ -609,7 +676,21 @@ open class ReservationService(
                     waitlistPromoter.promote(reservation.reference, freedSeats = reservation.seatCount)
                 }
 
-                val customerEmailResult = emailService.sendCancellationNotice(cancelledReservation.contactEmail, target.title, cancelledReservation.id, cancelledReservation.locale)
+                val cancelSubject = auditSubjectFor(target, cancelledReservation.id)
+                audit.record(
+                    type = AuditEventType.RESERVATION_CANCELLED,
+                    actor = actorFor(cancelledReservation),
+                    subjectLabel = cancelledReservation.contactName,
+                    seriesId = cancelSubject.seriesId,
+                    instanceId = cancelSubject.instanceId,
+                    reservationId = cancelledReservation.id,
+                    amount = cancelledReservation.paidAmount,
+                    detail = if (wasWaitlisted) "storno přihlášky z pořadníku" else "storno celé rezervace",
+                )
+
+                val customerEmailResult = withAuditSubject(cancelSubject) {
+                    emailService.sendCancellationNotice(cancelledReservation.contactEmail, target.title, cancelledReservation.id, cancelledReservation.locale)
+                }
 
                 val ownerEmails = resolveOwnerEmails(target)
                 if (ownerEmails.isNotEmpty()) {
@@ -617,16 +698,18 @@ open class ReservationService(
                         is ReservationTarget.Instance -> target.event.capacity
                         is ReservationTarget.Series -> target.series.capacity
                     }
-                    ownerEmails.forEach { email ->
-                        lectorEmailService.sendLectorCancellationNotification(
-                            lectorEmail = email,
-                            contactName = cancelledReservation.contactName,
-                            eventTitle = target.title,
-                            seatCount = cancelledReservation.seatCount,
-                            occupiedSpots = updatedSpots,
-                            capacity = capacity,
-                            locale = cancelledReservation.locale,
-                        ).onLeft { captureEmailError(logger, "Failed to send owner cancellation email to $email: $it") }
+                    withAuditSubject(cancelSubject) {
+                        ownerEmails.forEach { email ->
+                            lectorEmailService.sendLectorCancellationNotification(
+                                lectorEmail = email,
+                                contactName = cancelledReservation.contactName,
+                                eventTitle = target.title,
+                                seatCount = cancelledReservation.seatCount,
+                                occupiedSpots = updatedSpots,
+                                capacity = capacity,
+                                locale = cancelledReservation.locale,
+                            ).onLeft { captureEmailError(logger, "Failed to send owner cancellation email to $email: $it") }
+                        }
                     }
                 }
 

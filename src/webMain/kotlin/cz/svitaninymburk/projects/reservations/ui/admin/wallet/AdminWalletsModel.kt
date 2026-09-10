@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
@@ -27,6 +28,9 @@ sealed interface AdminWalletsUiState {
 class AdminWalletsModel(
     scope: CoroutineScope,
     private val queries: AdminWalletsQueries,
+    private val router: Router,
+    /** Kód z URL `/admin/wallets/{code}` — proklik z historie otevře rovnou detail. */
+    private val preselectCode: String? = null,
 ) : ScreenModel(scope) {
 
     var uiState: AdminWalletsUiState by mutableStateOf(AdminWalletsUiState.Loading); private set
@@ -42,6 +46,11 @@ class AdminWalletsModel(
                 .onRight { uiState = AdminWalletsUiState.Success(it) }
                 .onLeft { uiState = AdminWalletsUiState.Error(it.localizedMessage(currentStrings)) }
         }
+        if (preselectCode != null && selectedWallet == null) scope.launch {
+            // Neexistující kód v URL jen spadne zpátky na seznam — chybová hláška
+            // by tu byla k ničemu, admin vidí, že detail není.
+            queries.walletByCode(preselectCode).onRight { selectedWallet = it }
+        }
     }
 
     fun goToPage(target: Int) {
@@ -51,11 +60,25 @@ class AdminWalletsModel(
     }
 
     fun openWallet(wallet: Wallet) { selectedWallet = wallet }
-    fun closeWallet() { selectedWallet = null }
+
+    /** Zpátky na seznam i v URL — jinak by adresa dál ukazovala na detail. */
+    fun closeWallet() {
+        selectedWallet = null
+        router.navigate("/admin/wallets")
+    }
 }
 
-fun IComponent.buildAdminWalletsModel(scope: CoroutineScope): AdminWalletsModel {
+fun IComponent.buildAdminWalletsModel(
+    scope: CoroutineScope,
+    router: Router,
+    preselectCode: String? = null,
+): AdminWalletsModel {
     val admin = getService<AdminServiceInterface>(RpcSerializersModules)
     val settings = getService<AppSettingsServiceInterface>(RpcSerializersModules)
-    return AdminWalletsModel(scope = scope, queries = AdminWalletsQueries(admin, settings))
+    return AdminWalletsModel(
+        scope = scope,
+        queries = AdminWalletsQueries(admin, settings),
+        router = router,
+        preselectCode = preselectCode,
+    )
 }

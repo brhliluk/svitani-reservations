@@ -25,6 +25,7 @@ class AdminWalletsQueries(
 ) {
     suspend fun wallets(page: Int, pageSize: Int) = admin.getWallets(page, pageSize)
     suspend fun transactions(walletId: Uuid) = admin.getWalletTransactions(walletId.toString())
+    suspend fun walletByCode(code: String) = admin.getWalletByCode(code)
     suspend fun settings() = settings.getSettings()
 }
 

@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
+import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.util.captureEmailError
@@ -20,6 +22,7 @@ class RefundService(
     private val walletService: WalletService,
     private val walletEmailService: WalletEmailService,
     private val appSettingsProvider: AppSettingsProvider,
+    private val audit: AuditService = AuditService(InMemoryAuditRepository()),
 ) {
     private val logger = KtorSimpleLogger(this::class.jvmName)
 
@@ -50,6 +53,21 @@ class RefundService(
             )
         }
 
+        // Jeden záznam na jedno storno. Rozpad na vrácení odpočtu z peněženky
+        // a doplatku v hotovosti je účetní detail — v historii by ze dvou řádků
+        // vypadalo, že se vracelo dvakrát.
+        audit.record(
+            type = AuditEventType.PAYMENT_REFUNDED,
+            subjectLabel = reservation.contactName,
+            reservationId = reservation.id,
+            walletCode = updatedWallet.code,
+            amount = paidAmount,
+            // Kód peněženky se v UI vykresluje zvlášť jako odkaz, do textu nepatří.
+            detail = reservation.walletDeductedAmount
+                .takeIf { it > 0.0 }
+                ?.let { "z toho ${it.toInt()} Kč zpět z kreditu" },
+        )
+
         notifyCredited(updatedWallet, paidAmount, reservation)
         return RefundOutcome(updatedWallet.code, paidAmount)
     }
@@ -63,6 +81,16 @@ class RefundService(
     ): RefundOutcome? {
         if (amount <= 0.0) return null
         val updatedWallet = walletService.credit(wallet.id, amount, reason, reservation.id)
+
+        audit.record(
+            type = AuditEventType.PAYMENT_REFUNDED,
+            subjectLabel = reservation.contactName,
+            reservationId = reservation.id,
+            walletCode = updatedWallet.code,
+            amount = amount,
+            detail = reason.name,
+        )
+
         notifyCredited(updatedWallet, amount, reservation)
         return RefundOutcome(updatedWallet.code, amount)
     }

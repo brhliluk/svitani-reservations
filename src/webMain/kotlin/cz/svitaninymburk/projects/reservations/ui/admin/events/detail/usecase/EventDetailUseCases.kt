@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase
 
 import arrow.core.Either
+import cz.svitaninymburk.projects.reservations.audit.AuditCategory
 import cz.svitaninymburk.projects.reservations.error.EventError
 import cz.svitaninymburk.projects.reservations.event.AddSeriesLessonRequest
 import cz.svitaninymburk.projects.reservations.event.EventInstance
@@ -41,6 +42,14 @@ fun reservationCallOf(target: ReservationTarget, asWaitlist: Boolean): Reservati
 
 class EventDetailQueries(private val admin: AdminServiceInterface) {
     suspend fun detail(id: Uuid, isSeries: Boolean) = admin.getEventDetail(id, isSeries)
+}
+
+/** Kolik záznamů historie se načte najednou. */
+const val AUDIT_PAGE_SIZE = 25
+
+class EventAuditLogQueries(private val admin: AdminServiceInterface) {
+    suspend fun page(id: Uuid, isSeries: Boolean, page: Int, category: AuditCategory?) =
+        admin.getEventAuditLog(id, isSeries, page, AUDIT_PAGE_SIZE, category)
 }
 
 class EventLifecycleUseCase(private val admin: AdminServiceInterface) {
