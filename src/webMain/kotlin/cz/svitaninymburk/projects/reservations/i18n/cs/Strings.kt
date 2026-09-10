@@ -149,6 +149,14 @@ object CsStrings : AppStrings {
     override val retry = "Zkusit znovu"
     override val timeRangeHint: (String, String) -> String = { from, to -> "Rozsah: $from–$to" }
     override val timeRangeError = "Čas je mimo povolený rozsah"
+    override val customFieldRequiredError = "Vyplňte prosím toto pole"
+    override val resetPasswordTitle = "Nové heslo"
+    override val resetPasswordNewLabel = "Zadejte nové heslo"
+    override val resetPasswordConfirmLabel = "Potvrzení hesla"
+    override val resetPasswordSubmit = "Uložit heslo"
+    override val customFieldCheckboxRequiredError = "Bez zaškrtnutí nelze rezervovat"
+    override val numberRangeHint: (String, String) -> String = { min, max -> "($min–$max)" }
+    override val numberRangeError: (String, String) -> String = { min, max -> "Hodnota musí být mezi $min a $max" }
 
     // Calendar
     override val more: (Int) -> String = { "+$it další" }
@@ -584,6 +592,10 @@ object CsStrings : AppStrings {
     override val adminWalletDebitButton = "Odebrat kredit"
     override val lessonRefundAmount = "Kredit za odhlášení z lekce (Kč)"
     override val walletExpiresOn = "Platnost kreditu do"
+    override val adminWalletTransactions = "Transakce"
+    override val adminWalletNoTransactions = "Žádné transakce"
+    override val tableHeaderReason = "Důvod"
+    override val tableHeaderNote = "Poznámka"
     override val walletLookupTitle = "Zkontrolovat peněženku"
     override val walletLookupSubtitle = "Zadejte kód peněženky a svůj e-mail pro ověření zůstatku."
     override val walletLookupEmailLabel = "Váš e-mail"

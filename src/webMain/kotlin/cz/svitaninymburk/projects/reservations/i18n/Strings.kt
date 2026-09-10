@@ -169,6 +169,14 @@ interface AppStrings : ErrorStrings {
     val retry: String
     val timeRangeHint: (String, String) -> String
     val timeRangeError: String
+    val customFieldRequiredError: String
+    val resetPasswordTitle: String
+    val resetPasswordNewLabel: String
+    val resetPasswordConfirmLabel: String
+    val resetPasswordSubmit: String
+    val customFieldCheckboxRequiredError: String
+    val numberRangeHint: (String, String) -> String
+    val numberRangeError: (String, String) -> String
 
     // Calendar
     val more: (Int) -> String
@@ -635,6 +643,10 @@ interface AppStrings : ErrorStrings {
     val adminWalletDebitButton: String
     val lessonRefundAmount: String
     val walletExpiresOn: String
+    val adminWalletTransactions: String
+    val adminWalletNoTransactions: String
+    val tableHeaderReason: String
+    val tableHeaderNote: String
 
     // Wallet lookup page
     val walletLookupTitle: String

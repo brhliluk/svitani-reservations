@@ -8,11 +8,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.admin.AdminScheduleItem
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.ui.admin.events.usecase.pageCount
+import cz.svitaninymburk.projects.reservations.ui.util.pageCount
 import cz.svitaninymburk.projects.reservations.ui.admin.schedule.usecase.SCHEDULE_PAGE_SIZE
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.ui.util.Pagination
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.form.check.checkBox
@@ -84,21 +85,12 @@ fun IComponent.AdminScheduleScreen() {
                 }
 
                 if (totalPages > 1) {
-                    div(className = "flex items-center justify-center gap-4") {
-                        button(className = "btn btn-outline btn-sm") {
-                            disabled(model.page == 0)
-                            onClick { if (model.page > 0) model.setPage(model.page - 1) }
-                            +currentStrings.paginationPrevious
-                        }
-                        span(className = "text-sm text-base-content/70") {
-                            +currentStrings.paginationPageOf(model.page + 1, totalPages)
-                        }
-                        button(className = "btn btn-outline btn-sm") {
-                            disabled(model.page >= totalPages - 1)
-                            onClick { if (model.page < totalPages - 1) model.setPage(model.page + 1) }
-                            +currentStrings.paginationNext
-                        }
-                    }
+                    Pagination(
+                        page = model.page,
+                        totalPages = totalPages,
+                        onPageChange = { model.setPage(it) },
+                        className = "flex items-center justify-center gap-4",
+                    )
                 }
             }
         }

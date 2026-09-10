@@ -1,16 +1,14 @@
 package cz.svitaninymburk.projects.reservations.ui.auth
 
-import androidx.compose.runtime.*
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
-import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.service.UserServiceInterface
 import dev.kilua.core.IComponent
 import dev.kilua.form.Autocomplete
 import dev.kilua.form.text.password
 import dev.kilua.html.*
-import dev.kilua.rpc.getService
-import kotlinx.coroutines.launch
 
 @Composable
 fun IComponent.ChangePasswordDialog(
@@ -20,110 +18,62 @@ fun IComponent.ChangePasswordDialog(
 ) {
     if (!isOpen) return
 
-    val userService = getService<UserServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
     val currentStrings by strings
+    val model = remember { buildChangePasswordModel(scope) }
 
-    var oldPassword by remember { mutableStateOf("") }
-    var newPassword by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    AuthDialog(title = currentStrings.changePasswordTitle, onClose = onClose) {
 
-    val passwordMismatch = newPassword.isNotEmpty() && confirmPassword.isNotEmpty() && newPassword != confirmPassword
-    val isFormValid = oldPassword.isNotBlank() && newPassword.length >= 6 && newPassword == confirmPassword
-
-    fun submit() {
-        if (isLoading || !isFormValid) return
-        isLoading = true
-        errorMessage = null
-        scope.launch {
-            try {
-                userService.changePassword(oldPassword, newPassword)
-                    .onRight {
-                        isLoading = false
-                        onSuccess()
-                    }
-                    .onLeft {
-                        isLoading = false
-                        errorMessage = it.localizedMessage(currentStrings)
-                    }
-            } catch (e: Exception) {
-                isLoading = false
-                errorMessage = currentStrings.errorProcessingRequest
+        div(className = "form-control w-full") {
+            label(className = "label pb-1") { span(className = "label-text") { +currentStrings.oldPassword } }
+            password(value = model.oldPassword, className = "input input-bordered w-full") {
+                placeholder("······")
+                autocomplete(Autocomplete.CurrentPassword)
+                attribute("aria-required", "true")
+                onInput { model.setOldPassword(value ?: "") }
             }
         }
-    }
 
-    div(className = "modal modal-open modal-bottom sm:modal-middle") {
-        div(className = "modal-box") {
-            button(className = "btn btn-sm btn-circle btn-ghost absolute right-2 top-2") {
-                attribute("aria-label", currentStrings.close)
-                onClick { onClose() }
-                +"✕"
+        div(className = "form-control w-full mt-4") {
+            label(className = "label pb-1") { span(className = "label-text") { +currentStrings.newPassword } }
+            password(value = model.newPassword, className = "input input-bordered w-full") {
+                placeholder("······")
+                autocomplete(Autocomplete.NewPassword)
+                attribute("aria-required", "true")
+                onInput { model.setNewPassword(value ?: "") }
             }
-
-            h3(className = "font-bold text-lg mb-4") { +currentStrings.changePasswordTitle }
-
-            div(className = "form-control w-full") {
-                label(className = "label pb-1") { span(className = "label-text") { +currentStrings.oldPassword } }
-                password(value = oldPassword, className = "input input-bordered w-full") {
-                    placeholder("······")
-                    autocomplete(Autocomplete.CurrentPassword)
-                    attribute("aria-required", "true")
-                    onInput { oldPassword = value ?: "" }
-                }
+            label(className = "label pt-1") {
+                span(className = "label-text-alt text-base-content/50") { +currentStrings.passwordMinLengthNote }
             }
+        }
 
-            div(className = "form-control w-full mt-4") {
-                label(className = "label pb-1") { span(className = "label-text") { +currentStrings.newPassword } }
-                password(value = newPassword, className = "input input-bordered w-full") {
-                    placeholder("······")
-                    autocomplete(Autocomplete.NewPassword)
-                    attribute("aria-required", "true")
-                    onInput { newPassword = value ?: "" }
-                }
+        div(className = "form-control w-full mt-4") {
+            label(className = "label pb-1") { span(className = "label-text") { +currentStrings.confirmNewPassword } }
+            password(
+                value = model.confirmPassword,
+                className = "input input-bordered w-full ${if (model.showsMismatch) "input-error" else ""}",
+            ) {
+                placeholder("······")
+                autocomplete(Autocomplete.NewPassword)
+                attribute("aria-required", "true")
+                onInput { model.setConfirmPassword(value ?: "") }
+                onKeydown { e -> if (e.key == "Enter") model.submitChange(onChanged = onSuccess) }
+            }
+            if (model.showsMismatch) {
                 label(className = "label pt-1") {
-                    span(className = "label-text-alt text-base-content/50") { +currentStrings.passwordMinLengthNote }
-                }
-            }
-
-            div(className = "form-control w-full mt-4") {
-                label(className = "label pb-1") { span(className = "label-text") { +currentStrings.confirmNewPassword } }
-                password(value = confirmPassword, className = "input input-bordered w-full ${if (passwordMismatch) "input-error" else ""}") {
-                    placeholder("······")
-                    autocomplete(Autocomplete.NewPassword)
-                    attribute("aria-required", "true")
-                    onInput { confirmPassword = value ?: "" }
-                    onKeydown { e -> if (e.key == "Enter") submit() }
-                }
-                if (passwordMismatch) {
-                    label(className = "label pt-1") {
-                        span(className = "label-text-alt text-error") { +currentStrings.passwordMismatchError }
-                    }
-                }
-            }
-
-            if (errorMessage != null) {
-                div(className = "alert alert-error mt-4 text-sm py-2") {
-                    span(className = "icon-[heroicons--exclamation-circle] size-5")
-                    span { +errorMessage!! }
-                }
-            }
-
-            div(className = "modal-action") {
-                button(className = "btn btn-primary w-full") {
-                    disabled(isLoading || !isFormValid)
-                    if (isLoading) span(className = "loading loading-spinner")
-                    +currentStrings.changePassword
-                    onClick { submit() }
+                    span(className = "label-text-alt text-error") { +currentStrings.passwordMismatchError }
                 }
             }
         }
-        div(className = "modal-backdrop") {
-            button {
-                attribute("aria-label", currentStrings.close)
-                onClick { onClose() }
+
+        AuthErrorAlert(model.errorMessage)
+
+        div(className = "modal-action") {
+            button(className = "btn btn-primary w-full") {
+                disabled(model.isLoading || !model.isFormValid)
+                if (model.isLoading) span(className = "loading loading-spinner")
+                +currentStrings.changePassword
+                onClick { model.submitChange(onChanged = onSuccess) }
             }
         }
     }

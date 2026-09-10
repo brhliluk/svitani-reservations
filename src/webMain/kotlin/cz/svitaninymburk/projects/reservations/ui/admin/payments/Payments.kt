@@ -1,51 +1,30 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.payments
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
-import cz.svitaninymburk.projects.reservations.admin.PaymentEventsPage
-import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import androidx.compose.runtime.rememberCoroutineScope
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
-import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.admin.payments.usecase.PAYMENTS_PAGE_SIZE
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
+import cz.svitaninymburk.projects.reservations.ui.util.pageCount
+import cz.svitaninymburk.projects.reservations.ui.util.Pagination
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
-import dev.kilua.rpc.getService
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.math.ceil
-
-private const val PAGE_SIZE = 20
-
-private sealed interface AdminPaymentsUiState {
-    data object Loading : AdminPaymentsUiState
-    data class Success(val data: PaymentEventsPage) : AdminPaymentsUiState
-    data class Error(val message: String) : AdminPaymentsUiState
-}
 
 @Composable
 fun IComponent.AdminPaymentsScreen() {
-    val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
+    val scope = rememberCoroutineScope()
     val currentStrings by strings
+    val model = remember { buildAdminPaymentsModel(scope) }
 
-    var page by remember { mutableStateOf(0) }
-
-    val uiState by produceState<AdminPaymentsUiState>(
-        initialValue = AdminPaymentsUiState.Loading,
-        key1 = page
-    ) {
-        value = AdminPaymentsUiState.Loading
-        adminService.getPaymentEvents(page, PAGE_SIZE)
-            .onRight { value = AdminPaymentsUiState.Success(it) }
-            .onLeft { value = AdminPaymentsUiState.Error(it.localizedMessage(currentStrings)) }
-    }
+    LaunchedEffect(Unit) { model.load() }
 
     div(className = "flex flex-col gap-6 animate-fade-in") {
 
@@ -56,7 +35,7 @@ fun IComponent.AdminPaymentsScreen() {
         }
 
         // --- 2. TABLE ---
-        when (val state = uiState) {
+        when (val state = model.uiState) {
             is AdminPaymentsUiState.Loading -> Loading()
             is AdminPaymentsUiState.Error -> {
                 div(className = "alert alert-error") {
@@ -66,7 +45,7 @@ fun IComponent.AdminPaymentsScreen() {
             }
             is AdminPaymentsUiState.Success -> {
                 val data = state.data
-                val totalPages = maxOf(1, ceil(data.totalCount.toDouble() / PAGE_SIZE).toInt())
+                val totalPages = pageCount(data.totalCount, PAYMENTS_PAGE_SIZE)
 
                 if (data.totalCount == 0L) {
                     div(className = "text-center text-base-content/50 py-12") {
@@ -89,7 +68,6 @@ fun IComponent.AdminPaymentsScreen() {
                                     tbody {
                                         data.items.forEach { event ->
                                             tr {
-                                                // Processed at
                                                 td {
                                                     +event.processedAt
                                                         .toLocalDateTime(TimeZone.currentSystemDefault())
@@ -99,11 +77,9 @@ fun IComponent.AdminPaymentsScreen() {
                                                 td {
                                                     +event.contactName
                                                 }
-                                                // Amount
                                                 td {
                                                     +"${event.amount.toInt()} ${event.currency}"
                                                 }
-                                                // Payment type badge
                                                 td {
                                                     when (event.type) {
                                                         PaymentInfo.Type.BANK_TRANSFER -> {
@@ -123,7 +99,6 @@ fun IComponent.AdminPaymentsScreen() {
                                                         }
                                                     }
                                                 }
-                                                // Payment source
                                                 td {
                                                     when (event.source) {
                                                         PaymentEvent.Source.AUTO_FIO -> +currentStrings.paymentSourceAutoFio
@@ -139,21 +114,11 @@ fun IComponent.AdminPaymentsScreen() {
                     }
 
                     // --- 3. PAGINATION ---
-                    div(className = "flex items-center justify-center gap-4 mt-4") {
-                        button(className = "btn btn-outline btn-sm") {
-                            disabled(page == 0)
-                            onClick { if (page > 0) page-- }
-                            +currentStrings.paginationPrevious
-                        }
-                        span(className = "text-sm text-base-content/70") {
-                            +currentStrings.paginationPageOf(page + 1, totalPages)
-                        }
-                        button(className = "btn btn-outline btn-sm") {
-                            disabled(page >= totalPages - 1)
-                            onClick { if (page < totalPages - 1) page++ }
-                            +currentStrings.paginationNext
-                        }
-                    }
+                    Pagination(
+                        page = model.page,
+                        totalPages = totalPages,
+                        onPageChange = { model.goToPage(it) },
+                    )
                 }
             }
         }

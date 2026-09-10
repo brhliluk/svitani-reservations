@@ -149,6 +149,14 @@ object EnStrings : AppStrings {
     override val retry = "Try again"
     override val timeRangeHint: (String, String) -> String = { from, to -> "Range: $from–$to" }
     override val timeRangeError = "Time is outside the allowed range"
+    override val customFieldRequiredError = "Please fill in this field"
+    override val resetPasswordTitle = "New password"
+    override val resetPasswordNewLabel = "Enter a new password"
+    override val resetPasswordConfirmLabel = "Confirm password"
+    override val resetPasswordSubmit = "Save password"
+    override val customFieldCheckboxRequiredError = "You must check this to reserve"
+    override val numberRangeHint: (String, String) -> String = { min, max -> "($min–$max)" }
+    override val numberRangeError: (String, String) -> String = { min, max -> "Value must be between $min and $max" }
 
     // Calendar
     override val more: (Int) -> String = { "+$it more" }
@@ -576,6 +584,10 @@ object EnStrings : AppStrings {
     override val adminWalletDebitButton = "Remove credit"
     override val lessonRefundAmount = "Opt-out refund per lesson (CZK)"
     override val walletExpiresOn = "Credits expire on"
+    override val adminWalletTransactions = "Transactions"
+    override val adminWalletNoTransactions = "No transactions"
+    override val tableHeaderReason = "Reason"
+    override val tableHeaderNote = "Note"
     override val walletLookupTitle = "Check wallet balance"
     override val walletLookupSubtitle = "Enter your wallet code and email to verify your balance."
     override val walletLookupEmailLabel = "Your email"

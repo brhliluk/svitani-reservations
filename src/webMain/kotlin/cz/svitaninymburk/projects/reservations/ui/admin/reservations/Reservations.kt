@@ -1,80 +1,38 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.reservations
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
-import cz.svitaninymburk.projects.reservations.admin.ReservationsPage
-import cz.svitaninymburk.projects.reservations.error.localizedMessage
-import cz.svitaninymburk.projects.reservations.reservation.Reservation
-import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
-import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
-import cz.svitaninymburk.projects.reservations.reservation.isFreePrice
+import cz.svitaninymburk.projects.reservations.i18n.strings
+import cz.svitaninymburk.projects.reservations.ui.admin.reservations.usecase.RESERVATIONS_PAGE_SIZE
+import cz.svitaninymburk.projects.reservations.ui.admin.reservations.usecase.ReservationPaymentMethod
+import cz.svitaninymburk.projects.reservations.ui.admin.reservations.usecase.reservationPaymentMethod
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.ReservationStatusBadge
+import cz.svitaninymburk.projects.reservations.ui.util.Toast
+import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.ui.util.canBeMarkedAsPaid
+import cz.svitaninymburk.projects.reservations.ui.util.pageCount
 import cz.svitaninymburk.projects.reservations.ui.util.reservationStatusBadge
 import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
-import cz.svitaninymburk.projects.reservations.ui.util.Toast
-import cz.svitaninymburk.projects.reservations.ui.util.ToastData
-import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.ui.util.Pagination
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.form.check.checkBox
 import dev.kilua.form.text.text
 import dev.kilua.html.*
-import cz.svitaninymburk.projects.reservations.i18n.strings
-import dev.kilua.rpc.getService
-import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.math.ceil
-import kotlin.uuid.Uuid
-
-private const val PAGE_SIZE = 20
-
-// UI Stavy
-private sealed interface AdminReservationsUiState {
-    data object Loading : AdminReservationsUiState
-    data class Success(val data: ReservationsPage) : AdminReservationsUiState
-    data class Error(val message: String) : AdminReservationsUiState
-}
 
 @Composable
 fun IComponent.AdminReservationsScreen() {
-    val adminService = getService<AdminServiceInterface>(RpcSerializersModules)
-    val reservationService = getService<ReservationServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
     val currentStrings by strings
+    val model = remember { buildAdminReservationsModel(scope) }
 
-    var refreshTrigger by remember { mutableStateOf(0) }
-    var toastData by remember { mutableStateOf<ToastData?>(null) }
-    var pendingAction by remember { mutableStateOf<PendingAction?>(null) }
-    var expandedId by remember { mutableStateOf<Uuid?>(null) }
-    var isModalLoading by remember { mutableStateOf(false) }
-
-    // Stavy pro vyhledávání
-    var searchInput by remember { mutableStateOf("") }
-    var activeSearchQuery by remember { mutableStateOf<String?>(null) }
-    var page by remember { mutableStateOf(0) }
-    var includeCancelled by remember { mutableStateOf(false) }
-
-    // Načítání dat (reaguje na refreshTrigger, na změnu activeSearchQuery, page a includeCancelled)
-    val uiState by produceState<AdminReservationsUiState>(
-        initialValue = AdminReservationsUiState.Loading,
-        key1 = refreshTrigger,
-        key2 = activeSearchQuery,
-        key3 = page to includeCancelled,
-    ) {
-        value = AdminReservationsUiState.Loading
-        adminService.getAllReservations(activeSearchQuery, page, PAGE_SIZE, includeCancelled)
-            .onRight { value = AdminReservationsUiState.Success(it) }
-            .onLeft { value = AdminReservationsUiState.Error(it.localizedMessage(currentStrings)) }
-    }
+    LaunchedEffect(Unit) { model.load() }
 
     div(className = "flex flex-col gap-6 animate-fade-in") {
 
@@ -91,49 +49,34 @@ fun IComponent.AdminReservationsScreen() {
                     span(className = "absolute inset-y-0 left-3 flex items-center pointer-events-none text-base-content/50") {
                         span(className = "icon-[heroicons--magnifying-glass] size-5")
                     }
-                    text(value = searchInput, className = "input input-bordered w-full pl-10") {
+                    text(value = model.searchInput, className = "input input-bordered w-full pl-10") {
                         placeholder(currentStrings.searchPlaceholder)
-                        onInput { searchInput = value ?: "" }
-                        onKeyup { event ->
-                            if (event.key == "Enter") {
-                                activeSearchQuery = searchInput.takeIf { it.isNotBlank() }
-                                page = 0
-                            }
-                        }
+                        onInput { model.searchInput = value ?: "" }
+                        onKeyup { event -> if (event.key == "Enter") model.submitSearch() }
                     }
                 }
                 button(className = "btn btn-primary") {
-                    onClick {
-                        activeSearchQuery = searchInput.takeIf { it.isNotBlank() }
-                        page = 0
-                    }
+                    onClick { model.submitSearch() }
                     +currentStrings.search
                 }
-                if (!activeSearchQuery.isNullOrBlank()) {
+                if (!model.activeSearchQuery.isNullOrBlank()) {
                     button(className = "btn btn-ghost tooltip") {
                         attribute("data-tip", currentStrings.clearSearch)
-                        onClick {
-                            searchInput = ""
-                            activeSearchQuery = null
-                            page = 0
-                        }
+                        onClick { model.clearSearch() }
                         span(className = "icon-[heroicons--x-mark] size-5")
                     }
                 }
                 label(className = "flex items-center gap-2 cursor-pointer select-none") {
                     span(className = "text-sm text-base-content/70") { +currentStrings.showCancelledReservations }
-                    checkBox(value = includeCancelled, className = "toggle toggle-error toggle-sm") {
-                        onChange {
-                            includeCancelled = value
-                            page = 0
-                        }
+                    checkBox(value = model.includeCancelled, className = "toggle toggle-error toggle-sm") {
+                        onChange { model.setIncludeCancelled(value) }
                     }
                 }
             }
         }
 
         // --- 2. TABULKA REZERVACÍ ---
-        when (val state = uiState) {
+        when (val state = model.uiState) {
             is AdminReservationsUiState.Loading -> Loading()
             is AdminReservationsUiState.Error -> {
                 div(className = "alert alert-error") {
@@ -143,7 +86,7 @@ fun IComponent.AdminReservationsScreen() {
             }
             is AdminReservationsUiState.Success -> {
                 val data = state.data
-                val totalPages = maxOf(1, ceil(data.totalCount.toDouble() / PAGE_SIZE).toInt())
+                val totalPages = pageCount(data.totalCount, RESERVATIONS_PAGE_SIZE)
 
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body p-0") {
@@ -166,7 +109,8 @@ fun IComponent.AdminReservationsScreen() {
                                             td {
                                                 attribute("colspan", "7")
                                                 div(className = "text-center text-base-content/50 py-8") {
-                                                    if (activeSearchQuery != null) +currentStrings.noReservationsForSearch(activeSearchQuery!!)
+                                                    val query = model.activeSearchQuery
+                                                    if (query != null) +currentStrings.noReservationsForSearch(query)
                                                     else +currentStrings.noReservations
                                                 }
                                             }
@@ -177,7 +121,7 @@ fun IComponent.AdminReservationsScreen() {
                                             val isPaid = badge == ReservationStatusBadge.PAID || badge == ReservationStatusBadge.FREE
                                             val isCash = badge == ReservationStatusBadge.ON_SITE
                                             val isCancelled = badge == ReservationStatusBadge.CANCELLED
-                                            val isExpanded = expandedId == res.id
+                                            val isExpanded = model.expandedId == res.id
 
                                             val trClass = when {
                                                 isCancelled -> "opacity-40"
@@ -188,7 +132,7 @@ fun IComponent.AdminReservationsScreen() {
                                                 td {
                                                     button(className = "btn btn-ghost btn-xs tooltip tooltip-right") {
                                                         attribute("data-tip", if (isExpanded) currentStrings.hideDetails else currentStrings.showDetails)
-                                                        onClick { expandedId = if (isExpanded) null else res.id }
+                                                        onClick { model.toggleExpanded(res.id) }
                                                         span(className = "size-5 " + if (isExpanded) "icon-[heroicons--chevron-down]" else "icon-[heroicons--chevron-right]")
                                                     }
                                                 }
@@ -237,16 +181,15 @@ fun IComponent.AdminReservationsScreen() {
                                                                 +currentStrings.statusWaiting
                                                             }
                                                         }
-                                                        if (!isFreePrice(res.totalPrice)) {
+                                                        val method = reservationPaymentMethod(res.totalPrice, res.walletDeductedAmount, isCash)
+                                                        if (method != null) {
                                                             span(className = "text-xs text-base-content/60 font-medium") {
-                                                                val isWallet = res.walletDeductedAmount >= res.totalPrice && res.totalPrice > 0
-                                                                val isPartialWallet = res.walletDeductedAmount > 0 && !isWallet
-                                                                when {
-                                                                    isWallet -> +currentStrings.paymentMethodWallet
-                                                                    isPartialWallet && isCash -> +currentStrings.paymentMethodCashAndWallet
-                                                                    isPartialWallet -> +currentStrings.paymentMethodBankTransferAndWallet
-                                                                    isCash -> +currentStrings.paymentMethodCash
-                                                                    else -> +currentStrings.bankTransfer
+                                                                when (method) {
+                                                                    ReservationPaymentMethod.WALLET -> +currentStrings.paymentMethodWallet
+                                                                    ReservationPaymentMethod.CASH_AND_WALLET -> +currentStrings.paymentMethodCashAndWallet
+                                                                    ReservationPaymentMethod.TRANSFER_AND_WALLET -> +currentStrings.paymentMethodBankTransferAndWallet
+                                                                    ReservationPaymentMethod.CASH -> +currentStrings.paymentMethodCash
+                                                                    ReservationPaymentMethod.TRANSFER -> +currentStrings.bankTransfer
                                                                 }
                                                             }
                                                         }
@@ -259,18 +202,14 @@ fun IComponent.AdminReservationsScreen() {
                                                             if (canBeMarkedAsPaid(badge)) {
                                                                 button(className = "btn btn-xs inline-flex items-center gap-1 tooltip tooltip-left ${if (isCash) "btn-outline btn-info" else "btn-ghost text-success"}") {
                                                                     attribute("data-tip", if (isCash) currentStrings.tooltipAcceptCash else currentStrings.tooltipMarkPaid)
-                                                                    onClick {
-                                                                        pendingAction = PendingAction(AdminActionType.CONFIRM_PAYMENT, res.id, res.contactName)
-                                                                    }
+                                                                    onClick { model.confirmPayment(res) }
                                                                     span(className = "icon-[heroicons--check-circle] size-5 flex-none")
                                                                     if (isCash) +currentStrings.buttonCollect
                                                                 }
                                                             }
                                                             button(className = "btn btn-ghost btn-xs text-error tooltip tooltip-left") {
                                                                 attribute("data-tip", currentStrings.tooltipCancelReservation)
-                                                                onClick {
-                                                                    pendingAction = PendingAction(AdminActionType.CANCEL_RESERVATION, res.id, res.contactName)
-                                                                }
+                                                                onClick { model.cancelReservation(res) }
                                                                 span(className = "icon-[heroicons--trash] size-5")
                                                             }
                                                         }
@@ -302,75 +241,30 @@ fun IComponent.AdminReservationsScreen() {
                 }
 
                 // --- 3. PAGINATION ---
-                if (data.totalCount > PAGE_SIZE) {
-                    div(className = "flex items-center justify-center gap-4 mt-4") {
-                        button(className = "btn btn-outline btn-sm") {
-                            disabled(page == 0)
-                            onClick { if (page > 0) { expandedId = null; page-- } }
-                            +currentStrings.paginationPrevious
-                        }
-                        span(className = "text-sm text-base-content/70") {
-                            +currentStrings.paginationPageOf(page + 1, totalPages)
-                        }
-                        button(className = "btn btn-outline btn-sm") {
-                            disabled(page >= totalPages - 1)
-                            onClick { if (page < totalPages - 1) { expandedId = null; page++ } }
-                            +currentStrings.paginationNext
-                        }
-                    }
+                if (data.totalCount > RESERVATIONS_PAGE_SIZE) {
+                    Pagination(
+                        page = model.page,
+                        totalPages = totalPages,
+                        onPageChange = { model.goToPage(it) },
+                    )
                 }
             }
         }
     }
 
-    // --- 3. MODÁLNÍ OKNO A TOAST ---
-    pendingAction?.let { action ->
+    // --- 4. MODÁLNÍ OKNO A TOAST ---
+    model.pendingAction?.let { action ->
         ReservationActionModal(
             action = action,
-            isLoading = isModalLoading,
-            onConfirm = {
-                isModalLoading = true
-                scope.launch {
-                    when (action.type) {
-                        AdminActionType.CONFIRM_PAYMENT -> {
-                            adminService.markReservationAsPaid(action.reservationId)
-                                .onRight {
-                                    isModalLoading = false
-                                    toastData = ToastData(currentStrings.toastPaymentConfirmed(action.participantName), ToastType.Success)
-                                    page = 0
-                                    expandedId = null
-                                    refreshTrigger++
-                                }
-                                .onLeft { error ->
-                                    isModalLoading = false
-                                    toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
-                                }
-                        }
-                        AdminActionType.CANCEL_RESERVATION -> {
-                            reservationService.cancelReservation(action.reservationId)
-                                .onRight {
-                                    isModalLoading = false
-                                    toastData = ToastData(currentStrings.toastReservationCancelled(action.participantName), ToastType.Success)
-                                    expandedId = null
-                                    refreshTrigger++
-                                }
-                                .onLeft { error ->
-                                    isModalLoading = false
-                                    toastData = ToastData(currentStrings.errorToast(error.localizedMessage(currentStrings)), ToastType.Error)
-                                }
-                        }
-                    }
-                    pendingAction = null
-                }
-            },
-            onDismiss = { pendingAction = null },
+            isLoading = model.isModalLoading,
+            onConfirm = { model.confirmPendingAction(action) },
+            onDismiss = { model.dismissPendingAction() },
         )
     }
 
     Toast(
-        message = toastData?.message,
-        type = toastData?.type ?: ToastType.Success,
-        onDismiss = { toastData = null }
+        message = model.toast?.message,
+        type = model.toast?.type ?: ToastType.Success,
+        onDismiss = { model.dismissToast() },
     )
 }
-
