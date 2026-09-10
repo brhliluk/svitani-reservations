@@ -120,6 +120,26 @@ class ExposedAuditRepositoryTest {
     }
 
     @Test
+    fun `wallet code se ulozi a precte`() = runBlocking {
+        val lekce = Uuid.random()
+        repository.record(
+            event(type = AuditEventType.PAYMENT_REFUNDED, instanceId = lekce)
+                .copy(walletCode = "SVIT-AB12-CD34")
+        )
+
+        val found = repository.findForEvent(lekce, isSeries = false, category = null, page = 0, pageSize = 50)
+
+        assertEquals("SVIT-AB12-CD34", found.single().walletCode)
+    }
+
+    @Test
+    fun `bez peněženky zustane null`() = runBlocking {
+        val lekce = Uuid.random()
+        repository.record(event(instanceId = lekce))
+        assertEquals(null, repository.findForEvent(lekce, false, null, 0, 50).single().walletCode)
+    }
+
+    @Test
     fun `recordAll s prazdnym seznamem nespadne`() = runBlocking {
         repository.recordAll(emptyList())
     }

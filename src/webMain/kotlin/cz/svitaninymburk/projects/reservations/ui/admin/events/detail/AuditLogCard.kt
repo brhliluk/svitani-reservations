@@ -14,9 +14,11 @@ import cz.svitaninymburk.projects.reservations.ui.util.Pagination
 import cz.svitaninymburk.projects.reservations.ui.util.pageCount
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
+import app.softwork.routingcompose.Router
 import dev.kilua.html.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.uuid.Uuid
 
 /** Popisek kategorie do filtru. */
 fun categoryLabel(category: AuditCategory?, strings: AppStrings): String = when (category) {
@@ -27,17 +29,28 @@ fun categoryLabel(category: AuditCategory?, strings: AppStrings): String = when 
 }
 
 /**
+ * Lekce, na kterou má smysl z řádku odkázat.
+ *
+ * Vrací `instanceId` jen tehdy, když se liší od právě otevřené akce — na detailu
+ * lekce by jinak každý řádek nabízel odkaz sám na sebe.
+ */
+fun auditLessonLink(event: AuditEvent, currentEventId: String): Uuid? =
+    event.instanceId?.takeIf { it.toString() != currentEventId }
+
+/**
  * Sloučí do jedné buňky to, co u záznamu dává smysl číst pohromadě:
  * u mailu adresáta, u platby částku, k tomu volný popis.
  */
 fun auditDetailText(event: AuditEvent): String = listOfNotNull(
     event.recipient,
+    event.walletCode,
     event.amount?.takeIf { it != 0.0 }?.let { "${it.toInt()} Kč" },
     event.detail,
 ).joinToString(" · ")
 
 @Composable
 fun IComponent.AuditLogCard(
+    currentEventId: String,
     page: AuditLogPage?,
     errorMessage: String?,
     isExpanded: Boolean,
@@ -49,6 +62,7 @@ fun IComponent.AuditLogCard(
     onCategoryChange: (AuditCategory?) -> Unit,
 ) {
     val currentStrings by strings
+    val router = Router.current
 
     div(className = "card bg-base-100 shadow-sm") {
         div(className = "card-body") {
@@ -98,6 +112,7 @@ fun IComponent.AuditLogCard(
                                     th { +currentStrings.auditColumnEvent }
                                     th { +currentStrings.auditColumnWho }
                                     th { +currentStrings.auditColumnDetail }
+                                    th()
                                 }
                             }
                             tbody {
@@ -123,6 +138,23 @@ fun IComponent.AuditLogCard(
                                             div(className = "text-xs text-base-content/50") { +event.actorLabel }
                                         }
                                         td(className = "text-sm text-base-content/60 max-w-md") { +auditDetailText(event) }
+                                        td(className = "whitespace-nowrap text-right") {
+                                            event.reservationId?.let { reservationId ->
+                                                AuditLinkButton(currentStrings.auditOpenReservation) {
+                                                    router.navigate("/reservation/$reservationId")
+                                                }
+                                            }
+                                            auditLessonLink(event, currentEventId)?.let { lessonId ->
+                                                AuditLinkButton(currentStrings.auditOpenLesson) {
+                                                    router.navigate("/admin/events/instance/$lessonId")
+                                                }
+                                            }
+                                            event.walletCode?.let { code ->
+                                                AuditLinkButton(currentStrings.auditOpenWallet) {
+                                                    router.navigate("/admin/wallets/$code")
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -138,5 +170,16 @@ fun IComponent.AuditLogCard(
                 }
             }
         }
+    }
+}
+
+
+/** „Otevřít související detail" — stejná ikonka i třídy jako v ParticipantsCard. */
+@Composable
+private fun IComponent.AuditLinkButton(tooltip: String, onOpen: () -> Unit) {
+    button(className = "btn btn-ghost btn-xs tooltip tooltip-left") {
+        attribute("data-tip", tooltip)
+        onClick { onOpen() }
+        span(className = "icon-[heroicons--arrow-top-right-on-square] size-4")
     }
 }

@@ -65,6 +65,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                     onCancelReservation = { model.cancelReservation(it) },
                 )
                 AuditLogCard(
+                    currentEventId = eventId,
                     page = model.auditPageData,
                     errorMessage = model.auditError,
                     isExpanded = model.isAuditExpanded,

@@ -145,6 +145,9 @@ class WalletService(private val repo: WalletRepository) {
 
     suspend fun getTransactions(walletId: Uuid): List<WalletTransaction> = repo.getTransactions(walletId)
 
+    /** Kód je unikátní — používá se jako identifikátor v URL adminu i v mailech. */
+    suspend fun findByCode(code: String): Wallet? = repo.findByCode(code)
+
     private suspend fun getCurrentBalance(walletId: Uuid): Double =
         repo.findById(walletId)?.balance ?: 0.0
 }

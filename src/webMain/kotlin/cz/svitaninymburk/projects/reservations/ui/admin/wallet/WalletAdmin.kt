@@ -17,18 +17,20 @@ import cz.svitaninymburk.projects.reservations.util.humanReadable
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
 import dev.kilua.core.IComponent
 import dev.kilua.form.number.numeric
+import app.softwork.routingcompose.Router
 import dev.kilua.form.text.text
 import dev.kilua.html.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 @Composable
-fun IComponent.AdminWalletsScreen() {
+fun IComponent.AdminWalletsScreen(preselectCode: String? = null) {
     val scope = rememberCoroutineScope()
     val currentStrings by strings
-    val model = remember { buildAdminWalletsModel(scope) }
+    val router = Router.current
+    val model = remember(preselectCode) { buildAdminWalletsModel(scope, router, preselectCode) }
 
-    LaunchedEffect(Unit) { model.load() }
+    LaunchedEffect(preselectCode) { model.load() }
 
     val selected = model.selectedWallet
     if (selected != null) {

@@ -232,6 +232,9 @@ object EnStrings : AppStrings {
     override val auditCategoryPayment = "Payments"
     override val auditOutcomeFailure = "Not sent"
     override val auditActorSystem = "system"
+    override val auditOpenReservation = "Open reservation"
+    override val auditOpenLesson = "Open lesson"
+    override val auditOpenWallet = "Open wallet"
     override fun auditEventLabel(type: AuditEventType): String = when (type) {
         AuditEventType.RESERVATION_CREATED -> "New reservation"
         AuditEventType.RESERVATION_WAITLIST_JOINED -> "Joined waitlist"

@@ -3,6 +3,8 @@ package cz.svitaninymburk.projects.reservations.service
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
+import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
 import cz.svitaninymburk.projects.reservations.repository.wallet.NewWallet
 import cz.svitaninymburk.projects.reservations.settings.AppSettings
@@ -21,7 +23,10 @@ class RefundServiceSpec {
 
     private fun walletRepo() = InMemoryWalletRepository()
 
-    private fun refundService(repo: InMemoryWalletRepository) = RefundService(
+    private fun refundService(
+        repo: InMemoryWalletRepository,
+        audit: InMemoryAuditRepository = InMemoryAuditRepository(),
+    ) = RefundService(
         walletService = WalletService(repo),
         walletEmailService = ConsoleEmailService(),
         appSettingsProvider = AppSettingsProvider.forTest(
@@ -30,6 +35,7 @@ class RefundServiceSpec {
                 gmailAppPassword = "", senderDisplayName = "",
             )
         ),
+        audit = AuditService(audit),
     )
 
     private fun reservation(
@@ -134,5 +140,56 @@ class RefundServiceSpec {
         val outcome = refundService(repo).refundWholeReservation(wallet, reservation(paidAmount = 0.0))
         assertNull(outcome)
         assertEquals(0.0, repo.findById(wallet.id)?.balance)
+    }
+
+    // --- Historie: vrácení kreditu se dřív nikam nezapisovalo ---
+
+    @Test
+    fun `refundFixedAmount zapise do historie kod penezenky`() = runBlocking {
+        val repo = walletRepo()
+        val audit = InMemoryAuditRepository()
+        val wallet = repo.create(NewWallet(code = "SVIT-BBBB-BBBB", ownerEmail = "jan@test.com"))
+        val res = reservation(paidAmount = 200.0)
+
+        refundService(repo, audit).refundFixedAmount(
+            wallet, res, 50.0, WalletTransactionReason.LESSON_OPT_OUT_REFUND,
+        )
+
+        val zapis = audit.recordedEvents().single { it.type == AuditEventType.PAYMENT_REFUNDED }
+        assertEquals("SVIT-BBBB-BBBB", zapis.walletCode)
+        assertEquals(50.0, zapis.amount)
+        assertEquals(res.id, zapis.reservationId)
+        assertEquals("Jan Novak", zapis.subjectLabel)
+    }
+
+    /** Storno s částečnou úhradou z kreditu dělá dvě transakce, ale je to jedno storno. */
+    @Test
+    fun `cele storno da jeden zaznam i kdyz se kredituje dvakrat`() = runBlocking {
+        val repo = walletRepo()
+        val audit = InMemoryAuditRepository()
+        val wallet = repo.create(NewWallet(code = "SVIT-CCCC-CCCC", ownerEmail = "jan@test.com"))
+        val res = reservation(paidAmount = 500.0, walletDeductedAmount = 200.0)
+
+        refundService(repo, audit).refundWholeReservation(wallet, res)
+
+        val zapisy = audit.recordedEvents().filter { it.type == AuditEventType.PAYMENT_REFUNDED }
+        assertEquals(1, zapisy.size, "jedno storno = jeden řádek v historii")
+        assertEquals(500.0, zapisy.single().amount)
+        assertEquals("SVIT-CCCC-CCCC", zapisy.single().walletCode)
+        assertTrue(zapisy.single().detail!!.contains("200"), "rozpad patří do detailu")
+    }
+
+    @Test
+    fun `nulovy refund se do historie nezapisuje`() = runBlocking {
+        val repo = walletRepo()
+        val audit = InMemoryAuditRepository()
+        val wallet = repo.create(NewWallet(code = "SVIT-DDDD-DDDD", ownerEmail = "jan@test.com"))
+
+        refundService(repo, audit).refundWholeReservation(wallet, reservation(paidAmount = 0.0))
+        refundService(repo, audit).refundFixedAmount(
+            wallet, reservation(paidAmount = 100.0), 0.0, WalletTransactionReason.LESSON_OPT_OUT_REFUND,
+        )
+
+        assertTrue(audit.recordedEvents().none { it.type == AuditEventType.PAYMENT_REFUNDED })
     }
 }

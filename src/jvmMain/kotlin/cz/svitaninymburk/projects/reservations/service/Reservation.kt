@@ -174,7 +174,9 @@ open class ReservationService(
         val reservation = ensureNotNull(reservationRepository.findById(reservationId)) { ReservationError.ReservationNotFound }
         ensure(reservation.reference is Reference.Series) { ReservationError.ReservationNotFound }
         // Neprozrazovat existenci cizí rezervace — proto všechno na ReservationNotFound.
-        ensure(reservation.isAccessibleBy(currentCallerUserId())) { ReservationError.ReservationNotFound }
+        // Admin vidí i cizí: z historie v adminu vede proklik na /reservation/{id}
+        // a bez tohohle by se mu sekce lekcí u registrovaného uživatele nenačetla.
+        ensure(isAdminCaller() || reservation.isAccessibleBy(currentCallerUserId())) { ReservationError.ReservationNotFound }
 
         val seriesId = reservation.reference.id
         val lessonRefundAmount = eventSeriesRepository.get(seriesId)?.lessonRefundAmount
@@ -324,15 +326,29 @@ open class ReservationService(
         val saved = reservationRepository.save(reservation)
         logger.info("Waitlist signup id=${saved.id} ref=$reference seats=${saved.seatCount} status=${saved.status}")
 
-        emailService.sendWaitlistConfirmation(
-            toEmail = saved.contactEmail,
-            eventTitle = target.title,
-            contactName = saved.contactName,
+        val subject = auditSubjectFor(target, saved.id)
+        audit.record(
+            type = AuditEventType.RESERVATION_WAITLIST_JOINED,
+            actor = actorFor(saved),
+            subjectLabel = saved.contactName,
+            seriesId = subject.seriesId,
+            instanceId = subject.instanceId,
             reservationId = saved.id,
-            locale = saved.locale,
-        ).onLeft { captureEmailError(logger, "Failed to send waitlist confirmation email for reservation ${saved.id}: $it") }
+            amount = saved.totalPrice,
+            detail = "${saved.seatCount}× místo",
+        )
 
-        return saved
+        return withAuditSubject(subject) {
+            emailService.sendWaitlistConfirmation(
+                toEmail = saved.contactEmail,
+                eventTitle = target.title,
+                contactName = saved.contactName,
+                reservationId = saved.id,
+                locale = saved.locale,
+            ).onLeft { captureEmailError(logger, "Failed to send waitlist confirmation email for reservation ${saved.id}: $it") }
+
+            saved
+        }
     }
 
     private suspend fun Raise<ReservationError.CreateReservation>.createReservationFlow(

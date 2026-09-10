@@ -18,6 +18,7 @@ class InMemoryAuditRepository : AuditRepository {
                 seriesId = event.seriesId,
                 instanceId = event.instanceId,
                 reservationId = event.reservationId,
+                walletCode = event.walletCode,
                 actorType = event.actorType,
                 actorLabel = event.actorLabel,
                 subjectLabel = event.subjectLabel,

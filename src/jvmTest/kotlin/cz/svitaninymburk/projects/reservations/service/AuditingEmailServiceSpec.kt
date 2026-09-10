@@ -82,6 +82,37 @@ class AuditingEmailServiceSpec {
         assertTrue(result.isRight())
     }
 
+    /** Bez kódu by na řádek „připsán kredit" nešlo z historie kliknout. */
+    @Test
+    fun `mail o penezence nese kod penezenky`() = runBlocking {
+        val repo = InMemoryAuditRepository()
+        val console = ConsoleEmailService()
+        val service = AuditingEmailService(console, console, console, AuditService(repo))
+
+        service.sendWalletCredited(
+            toEmail = "jana@example.com",
+            walletCode = "SVIT-EEEE-EEEE",
+            creditedAmount = 300.0,
+            newBalance = 300.0,
+            resetMonth = 6,
+            resetDay = 30,
+            locale = "cs",
+        )
+
+        assertEquals("SVIT-EEEE-EEEE", repo.recordedEvents().single().walletCode)
+    }
+
+    @Test
+    fun `bezny mail kod penezenky nema`() = runBlocking {
+        val repo = InMemoryAuditRepository()
+        val console = ConsoleEmailService()
+        val service = AuditingEmailService(console, console, console, AuditService(repo))
+
+        service.sendCancellationNotice("kdo@example.com", "Kurz", Uuid.random(), "cs")
+
+        assertEquals(null, repo.recordedEvents().single().walletCode)
+    }
+
     @Test
     fun `mail prebira vazbu na akci z kontextu`() = runBlocking {
         val repo = InMemoryAuditRepository()

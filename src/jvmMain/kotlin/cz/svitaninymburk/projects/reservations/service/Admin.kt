@@ -90,6 +90,17 @@ class AdminDashboardService(
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
 
+    /** Subjekt z polymorfní reference — helper v deleteEventDefinition nemá načtenou akci. */
+    private fun auditSubjectForReference(reference: Reference, reservation: Reservation): AuditSubject =
+        when (reference) {
+            is Reference.Instance -> AuditSubject(
+                instanceId = reference.id, reservationId = reservation.id, label = reservation.contactName,
+            )
+            is Reference.Series -> AuditSubject(
+                seriesId = reference.id, reservationId = reservation.id, label = reservation.contactName,
+            )
+        }
+
     /** Ke které akci rezervace patří; u lekce kurzu dohledá i kurz. */
     private suspend fun auditSubjectOf(reservation: Reservation): AuditSubject = when (val ref = reservation.reference) {
         is Reference.Instance -> AuditSubject(
@@ -1102,7 +1113,9 @@ class AdminDashboardService(
                     .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
                 if (refund && res.paidAmount > 0.0) {
                     try {
-                        refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                        withAuditSubject(AuditSubject(instance.seriesId, id, res.id, res.contactName)) {
+                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                        }
                     } catch (e: Exception) {
                         logger.error("Failed to refund reservation ${res.id}", e)
                     }
@@ -1124,7 +1137,9 @@ class AdminDashboardService(
                     .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
                 if (refund && res.paidAmount > 0.0) {
                     try {
-                        refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                        withAuditSubject(AuditSubject(id, null, res.id, res.contactName)) {
+                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                        }
                     } catch (e: Exception) {
                         logger.error("Failed to refund reservation ${res.id}", e)
                     }
@@ -1142,7 +1157,9 @@ class AdminDashboardService(
                         .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
                     if (refund && res.paidAmount > 0.0) {
                         try {
-                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                            withAuditSubject(AuditSubject(id, instance.id, res.id, res.contactName)) {
+                                refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                            }
                         } catch (e: Exception) {
                             logger.error("Failed to refund reservation ${res.id}", e)
                         }
@@ -1171,7 +1188,9 @@ class AdminDashboardService(
                         .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
                     if (res.paidAmount > 0.0) {
                         try {
-                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                            withAuditSubject(auditSubjectForReference(reference, res)) {
+                                refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                            }
                         } catch (e: Exception) {
                             logger.error("Failed to refund reservation ${res.id}", e)
                         }
@@ -1231,7 +1250,9 @@ class AdminDashboardService(
                 }
                 if (refund && res.paidAmount > 0.0) {
                     try {
-                        refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                        withAuditSubject(resSubject) {
+                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                        }
                     } catch (e: Exception) {
                         logger.error("Failed to refund reservation ${res.id}", e)
                     }
@@ -1283,7 +1304,9 @@ class AdminDashboardService(
                     }
                     if (refund && res.paidAmount > 0.0) {
                         try {
-                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                            withAuditSubject(resSubject) {
+                                refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                            }
                         } catch (e: Exception) {
                             logger.error("Failed to refund reservation ${res.id}", e)
                         }
@@ -1299,7 +1322,9 @@ class AdminDashboardService(
                     .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
                 if (refund && res.paidAmount > 0.0) {
                     try {
-                        refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                        withAuditSubject(AuditSubject(id, null, res.id, res.contactName)) {
+                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                        }
                     } catch (e: Exception) {
                         logger.error("Failed to refund reservation ${res.id}", e)
                     }
@@ -1360,10 +1385,14 @@ class AdminDashboardService(
                         .findByReservationAndInstance(res.id, instanceId) != null
                     if (refundAmount > 0.0 && res.paidAmount > 0.0 && !alreadyOptedOut) {
                         try {
-                            refundService.refundFixedAmount(
-                                resolveWalletForRefund(res), res, refundAmount,
-                                WalletTransactionReason.LESSON_OPT_OUT_REFUND,
-                            )
+                            withAuditSubject(
+                                AuditSubject(seriesId, instanceId, res.id, res.contactName)
+                            ) {
+                                refundService.refundFixedAmount(
+                                    resolveWalletForRefund(res), res, refundAmount,
+                                    WalletTransactionReason.LESSON_OPT_OUT_REFUND,
+                                )
+                            }
                         } catch (e: Exception) {
                             logger.error("Failed to refund reservation ${res.id}", e)
                         }
@@ -1408,6 +1437,11 @@ class AdminDashboardService(
     override suspend fun getWallets(page: Int, pageSize: Int): Either<AdminError.GetWallets, WalletsPage> =
         Either.catch { walletService.getAll(page, pageSize) }
             .mapLeft { AdminError.WalletOperationFailed }
+
+    /** Pro proklik z historie: /admin/wallets/{code} musí umět načíst jednu peněženku. */
+    override suspend fun getWalletByCode(code: String): Either<AdminError.GetWallets, Wallet> = either {
+        ensureNotNull(walletService.findByCode(code)) { AdminError.WalletOperationFailed }
+    }
 
     override suspend fun getWalletTransactions(walletId: String): Either<AdminError.GetWallets, List<WalletTransaction>> =
         Either.catch { walletService.getTransactions(Uuid.parse(walletId)) }

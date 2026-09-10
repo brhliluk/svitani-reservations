@@ -252,6 +252,9 @@ interface AppStrings : ErrorStrings {
     val auditCategoryPayment: String
     val auditOutcomeFailure: String
     val auditActorSystem: String
+    val auditOpenReservation: String
+    val auditOpenLesson: String
+    val auditOpenWallet: String
     fun auditEventLabel(type: AuditEventType): String
     val paginationPrevious: String
     val paginationNext: String

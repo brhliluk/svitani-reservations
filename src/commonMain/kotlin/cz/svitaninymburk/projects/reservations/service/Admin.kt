@@ -66,6 +66,7 @@ interface AdminServiceInterface {
     suspend fun getPaymentEvents(page: Int, pageSize: Int): Either<AdminError.GetPaymentEvents, PaymentEventsPage>
     suspend fun getEventAuditLog(eventId: Uuid, isSeries: Boolean, page: Int = 0, pageSize: Int = 50, category: AuditCategory? = null): Either<AdminError.GetEventAuditLog, AuditLogPage>
     suspend fun getWallets(page: Int, pageSize: Int): Either<AdminError.GetWallets, WalletsPage>
+    suspend fun getWalletByCode(code: String): Either<AdminError.GetWallets, Wallet>
     suspend fun getWalletTransactions(walletId: String): Either<AdminError.GetWallets, List<WalletTransaction>>
     suspend fun adjustWalletBalance(walletId: String, amount: Double, note: String, isCredit: Boolean): Either<AdminError.GetWallets, Wallet>
 }

@@ -45,6 +45,7 @@ class AuditingEmailService(
         type: AuditEventType,
         recipient: String,
         subjectLabel: String,
+        walletCode: String? = null,
         block: suspend () -> Either<L, R>,
     ): Either<L, R> {
         val result = block()
@@ -52,6 +53,7 @@ class AuditingEmailService(
             type = type,
             subjectLabel = subjectLabel,
             recipient = recipient,
+            walletCode = walletCode,
             outcome = if (result.isRight()) AuditOutcome.SUCCESS else AuditOutcome.FAILURE,
             detail = result.leftOrNull()?.localizedMessage?.let(::shortenSmtpError),
         )
@@ -200,7 +202,7 @@ class AuditingEmailService(
         resetMonth: Int,
         resetDay: Int,
         locale: String,
-    ) = audited(AuditEventType.EMAIL_WALLET_CREDITED, toEmail, walletCode) {
+    ) = audited(AuditEventType.EMAIL_WALLET_CREDITED, toEmail, walletCode, walletCode = walletCode) {
         walletDelegate.sendWalletCredited(toEmail, walletCode, creditedAmount, newBalance, resetMonth, resetDay, locale)
     }
 
@@ -210,7 +212,7 @@ class AuditingEmailService(
         deductedAmount: Double,
         remainingBalance: Double,
         locale: String,
-    ) = audited(AuditEventType.EMAIL_WALLET_APPLIED, toEmail, walletCode) {
+    ) = audited(AuditEventType.EMAIL_WALLET_APPLIED, toEmail, walletCode, walletCode = walletCode) {
         walletDelegate.sendWalletApplied(toEmail, walletCode, deductedAmount, remainingBalance, locale)
     }
 
@@ -221,7 +223,7 @@ class AuditingEmailService(
         resetMonth: Int,
         resetDay: Int,
         locale: String,
-    ) = audited(AuditEventType.EMAIL_WALLET_RESET_WARNING, toEmail, walletCode) {
+    ) = audited(AuditEventType.EMAIL_WALLET_RESET_WARNING, toEmail, walletCode, walletCode = walletCode) {
         walletDelegate.sendWalletResetWarning(toEmail, walletCode, currentBalance, resetMonth, resetDay, locale)
     }
 }

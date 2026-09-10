@@ -76,6 +76,8 @@ data class AuditEvent(
     val seriesId: Uuid? = null,
     val instanceId: Uuid? = null,
     val reservationId: Uuid? = null,
+    /** Kód peněženky, ne id — je unikátní, čitelný a přežije i smazání peněženky. */
+    val walletCode: String? = null,
     val actorType: AuditActorType,
     val actorLabel: String,
     val subjectLabel: String,

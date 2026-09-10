@@ -41,6 +41,8 @@ object AuditEventsTable : Table("audit_events") {
     val seriesId = uuid("series_id").nullable()
     val instanceId = uuid("instance_id").nullable()
     val reservationId = uuid("reservation_id").nullable()
+    /** Kód, ne id — stejná logika jako u ostatních denormalizovaných popisků. */
+    val walletCode = varchar("wallet_code", 20).nullable()
 
     val actorType = enumerationByName("actor_type", 20, AuditActorType::class)
     val actorLabel = varchar("actor_label", 255)
@@ -68,6 +70,7 @@ fun ResultRow.toAuditEvent() = AuditEvent(
     seriesId = this[AuditEventsTable.seriesId],
     instanceId = this[AuditEventsTable.instanceId],
     reservationId = this[AuditEventsTable.reservationId],
+    walletCode = this[AuditEventsTable.walletCode],
     actorType = this[AuditEventsTable.actorType],
     actorLabel = this[AuditEventsTable.actorLabel],
     subjectLabel = this[AuditEventsTable.subjectLabel],
@@ -85,6 +88,7 @@ data class NewAuditEvent(
     val seriesId: Uuid? = null,
     val instanceId: Uuid? = null,
     val reservationId: Uuid? = null,
+    val walletCode: String? = null,
     val outcome: AuditOutcome? = null,
     val recipient: String? = null,
     val amount: Double? = null,
@@ -187,6 +191,7 @@ private fun UpdateBuilder<*>.apply(event: NewAuditEvent) {
     this[AuditEventsTable.seriesId] = event.seriesId
     this[AuditEventsTable.instanceId] = event.instanceId
     this[AuditEventsTable.reservationId] = event.reservationId
+    this[AuditEventsTable.walletCode] = event.walletCode?.take(20)
     this[AuditEventsTable.actorType] = event.actorType
     this[AuditEventsTable.actorLabel] = event.actorLabel.take(255)
     this[AuditEventsTable.subjectLabel] = event.subjectLabel.take(255)

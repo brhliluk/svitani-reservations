@@ -3,6 +3,9 @@ package cz.svitaninymburk.projects.reservations.service
 import cz.svitaninymburk.projects.reservations.StubQrCodeGenerator
 import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.event.EventInstance
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
+import cz.svitaninymburk.projects.reservations.audit.AuditActorType
+import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
@@ -26,24 +29,32 @@ class WaitlistSignupSpec {
     private fun makeService(
         instanceRepo: InMemoryEventInstanceRepository,
         reservationRepo: InMemoryReservationRepository,
-    ) = ReservationService(
+        auditRepo: InMemoryAuditRepository = InMemoryAuditRepository(),
+    ) = auditingEmails(auditRepo).let { mails -> ReservationService(
+        audit = AuditService(auditRepo),
         eventInstanceRepository = instanceRepo,
         eventSeriesRepository = InMemoryEventSeriesRepository(),
         eventDefinitionRepository = InMemoryEventDefinitionRepository(),
         reservationRepository = reservationRepo,
-        emailService = ConsoleEmailService(),
-        lectorEmailService = ConsoleEmailService(),
+        emailService = mails,
+        lectorEmailService = mails,
         qrCodeService = StubQrCodeGenerator(),
         paymentTrigger = PaymentTrigger(),
         appBaseUrl = "https://test.example.com",
         seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
         walletService = WalletService(InMemoryWalletRepository()),
-        walletEmailService = ConsoleEmailService(),
+        walletEmailService = mails,
         appSettingsProvider = AppSettingsProvider.forTest(AppSettings(
             bankAccountNumber = "", fioToken = "", senderEmail = "",
             gmailAppPassword = "", senderDisplayName = "",
         )),
-    )
+    ) }
+
+    /** Maily obalené auditem stejně jako v DI — jinak by se záznamy o nich nikde nevzaly. */
+    private fun auditingEmails(auditRepo: InMemoryAuditRepository): AuditingEmailService {
+        val console = ConsoleEmailService()
+        return AuditingEmailService(console, console, console, AuditService(auditRepo))
+    }
 
     private fun fullInstance(waitlistCapacity: Int, occupiedWaitlist: Int = 0) = EventInstance(
         id = Uuid.random(),
@@ -121,5 +132,43 @@ class WaitlistSignupSpec {
 
         val result = service.joinWaitlistInstance(request(instance.id), userId = null)
         assertEquals(ReservationError.WaitlistFull, result.leftOrNull())
+    }
+
+    // --- Historie: zápis do pořadníku se dřív nikam nezapisoval ---
+
+    @Test
+    fun `zapis do poradniku se zaznamena do historie`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val audit = InMemoryAuditRepository()
+        val instance = fullInstance(waitlistCapacity = 3)
+        instanceRepo.create(instance)
+        val service = makeService(instanceRepo, InMemoryReservationRepository(), audit)
+
+        val res = service.joinWaitlistInstance(request(instance.id), userId = null).getOrNull()!!
+
+        val zapis = audit.recordedEvents().single { it.type == AuditEventType.RESERVATION_WAITLIST_JOINED }
+        assertEquals("Jan Novak", zapis.subjectLabel)
+        assertEquals(instance.id, zapis.instanceId)
+        assertEquals(res.id, zapis.reservationId)
+        assertEquals(100.0, zapis.amount)
+        // Host bez přihlášení není „systém" — zapsat se přišel zákazník.
+        assertEquals(AuditActorType.CUSTOMER, zapis.actorType)
+        assertEquals("jan@test.com", zapis.actorLabel)
+    }
+
+    /** Potvrzení o zápisu musí v historii dosednout na tu samou akci. */
+    @Test
+    fun `mail o zapisu do poradniku ma vazbu na akci`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val audit = InMemoryAuditRepository()
+        val instance = fullInstance(waitlistCapacity = 3)
+        instanceRepo.create(instance)
+        val service = makeService(instanceRepo, InMemoryReservationRepository(), audit)
+
+        service.joinWaitlistInstance(request(instance.id), userId = null)
+
+        val mail = audit.recordedEvents().single { it.type == AuditEventType.EMAIL_WAITLIST_CONFIRMATION }
+        assertEquals(instance.id, mail.instanceId)
+        assertEquals("jan@test.com", mail.recipient)
     }
 }

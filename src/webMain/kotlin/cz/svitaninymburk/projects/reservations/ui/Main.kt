@@ -277,6 +277,14 @@ fun IComponent.MainLayout() {
                     }
                 }
                 route("/wallets") {
+                    // Proklik z historie: /admin/wallets/{kód} otevře rovnou detail peněženky.
+                    string { walletCode ->
+                        view {
+                            AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                AdminWalletsScreen(preselectCode = walletCode.value)
+                            }
+                        }
+                    }
                     view {
                         AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
                             AdminWalletsScreen()

@@ -18,6 +18,8 @@ class AuditLogCardSpec {
         recipient: String? = null,
         amount: Double? = null,
         detail: String? = null,
+        instanceId: Uuid? = null,
+        walletCode: String? = null,
     ) = AuditEvent(
         id = Uuid.random(),
         occurredAt = Clock.System.now(),
@@ -28,6 +30,8 @@ class AuditLogCardSpec {
         recipient = recipient,
         amount = amount,
         detail = detail,
+        instanceId = instanceId,
+        walletCode = walletCode,
     )
 
     @Test
@@ -68,5 +72,31 @@ class AuditLogCardSpec {
                 "chybí en popisek pro $type",
             )
         }
+    }
+
+    // --- Prokliky ---
+
+    /** Na detailu lekce by odkaz „otevřít lekci" vedl sám na sebe. */
+    @Test
+    fun odkazNaVlastniLekciSeNenabizi() {
+        val lekce = Uuid.random()
+        assertEquals(null, auditLessonLink(event(instanceId = lekce), lekce.toString()))
+    }
+
+    @Test
+    fun odkazNaJinouLekciSeNabizi() {
+        val jina = Uuid.random()
+        assertEquals(jina, auditLessonLink(event(instanceId = jina), Uuid.random().toString()))
+    }
+
+    @Test
+    fun zaznamBezLekceOdkazNema() {
+        assertEquals(null, auditLessonLink(event(), Uuid.random().toString()))
+    }
+
+    @Test
+    fun kodPenezenkySeUkazeVDetailu() {
+        val text = auditDetailText(event(walletCode = "SVIT-AB12-CD34", amount = 300.0, detail = "z toho 200 Kč zpět z kreditu"))
+        assertEquals("SVIT-AB12-CD34 · 300 Kč · z toho 200 Kč zpět z kreditu", text)
     }
 }

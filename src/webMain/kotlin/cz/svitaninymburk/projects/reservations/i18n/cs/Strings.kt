@@ -232,6 +232,9 @@ object CsStrings : AppStrings {
     override val auditCategoryPayment = "Platby"
     override val auditOutcomeFailure = "Neodesláno"
     override val auditActorSystem = "systém"
+    override val auditOpenReservation = "Otevřít rezervaci"
+    override val auditOpenLesson = "Otevřít lekci"
+    override val auditOpenWallet = "Otevřít peněženku"
     override fun auditEventLabel(type: AuditEventType): String = when (type) {
         AuditEventType.RESERVATION_CREATED -> "Nová rezervace"
         AuditEventType.RESERVATION_WAITLIST_JOINED -> "Zápis do pořadníku"
