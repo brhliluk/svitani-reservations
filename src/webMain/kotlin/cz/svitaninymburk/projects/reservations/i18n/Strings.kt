@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.i18n
 
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import androidx.compose.runtime.mutableStateOf
 import cz.svitaninymburk.projects.reservations.i18n.cs.CsStrings
 import cz.svitaninymburk.projects.reservations.i18n.en.EnStrings
@@ -234,6 +235,24 @@ interface AppStrings : ErrorStrings {
     val paymentTypeCash: String
     val paymentTypeFree: String
     val noPayments: String
+
+    // Historie událostí (audit log)
+    val auditTitle: String
+    val auditSubtitle: String
+    val auditShow: String
+    val auditHide: String
+    val auditEmpty: String
+    val auditColumnTime: String
+    val auditColumnEvent: String
+    val auditColumnWho: String
+    val auditColumnDetail: String
+    val auditFilterAll: String
+    val auditCategoryReservation: String
+    val auditCategoryEmail: String
+    val auditCategoryPayment: String
+    val auditOutcomeFailure: String
+    val auditActorSystem: String
+    fun auditEventLabel(type: AuditEventType): String
     val paginationPrevious: String
     val paginationNext: String
     val paginationPageOf: (Int, Int) -> String

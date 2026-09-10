@@ -1,12 +1,15 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.detail
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
+import cz.svitaninymburk.projects.reservations.admin.AuditLogPage
+import cz.svitaninymburk.projects.reservations.audit.AuditCategory
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -14,6 +17,7 @@ import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.AdminReservationUseCase
+import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.EventAuditLogQueries
 import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.EventDetailQueries
 import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.EventLifecycleUseCase
 import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.SeriesLessonsUseCase
@@ -42,6 +46,7 @@ class AdminEventDetailModel(
     private val lifecycle: EventLifecycleUseCase,
     private val lessons: SeriesLessonsUseCase,
     private val reservations: AdminReservationUseCase,
+    private val auditLog: EventAuditLogQueries,
     private val router: Router,
     private val eventId: String,
     private val isSeries: Boolean,
@@ -74,6 +79,16 @@ class AdminEventDetailModel(
     var isSubmittingReservation by mutableStateOf(false); private set
     var isLoadingReservationTarget by mutableStateOf(false); private set
 
+    // Historie — schválně mimo uiState: refresh() po každé akci s účastníkem
+    // přenačítá detail a nemá přitom shodit stránkování ani filtr historie.
+    var auditPageData: AuditLogPage? by mutableStateOf(null); private set
+    var auditError: String? by mutableStateOf(null); private set
+    var auditPage by mutableIntStateOf(0); private set
+    var auditCategory: AuditCategory? by mutableStateOf(null); private set
+    var isAuditLoading by mutableStateOf(false); private set
+    /** Načítá se až po rozbalení, ať se nezdržuje první vykreslení detailu. */
+    var isAuditExpanded by mutableStateOf(false); private set
+
     private val uuid: Uuid get() = Uuid.parse(eventId)
 
     fun load() {
@@ -97,7 +112,42 @@ class AdminEventDetailModel(
         )
     }
 
-    fun refresh() = load()
+    /**
+     * Po akci s účastníkem se přenačte i historie — jinak by v ní admin neviděl
+     * to, co právě udělal. Stránka ani filtr se přitom neresetují.
+     */
+    fun refresh() {
+        load()
+        if (isAuditExpanded) loadAudit()
+    }
+
+    fun toggleAuditExpanded() {
+        isAuditExpanded = !isAuditExpanded
+        if (isAuditExpanded && auditPageData == null) loadAudit()
+    }
+
+    fun goToAuditPage(page: Int) {
+        auditPage = page
+        loadAudit()
+    }
+
+    fun setAuditCategory(category: AuditCategory?) {
+        auditCategory = category
+        auditPage = 0
+        loadAudit()
+    }
+
+    private fun loadAudit() {
+        val parsed = runCatching { Uuid.parse(eventId) }.getOrNull() ?: return
+        isAuditLoading = true
+        auditError = null
+        scope.launch {
+            auditLog.page(parsed, isSeries, auditPage, auditCategory)
+                .onRight { auditPageData = it }
+                .onLeft { auditError = it.localizedMessage(currentStrings) }
+            isAuditLoading = false
+        }
+    }
 
     fun requestDelete() { refundMoney = true; showDeleteConfirm = true }
     fun requestCancel() { refundMoney = true; showCancelConfirm = true }
@@ -209,6 +259,7 @@ fun IComponent.buildAdminEventDetailModel(
         lifecycle = EventLifecycleUseCase(admin),
         lessons = SeriesLessonsUseCase(admin),
         reservations = AdminReservationUseCase(admin, reservation, event),
+        auditLog = EventAuditLogQueries(admin),
         router = router,
         eventId = eventId,
         isSeries = isSeries,

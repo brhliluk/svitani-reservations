@@ -64,6 +64,17 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                     onConfirmPayment = { model.confirmPayment(it) },
                     onCancelReservation = { model.cancelReservation(it) },
                 )
+                AuditLogCard(
+                    page = model.auditPageData,
+                    errorMessage = model.auditError,
+                    isExpanded = model.isAuditExpanded,
+                    isLoading = model.isAuditLoading,
+                    currentPage = model.auditPage,
+                    category = model.auditCategory,
+                    onToggle = { model.toggleAuditExpanded() },
+                    onPageChange = { model.goToAuditPage(it) },
+                    onCategoryChange = { model.setAuditCategory(it) },
+                )
                 if (data.waitlistCapacity > 0) {
                     WaitlistCard(data = data, onCancelReservation = { model.cancelReservation(it) })
                 }

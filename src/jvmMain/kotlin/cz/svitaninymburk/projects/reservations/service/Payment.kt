@@ -22,6 +22,12 @@ import io.ktor.http.URLProtocol
 import io.ktor.http.isSuccess
 import io.ktor.http.path
 import io.ktor.server.util.url
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
+import cz.svitaninymburk.projects.reservations.reservation.Reference
+import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
+import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
+import cz.svitaninymburk.projects.reservations.util.AuditSubject
+import cz.svitaninymburk.projects.reservations.util.withAuditSubject
 import io.ktor.util.logging.KtorSimpleLogger
 import io.sentry.Sentry
 import io.sentry.SentryLevel
@@ -36,8 +42,28 @@ class PaymentPairingService(
     private val qrCodeService: QrCodeGeneratorService,
     private val settings: AppSettingsProvider,
     private val paymentEventRepository: PaymentEventRepository,
+    private val eventInstanceRepository: EventInstanceRepository,
+    private val audit: AuditService = AuditService(InMemoryAuditRepository()),
 ) {
     private val logger = KtorSimpleLogger(this::class.jvmName)
+
+    /**
+     * Ke které akci platba patří. U rezervace na jednotlivou lekci dohledá i kurz,
+     * ať se záznam objeví na obou detailech.
+     */
+    private suspend fun subjectFor(reservation: Reservation): AuditSubject = when (val ref = reservation.reference) {
+        is Reference.Instance -> AuditSubject(
+            seriesId = eventInstanceRepository.get(ref.id)?.seriesId,
+            instanceId = ref.id,
+            reservationId = reservation.id,
+            label = reservation.contactName,
+        )
+        is Reference.Series -> AuditSubject(
+            seriesId = ref.id,
+            reservationId = reservation.id,
+            label = reservation.contactName,
+        )
+    }
     suspend fun checkAndPairPayments(): Either<PaymentPairingError.CheckAndPairPayments, Unit> = either {
         logger.info("🔄 Spouštím kontrolu plateb Fio banky...")
 
@@ -69,6 +95,14 @@ class PaymentPairingService(
 
         val reservation = reservationRepo.findAwaitingPayment(vs) ?: run {
             logger.warn("❓ Platba s VS $vs nenašla žádnou čekající rezervaci.")
+            // Bez vazby na akci, zato dohledatelné — tohle je přesně ten případ,
+            // který dřív zmizel v logu a musel se řešit ručně z výpisu z banky.
+            audit.record(
+                type = AuditEventType.PAYMENT_UNMATCHED,
+                subjectLabel = "VS $vs",
+                amount = transaction.amount,
+                detail = "Platba ${transaction.amount} ${transaction.currency} (banka id ${transaction.remoteId}) neodpovídá žádné čekající rezervaci",
+            )
             return
         }
 
@@ -97,6 +131,15 @@ class PaymentPairingService(
                 )
             }.onFailure { e ->
                 println("WARNING: Failed to record partial payment event for FIO transaction ${transaction.remoteId}: ${e.message}")
+            }
+
+            withAuditSubject(subjectFor(updatedReservation)) {
+                audit.record(
+                    type = AuditEventType.PAYMENT_PARTIAL,
+                    subjectLabel = updatedReservation.contactName,
+                    amount = transaction.amount,
+                    detail = "Nedoplatek: očekáváno ${reservation.unpaidAmount}, přišlo ${transaction.amount}",
+                )
             }
 
             emailService.sendPaymentNotPaidInFull(
@@ -128,14 +171,27 @@ class PaymentPairingService(
             println("WARNING: Failed to record payment event for FIO transaction ${transaction.remoteId}: ${e.message}")
         }
 
-        emailService.sendPaymentReceivedConfirmation(paidReservation)
-            .onLeft { error ->
-                Sentry.withScope { scope ->
-                    scope.setTag("reservation_id", paidReservation.id.toString())
-                    scope.setTag("vs", vs)
-                    logger.error("⚠️ Failed to send payment-received email for reservation ${paidReservation.id} (VS $vs): $error")
+        val paidSubject = subjectFor(paidReservation)
+        audit.record(
+            type = AuditEventType.PAYMENT_PAIRED_AUTO,
+            subjectLabel = paidReservation.contactName,
+            seriesId = paidSubject.seriesId,
+            instanceId = paidSubject.instanceId,
+            reservationId = paidReservation.id,
+            amount = transaction.amount,
+            detail = "Spárováno z FIO na VS $vs",
+        )
+
+        withAuditSubject(paidSubject) {
+            emailService.sendPaymentReceivedConfirmation(paidReservation)
+                .onLeft { error ->
+                    Sentry.withScope { scope ->
+                        scope.setTag("reservation_id", paidReservation.id.toString())
+                        scope.setTag("vs", vs)
+                        logger.error("⚠️ Failed to send payment-received email for reservation ${paidReservation.id} (VS $vs): $error")
+                    }
                 }
-            }
+        }
 
         logger.info("✅ Rezervace ${reservation.id} (VS $vs) úspěšně ZAPLACENA.")
     }

@@ -8,6 +8,8 @@ import cz.svitaninymburk.projects.reservations.qr.QrCodeService
 import cz.svitaninymburk.projects.reservations.repository.auth.ExposedRefreshTokenRepository
 import cz.svitaninymburk.projects.reservations.repository.auth.InMemoryRefreshTokenRepository
 import cz.svitaninymburk.projects.reservations.repository.auth.RefreshTokenRepository
+import cz.svitaninymburk.projects.reservations.repository.audit.AuditRepository
+import cz.svitaninymburk.projects.reservations.repository.audit.ExposedAuditRepository
 import cz.svitaninymburk.projects.reservations.repository.payment.ExposedPaymentEventRepository
 import cz.svitaninymburk.projects.reservations.repository.payment.PaymentEventRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
@@ -105,6 +107,10 @@ val appModule = module {
     // Reservations
     single<ReservationRepository> { ExposedReservationRepository() }
     single<PaymentEventRepository> { ExposedPaymentEventRepository() }
+
+    // Audit log
+    single<AuditRepository> { ExposedAuditRepository() }
+    single { AuditService(get()) }
     single<SeriesLessonOptOutRepository> { ExposedSeriesLessonOptOutRepository() }
 
     // Wallets
@@ -126,21 +132,23 @@ val appModule = module {
     single { RefreshTokenService(get(), get()) }
     single { EventService(get(), get(), get()) } bind EventServiceInterface::class
     single { AuthenticatedEventService(get(), get(), get()) } bind AuthenticatedEventServiceInterface::class
+    // Obalené auditem, ať se každý pokus o odeslání zapíše do historie na jednom místě
     single {
-        GmailEmailService(
+        val gmail = GmailEmailService(
             settings = get(),
             appBaseUrl = System.getenv("APP_BASE_URL") ?: error("APP_BASE_URL env var is required"),
             eventRepository = get(),
         )
+        AuditingEmailService(gmail, gmail, gmail, audit = get())
     } binds arrayOf(EmailService::class, LectorEmailService::class, WalletEmailService::class)
     single { QrCodeService() }
     single { BackendQrCodeGenerator(get(), get()) } bind QrCodeGeneratorService::class
-    single { WaitlistPromoter(get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz") }
-    single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get(), waitlistPromoter = get()) } bind ReservationServiceInterface::class
+    single { WaitlistPromoter(get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", audit = get()) }
+    single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get(), audit = get(), waitlistPromoter = get()) } bind ReservationServiceInterface::class
     single { AuthenticatedReservationService(get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
-    single { PaymentPairingService(get(), get(), get(), get(), get(), get()) }
+    single { PaymentPairingService(get(), get(), get(), get(), get(), get(), get(), get()) }
     single { SeriesScheduleRefresher(get(), get()) }
     single { AdminService(get()) }
-    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get(), refundService = get(), seriesLessonOptOutRepository = get(), seriesScheduleRefresher = get(), waitlistPromoter = get()) } bind AdminServiceInterface::class
+    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get(), refundService = get(), seriesLessonOptOutRepository = get(), seriesScheduleRefresher = get(), waitlistPromoter = get(), audit = get(), auditRepository = get()) } bind AdminServiceInterface::class
     single { UserService(get(), get()) }
 }

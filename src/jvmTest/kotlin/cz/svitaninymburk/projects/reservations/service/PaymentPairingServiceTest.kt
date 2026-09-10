@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.right
 import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.error.EmailError
+import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.payment.InMemoryPaymentEventRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
@@ -180,7 +181,8 @@ class PaymentPairingServiceTest {
             emailService = emailService,
             qrCodeService = StubQrCodeGenerator(),
             settings = settingsProvider,
-            paymentEventRepository = paymentEventRepo
+            paymentEventRepository = paymentEventRepo,
+            eventInstanceRepository = InMemoryEventInstanceRepository(),
         )
     }
 

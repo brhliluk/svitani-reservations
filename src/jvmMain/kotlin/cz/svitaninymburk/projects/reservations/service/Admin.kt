@@ -48,6 +48,13 @@ import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.isFreePrice
 import cz.svitaninymburk.projects.reservations.user.User
+import cz.svitaninymburk.projects.reservations.admin.AuditLogPage
+import cz.svitaninymburk.projects.reservations.audit.AuditCategory
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
+import cz.svitaninymburk.projects.reservations.repository.audit.AuditRepository
+import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
+import cz.svitaninymburk.projects.reservations.util.AuditSubject
+import cz.svitaninymburk.projects.reservations.util.withAuditSubject
 import cz.svitaninymburk.projects.reservations.util.captureEmailError
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import io.ktor.util.logging.KtorSimpleLogger
@@ -77,9 +84,26 @@ class AdminDashboardService(
     private val seriesLessonOptOutRepository: SeriesLessonOptOutRepository,
     private val seriesScheduleRefresher: SeriesScheduleRefresher,
     private val waitlistPromoter: WaitlistPromoter,
+    private val audit: AuditService = AuditService(InMemoryAuditRepository()),
+    private val auditRepository: AuditRepository = InMemoryAuditRepository(),
 ): AdminServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
+
+    /** Ke které akci rezervace patří; u lekce kurzu dohledá i kurz. */
+    private suspend fun auditSubjectOf(reservation: Reservation): AuditSubject = when (val ref = reservation.reference) {
+        is Reference.Instance -> AuditSubject(
+            seriesId = eventInstanceRepository.get(ref.id)?.seriesId,
+            instanceId = ref.id,
+            reservationId = reservation.id,
+            label = reservation.contactName,
+        )
+        is Reference.Series -> AuditSubject(
+            seriesId = ref.id,
+            reservationId = reservation.id,
+            label = reservation.contactName,
+        )
+    }
 
     /** Resolve the wallet to refund into: existing for registered users, a fresh one for anonymous. */
     private suspend fun resolveWalletForRefund(reservation: Reservation): Wallet {
@@ -199,8 +223,21 @@ class AdminDashboardService(
             println("WARNING: Failed to record payment event for reservation $reservationId: ${e.message}")
         }
 
-        emailService.sendPaymentReceivedConfirmation(reservation)
-            .onLeft { captureEmailError(logger, "Failed to send payment-received email for reservation ${reservation.id}: $it") }
+        val subject = auditSubjectOf(reservation)
+        audit.record(
+            type = AuditEventType.PAYMENT_PAIRED_MANUAL,
+            subjectLabel = reservation.contactName,
+            seriesId = subject.seriesId,
+            instanceId = subject.instanceId,
+            reservationId = reservationId,
+            amount = reservation.totalPrice,
+            detail = "Ručně označeno jako zaplacené",
+        )
+
+        withAuditSubject(subject) {
+            emailService.sendPaymentReceivedConfirmation(reservation)
+                .onLeft { captureEmailError(logger, "Failed to send payment-received email for reservation ${reservation.id}: $it") }
+        }
     }
 
     override suspend fun getEventDetail(eventId: Uuid, isSeries: Boolean): Either<AdminError.GetEventDetail, AdminEventDetailData> = either {
@@ -877,17 +914,30 @@ class AdminDashboardService(
         if (previousStartDateTime != request.startDateTime && existing.seriesId != null) {
             val seriesId = existing.seriesId!!
             val series = eventSeriesRepository.get(seriesId)
+
+            audit.record(
+                type = AuditEventType.LESSON_RESCHEDULED,
+                subjectLabel = series?.title ?: existing.title,
+                seriesId = seriesId,
+                instanceId = id,
+                detail = "Přesunuto z ${existing.startDateTime} na ${request.startDateTime}",
+            )
+
             reservationRepository.findByReference(Reference.Series(seriesId))
                 .filter { it.status != Reservation.Status.CANCELLED }
                 .forEach { res ->
-                    emailService.sendLessonRescheduledNotification(
-                        toEmail = res.contactEmail,
-                        contactName = res.contactName,
-                        seriesTitle = series?.title ?: existing.title,
-                        oldDateTime = existing.startDateTime,
-                        newDateTime = request.startDateTime,
-                        locale = res.locale,
-                    ).onLeft { captureEmailError(logger, "Failed to send reschedule email for ${res.id}: $it") }
+                    withAuditSubject(
+                        AuditSubject(seriesId = seriesId, instanceId = id, reservationId = res.id, label = res.contactName)
+                    ) {
+                        emailService.sendLessonRescheduledNotification(
+                            toEmail = res.contactEmail,
+                            contactName = res.contactName,
+                            seriesTitle = series?.title ?: existing.title,
+                            oldDateTime = existing.startDateTime,
+                            newDateTime = request.startDateTime,
+                            locale = res.locale,
+                        ).onLeft { captureEmailError(logger, "Failed to send reschedule email for ${res.id}: $it") }
+                    }
                 }
         }
 
@@ -1153,12 +1203,32 @@ class AdminDashboardService(
 
         eventInstanceRepository.setCancelled(id)
 
+        audit.record(
+            type = AuditEventType.EVENT_CANCELLED,
+            subjectLabel = instance.title,
+            seriesId = instance.seriesId,
+            instanceId = id,
+            detail = if (refund) "Akce zrušena, kredit vracen" else "Akce zrušena bez vracení kreditu",
+        )
+
         reservationRepository.findByReference(Reference.Instance(id))
             .filter { it.status != Reservation.Status.CANCELLED }
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
-                    .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                val resSubject = AuditSubject(instance.seriesId, id, res.id, res.contactName)
+                audit.record(
+                    type = AuditEventType.RESERVATION_CANCELLED,
+                    subjectLabel = res.contactName,
+                    seriesId = resSubject.seriesId,
+                    instanceId = id,
+                    reservationId = res.id,
+                    amount = res.paidAmount,
+                    detail = "Zrušeno se zrušením akce",
+                )
+                withAuditSubject(resSubject) {
+                    emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
+                        .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                }
                 if (refund && res.paidAmount > 0.0) {
                     try {
                         refundService.refundWholeReservation(resolveWalletForRefund(res), res)
@@ -1184,14 +1254,33 @@ class AdminDashboardService(
 
         eventSeriesRepository.setCancelled(id)
 
+        audit.record(
+            type = AuditEventType.EVENT_CANCELLED,
+            subjectLabel = series.title,
+            seriesId = id,
+            detail = if (refund) "Kurz zrušen, kredit vracen" else "Kurz zrušen bez vracení kreditu",
+        )
+
         futureInstances.forEach { instance ->
             eventInstanceRepository.setCancelled(instance.id)
             reservationRepository.findByReference(Reference.Instance(instance.id))
                 .filter { it.status != Reservation.Status.CANCELLED }
                 .forEach { res ->
                     reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                    emailService.sendCancellationNotice(res.contactEmail, series.title, res.id, res.locale)
-                        .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                    val resSubject = AuditSubject(id, instance.id, res.id, res.contactName)
+                    audit.record(
+                        type = AuditEventType.RESERVATION_CANCELLED,
+                        subjectLabel = res.contactName,
+                        seriesId = id,
+                        instanceId = instance.id,
+                        reservationId = res.id,
+                        amount = res.paidAmount,
+                        detail = "Zrušeno se zrušením kurzu",
+                    )
+                    withAuditSubject(resSubject) {
+                        emailService.sendCancellationNotice(res.contactEmail, series.title, res.id, res.locale)
+                            .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                    }
                     if (refund && res.paidAmount > 0.0) {
                         try {
                             refundService.refundWholeReservation(resolveWalletForRefund(res), res)
@@ -1243,16 +1332,29 @@ class AdminDashboardService(
             // Notify all active series enrollees + refund the lesson amount
             val series = eventSeriesRepository.get(seriesId)
             val refundAmount = series?.lessonRefundAmount ?: 0.0
+
+            audit.record(
+                type = AuditEventType.LESSON_CANCELLED,
+                subjectLabel = series?.title ?: instance.title,
+                seriesId = seriesId,
+                instanceId = instanceId,
+                detail = "Lekce ${instance.startDateTime} zrušena",
+            )
+
             reservationRepository.findByReference(Reference.Series(seriesId))
                 .filter { it.status != Reservation.Status.CANCELLED }
                 .forEach { res ->
-                    emailService.sendLessonCancelledNotification(
-                        toEmail = res.contactEmail,
-                        contactName = res.contactName,
-                        seriesTitle = series?.title ?: instance.title,
-                        lessonDateTime = instance.startDateTime,
-                        locale = res.locale,
-                    ).onLeft { captureEmailError(logger, "Failed to send lesson-cancelled email for ${res.id}: $it") }
+                    withAuditSubject(
+                        AuditSubject(seriesId = seriesId, instanceId = instanceId, reservationId = res.id, label = res.contactName)
+                    ) {
+                        emailService.sendLessonCancelledNotification(
+                            toEmail = res.contactEmail,
+                            contactName = res.contactName,
+                            seriesTitle = series?.title ?: instance.title,
+                            lessonDateTime = instance.startDateTime,
+                            locale = res.locale,
+                        ).onLeft { captureEmailError(logger, "Failed to send lesson-cancelled email for ${res.id}: $it") }
+                    }
 
                     val alreadyOptedOut = seriesLessonOptOutRepository
                         .findByReservationAndInstance(res.id, instanceId) != null
@@ -1279,6 +1381,28 @@ class AdminDashboardService(
         val items = paymentEventRepository.findAll(page, pageSize)
         val total = paymentEventRepository.countAll()
         PaymentEventsPage(items = items, page = page, pageSize = pageSize, totalCount = total)
+    }
+
+    override suspend fun getEventAuditLog(
+        eventId: Uuid,
+        isSeries: Boolean,
+        page: Int,
+        pageSize: Int,
+        category: AuditCategory?,
+    ): Either<AdminError.GetEventAuditLog, AuditLogPage> = either {
+        ensure(page >= 0) { AdminError.FailedToGetEventAuditLog("Neplatná stránka.") }
+        ensure(pageSize in 1..200) { AdminError.FailedToGetEventAuditLog("Neplatná velikost stránky.") }
+
+        // U lekce, která patří do kurzu, se přiberou i záznamy vedené na kurzu —
+        // účastníci jsou zapsaní na kurz, ne na jednotlivou lekci.
+        val parentSeriesId = if (isSeries) null else eventInstanceRepository.get(eventId)?.seriesId
+
+        val (items, total) = parZip(
+            { auditRepository.findForEvent(eventId, isSeries, category, page, pageSize, parentSeriesId) },
+            { auditRepository.countForEvent(eventId, isSeries, category, parentSeriesId) },
+        ) { i, c -> i to c }
+
+        AuditLogPage(items = items, page = page, pageSize = pageSize, totalCount = total)
     }
 
     override suspend fun getWallets(page: Int, pageSize: Int): Either<AdminError.GetWallets, WalletsPage> =

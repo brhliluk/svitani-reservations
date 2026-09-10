@@ -4,6 +4,8 @@ import cz.svitaninymburk.projects.reservations.mock.MockDataLoader
 import cz.svitaninymburk.projects.reservations.plugins.configureDatabases
 import cz.svitaninymburk.projects.reservations.plugins.startPaymentCheck
 import cz.svitaninymburk.projects.reservations.plugins.startWalletResetJobs
+import cz.svitaninymburk.projects.reservations.plugins.startAuditBackfill
+import cz.svitaninymburk.projects.reservations.plugins.startAuditRetentionJob
 import cz.svitaninymburk.projects.reservations.plugins.startSeriesScheduleBackfill
 import cz.svitaninymburk.projects.reservations.plugins.configureRouting
 import cz.svitaninymburk.projects.reservations.plugins.configureSecurity
@@ -48,6 +50,8 @@ fun Application.main() {
     startPaymentCheck()
     startWalletResetJobs()
     startSeriesScheduleBackfill()
+    startAuditBackfill()
+    startAuditRetentionJob()
     configureSecurity()
     configureRouting()
     configureSentry()

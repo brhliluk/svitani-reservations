@@ -26,6 +26,7 @@ import kotlin.uuid.Uuid
     @Serializable @SerialName("delete_event") sealed interface DeleteEvent : AdminError
     @Serializable @SerialName("delete_series") sealed interface DeleteSeries : AdminError
     @Serializable @SerialName("get_payment_events") sealed interface GetPaymentEvents : AdminError
+    @Serializable @SerialName("get_event_audit_log") sealed interface GetEventAuditLog : AdminError
     @Serializable @SerialName("get_wallets") sealed interface GetWallets : AdminError
     @Serializable @SerialName("cancel_event") sealed interface CancelEvent : AdminError
     @Serializable @SerialName("cancel_series") sealed interface CancelSeries : AdminError
@@ -56,6 +57,7 @@ import kotlin.uuid.Uuid
     @Serializable data class FailedToDeleteEvent(val message: String) : DeleteEvent
     @Serializable data class FailedToDeleteSeries(val message: String) : DeleteSeries
     @Serializable data class FailedToGetPaymentEvents(val message: String) : GetPaymentEvents
+    @Serializable data class FailedToGetEventAuditLog(val message: String) : GetEventAuditLog
     @Serializable data class EventAlreadyPassed(val id: Uuid) : AdminError, CancelEvent, CancelSeries
     @Serializable data class InstanceNotFoundForCancel(val id: Uuid) : AdminError, CancelEvent
     @Serializable data class SeriesNotFoundForCancel(val id: Uuid) : AdminError, CancelSeries
@@ -104,6 +106,7 @@ fun AdminError.localizedMessage(strings: ErrorStrings): String = when (this) {
     is AdminError.FailedToDeleteEvent -> message
     is AdminError.FailedToDeleteSeries -> message
     is AdminError.FailedToGetPaymentEvents -> message
+    is AdminError.FailedToGetEventAuditLog -> message
     is AdminError.GetInstances.Failed -> strings.errorAdminGetInstancesFailed
     is AdminError.CancelLesson.InstanceNotFound -> strings.errorAdminCancelLessonInstanceNotFound
     is AdminError.CancelLesson.Failed -> strings.errorAdminCancelLessonFailed

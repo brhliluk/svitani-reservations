@@ -7,6 +7,10 @@ import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
+import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
+import cz.svitaninymburk.projects.reservations.util.auditSubjectFor
+import cz.svitaninymburk.projects.reservations.util.withAuditSubject
 import cz.svitaninymburk.projects.reservations.util.captureEmailError
 import io.ktor.util.logging.KtorSimpleLogger
 import kotlinx.datetime.TimeZone
@@ -26,6 +30,7 @@ class WaitlistPromoter(
     private val emailService: EmailService,
     private val qrCodeService: QrCodeGeneratorService,
     private val appBaseUrl: String,
+    private val audit: AuditService = AuditService(InMemoryAuditRepository()),
 ) {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -99,6 +104,16 @@ class WaitlistPromoter(
             }
 
             if (target != null) {
+                val subject = auditSubjectFor(target, promoted.id)
+                audit.record(
+                    type = AuditEventType.RESERVATION_WAITLIST_PROMOTED,
+                    subjectLabel = promoted.contactName,
+                    seriesId = subject.seriesId,
+                    instanceId = subject.instanceId,
+                    reservationId = promoted.id,
+                    detail = "Posunuto z pořadníku, nový stav ${promoted.status}",
+                )
+
                 val qrImage: ByteArray? = if (promoted.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
                     qrCodeService.generateQrPng(promoted)
                 } else null
@@ -108,14 +123,16 @@ class WaitlistPromoter(
                     is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, promoted.id, appBaseUrl)
                 }.toByteArray(Charsets.UTF_8)
 
-                emailService.sendWaitlistPromotion(
-                    toEmail = promoted.contactEmail,
-                    reservation = promoted,
-                    target = target,
-                    bankAccount = qrCodeService.accountNumber,
-                    qrCodeImage = qrImage,
-                    icalBytes = icalBytes,
-                ).onLeft { captureEmailError(logger, "Failed to send waitlist promotion email for reservation ${promoted.id}: $it") }
+                withAuditSubject(subject) {
+                    emailService.sendWaitlistPromotion(
+                        toEmail = promoted.contactEmail,
+                        reservation = promoted,
+                        target = target,
+                        bankAccount = qrCodeService.accountNumber,
+                        qrCodeImage = qrImage,
+                        icalBytes = icalBytes,
+                    ).onLeft { captureEmailError(logger, "Failed to send waitlist promotion email for reservation ${promoted.id}: $it") }
+                }
             }
 
             slotsLeft -= candidate.seatCount

@@ -27,6 +27,8 @@ import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.user.User
+import cz.svitaninymburk.projects.reservations.admin.AuditLogPage
+import cz.svitaninymburk.projects.reservations.audit.AuditCategory
 import dev.kilua.rpc.annotations.RpcService
 import kotlin.uuid.Uuid
 
@@ -62,6 +64,7 @@ interface AdminServiceInterface {
     suspend fun getSeriesInstances(seriesId: Uuid, page: Int = 0, pageSize: Int = 10): Either<AdminError.GetInstances, SeriesInstancesPage>
     suspend fun cancelSeriesLesson(instanceId: Uuid): Either<AdminError.CancelLesson, Unit>
     suspend fun getPaymentEvents(page: Int, pageSize: Int): Either<AdminError.GetPaymentEvents, PaymentEventsPage>
+    suspend fun getEventAuditLog(eventId: Uuid, isSeries: Boolean, page: Int = 0, pageSize: Int = 50, category: AuditCategory? = null): Either<AdminError.GetEventAuditLog, AuditLogPage>
     suspend fun getWallets(page: Int, pageSize: Int): Either<AdminError.GetWallets, WalletsPage>
     suspend fun getWalletTransactions(walletId: String): Either<AdminError.GetWallets, List<WalletTransaction>>
     suspend fun adjustWalletBalance(walletId: String, amount: Double, note: String, isCredit: Boolean): Either<AdminError.GetWallets, Wallet>
