@@ -2,9 +2,7 @@ package cz.svitaninymburk.projects.reservations.ui.dashboard
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
@@ -21,9 +19,6 @@ import dev.kilua.core.IComponent
 import dev.kilua.html.*
 import kotlin.uuid.Uuid
 
-enum class DashboardTab { SCHEDULE, CATALOG }
-enum class ViewMode { LIST, CALENDAR }
-
 @Composable
 fun IComponent.DashboardLayout(
     user: User?,
@@ -38,165 +33,145 @@ fun IComponent.DashboardLayout(
     onFilterChange: (Uuid?) -> Unit = {},
     onSeriesFilterChange: (Uuid?) -> Unit = {},
 ) {
-    val currentStrings by strings
-
-    var reservationTarget by remember { mutableStateOf<ReservationTarget?>(null) }
-    var isWaitlistSignup by remember { mutableStateOf(false) }
-    var activeTab by remember { mutableStateOf(DashboardTab.SCHEDULE) }
-    var selectedDefinitionId by remember { mutableStateOf(initialFilterId?.let { Uuid.parse(it) }) }
-    var selectedSeriesId by remember { mutableStateOf(initialSeriesId?.let { Uuid.parse(it) }) }
-    var viewMode by remember { mutableStateOf(ViewMode.LIST) }
-
-    fun clearFilters() {
-        selectedDefinitionId = null
-        selectedSeriesId = null
-        onFilterChange(null)
-        onSeriesFilterChange(null)
-    }
-
-    val filteredEvents = remember(events, selectedSeriesId, selectedDefinitionId) {
-        when {
-            selectedSeriesId != null -> events.filter { it.seriesId == selectedSeriesId }
-            selectedDefinitionId != null -> events.filter { it.definitionId == selectedDefinitionId }
-            else -> events
-        }
-    }
-
-    val filteredSeries = remember(series, selectedSeriesId, selectedDefinitionId) {
-        when {
-            selectedSeriesId != null -> series.filter { it.id == selectedSeriesId }
-            selectedDefinitionId != null -> series.filter { it.definitionId == selectedDefinitionId }
-            else -> series
-        }
-    }
-
-    val activeFilterName = remember(selectedSeriesId, selectedDefinitionId, series, definitions) {
-        selectedSeriesId?.let { id -> series.find { it.id == id }?.title }
-            ?: definitions.find { it.id == selectedDefinitionId }?.title
+    val model = remember {
+        DashboardLayoutModel(initialFilterId, initialSeriesId, onFilterChange, onSeriesFilterChange)
     }
 
     div(className = "min-h-screen bg-base-200 flex flex-col font-sans") {
         main(className = "flex-1 w-full max-w-5xl mx-auto px-3 py-4 sm:px-4 sm:py-8 flex flex-col gap-4 sm:gap-6") {
 
-            div(className = "flex justify-center") {
-                div(className = "tabs tabs-boxed bg-base-100 p-1 rounded-full shadow-sm w-full sm:w-auto") {
+            DashboardTabs(model)
 
-                    a(className = "tab rounded-full min-h-11 px-4 text-sm sm:text-base flex-1 sm:flex-none transition-colors duration-200 ${if (activeTab == DashboardTab.SCHEDULE) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
-                        onClick { activeTab = DashboardTab.SCHEDULE }
-                        span(className = "icon-[heroicons--calendar-days] size-5 mr-2")
-                        +currentStrings.schedule
-                    }
-
-                    a(className = "tab rounded-full min-h-11 px-4 text-sm sm:text-base flex-1 sm:flex-none transition-colors duration-200 ${if (activeTab == DashboardTab.CATALOG) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
-                        onClick {
-                            activeTab = DashboardTab.CATALOG
-                            clearFilters()
-                        }
-                        span(className = "icon-[heroicons--swatch] size-5 mr-2")
-                        +currentStrings.catalog
-                    }
-                }
-            }
-
-            if (activeTab == DashboardTab.CATALOG) {
-                div(className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 animate-fade-in") {
-                    definitions.forEach { def ->
-                        DefinitionCard(def) {
-                            selectedSeriesId = null
-                            selectedDefinitionId = def.id
-                            activeTab = DashboardTab.SCHEDULE
-                            onSeriesFilterChange(null)
-                            onFilterChange(def.id)
-                        }
-                    }
-                }
+            if (model.activeTab == DashboardTab.CATALOG) {
+                CatalogGrid(definitions) { model.filterByDefinition(it.id) }
             } else {
-                div(className = "flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 mb-2") {
-                    if (activeFilterName != null) {
-                        div(className = "badge badge-primary gap-2 px-4 py-2 h-auto min-h-11 whitespace-normal text-left w-full sm:w-auto sm:max-w-md justify-start sm:justify-center cursor-pointer hover:badge-error hover:text-white transition-colors tooltip tooltip-bottom") {
-                            attribute("data-tip", currentStrings.clearFilterTooltip)
-                            onClick { clearFilters() }
-                            span(className = "icon-[heroicons--funnel] size-4 shrink-0")
-                            span(className = "flex-1") { +currentStrings.filterIsActive(activeFilterName) }
-                            span(className = "icon-[heroicons--x-mark] size-4 shrink-0 ml-1")
-                        }
-                    } else {
-                        div(className = "text-2xl font-bold text-base-content") {
-                            +currentStrings.allEvents
-                        }
-                    }
-
-                    div(className = "join bg-base-100 shadow-sm border border-base-300 rounded-lg w-full sm:w-auto") {
-                        button(className = "join-item btn flex-1 sm:flex-none min-h-11 ${if(viewMode == ViewMode.LIST) "btn-primary" else "btn-ghost"}") {
-                            attribute("aria-label", currentStrings.listView)
-                            onClick { viewMode = ViewMode.LIST }
-                            span(className = "icon-[heroicons--list-bullet] size-5")
-                        }
-                        button(className = "join-item btn flex-1 sm:flex-none min-h-11 ${if(viewMode == ViewMode.CALENDAR) "btn-primary" else "btn-ghost"}") {
-                            attribute("aria-label", currentStrings.calendarView)
-                            onClick { viewMode = ViewMode.CALENDAR }
-                            span(className = "icon-[heroicons--calendar] size-5")
-                        }
-                    }
-                }
-
-                // Samotný seznam (List View)
-                if (viewMode == ViewMode.LIST) {
-                    div(className = "flex flex-col gap-6 animate-fade-in") {
-
-                        if (filteredEvents.isEmpty() && filteredSeries.isEmpty()) {
-                            div(className = "alert bg-base-100 shadow-sm") {
-                                span(className = "icon-[heroicons--information-circle] size-6 text-info")
-                                +currentStrings.noEventsFoundForFilter
-                            }
-                        } else {
-                            if (filteredSeries.isNotEmpty()) {
-                                div(className = "flex flex-col gap-3 sm:gap-4") {
-                                    div(className = "text-xs font-bold text-primary/60 uppercase tracking-wider px-1") {
-                                        +currentStrings.openCourses
-                                    }
-                                    div(className = "grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6") {
-                                        filteredSeries.forEach { seriesItem ->
-                                            SeriesCard(seriesItem) { reservationTarget = ReservationTarget.Series(seriesItem) }
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (filteredEvents.isNotEmpty()) {
-                                div(className = "flex flex-col gap-3 sm:gap-4") {
-                                    if (filteredSeries.isNotEmpty()) {
-                                        div(className = "text-xs font-bold text-primary/60 uppercase tracking-wider px-1") {
-                                            +currentStrings.individualEvents
-                                        }
-                                    }
-                                    filteredEvents.forEach { eventItem ->
-                                        Event(
-                                            event = eventItem,
-                                            onClick = { isWaitlistSignup = false; reservationTarget = ReservationTarget.Instance(eventItem) },
-                                            onWaitlistClick = { isWaitlistSignup = true; reservationTarget = ReservationTarget.Instance(eventItem) },
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                ScheduleToolbar(model, model.filterName(series, definitions))
+                if (model.viewMode == ViewMode.LIST) {
+                    ScheduleList(model.events(events), model.series(series), model)
                 } else {
-                    CalendarView(filteredEvents) { isWaitlistSignup = false; reservationTarget = ReservationTarget.Instance(it) }
+                    CalendarView(model.events(events)) { model.openReservation(ReservationTarget.Instance(it)) }
                 }
             }
         }
 
         ReservationModal(
-            target = reservationTarget,
+            target = model.reservationTarget,
             user = user,
             initialWalletCode = walletCode,
             isSubmitting = isSubmitting,
-            asWaitlist = isWaitlistSignup,
-            onClose = { reservationTarget = null; isWaitlistSignup = false },
-            onSubmit = { target, data ->
-                onSubmitReservation(target, data)
-            }
+            asWaitlist = model.isWaitlistSignup,
+            onClose = { model.closeReservation() },
+            onSubmit = { target, data -> onSubmitReservation(target, data) },
         )
+    }
+}
+
+@Composable
+private fun IComponent.DashboardTabs(model: DashboardLayoutModel) {
+    val currentStrings by strings
+    div(className = "flex justify-center") {
+        div(className = "tabs tabs-boxed bg-base-100 p-1 rounded-full shadow-sm w-full sm:w-auto") {
+
+            a(className = "tab rounded-full min-h-11 px-4 text-sm sm:text-base flex-1 sm:flex-none transition-colors duration-200 ${if (model.activeTab == DashboardTab.SCHEDULE) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
+                onClick { model.showSchedule() }
+                span(className = "icon-[heroicons--calendar-days] size-5 mr-2")
+                +currentStrings.schedule
+            }
+
+            a(className = "tab rounded-full min-h-11 px-4 text-sm sm:text-base flex-1 sm:flex-none transition-colors duration-200 ${if (model.activeTab == DashboardTab.CATALOG) "tab-active bg-primary text-primary-content font-bold shadow-sm" else ""}") {
+                onClick { model.showCatalog() }
+                span(className = "icon-[heroicons--swatch] size-5 mr-2")
+                +currentStrings.catalog
+            }
+        }
+    }
+}
+
+@Composable
+private fun IComponent.CatalogGrid(definitions: List<EventDefinition>, onSelect: (EventDefinition) -> Unit) {
+    div(className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 animate-fade-in") {
+        definitions.forEach { def ->
+            DefinitionCard(def) { onSelect(def) }
+        }
+    }
+}
+
+/** Řádek nad výpisem: co je zrovna vyfiltrované a přepínač seznam / kalendář. */
+@Composable
+private fun IComponent.ScheduleToolbar(model: DashboardLayoutModel, activeFilterName: String?) {
+    val currentStrings by strings
+    div(className = "flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 mb-2") {
+        if (activeFilterName != null) {
+            div(className = "badge badge-primary gap-2 px-4 py-2 h-auto min-h-11 whitespace-normal text-left w-full sm:w-auto sm:max-w-md justify-start sm:justify-center cursor-pointer hover:badge-error hover:text-white transition-colors tooltip tooltip-bottom") {
+                attribute("data-tip", currentStrings.clearFilterTooltip)
+                onClick { model.clearFilters() }
+                span(className = "icon-[heroicons--funnel] size-4 shrink-0")
+                span(className = "flex-1") { +currentStrings.filterIsActive(activeFilterName) }
+                span(className = "icon-[heroicons--x-mark] size-4 shrink-0 ml-1")
+            }
+        } else {
+            div(className = "text-2xl font-bold text-base-content") { +currentStrings.allEvents }
+        }
+
+        div(className = "join bg-base-100 shadow-sm border border-base-300 rounded-lg w-full sm:w-auto") {
+            button(className = "join-item btn flex-1 sm:flex-none min-h-11 ${if (model.viewMode == ViewMode.LIST) "btn-primary" else "btn-ghost"}") {
+                attribute("aria-label", currentStrings.listView)
+                onClick { model.setViewMode(ViewMode.LIST) }
+                span(className = "icon-[heroicons--list-bullet] size-5")
+            }
+            button(className = "join-item btn flex-1 sm:flex-none min-h-11 ${if (model.viewMode == ViewMode.CALENDAR) "btn-primary" else "btn-ghost"}") {
+                attribute("aria-label", currentStrings.calendarView)
+                onClick { model.setViewMode(ViewMode.CALENDAR) }
+                span(className = "icon-[heroicons--calendar] size-5")
+            }
+        }
+    }
+}
+
+@Composable
+private fun IComponent.ScheduleList(
+    events: List<EventInstance>,
+    series: List<EventSeries>,
+    model: DashboardLayoutModel,
+) {
+    val currentStrings by strings
+    div(className = "flex flex-col gap-6 animate-fade-in") {
+        if (events.isEmpty() && series.isEmpty()) {
+            div(className = "alert bg-base-100 shadow-sm") {
+                span(className = "icon-[heroicons--information-circle] size-6 text-info")
+                +currentStrings.noEventsFoundForFilter
+            }
+        } else {
+            if (series.isNotEmpty()) {
+                div(className = "flex flex-col gap-3 sm:gap-4") {
+                    div(className = "text-xs font-bold text-primary/60 uppercase tracking-wider px-1") {
+                        +currentStrings.openCourses
+                    }
+                    div(className = "grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6") {
+                        series.forEach { seriesItem ->
+                            SeriesCard(seriesItem) { model.openReservation(ReservationTarget.Series(seriesItem)) }
+                        }
+                    }
+                }
+            }
+
+            if (events.isNotEmpty()) {
+                div(className = "flex flex-col gap-3 sm:gap-4") {
+                    // Nadpis jen když nad seznamem stojí ještě kurzy — jinak je zbytečný.
+                    if (series.isNotEmpty()) {
+                        div(className = "text-xs font-bold text-primary/60 uppercase tracking-wider px-1") {
+                            +currentStrings.individualEvents
+                        }
+                    }
+                    events.forEach { eventItem ->
+                        Event(
+                            event = eventItem,
+                            onClick = { model.openReservation(ReservationTarget.Instance(eventItem)) },
+                            onWaitlistClick = { model.openReservation(ReservationTarget.Instance(eventItem), asWaitlist = true) },
+                        )
+                    }
+                }
+            }
+        }
     }
 }

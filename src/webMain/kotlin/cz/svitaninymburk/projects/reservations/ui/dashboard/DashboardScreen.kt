@@ -1,36 +1,20 @@
 package cz.svitaninymburk.projects.reservations.ui.dashboard
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import app.softwork.routingcompose.Router
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
-import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.event.EventDefinition
-import cz.svitaninymburk.projects.reservations.event.EventInstance
-import cz.svitaninymburk.projects.reservations.event.EventSeries
-import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
-import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
-import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
-import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormData
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
-import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.html.button
 import dev.kilua.html.div
 import dev.kilua.html.span
-import dev.kilua.rpc.getService
-import web.console.console
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
 
 @Composable
 fun IComponent.DashboardScreen(
@@ -39,73 +23,14 @@ fun IComponent.DashboardScreen(
     initialFilterId: String? = null,
     initialSeriesId: String? = null,
 ) {
-    var retryTrigger by remember { mutableStateOf(0) }
-    var isSubmitting by remember { mutableStateOf(false) }
-    var toastData by remember { mutableStateOf<ToastData?>(null) }
     val currentStrings by strings
-
     val router = Router.current
     val scope = rememberCoroutineScope()
-    val eventService = getService<EventServiceInterface>(RpcSerializersModules)
-    val reservationService = getService<ReservationServiceInterface>(RpcSerializersModules)
+    val model = remember { buildDashboardModel(scope, router) }
 
-    val uiState by produceState<DashboardUiState>(initialValue = DashboardUiState.Loading, key1 = retryTrigger) {
-        value = DashboardUiState.Loading
+    LaunchedEffect(Unit) { model.load() }
 
-        try {
-            eventService.getDashboardData()
-                .onRight { data -> value = DashboardUiState.Success(data.instances, data.series, data.definitions) }
-                .onLeft { error -> value = DashboardUiState.Error(error.localizedMessage(currentStrings)) }
-        } catch (e: Exception) {
-            value = DashboardUiState.Error(currentStrings.loadingError(e.message ?: "unknown"))
-            e.printStackTrace()
-        }
-    }
-
-    // isSubmitting se MUSÍ nulovat ve finally. Kilua RPC klient při chybě (přerušené
-    // spojení, chybová obálka ze serveru) vyhazuje výjimku, nevrací Either.Left — bez
-    // finally zůstal spinner běžet navždy, bez hlášky, a uživatel odeslal rezervaci
-    // znovu. Právě takhle vznikly duplicity 18. 8. 2026.
-    suspend fun submitReservation(target: ReservationTarget, formData: ReservationFormData) {
-        isSubmitting = true
-        try {
-            val result = when {
-                formData.asWaitlist && target is ReservationTarget.Instance -> reservationService.joinWaitlistInstance(
-                    request = formData.toCreateInstanceReservationRequest(target.id),
-                    userId = user?.id
-                )
-                formData.asWaitlist && target is ReservationTarget.Series -> reservationService.joinWaitlistSeries(
-                    request = formData.toCreateSeriesReservationRequest(target.id),
-                    userId = user?.id
-                )
-                target is ReservationTarget.Instance -> reservationService.reserveInstance(
-                    request = formData.toCreateInstanceReservationRequest(target.id),
-                    userId = user?.id
-                )
-                else -> reservationService.reserveSeries(
-                    request = formData.toCreateSeriesReservationRequest((target as ReservationTarget.Series).id),
-                    userId = user?.id
-                )
-            }
-
-            result
-                .onRight { newReservation -> router.navigate("/reservation/${newReservation.id}") }
-                .onLeft { error ->
-                    toastData = ToastData(currentStrings.reservationFailed(error.localizedMessage(currentStrings)), ToastType.Error)
-                }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            // Rezervace mohla na serveru vzniknout — netvrdit, že selhala.
-            console.error("Reservation submit failed: ${e.message}")
-            toastData = ToastData(currentStrings.reservationOutcomeUnknown, ToastType.Error)
-        } finally {
-            isSubmitting = false
-        }
-    }
-
-
-    when (val state = uiState) {
+    when (val state = model.uiState) {
         is DashboardUiState.Loading -> Loading()
         is DashboardUiState.Success -> DashboardLayout(
             user = user,
@@ -115,24 +40,19 @@ fun IComponent.DashboardScreen(
             definitions = state.definitions,
             initialFilterId = initialFilterId,
             initialSeriesId = initialSeriesId,
-            isSubmitting = isSubmitting,
-            onSubmitReservation = { target, formData -> scope.launch { submitReservation(target, formData) } },
-            onFilterChange = { id ->
-                if (id == null) router.navigate("/")
-                else router.navigate("/?filter=$id")
-            },
-            onSeriesFilterChange = { id ->
-                if (id == null) router.navigate("/")
-                else router.navigate("/?series=$id")
-            }
+            isSubmitting = model.isSubmitting,
+            onSubmitReservation = { target, formData -> model.submitReservation(target, formData, user?.id) },
+            onFilterChange = { id -> router.navigate(if (id == null) "/" else "/?filter=$id") },
+            onSeriesFilterChange = { id -> router.navigate(if (id == null) "/" else "/?series=$id") },
         )
+
         is DashboardUiState.Error -> {
             div(className = "min-h-screen flex items-center justify-center bg-base-200") {
                 div(className = "alert alert-error max-w-md") {
                     span(className = "icon-[heroicons--exclamation-circle] size-6")
                     span { +state.message }
                     button(className = "btn min-h-11") {
-                        onClick { retryTrigger++ }
+                        onClick { model.load() }
                         +currentStrings.retry
                     }
                 }
@@ -141,14 +61,8 @@ fun IComponent.DashboardScreen(
     }
 
     Toast(
-        message = toastData?.message,
-        type = toastData?.type ?: ToastType.Error,
-        onDismiss = { toastData = null }
+        message = model.toast?.message,
+        type = model.toast?.type ?: ToastType.Error,
+        onDismiss = { model.dismissToast() },
     )
-}
-
-private sealed interface DashboardUiState {
-    data object Loading : DashboardUiState
-    data class Success(val instances: List<EventInstance>, val series: List<EventSeries>, val definitions: List<EventDefinition>) : DashboardUiState
-    data class Error(val message: String) : DashboardUiState
 }
