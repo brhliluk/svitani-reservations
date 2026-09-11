@@ -1348,6 +1348,10 @@ class AdminDashboardService(
     override suspend fun cancelSeriesLesson(instanceId: Uuid): Either<AdminError.CancelLesson, Unit> = either {
         val instance = ensureNotNull(eventInstanceRepository.get(instanceId)) { AdminError.CancelLesson.InstanceNotFound }
         val seriesId = instance.seriesId ?: raise(AdminError.CancelLesson.InstanceNotFound)
+        // Zrušení lekce vyplácí kredit, takže druhé zavolání ho vyplatí znovu.
+        // Tlačítko v UI po zrušení mizí, ale dvojklik nad neaktuálním seznamem
+        // i přímé volání API sem dojdou.
+        if (instance.isCancelled) return@either
 
         try {
             // Mark instance as cancelled
@@ -1356,11 +1360,12 @@ class AdminDashboardService(
 
             // Notify all active series enrollees + refund the lesson amount
             val series = eventSeriesRepository.get(seriesId)
+            val seriesTitle = series?.title ?: instance.title
             val refundAmount = series?.lessonRefundAmount ?: 0.0
 
             audit.record(
                 type = AuditEventType.LESSON_CANCELLED,
-                subjectLabel = series?.title ?: instance.title,
+                subjectLabel = seriesTitle,
                 seriesId = seriesId,
                 instanceId = instanceId,
                 detail = "Lekce ${instance.startDateTime} zrušena",
@@ -1375,7 +1380,7 @@ class AdminDashboardService(
                         emailService.sendLessonCancelledNotification(
                             toEmail = res.contactEmail,
                             contactName = res.contactName,
-                            seriesTitle = series?.title ?: instance.title,
+                            seriesTitle = seriesTitle,
                             lessonDateTime = instance.startDateTime,
                             locale = res.locale,
                         ).onLeft { captureEmailError(logger, "Failed to send lesson-cancelled email for ${res.id}: $it") }
@@ -1392,6 +1397,39 @@ class AdminDashboardService(
                                     resolveWalletForRefund(res), res, refundAmount,
                                     WalletTransactionReason.LESSON_OPT_OUT_REFUND,
                                 )
+                            }
+                        } catch (e: Exception) {
+                            logger.error("Failed to refund reservation ${res.id}", e)
+                        }
+                    }
+                }
+
+            // Kdo si koupil jen tuhle lekci (drop-in), přišel o celou svou rezervaci,
+            // ne o jednu lekci z kurzu — proto storno rezervace a vrácení zaplacené
+            // částky, ne lessonRefundAmount. Uzávěrka 18:00 se neuplatní, chyba není
+            // na jeho straně. Stejný postup jako cancelEventInstance.
+            reservationRepository.findByReference(Reference.Instance(instanceId))
+                .filter { it.status != Reservation.Status.CANCELLED }
+                .forEach { res ->
+                    reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
+                    val resSubject = AuditSubject(seriesId, instanceId, res.id, res.contactName)
+                    audit.record(
+                        type = AuditEventType.RESERVATION_CANCELLED,
+                        subjectLabel = res.contactName,
+                        seriesId = seriesId,
+                        instanceId = instanceId,
+                        reservationId = res.id,
+                        amount = res.paidAmount,
+                        detail = "Zrušeno se zrušením lekce",
+                    )
+                    withAuditSubject(resSubject) {
+                        emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
+                            .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                    }
+                    if (res.paidAmount > 0.0) {
+                        try {
+                            withAuditSubject(resSubject) {
+                                refundService.refundWholeReservation(resolveWalletForRefund(res), res)
                             }
                         } catch (e: Exception) {
                             logger.error("Failed to refund reservation ${res.id}", e)

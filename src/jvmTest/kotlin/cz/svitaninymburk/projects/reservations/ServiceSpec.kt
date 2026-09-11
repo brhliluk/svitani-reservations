@@ -1252,6 +1252,95 @@ class AdminEditDeleteSpec {
 
         assertNull(walletRepo.findByRegisteredUserId(userId))
     }
+
+    @Test
+    fun `cancelSeriesLesson refunds the whole paid amount to a drop-in reservation on that lesson`() = runBlocking {
+        val defId = Uuid.random()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+
+        // 60 Kč je kredit za odhlášení z kurzu — na koho si koupil jen tuhle
+        // lekci, se nevztahuje, ten má dostat celých 100 Kč, co zaplatil.
+        val series = makeSeries(defId).copy(lessonRefundAmount = 60.0)
+        seriesRepo.create(series)
+        val lesson = makeSeriesInstance(series.id).copy(isDropIn = true)
+        instanceRepo.create(lesson)
+        val userId = Uuid.random()
+        val res = makeReservation(Reference.Instance(lesson.id))
+            .copy(registeredUserId = userId, paidAmount = 100.0)
+        reservationRepo.save(res)
+
+        val result = makeService(
+            instanceRepo = instanceRepo, seriesRepo = seriesRepo,
+            reservationRepo = reservationRepo, walletRepo = walletRepo,
+        ).cancelSeriesLesson(lesson.id)
+        assertTrue(result.isRight())
+
+        assertEquals(100.0, walletRepo.findByRegisteredUserId(userId)?.balance)
+        assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(res.id)?.status)
+    }
+
+    @Test
+    fun `cancelSeriesLesson refunds a drop-in reservation even when the series has no lessonRefundAmount`() = runBlocking {
+        val defId = Uuid.random()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+
+        val series = makeSeries(defId) // lessonRefundAmount defaults to null
+        seriesRepo.create(series)
+        val lesson = makeSeriesInstance(series.id).copy(isDropIn = true)
+        instanceRepo.create(lesson)
+        val userId = Uuid.random()
+        val res = makeReservation(Reference.Instance(lesson.id))
+            .copy(registeredUserId = userId, paidAmount = 100.0)
+        reservationRepo.save(res)
+
+        makeService(
+            instanceRepo = instanceRepo, seriesRepo = seriesRepo,
+            reservationRepo = reservationRepo, walletRepo = walletRepo,
+        ).cancelSeriesLesson(lesson.id)
+
+        assertEquals(100.0, walletRepo.findByRegisteredUserId(userId)?.balance)
+        assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(res.id)?.status)
+    }
+
+    @Test
+    fun `cancelSeriesLesson on an already cancelled lesson refunds nothing more`() = runBlocking {
+        val defId = Uuid.random()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+
+        val series = makeSeries(defId).copy(lessonRefundAmount = 60.0)
+        seriesRepo.create(series)
+        val lesson = makeSeriesInstance(series.id)
+        instanceRepo.create(lesson)
+        val enrolleeId = Uuid.random()
+        reservationRepo.save(
+            makeReservation(Reference.Series(series.id))
+                .copy(registeredUserId = enrolleeId, paidAmount = 500.0)
+        )
+        val dropInId = Uuid.random()
+        reservationRepo.save(
+            makeReservation(Reference.Instance(lesson.id))
+                .copy(registeredUserId = dropInId, paidAmount = 100.0)
+        )
+
+        val service = makeService(
+            instanceRepo = instanceRepo, seriesRepo = seriesRepo,
+            reservationRepo = reservationRepo, walletRepo = walletRepo,
+        )
+        service.cancelSeriesLesson(lesson.id)
+        service.cancelSeriesLesson(lesson.id)
+
+        assertEquals(60.0, walletRepo.findByRegisteredUserId(enrolleeId)?.balance)
+        assertEquals(100.0, walletRepo.findByRegisteredUserId(dropInId)?.balance)
+    }
 }
 
 class ICalGeneratorSpec {
