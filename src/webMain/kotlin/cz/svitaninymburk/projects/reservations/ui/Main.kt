@@ -3,15 +3,10 @@ package cz.svitaninymburk.projects.reservations.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import app.softwork.routingcompose.Router
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
-import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminDashboardScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminLayout
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AdminAttendanceScreen
@@ -38,7 +33,6 @@ import cz.svitaninymburk.projects.reservations.ui.dashboard.MyReservationsScreen
 import cz.svitaninymburk.projects.reservations.ui.reservation.detail.ReservationDetailScreen
 import cz.svitaninymburk.projects.reservations.ui.wallet.WalletScreen
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
-import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
@@ -49,159 +43,119 @@ import dev.kilua.html.footer
 import dev.kilua.html.main
 import dev.kilua.html.p
 import dev.kilua.routing.browserRouter
-import dev.kilua.rpc.getService
-import kotlinx.coroutines.launch
-import web.console.console
 import kotlin.uuid.Uuid
 
 @Composable
 fun IComponent.MainLayout() {
-    val authService = getService<AuthServiceInterface>(RpcSerializersModules)
     val scope = rememberCoroutineScope()
-    val currentStrings by strings
+    val session = remember { buildSessionModel(scope) }
 
-    var currentUser by remember { mutableStateOf<User?>(null) }
-    var userWalletCode by remember { mutableStateOf<String?>(null) }
-    var toastState by remember { mutableStateOf<ToastData?>(null) }
-    var userLoaded by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { session.refresh() }
 
-    fun showToast(message: String, type: ToastType = ToastType.Success) {
-        toastState = ToastData(message, type)
-    }
-
-    fun refreshUser() = scope.launch {
-        try {
-            authService.getCurrentUser()
-                .onRight { user ->
-                    currentUser = user
-                    authService.getMyWalletCode().onRight { code -> userWalletCode = code }
-                }
-                .onLeft { error ->
-                    console.log(error.localizedMessage(currentStrings))
-                    currentUser = null
-                    userWalletCode = null
-                }
-        } catch (e: Exception) {
-            console.log(e.message ?: "getCurrentUser failed")
-            currentUser = null
-            userWalletCode = null
-        } finally {
-            userLoaded = true
-        }
-    }
-
-    fun doLogout() = scope.launch {
-        authService.logout()
-        currentUser = null
-        userWalletCode = null
-    }
-
-    LaunchedEffect(Unit) { refreshUser() }
-
-    if (!userLoaded) {
+    if (!session.isLoaded) {
         div {}
-    } else if (currentUser?.role == User.Role.ADMIN) {
+    } else if (session.isAdmin) {
         // ADMIN VIDÍ ADMIN LAYOUT
         Toast(
-            message = toastState?.message,
-            type = toastState?.type ?: ToastType.Success,
-            onDismiss = { toastState = null }
+            message = session.toast?.message,
+            type = session.toast?.type ?: ToastType.Success,
+            onDismiss = { session.dismissToast() },
         )
         browserRouter {
             route("/admin") {
                 view {
-                    AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                    AdminRoute(session) {
                         AdminDashboardScreen()
                     }
                 }
                 route("/schedule") {
                     view {
-                        AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                        AdminRoute(session) {
                             AdminScheduleScreen()
                         }
                     }
                 }
                 route("/events") {
                     view {
-                        AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                        AdminRoute(session) {
                             AdminEventsScreen()
                         }
                     }
                     route("/instance") { string { eventId ->
                         view {
-                            AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                            AdminRoute(session) {
                                 AdminEventDetailScreen(eventId = eventId.value, isSeries = false)
                             }
                         }
                         route("/attendance") {
                             view {
-                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                AdminRoute(session) {
                                     AdminAttendanceScreen(eventId = eventId.value, isSeries = false)
                                 }
                             }
                         }
                         route("/edit") {
                             view {
-                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                AdminRoute(session) {
                                     AdminEditEventInstanceScreen(id = eventId.value)
                                 }
                             }
                         }
                         route("/preview") {
                             view {
-                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                    EventPreviewScreen(eventId = eventId.value, isSeries = false, currentUser = currentUser!!)
+                                AdminRoute(session) {
+                                    EventPreviewScreen(eventId = eventId.value, isSeries = false, currentUser = session.currentUser!!)
                                 }
                             }
                         }
                     } }
                     route("/series") { string { seriesId ->
                         view {
-                            AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                            AdminRoute(session) {
                                 AdminEventDetailScreen(eventId = seriesId.value, isSeries = true)
                             }
                         }
                         route("/attendance") {
                             view {
-                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                AdminRoute(session) {
                                     AdminAttendanceScreen(eventId = seriesId.value, isSeries = true)
                                 }
                             }
                         }
                         route("/edit") {
                             view {
-                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                AdminRoute(session) {
                                     AdminEditEventSeriesScreen(id = seriesId.value)
                                 }
                             }
                         }
                         route("/preview") {
                             view {
-                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                    EventPreviewScreen(eventId = seriesId.value, isSeries = true, currentUser = currentUser!!)
+                                AdminRoute(session) {
+                                    EventPreviewScreen(eventId = seriesId.value, isSeries = true, currentUser = session.currentUser!!)
                                 }
                             }
                         }
                     } }
                     route("/new") {
                         view {
-                            AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                AdminCreateEventScreen(currentUser = currentUser!!)
+                            AdminRoute(session) {
+                                AdminCreateEventScreen(currentUser = session.currentUser!!)
                             }
                         }
                     }
                     route("/create") {
                         route("/definition") {
                             view {
-                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                    AdminCreateEventDefinitionScreen(currentUser = currentUser!!)
+                                AdminRoute(session) {
+                                    AdminCreateEventDefinitionScreen(currentUser = session.currentUser!!)
                                 }
                             }
                         }
                         route("/choose") {
                             string { definitionId ->
                                 view {
-                                    AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                    AdminRoute(session) {
                                         AdminEventCreateChooseScreen(definitionId = definitionId.value)
                                     }
                                 }
@@ -209,28 +163,28 @@ fun IComponent.MainLayout() {
                         }
                         route("/instance") {
                             view {
-                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                    AdminCreateEventInstanceScreen(currentUser = currentUser!!)
+                                AdminRoute(session) {
+                                    AdminCreateEventInstanceScreen(currentUser = session.currentUser!!)
                                 }
                             }
                             string { definitionId ->
                                 view {
-                                    AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                        AdminCreateEventInstanceScreen(currentUser = currentUser!!, preselectedDefinitionId = definitionId.value)
+                                    AdminRoute(session) {
+                                        AdminCreateEventInstanceScreen(currentUser = session.currentUser!!, preselectedDefinitionId = definitionId.value)
                                     }
                                 }
                             }
                         }
                         route("/series") {
                             view {
-                                AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                    AdminCreateEventSeriesScreen(currentUser = currentUser!!)
+                                AdminRoute(session) {
+                                    AdminCreateEventSeriesScreen(currentUser = session.currentUser!!)
                                 }
                             }
                             string { definitionId ->
                                 view {
-                                    AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                                        AdminCreateEventSeriesScreen(currentUser = currentUser!!, preselectedDefinitionId = definitionId.value)
+                                    AdminRoute(session) {
+                                        AdminCreateEventSeriesScreen(currentUser = session.currentUser!!, preselectedDefinitionId = definitionId.value)
                                     }
                                 }
                             }
@@ -240,7 +194,7 @@ fun IComponent.MainLayout() {
                         string { definitionId ->
                             route("/edit") {
                                 view {
-                                    AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                                    AdminRoute(session) {
                                         AdminEditEventDefinitionScreen(id = definitionId.value)
                                     }
                                 }
@@ -250,28 +204,28 @@ fun IComponent.MainLayout() {
                 }
                 route("/reservations") {
                     view {
-                        AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                        AdminRoute(session) {
                             AdminReservationsScreen()
                         }
                     }
                 }
                 route("/users") {
                     view {
-                        AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
-                            AdminUsersScreen(currentUserId = currentUser!!.id)
+                        AdminRoute(session) {
+                            AdminUsersScreen(currentUserId = session.currentUser!!.id)
                         }
                     }
                 }
                 route("/settings") {
                     view {
-                        AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                        AdminRoute(session) {
                             AdminSettingsScreen()
                         }
                     }
                 }
                 route("/payments") {
                     view {
-                        AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                        AdminRoute(session) {
                             AdminPaymentsScreen()
                         }
                     }
@@ -280,13 +234,13 @@ fun IComponent.MainLayout() {
                     // Proklik z historie: /admin/wallets/{kód} otevře rovnou detail peněženky.
                     string { walletCode ->
                         view {
-                            AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                            AdminRoute(session) {
                                 AdminWalletsScreen(preselectCode = walletCode.value)
                             }
                         }
                     }
                     view {
-                        AdminLayout(user = currentUser!!, onLogout = { doLogout() }) {
+                        AdminRoute(session) {
                             AdminWalletsScreen()
                         }
                     }
@@ -299,17 +253,7 @@ fun IComponent.MainLayout() {
                             try { Uuid.parse(reservationId.value) }
                             catch (_: IllegalArgumentException) { null }
                         val router = Router.current
-                        UserShell(
-                            user = currentUser,
-                            walletCode = userWalletCode,
-                            onShowMessage = ::showToast,
-                            onLogin = { refreshUser() },
-                            onLogout = { doLogout() },
-                            onOpenMyReservations = { router.navigate("/my-reservations") },
-                            onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                            onNavigateToDashboard = { router.navigate("/") },
-                            onNavigateToAdmin = { router.navigate("/admin") },
-                        ) {
+                        UserRoute(session) {
                             if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/") }
                             else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/") })
                         }
@@ -319,53 +263,21 @@ fun IComponent.MainLayout() {
             route("/my-reservations") {
                 view {
                     val router = Router.current
-                    UserShell(
-                        user = currentUser,
-                        walletCode = userWalletCode,
-                        onShowMessage = ::showToast,
-                        onLogin = { refreshUser() },
-                        onLogout = { doLogout() },
-                        onOpenMyReservations = { router.navigate("/my-reservations") },
-                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                        onNavigateToDashboard = { router.navigate("/") },
-                        onNavigateToAdmin = { router.navigate("/admin") },
-                    ) {
-                        MyReservationsScreen(userId = currentUser!!.id, onBackClick = { router.navigate("/") })
+                    UserRoute(session) {
+                        MyReservationsScreen(userId = session.currentUser!!.id, onBackClick = { router.navigate("/") })
                     }
                 }
             }
             route("/wallet") {
                 string { code ->
                     view {
-                        val router = Router.current
-                        UserShell(
-                            user = currentUser,
-                            walletCode = userWalletCode,
-                            onShowMessage = ::showToast,
-                            onLogin = { refreshUser() },
-                            onLogout = { doLogout() },
-                            onOpenMyReservations = { router.navigate("/my-reservations") },
-                            onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                            onNavigateToDashboard = { router.navigate("/") },
-                            onNavigateToAdmin = { router.navigate("/admin") },
-                        ) {
-                            WalletScreen(initialCode = code.value, initialEmail = currentUser?.email ?: "")
+                        UserRoute(session) {
+                            WalletScreen(initialCode = code.value, initialEmail = session.currentUser?.email ?: "")
                         }
                     }
                 }
                 view {
-                    val router = Router.current
-                    UserShell(
-                        user = currentUser,
-                        walletCode = userWalletCode,
-                        onShowMessage = ::showToast,
-                        onLogin = { refreshUser() },
-                        onLogout = { doLogout() },
-                        onOpenMyReservations = { router.navigate("/my-reservations") },
-                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                        onNavigateToDashboard = { router.navigate("/") },
-                        onNavigateToAdmin = { router.navigate("/admin") },
-                    ) {
+                    UserRoute(session) {
                         WalletScreen()
                     }
                 }
@@ -374,17 +286,7 @@ fun IComponent.MainLayout() {
                 string { token ->
                     view {
                         val router = Router.current
-                        UserShell(
-                            user = currentUser,
-                            walletCode = userWalletCode,
-                            onShowMessage = ::showToast,
-                            onLogin = { refreshUser() },
-                            onLogout = { doLogout() },
-                            onOpenMyReservations = { router.navigate("/my-reservations") },
-                            onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                            onNavigateToDashboard = { router.navigate("/") },
-                            onNavigateToAdmin = { router.navigate("/admin") },
-                        ) {
+                        UserRoute(session) {
                             ResetPasswordScreen(token = token.value, onSuccess = { router.navigate("/") })
                         }
                     }
@@ -392,39 +294,17 @@ fun IComponent.MainLayout() {
             }
             route("/privacy") {
                 view {
-                    val router = Router.current
-                    UserShell(
-                        user = currentUser,
-                        walletCode = userWalletCode,
-                        onShowMessage = ::showToast,
-                        onLogin = { refreshUser() },
-                        onLogout = { doLogout() },
-                        onOpenMyReservations = { router.navigate("/my-reservations") },
-                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                        onNavigateToDashboard = { router.navigate("/") },
-                        onNavigateToAdmin = { router.navigate("/admin") },
-                    ) {
+                    UserRoute(session) {
                         PrivacyScreen()
                     }
                 }
             }
             route("/") { context ->
                 view {
-                    val router = Router.current
-                    UserShell(
-                        user = currentUser,
-                        walletCode = userWalletCode,
-                        onShowMessage = ::showToast,
-                        onLogin = { refreshUser() },
-                        onLogout = { doLogout() },
-                        onOpenMyReservations = { router.navigate("/my-reservations") },
-                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                        onNavigateToDashboard = { router.navigate("/") },
-                        onNavigateToAdmin = { router.navigate("/admin") },
-                    ) {
+                    UserRoute(session) {
                         DashboardScreen(
-                            user = currentUser,
-                            walletCode = userWalletCode,
+                            user = session.currentUser,
+                            walletCode = session.walletCode,
                             initialFilterId = context.parameters?.map?.get("filter")?.firstOrNull(),
                             initialSeriesId = context.parameters?.map?.get("series")?.firstOrNull(),
                         )
@@ -440,9 +320,9 @@ fun IComponent.MainLayout() {
     } else div(className = "min-h-screen flex flex-col bg-base-100 text-base-content") {
 
         Toast(
-            message = toastState?.message,
-            type = toastState?.type ?: ToastType.Success,
-            onDismiss = { toastState = null }
+            message = session.toast?.message,
+            type = session.toast?.type ?: ToastType.Success,
+            onDismiss = { session.dismissToast() },
         )
 
         browserRouter {
@@ -454,20 +334,10 @@ fun IComponent.MainLayout() {
             }
             route("/") { context ->
                 view {
-                    val router = Router.current
-                    UserShell(
-                        user = currentUser,
-                        onShowMessage = ::showToast,
-                        onLogin = { refreshUser() },
-                        onLogout = { doLogout() },
-                        walletCode = userWalletCode,
-                        onOpenMyReservations = { router.navigate("/my-reservations") },
-                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                        onNavigateToDashboard = { router.navigate("/") },
-                    ) {
+                    UserRoute(session) {
                         DashboardScreen(
-                            user = currentUser,
-                            walletCode = userWalletCode,
+                            user = session.currentUser,
+                            walletCode = session.walletCode,
                             initialFilterId = context.parameters?.map?.get("filter")?.firstOrNull(),
                             initialSeriesId = context.parameters?.map?.get("series")?.firstOrNull(),
                         )
@@ -482,16 +352,7 @@ fun IComponent.MainLayout() {
                             try { Uuid.parse(reservationId.value) }
                             catch (_: IllegalArgumentException) { null }
                         val router = Router.current
-                        UserShell(
-                            user = currentUser,
-                            walletCode = userWalletCode,
-                            onShowMessage = ::showToast,
-                            onLogin = { refreshUser() },
-                            onLogout = { doLogout() },
-                            onOpenMyReservations = { router.navigate("/my-reservations") },
-                            onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                            onNavigateToDashboard = { router.navigate("/") },
-                        ) {
+                        UserRoute(session) {
                             if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/") }
                             else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/") })
                         }
@@ -502,17 +363,8 @@ fun IComponent.MainLayout() {
             route("/my-reservations") {
                 view {
                     val router = Router.current
-                    val user = currentUser
-                    UserShell(
-                        user = currentUser,
-                        onShowMessage = ::showToast,
-                        onLogin = { refreshUser() },
-                        onLogout = { doLogout() },
-                        walletCode = userWalletCode,
-                        onOpenMyReservations = { router.navigate("/my-reservations") },
-                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                        onNavigateToDashboard = { router.navigate("/") },
-                    ) {
+                    val user = session.currentUser
+                    UserRoute(session) {
                         if (user == null) LaunchedEffect(Unit) { router.navigate("/") }
                         else MyReservationsScreen(userId = user.id, onBackClick = { router.navigate("/") })
                     }
@@ -522,33 +374,13 @@ fun IComponent.MainLayout() {
             route("/wallet") {
                 string { code ->
                     view {
-                        val router = Router.current
-                        UserShell(
-                            user = currentUser,
-                            walletCode = userWalletCode,
-                            onShowMessage = ::showToast,
-                            onLogin = { refreshUser() },
-                            onLogout = { doLogout() },
-                            onOpenMyReservations = { router.navigate("/my-reservations") },
-                            onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                            onNavigateToDashboard = { router.navigate("/") },
-                        ) {
-                            WalletScreen(initialCode = code.value, initialEmail = currentUser?.email ?: "")
+                        UserRoute(session) {
+                            WalletScreen(initialCode = code.value, initialEmail = session.currentUser?.email ?: "")
                         }
                     }
                 }
                 view {
-                    val router = Router.current
-                    UserShell(
-                        user = currentUser,
-                        walletCode = userWalletCode,
-                        onShowMessage = ::showToast,
-                        onLogin = { refreshUser() },
-                        onLogout = { doLogout() },
-                        onOpenMyReservations = { router.navigate("/my-reservations") },
-                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                        onNavigateToDashboard = { router.navigate("/") },
-                    ) {
+                    UserRoute(session) {
                         WalletScreen()
                     }
                 }
@@ -558,16 +390,7 @@ fun IComponent.MainLayout() {
                 string { token ->
                     view {
                         val router = Router.current
-                        UserShell(
-                            user = currentUser,
-                            walletCode = userWalletCode,
-                            onShowMessage = ::showToast,
-                            onLogin = { refreshUser() },
-                            onLogout = { doLogout() },
-                            onOpenMyReservations = { router.navigate("/my-reservations") },
-                            onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                            onNavigateToDashboard = { router.navigate("/") },
-                        ) {
+                        UserRoute(session) {
                             ResetPasswordScreen(token = token.value, onSuccess = { router.navigate("/") })
                         }
                     }
@@ -575,17 +398,7 @@ fun IComponent.MainLayout() {
             }
             route("/privacy") {
                 view {
-                    val router = Router.current
-                    UserShell(
-                        user = currentUser,
-                        onShowMessage = ::showToast,
-                        onLogin = { refreshUser() },
-                        onLogout = { doLogout() },
-                        walletCode = userWalletCode,
-                        onOpenMyReservations = { router.navigate("/my-reservations") },
-                        onOpenMyWallet = { userWalletCode?.let { router.navigate("/wallet/$it") } },
-                        onNavigateToDashboard = { router.navigate("/") },
-                    ) {
+                    UserRoute(session) {
                         PrivacyScreen()
                     }
                 }
@@ -596,6 +409,36 @@ fun IComponent.MainLayout() {
             }
         }
     }
+}
+
+/**
+ * Administrační obrazovka v postranním menu. Do admin větve se routuje jen
+ * s přihlášeným adminem, proto je `currentUser` na tomhle místě jistota.
+ */
+@Composable
+private fun IComponent.AdminRoute(session: SessionModel, content: @Composable IComponent.() -> Unit) {
+    AdminLayout(user = session.currentUser!!, onLogout = { session.logout() }, content = content)
+}
+
+/**
+ * Veřejná obrazovka s hlavičkou. Odkaz do administrace se v hlavičce ukáže sám
+ * podle role — dřív o tom rozhodovalo to, ze které větve routeru se `UserShell` volal.
+ */
+@Composable
+private fun IComponent.UserRoute(session: SessionModel, content: @Composable IComponent.() -> Unit) {
+    val router = Router.current
+    UserShell(
+        user = session.currentUser,
+        walletCode = session.walletCode,
+        onShowMessage = session::showMessage,
+        onLogin = { session.refresh() },
+        onLogout = { session.logout() },
+        onOpenMyReservations = { router.navigate("/my-reservations") },
+        onOpenMyWallet = { session.walletCode?.let { router.navigate("/wallet/$it") } },
+        onNavigateToDashboard = { router.navigate("/") },
+        onNavigateToAdmin = if (session.isAdmin) ({ router.navigate("/admin") }) else null,
+        content = content,
+    )
 }
 
 @Composable

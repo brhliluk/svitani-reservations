@@ -3,16 +3,14 @@ package cz.svitaninymburk.projects.reservations.ui.admin
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.ui.auth.ChangePasswordDialog
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
-import cz.svitaninymburk.projects.reservations.ui.util.ToastData
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import app.softwork.routingcompose.Router
 import dev.kilua.form.InputType
 import dev.kilua.form.check.checkBox
@@ -25,24 +23,21 @@ fun IComponent.AdminLayout(
 ) {
     val currentStrings by strings
     val router = Router.current
-    var showChangePassword by remember { mutableStateOf(false) }
-    var toastData by remember { mutableStateOf<ToastData?>(null) }
+    val scope = rememberCoroutineScope()
+    val model = remember { AdminLayoutModel(scope) }
 
     // DaisyUI Drawer (Boční panel pro navigaci)
     div(className = "drawer lg:drawer-open font-sans bg-base-200 min-h-screen") {
         ChangePasswordDialog(
-            isOpen = showChangePassword,
-            onClose = { showChangePassword = false },
-            onSuccess = {
-                showChangePassword = false
-                toastData = ToastData(currentStrings.passwordChanged, ToastType.Success)
-            }
+            isOpen = model.showChangePassword,
+            onClose = { model.closeChangePassword() },
+            onSuccess = { model.onPasswordChanged() },
         )
 
         Toast(
-            message = toastData?.message,
-            type = toastData?.type ?: ToastType.Success,
-            onDismiss = { toastData = null }
+            message = model.toast?.message,
+            type = model.toast?.type ?: ToastType.Success,
+            onDismiss = { model.dismissToast() },
         )
         // Skrytý checkbox, který řídí vysouvání menu na mobilu
         checkBox(className = "drawer-toggle", id = "admin-drawer")
@@ -81,72 +76,7 @@ fun IComponent.AdminLayout(
                     div(className = "font-bold text-xl tracking-wide") { +currentStrings.adminPanel }
                 }
 
-                // Navigační linky
-                ul(className = "flex-1 space-y-2") {
-                    li {
-                        a(className = "rounded-lg hover:bg-base-200 transition-colors") {
-                            onClick { router.navigate("/admin") }
-                            span(className = "icon-[heroicons--home] size-5 text-primary/70")
-                            +currentStrings.dashboard
-                        }
-                    }
-                    li {
-                        a(className = "rounded-lg hover:bg-base-200 transition-colors") {
-                            onClick { router.navigate("/admin/schedule") }
-                            span(className = "icon-[heroicons--clock] size-5 text-primary/70")
-                            +currentStrings.navSchedule
-                        }
-                    }
-                    li {
-                        a(className = "rounded-lg hover:bg-base-200 transition-colors") {
-                            onClick { router.navigate("/admin/events") }
-                            span(className = "icon-[heroicons--calendar-days] size-5 text-primary/70")
-                            +currentStrings.navEvents
-                        }
-                    }
-                    li {
-                        a(className = "rounded-lg hover:bg-base-200 transition-colors") {
-                            onClick { router.navigate("/admin/reservations") }
-                            span(className = "icon-[heroicons--ticket] size-5 text-primary/70")
-                            +currentStrings.navReservations
-                        }
-                    }
-                    li {
-                        a(className = "rounded-lg hover:bg-base-200 transition-colors") {
-                            onClick { router.navigate("/admin/users") }
-                            span(className = "icon-[heroicons--users] size-5 text-primary/70")
-                            +currentStrings.navUsers
-                        }
-                    }
-                    li {
-                        a(className = "rounded-lg hover:bg-base-200 transition-colors") {
-                            onClick { router.navigate("/admin/payments") }
-                            span(className = "icon-[heroicons--banknotes] size-5 text-primary/70")
-                            +currentStrings.navPayments
-                        }
-                    }
-                    li {
-                        a(className = "rounded-lg hover:bg-base-200 transition-colors") {
-                            onClick { router.navigate("/admin/wallets") }
-                            span(className = "icon-[heroicons--wallet] size-5 text-primary/70")
-                            +currentStrings.adminWallets
-                        }
-                    }
-                    li {
-                        a(className = "rounded-lg hover:bg-base-200 transition-colors") {
-                            onClick { router.navigate("/admin/settings") }
-                            span(className = "icon-[heroicons--cog-6-tooth] size-5 text-primary/70")
-                            +currentStrings.navSettings
-                        }
-                    }
-                    li(className = "mt-2 pt-2 border-t border-base-200") {
-                        a(className = "rounded-lg hover:bg-base-200 transition-colors") {
-                            onClick { router.navigate("/") }
-                            span(className = "icon-[heroicons--eye] size-5 text-primary/70")
-                            +currentStrings.viewAsUser
-                        }
-                    }
-                }
+                AdminNavLinks { router.navigate(it) }
 
                 // Uživatelský profil a odhlášení dole v sidebaru
                 div(className = "mt-auto pt-6 border-t border-base-200") {
@@ -163,7 +93,7 @@ fun IComponent.AdminLayout(
                     }
                     if (user is User.Email) {
                         button(className = "btn btn-ghost btn-sm w-full gap-2 mb-2 justify-start") {
-                            onClick { showChangePassword = true }
+                            onClick { model.openChangePassword() }
                             span(className = "icon-[heroicons--key] size-4")
                             +currentStrings.changePassword
                         }
@@ -174,6 +104,45 @@ fun IComponent.AdminLayout(
                         +currentStrings.logOut
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Odkazy v bočním panelu. Ikony jsou celé řetězce schválně — Tailwind si třídy
+ * vytahuje ze zdrojáků, poskládané po kouscích by se do CSS nedostaly.
+ */
+@Composable
+private fun IComponent.AdminNavLinks(onNavigate: (String) -> Unit) {
+    val currentStrings by strings
+    val links = listOf(
+        Triple("/admin", "icon-[heroicons--home] size-5 text-primary/70", currentStrings.dashboard),
+        Triple("/admin/schedule", "icon-[heroicons--clock] size-5 text-primary/70", currentStrings.navSchedule),
+        Triple("/admin/events", "icon-[heroicons--calendar-days] size-5 text-primary/70", currentStrings.navEvents),
+        Triple("/admin/reservations", "icon-[heroicons--ticket] size-5 text-primary/70", currentStrings.navReservations),
+        Triple("/admin/users", "icon-[heroicons--users] size-5 text-primary/70", currentStrings.navUsers),
+        Triple("/admin/payments", "icon-[heroicons--banknotes] size-5 text-primary/70", currentStrings.navPayments),
+        Triple("/admin/wallets", "icon-[heroicons--wallet] size-5 text-primary/70", currentStrings.adminWallets),
+        Triple("/admin/settings", "icon-[heroicons--cog-6-tooth] size-5 text-primary/70", currentStrings.navSettings),
+    )
+
+    ul(className = "flex-1 space-y-2") {
+        links.forEach { (route, icon, label) ->
+            li {
+                a(className = "rounded-lg hover:bg-base-200 transition-colors") {
+                    onClick { onNavigate(route) }
+                    span(className = icon)
+                    +label
+                }
+            }
+        }
+        // Oddělený odkaz ven z administrace — proto vlastní li s linkou nahoře.
+        li(className = "mt-2 pt-2 border-t border-base-200") {
+            a(className = "rounded-lg hover:bg-base-200 transition-colors") {
+                onClick { onNavigate("/") }
+                span(className = "icon-[heroicons--eye] size-5 text-primary/70")
+                +currentStrings.viewAsUser
             }
         }
     }

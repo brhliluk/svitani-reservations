@@ -1,27 +1,26 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import app.softwork.routingcompose.Router
-import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
-import dev.kilua.rpc.getService
 import web.history.history
 
 @Composable
 fun IComponent.AdminEventCreateChooseScreen(definitionId: String) {
     val router = Router.current
-    val eventService = getService<EventServiceInterface>(RpcSerializersModules)
+    val scope = rememberCoroutineScope()
     val currentStrings by strings
+    val model = remember(definitionId) { buildEventCreateChooseModel(scope, definitionId) }
 
-    val definitionTitle by produceState<String?>(initialValue = null) {
-        eventService.getAllDefinitions()
-            .onRight { defs -> value = defs.find { it.id.toString() == definitionId }?.title }
-    }
+    LaunchedEffect(definitionId) { model.load() }
+
+    val definitionTitle = model.definitionTitle
 
     div(className = "flex flex-col gap-6 animate-fade-in max-w-2xl mx-auto pb-20") {
 

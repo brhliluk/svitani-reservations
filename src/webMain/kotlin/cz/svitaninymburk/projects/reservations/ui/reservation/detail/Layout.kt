@@ -2,9 +2,7 @@ package cz.svitaninymburk.projects.reservations.ui.reservation.detail
 
 import dev.kilua.form.InputType
 import dev.kilua.form.text.text
-import kotlin.time.Duration.Companion.seconds
 import androidx.compose.runtime.*
-import cz.svitaninymburk.projects.reservations.copyToClipboard
 import cz.svitaninymburk.projects.reservations.i18n.AppStrings
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.qr.QrCodeService
@@ -18,12 +16,11 @@ import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
 import dev.kilua.rpc.getService
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import cz.svitaninymburk.projects.reservations.ui.components.rememberCopyFlash
 
 
 @Composable
@@ -319,8 +316,7 @@ fun IComponent.DetailRow(label: String, value: String) {
 @Composable
 fun IComponent.CopyToClipboardButton(label: String, value: String) {
     val currentStrings by strings
-    var isCopied by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+    val copyFlash = rememberCopyFlash()
 
     div(className = "form-control w-full") {
         label(className = "label pb-1") {
@@ -334,16 +330,9 @@ fun IComponent.CopyToClipboardButton(label: String, value: String) {
 
             // Tlačítko Kopírovat
             button(className = "btn btn-neutral join-item") {
-                onClick {
-                    copyToClipboard(value)
-                    isCopied = true
-                    scope.launch {
-                        delay(2.seconds)
-                        isCopied = false
-                    }
-                }
+                onClick { copyFlash.copy(value) }
 
-                if (isCopied) {
+                if (copyFlash.isCopied) {
                     span(className = "icon-[heroicons--check] size-5 text-success")
                     span(className = "hidden sm:inline text-success") { +currentStrings.copied }
                 } else {

@@ -11,6 +11,7 @@ import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormData
+import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.ReservationSubmitUseCase
 import kotlinx.datetime.LocalDateTime
 import kotlin.uuid.Uuid
 
@@ -29,14 +30,6 @@ fun toggleDropInRequest(lesson: EventInstance): UpdateEventInstanceRequest =
         customFields = lesson.customFields,
         isDropIn = !lesson.isDropIn,
     )
-
-enum class ReservationCall { InstanceReserve, SeriesReserve, InstanceWaitlist, SeriesWaitlist }
-
-fun reservationCallOf(target: ReservationTarget, asWaitlist: Boolean): ReservationCall =
-    when (target) {
-        is ReservationTarget.Instance -> if (asWaitlist) ReservationCall.InstanceWaitlist else ReservationCall.InstanceReserve
-        is ReservationTarget.Series -> if (asWaitlist) ReservationCall.SeriesWaitlist else ReservationCall.SeriesReserve
-    }
 
 // --- UseCase třídy (tenké, vrací Either) ---
 
@@ -79,21 +72,15 @@ class AdminReservationUseCase(
     private val reservation: ReservationServiceInterface,
     private val event: EventServiceInterface,
 ) {
+    private val submitter = ReservationSubmitUseCase(reservation)
+
     suspend fun target(id: Uuid, isSeries: Boolean): Either<EventError, ReservationTarget> =
         if (isSeries) event.getSeriesDetail(id).map { ReservationTarget.Series(it.series) }
         else event.getInstance(id).map { ReservationTarget.Instance(it) }
 
+    /** Admin zakládá rezervaci za někoho jiného, proto `userId = null`. */
     suspend fun submit(target: ReservationTarget, form: ReservationFormData) =
-        when (reservationCallOf(target, form.asWaitlist)) {
-            ReservationCall.InstanceReserve ->
-                reservation.reserveInstance(form.toCreateInstanceReservationRequest((target as ReservationTarget.Instance).id), userId = null)
-            ReservationCall.InstanceWaitlist ->
-                reservation.joinWaitlistInstance(form.toCreateInstanceReservationRequest((target as ReservationTarget.Instance).id), userId = null)
-            ReservationCall.SeriesReserve ->
-                reservation.reserveSeries(form.toCreateSeriesReservationRequest((target as ReservationTarget.Series).id), userId = null)
-            ReservationCall.SeriesWaitlist ->
-                reservation.joinWaitlistSeries(form.toCreateSeriesReservationRequest((target as ReservationTarget.Series).id), userId = null)
-        }
+        submitter.submit(target, form, userId = null)
 
     suspend fun confirmPayment(reservationId: Uuid) = admin.markReservationAsPaid(reservationId)
 

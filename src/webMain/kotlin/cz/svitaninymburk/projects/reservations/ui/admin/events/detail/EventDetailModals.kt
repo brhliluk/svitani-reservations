@@ -2,12 +2,11 @@ package cz.svitaninymburk.projects.reservations.ui.admin.events.detail
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.i18n.strings
+import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.AddLessonInput
 import cz.svitaninymburk.projects.reservations.ui.util.ConfirmModal
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
@@ -16,11 +15,7 @@ import dev.kilua.form.check.checkBox
 import dev.kilua.form.form
 import dev.kilua.form.text.text
 import dev.kilua.html.*
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.LocalTime
-import kotlinx.datetime.plus
 
 @Composable
 fun IComponent.DeleteEventModal(
@@ -127,10 +122,7 @@ fun IComponent.AddLessonModal(
 ) {
     val currentStrings by strings
 
-    var date by remember { mutableStateOf(lastLesson?.startDateTime?.date?.plus(7, DateTimeUnit.DAY)?.toString() ?: "") }
-    var startTime by remember { mutableStateOf(lastLesson?.startDateTime?.time?.toInputValue() ?: "") }
-    var endTime by remember { mutableStateOf(lastLesson?.endDateTime?.time?.toInputValue() ?: "") }
-    var isDropIn by remember { mutableStateOf(false) }
+    val form = remember(lastLesson) { AddLessonFormModel(lastLesson) }
 
     div(className = "modal modal-open") {
         div(className = "modal-box") {
@@ -138,20 +130,20 @@ fun IComponent.AddLessonModal(
             div(className = "flex flex-col gap-3") {
                 div(className = "form-control w-full") {
                     label(className = "label") { span(className = "label-text") { +currentStrings.addLessonDateLabel } }
-                    text(value = date, type = InputType.Date, className = "input input-bordered w-full") { onInput { date = value ?: "" } }
+                    text(value = form.date, type = InputType.Date, className = "input input-bordered w-full") { onInput { form.date = value ?: "" } }
                 }
                 div(className = "grid grid-cols-2 gap-3") {
                     div(className = "form-control w-full") {
                         label(className = "label") { span(className = "label-text") { +currentStrings.addLessonStartLabel } }
-                        text(value = startTime, type = InputType.Time, className = "input input-bordered w-full") { onInput { startTime = value ?: "" } }
+                        text(value = form.startTime, type = InputType.Time, className = "input input-bordered w-full") { onInput { form.startTime = value ?: "" } }
                     }
                     div(className = "form-control w-full") {
                         label(className = "label") { span(className = "label-text") { +currentStrings.addLessonEndLabel } }
-                        text(value = endTime, type = InputType.Time, className = "input input-bordered w-full") { onInput { endTime = value ?: "" } }
+                        text(value = form.endTime, type = InputType.Time, className = "input input-bordered w-full") { onInput { form.endTime = value ?: "" } }
                     }
                 }
                 label(className = "label cursor-pointer justify-start gap-2") {
-                    checkBox(value = isDropIn, className = "checkbox checkbox-sm") { onClick { isDropIn = this.value } }
+                    checkBox(value = form.isDropIn, className = "checkbox checkbox-sm") { onClick { form.isDropIn = this.value } }
                     span(className = "label-text") { +currentStrings.addLessonDropInLabel }
                 }
                 if (inheritedCustomFields.isNotEmpty()) {
@@ -170,14 +162,10 @@ fun IComponent.AddLessonModal(
                 button(className = "btn btn-primary") {
                     disabled(isSubmitting)
                     onClick {
-                        val parsedDate = try { LocalDate.parse(date) } catch (_: Exception) { null }
-                        val parsedStart = try { LocalTime.parse(startTime) } catch (_: Exception) { null }
-                        val parsedEnd = try { LocalTime.parse(endTime) } catch (_: Exception) { null }
-                        if (parsedDate == null || parsedStart == null || parsedEnd == null || parsedEnd <= parsedStart) {
-                            onInvalidInput()
-                            return@onClick
+                        when (val input = form.parsed()) {
+                            is AddLessonInput.Invalid -> onInvalidInput()
+                            is AddLessonInput.Valid -> onSubmit(input.startDateTime, input.endDateTime, form.isDropIn)
                         }
-                        onSubmit(LocalDateTime(parsedDate, parsedStart), LocalDateTime(parsedDate, parsedEnd), isDropIn)
                     }
                     if (isSubmitting) span(className = "loading loading-spinner loading-sm")
                     +currentStrings.saveChanges
@@ -189,6 +177,3 @@ fun IComponent.AddLessonModal(
         }
     }
 }
-
-private fun LocalTime.toInputValue(): String =
-    "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
