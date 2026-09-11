@@ -6,20 +6,19 @@ import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowedPaymentsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuilderSection
+import cz.svitaninymburk.projects.reservations.ui.admin.events.LessonScheduleTable
 import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ReservationDeadlineSection
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowMultipleSeatsCheckbox
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ShowAttendeeCountCheckbox
 import cz.svitaninymburk.projects.reservations.ui.admin.events.WaitlistCapacityField
-import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.computeLessonEndTime
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.parseTimeOrNull
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.user.User
 import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
-import dev.kilua.form.check.checkBox
 import dev.kilua.form.number.numeric
 import dev.kilua.form.select.select
 import dev.kilua.form.text.text
@@ -160,114 +159,19 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
 
                     }
 
-                    // Live lesson preview
-                    if (model.computedSeriesDates.isNotEmpty()) {
-                        val lessonStartT = parseTimeOrNull(model.lessonStartTimeStr)
-                        val endTimeStr = if (lessonStartT != null && model.selectedDefinition != null) {
-                            val endT = computeLessonEndTime(lessonStartT, model.selectedDefinition!!.defaultDuration.inWholeMinutes.toInt())
-                            "${endT.hour}:${endT.minute.toString().padStart(2, '0')}"
-                        } else "?"
-                        val startTimeDisplayStr = lessonStartT?.let { "${it.hour}:${it.minute.toString().padStart(2, '0')}" } ?: "?"
-
-                        val excludedCount = model.computedSeriesDates.size - model.effectiveLessonDates.size
-
-                        div(className = "mt-4 md:col-span-2") {
-                            div(className = "flex items-center gap-2 mb-2") {
-                                span(className = "icon-[heroicons--calendar-days] size-5 text-secondary")
-                                span(className = "font-medium text-sm") { +currentStrings.lessonPreviewHeading(model.effectiveLessonDates.size) }
-                                if (excludedCount > 0) {
-                                    span(className = "text-xs text-base-content/50") { +currentStrings.lessonExcludedSummary(excludedCount) }
-                                }
-                            }
-                            div(className = "overflow-x-auto") {
-                                val keptIndices = model.computedSeriesDates.indices.filterNot { model.isLessonExcluded(it) }
-                                val allDropInSeries = keptIndices.isNotEmpty() && keptIndices.all { model.lessonDropIn[it] == true }
-                                table(className = "table table-xs w-full") {
-                                    thead {
-                                        tr {
-                                            th { +"#" }
-                                            th { +currentStrings.tableHeaderDate }
-                                            th { +currentStrings.tableHeaderTime }
-                                            th {
-                                                div(className = "flex items-center gap-2") {
-                                                    label(className = "cursor-pointer tooltip tooltip-left") {
-                                                        attribute("data-tip", currentStrings.lessonIndividualBulkTooltip)
-                                                        checkBox(value = allDropInSeries, className = "checkbox checkbox-secondary checkbox-xs") {
-                                                            onChange { model.setAllDropIn(value) }
-                                                        }
-                                                    }
-                                                    span(className = "tooltip tooltip-left cursor-help whitespace-nowrap") {
-                                                        attribute("data-tip", currentStrings.lessonIndividualTooltip)
-                                                        +currentStrings.lessonIndividualLabel
-                                                        span(className = "icon-[heroicons--question-mark-circle] size-3 text-base-content/40 ml-1")
-                                                    }
-                                                }
-                                            }
-                                            th(className = "text-right") { +currentStrings.tableHeaderActions }
-                                        }
-                                    }
-                                    tbody {
-                                        var lessonNumber = 0
-                                        model.computedSeriesDates.forEachIndexed { i, defaultDate ->
-                                            val effectiveDateStr = model.lessonDateOverrides[i] ?: defaultDate.toString()
-                                            val isExcluded = model.isLessonExcluded(i)
-                                            if (!isExcluded) lessonNumber++
-                                            val displayNumber = if (isExcluded) "–" else lessonNumber.toString()
-                                            tr(className = if (isExcluded) "opacity-50" else null) {
-                                                td(className = "text-base-content/50") { +displayNumber }
-                                                td {
-                                                    if (isExcluded) {
-                                                        div(className = "flex items-center gap-2") {
-                                                            span(className = "line-through text-base-content/60") { +effectiveDateStr }
-                                                            span(className = "badge badge-ghost badge-xs") { +currentStrings.lessonExcludedBadge }
-                                                        }
-                                                    } else {
-                                                        text(value = effectiveDateStr, type = InputType.Date, className = "input input-xs input-bordered w-36") {
-                                                            onInput {
-                                                                model.setLessonDateOverride(i, value ?: "", defaultDate.toString())
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                td(className = "text-sm text-base-content/70") {
-                                                    if (isExcluded) {
-                                                        span(className = "line-through") { +"$startTimeDisplayStr – $endTimeStr" }
-                                                    } else {
-                                                        +"$startTimeDisplayStr – $endTimeStr"
-                                                    }
-                                                }
-                                                td {
-                                                    if (!isExcluded) {
-                                                        label(className = "cursor-pointer") {
-                                                            checkBox(value = model.lessonDropIn[i] ?: false, className = "checkbox checkbox-secondary checkbox-xs") {
-                                                                onChange { model.setLessonDropIn(i, value) }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                td(className = "text-right") {
-                                                    button(className = "btn btn-ghost btn-xs tooltip tooltip-left ${if (isExcluded) "" else "text-error"}") {
-                                                        attribute(
-                                                            "data-tip",
-                                                            if (isExcluded) currentStrings.lessonRestoreTooltip else currentStrings.lessonExcludeTooltip,
-                                                        )
-                                                        span(
-                                                            className = if (isExcluded) {
-                                                                "icon-[heroicons--arrow-uturn-left] size-4"
-                                                            } else {
-                                                                "icon-[heroicons--x-mark] size-4"
-                                                            },
-                                                        )
-                                                        onClick { model.toggleLessonExcluded(i) }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    LessonScheduleTable(
+                        dates = model.computedSeriesDates,
+                        dateOverrides = model.lessonDateOverrides,
+                        dropIn = model.lessonDropIn,
+                        isExcluded = model::isLessonExcluded,
+                        lessonStartTime = parseTimeOrNull(model.lessonStartTimeStr),
+                        durationMinutes = model.selectedDefinition?.defaultDuration?.inWholeMinutes?.toInt(),
+                        onDateOverride = model::setLessonDateOverride,
+                        onToggleExcluded = model::toggleLessonExcluded,
+                        onDropInChange = model::setLessonDropIn,
+                        onAllDropInChange = model::setAllDropIn,
+                        className = "md:col-span-2",
+                    )
                 }
             }
 

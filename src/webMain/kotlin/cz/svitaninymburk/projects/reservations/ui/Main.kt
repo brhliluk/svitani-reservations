@@ -15,7 +15,7 @@ import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminDashboardScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminLayout
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AdminAttendanceScreen
-import cz.svitaninymburk.projects.reservations.ui.admin.events.AdminCreateEventScreen
+import cz.svitaninymburk.projects.reservations.ui.admin.events.create.AdminCreateEventScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.events.definition.AdminCreateEventDefinitionScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.events.definition.AdminEditEventDefinitionScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.AdminCreateEventInstanceScreen
