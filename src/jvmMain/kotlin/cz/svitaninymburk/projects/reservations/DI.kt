@@ -138,6 +138,7 @@ val appModule = module {
             settings = get(),
             appBaseUrl = System.getenv("APP_BASE_URL") ?: error("APP_BASE_URL env var is required"),
             eventRepository = get(),
+            eventSeriesRepository = get(),
         )
         AuditingEmailService(gmail, gmail, gmail, audit = get())
     } binds arrayOf(EmailService::class, LectorEmailService::class, WalletEmailService::class)

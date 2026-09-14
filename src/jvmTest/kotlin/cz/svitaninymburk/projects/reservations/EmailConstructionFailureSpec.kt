@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations
 
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
+import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
 import cz.svitaninymburk.projects.reservations.service.GmailEmailService
 import cz.svitaninymburk.projects.reservations.settings.AppSettings
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
@@ -32,6 +33,7 @@ class EmailConstructionFailureSpec {
         ),
         appBaseUrl = "https://example.test",
         eventRepository = InMemoryEventInstanceRepository(),
+        eventSeriesRepository = InMemoryEventSeriesRepository(),
     )
 
     @Test

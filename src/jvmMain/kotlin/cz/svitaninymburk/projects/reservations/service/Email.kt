@@ -8,8 +8,10 @@ import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.error.EmailError
 import cz.svitaninymburk.projects.reservations.i18n.emailStringsFor
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
+import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
@@ -37,7 +39,17 @@ class GmailEmailService(
     private val settings: AppSettingsProvider,
     private val appBaseUrl: String,
     private val eventRepository: EventInstanceRepository,
+    private val eventSeriesRepository: EventSeriesRepository,
 ) : EmailService, LectorEmailService, WalletEmailService {
+
+    /**
+     * Název akce pro platební maily. Přihláška na kurz je rezervace na sérii, ne na
+     * instanci — hledat ji jen mezi lekcemi znamenalo "Vaše rezervace na akci: null".
+     */
+    internal suspend fun titleFor(reservation: Reservation): String? = when (val ref = reservation.reference) {
+        is Reference.Instance -> eventRepository.get(ref.id)?.title
+        is Reference.Series -> eventSeriesRepository.get(ref.id)?.title
+    }
 
     private fun EmailException.fullMessage(): String = buildString {
         var t: Throwable? = this@fullMessage
@@ -146,14 +158,14 @@ class GmailEmailService(
         email.addTo(reservation.contactEmail)
         email.subject = s.paymentReceivedSubject
 
-        val event = eventRepository.get(reservation.reference.id)
+        val eventTitle = titleFor(reservation)
         val url = "$appBaseUrl/reservation/${reservation.id}"
 
         email.setHtmlMsg(buildString { appendHTML().html { body {
-            p { +s.paymentReceivedBody(event?.title) }
+            p { +s.paymentReceivedBody(eventTitle) }
             p { +s.reservationViewLink(url) }
         } } })
-        email.setTextMsg(s.paymentReceivedBody(event?.title) + "\n" + s.reservationViewLink(url))
+        email.setTextMsg(s.paymentReceivedBody(eventTitle) + "\n" + s.reservationViewLink(url))
 
         email.send()
     }) { e: EmailException ->
@@ -171,13 +183,13 @@ class GmailEmailService(
         email.addTo(reservation.contactEmail)
         email.subject = s.partialPaymentSubject
 
-        val event = eventRepository.get(reservation.reference.id)
+        val eventTitle = titleFor(reservation)
 
         val dataSource = ByteArrayDataSource(qrCodeImage, "image/png")
         val cid = email.embed(dataSource, "qr-code-platba")
 
         email.setHtmlMsg(buildString { appendHTML().html { body {
-            p { +s.partialPaymentBody(event?.title) }
+            p { +s.partialPaymentBody(eventTitle) }
             p { +s.partialPaymentAmount(paymentInfo.amount) }
             p { +s.partialPaymentRemaining(reservation.unpaidAmount) }
             p { +s.partialPaymentDetails }
