@@ -192,7 +192,8 @@ open class ReservationService(
     private suspend fun currentCallerEmail(callerUserId: Uuid?): String? =
         callerUserId?.let { userRepository.findById(it)?.email }
 
-    private suspend fun isAdminCaller(): Boolean {
+    /** Stejný testovací seam jako [currentCallerUserId] — admin obchází kontroly přístupu. */
+    internal open suspend fun isAdminCaller(): Boolean {
         val role = currentCall()
             ?.principal<JWTPrincipal>()
             ?.payload?.getClaim("role")?.asString()
@@ -697,6 +698,20 @@ open class ReservationService(
             }
         } else {
             // Whole-reservation cancellation path
+
+            // Stejná laťka jako u omluvenky z lekce výš: rezervaci bez účtu chrání
+            // znalost UUID, registrovanou její majitel. Bez téhle brány zruší
+            // rezervaci registrovaného kdokoli s odkazem — a protože se kredit posílá
+            // do peněženky účtu, vrátil by se mu v odpovědi i její kód, se kterým jde
+            // zůstatek utratit (walletService.validateForReservation řeší jen existenci
+            // kódu a zůstatek).
+            //
+            // Admin ruší cizí rezervace z administrace touhle samou cestou
+            // (ui/admin/**/usecase volá ReservationServiceInterface.cancelReservation),
+            // takže pro něj platí výjimka jako u getSeriesLessons.
+            ensure(isAdminCaller() || reservation.isAccessibleBy(currentCallerUserId())) {
+                ReservationError.ReservationNotFound  // Don't reveal existence to non-owner
+            }
 
             val target: ReservationTarget? = when (reservation.reference) {
                 is Reference.Instance -> eventInstanceRepository.get(reservation.reference.id)?.let { ReservationTarget.Instance(it) }
