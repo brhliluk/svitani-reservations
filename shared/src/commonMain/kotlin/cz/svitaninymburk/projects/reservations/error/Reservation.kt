@@ -26,8 +26,9 @@ enum class DuplicateScope {
     @Serializable @SerialName("get") sealed interface Get : ReservationError
     @Serializable @SerialName("get_detail") sealed interface GetDetail: ReservationError
     @Serializable @SerialName("get_wallet") sealed interface GetWalletInfo : ReservationError
+    @Serializable @SerialName("claim") sealed interface ClaimReservation : ReservationError
 
-    @Serializable data object ReservationNotFound : CreateReservation, CancelReservation, Get, GetDetail
+    @Serializable data object ReservationNotFound : CreateReservation, CancelReservation, Get, GetDetail, ClaimReservation
     @Serializable data object EventInstanceNotFound : GetDetail
     @Serializable data object EventSeriesNotFound : GetDetail
     @Serializable data object EventAlreadyFinished : CreateReservation, CancelReservation
@@ -49,6 +50,13 @@ enum class DuplicateScope {
     @Serializable data object EventNotFull : CreateReservation
     @Serializable data object WaitlistNotAvailable : CreateReservation
     @Serializable data object WaitlistFull : CreateReservation
+
+    /** Rezervaci už někdo přivlastnil — i kdyby to byl někdo jiný, ven jde jen tohle. */
+    @Serializable data object AlreadyClaimed : ClaimReservation
+    /** Kontaktní e-mail rezervace není e-mail přihlášeného účtu. */
+    @Serializable data object EmailDoesNotMatch : ClaimReservation
+    /** Zrušená, zamítnutá nebo doběhlá rezervace — v „Moje rezervace“ by se stejně neukázala. */
+    @Serializable data object NotClaimable : ClaimReservation
 
     /**
      * Na tuto akci už na zadaný e-mail rezervace existuje. Není to chyba, ale dotaz —
@@ -82,6 +90,9 @@ fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (thi
     is ReservationError.WaitlistNotAvailable -> strings.errorWaitlistNotAvailable
     is ReservationError.WaitlistFull -> strings.errorWaitlistFull
     is ReservationError.AlreadyReserved -> scope.localizedMessage(strings)
+    is ReservationError.AlreadyClaimed -> strings.errorReservationAlreadyClaimed
+    is ReservationError.EmailDoesNotMatch -> strings.errorReservationEmailDoesNotMatch
+    is ReservationError.NotClaimable -> strings.errorReservationNotClaimable
 }
 
 fun DuplicateScope.localizedMessage(strings: ErrorStrings): String = when (this) {

@@ -144,6 +144,9 @@ fun IComponent.ReservationDetailScreen(
                 waitlistPosition = state.detail.waitlistPosition,
                 onCancelReservation = { confirmDialog.element.showModal() },
                 onBackToDashboard = onBackClick,
+                canBeClaimed = state.detail.claimable,
+                isClaiming = model.isClaiming,
+                onClaimReservation = { model.claimReservation() },
                 hasLessons = state.lessons != null,
                 lessonsSlot = state.lessons?.let { lessons ->
                     {

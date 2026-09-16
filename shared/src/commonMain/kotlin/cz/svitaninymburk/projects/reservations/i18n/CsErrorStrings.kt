@@ -35,6 +35,9 @@ object CsErrorStrings : ErrorStrings {
     override val errorAlreadyReservedSameEvent = "Na tuto akci už na tento e-mail rezervaci máte."
     override val errorAlreadyReservedParentSeries = "Na tuto lekci jste přihlášení už v rámci celého kurzu."
     override val errorAlreadyReservedSeriesLesson = "Na některou lekci tohoto kurzu už rezervaci máte."
+    override val errorReservationAlreadyClaimed = "Tahle rezervace už je navázaná na účet."
+    override val errorReservationEmailDoesNotMatch = "Rezervace je na jiný e-mail, než má váš účet."
+    override val errorReservationNotClaimable = "Tuhle rezervaci už k účtu přidat nejde."
 
     override fun errorEventInstanceNotFoundId(id: String) = "Událost s id $id nenalezena"
     override fun errorEventDefinitionNotFoundId(id: String) = "Šablona události s id $id nenalezena"

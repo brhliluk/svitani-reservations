@@ -31,6 +31,10 @@ fun IComponent.ReservationDetailLayout(
     waitlistPosition: Int? = null,
     onCancelReservation: () -> Unit,
     onBackToDashboard: () -> Unit,
+    /** Rezervace bez účtu, jejíž kontaktní e-mail sedí na přihlášený účet. Počítá server. */
+    canBeClaimed: Boolean = false,
+    isClaiming: Boolean = false,
+    onClaimReservation: () -> Unit = {},
     /** Jsou k dispozici termíny kurzu? U jednorázových akcí ne. */
     hasLessons: Boolean = false,
     /** Termíny kurzu; vykreslí se jen když [hasLessons]. */
@@ -105,6 +109,21 @@ fun IComponent.ReservationDetailLayout(
                         // Podmínky storna
                         div(className = "mt-2") {
                             CancellationPolicyBox()
+                        }
+
+                        // Přidání k účtu. Dole u storna, ne v hlavičce — je to doplňková
+                        // akce k rezervaci, kterou už člověk má, ne hlavní cíl stránky.
+                        if (canBeClaimed) {
+                            div(className = "mt-auto pt-4 flex flex-col gap-1 items-start") {
+                                button(className = "btn btn-primary btn-sm gap-2") {
+                                    disabled(isClaiming)
+                                    if (isClaiming) span(className = "loading loading-spinner loading-xs")
+                                    else span(className = "icon-[heroicons--user-plus] size-4")
+                                    onClick { onClaimReservation() }
+                                    +currentStrings.claimReservation
+                                }
+                                p(className = "text-xs text-base-content/60") { +currentStrings.claimReservationHint }
+                            }
                         }
 
                         // Tlačítko Zrušit (jen pokud to dává smysl)

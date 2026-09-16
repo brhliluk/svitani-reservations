@@ -9,6 +9,7 @@ import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonsView
+import cz.svitaninymburk.projects.reservations.service.AuthenticatedReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.reservation.detail.usecase.ReservationDetailMutations
 import cz.svitaninymburk.projects.reservations.ui.reservation.detail.usecase.ReservationDetailQueries
@@ -47,6 +48,8 @@ class ReservationDetailModel(
     var isCancelling by mutableStateOf(false); private set
     var cancelErrorMessage: String? by mutableStateOf(null); private set
 
+    var isClaiming by mutableStateOf(false); private set
+
     fun load() {
         scope.launch {
             queries.detail(reservationId)
@@ -75,6 +78,23 @@ class ReservationDetailModel(
     private suspend fun loadLessonsOrNull(detail: ReservationDetail): SeriesLessonsView? {
         if (detail.reservation.reference !is Reference.Series) return null
         return queries.seriesLessons(reservationId).getOrNull()
+    }
+
+    /**
+     * Připíše rezervaci k účtu. Po úspěchu se detail načte znovu — server pak vrátí
+     * `claimable = false` a sekce termínů kurzu se poprvé načte jako vlastníkovi.
+     */
+    fun claimReservation() {
+        if (isClaiming) return
+        run(
+            loading = { isClaiming = it },
+            errorMessage = { it.localizedMessage(currentStrings) },
+            block = { mutations.claim(reservationId) },
+            onSuccess = {
+                showToast(currentStrings.claimReservationSuccess, ToastType.Success)
+                load()
+            },
+        )
     }
 
     fun setWalletCode(value: String) {
@@ -124,10 +144,11 @@ class ReservationDetailModel(
 
 fun IComponent.buildReservationDetailModel(scope: CoroutineScope, reservationId: Uuid): ReservationDetailModel {
     val service = getService<ReservationServiceInterface>(RpcSerializersModules)
+    val authenticated = getService<AuthenticatedReservationServiceInterface>(RpcSerializersModules)
     return ReservationDetailModel(
         scope = scope,
         reservationId = reservationId,
         queries = ReservationDetailQueries(service),
-        mutations = ReservationDetailMutations(service),
+        mutations = ReservationDetailMutations(service, authenticated),
     )
 }

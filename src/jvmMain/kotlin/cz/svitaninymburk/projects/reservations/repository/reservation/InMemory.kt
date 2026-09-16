@@ -93,6 +93,13 @@ class InMemoryReservationRepository : ReservationRepository {
         reservations[id] = reservation.copy(status = status)
         return true
     }
+
+    override suspend fun linkToUser(id: Uuid, userId: Uuid): Boolean {
+        val reservation = reservations[id] ?: return false
+        if (reservation.registeredUserId != null) return false
+        reservations[id] = reservation.copy(registeredUserId = userId)
+        return true
+    }
 }
 
 class InMemorySeriesLessonOptOutRepository : SeriesLessonOptOutRepository {

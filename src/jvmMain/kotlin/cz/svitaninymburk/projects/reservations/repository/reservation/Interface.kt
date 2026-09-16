@@ -36,4 +36,12 @@ interface ReservationRepository {
     suspend fun countAll(searchQuery: String?, includeCancelled: Boolean = false): Long
     suspend fun existsByVariableSymbol(variableSymbol: String): Boolean
     suspend fun updateStatus(id: Uuid, status: Reservation.Status): Boolean
+
+    /**
+     * Naváže rezervaci bez účtu na uživatele. Úzký UPDATE, ne [save] — ten přepisuje
+     * všechny sloupce z paměťové kopie a smazal by souběžné spárování platby.
+     * Podmínka `registered_user_id IS NULL` je zároveň zámek proti dvojímu přivlastnění:
+     * vrátí `false`, když rezervaci mezitím zabral někdo jiný.
+     */
+    suspend fun linkToUser(id: Uuid, userId: Uuid): Boolean
 }
