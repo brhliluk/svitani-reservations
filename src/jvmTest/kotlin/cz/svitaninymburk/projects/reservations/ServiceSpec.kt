@@ -42,6 +42,7 @@ import cz.svitaninymburk.projects.reservations.user.User
 import arrow.core.Either
 import arrow.core.right
 import kotlinx.coroutines.runBlocking
+import cz.svitaninymburk.projects.reservations.i18n.LectorTarget
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -1760,14 +1761,14 @@ class CapturingLectorEmailService : LectorEmailService {
 
     override suspend fun sendLectorReservationNotification(
         lectorEmail: String, contactName: String, contactEmail: String, contactPhone: String?,
-        seatCount: Int, eventTitle: String, occupiedSpots: Int, capacity: Int, locale: String,
+        seatCount: Int, eventTitle: String, target: LectorTarget, occupiedSpots: Int, capacity: Int, locale: String,
     ): Either<EmailError.SendLectorReservation, Unit> {
         sentEmails.add(lectorEmail)
         return Unit.right()
     }
 
     override suspend fun sendLectorCancellationNotification(
-        lectorEmail: String, contactName: String, eventTitle: String,
+        lectorEmail: String, contactName: String, eventTitle: String, target: LectorTarget,
         seatCount: Int, occupiedSpots: Int, capacity: Int, locale: String,
     ): Either<EmailError.SendLectorCancellation, Unit> {
         sentEmails.add(lectorEmail)

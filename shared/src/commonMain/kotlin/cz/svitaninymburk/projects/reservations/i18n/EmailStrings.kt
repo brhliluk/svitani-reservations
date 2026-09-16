@@ -1,8 +1,23 @@
 package cz.svitaninymburk.projects.reservations.i18n
 
 import cz.svitaninymburk.projects.reservations.reservation.isFreePrice
+import cz.svitaninymburk.projects.reservations.util.humanReadable
 
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+
+/**
+ * Na co rezervace míří. Lektorský mail se jinak jmenuje stejně pro jednu lekci
+ * i pro celý kurz, a obsazenost přitom hlásí z jiné kapacity — bez tohoto
+ * rozlišení vypadají dva nesouvisející maily jako skok v obsazenosti.
+ */
+sealed interface LectorTarget {
+    /** Jednorázová akce nebo jedna lekce kurzu. */
+    data class Occasion(val dateTime: LocalDateTime) : LectorTarget
+
+    /** Přihláška na celý kurz. */
+    data class Course(val startDate: LocalDate, val endDate: LocalDate, val lessonCount: Int) : LectorTarget
+}
 
 interface EmailStrings {
     // Reservation confirmation
@@ -47,10 +62,10 @@ interface EmailStrings {
     fun lessonCancelledBody(contactName: String, seriesTitle: String, lessonDateTime: String): String
 
     // Lector notifications
-    fun lectorReservationSubject(eventTitle: String): String
-    fun lectorReservationBody(contactName: String, contactEmail: String, contactPhone: String?, seatCount: Int, eventTitle: String, occupiedSpots: Int, capacity: Int): String
-    fun lectorCancellationSubject(eventTitle: String): String
-    fun lectorCancellationBody(contactName: String, eventTitle: String, seatCount: Int, occupiedSpots: Int, capacity: Int): String
+    fun lectorReservationSubject(eventTitle: String, target: LectorTarget): String
+    fun lectorReservationBody(contactName: String, contactEmail: String, contactPhone: String?, seatCount: Int, eventTitle: String, target: LectorTarget, occupiedSpots: Int, capacity: Int): String
+    fun lectorCancellationSubject(eventTitle: String, target: LectorTarget): String
+    fun lectorCancellationBody(contactName: String, eventTitle: String, target: LectorTarget, seatCount: Int, occupiedSpots: Int, capacity: Int): String
 
     // Lesson opt-out notifications
     fun lessonOptOutSubject(eventTitle: String): String
@@ -115,14 +130,39 @@ object CsEmailStrings : EmailStrings {
     override fun lessonCancelledSubject(seriesTitle: String) = "Zrušení lekce: $seriesTitle"
     override fun lessonCancelledBody(contactName: String, seriesTitle: String, lessonDateTime: String) =
         "Dobrý den $contactName,\n\nlekce kurzu $seriesTitle dne $lessonDateTime byla zrušena."
-    override fun lectorReservationSubject(eventTitle: String) = "Nová rezervace: $eventTitle"
-    override fun lectorReservationBody(contactName: String, contactEmail: String, contactPhone: String?, seatCount: Int, eventTitle: String, occupiedSpots: Int, capacity: Int): String {
-        val phone = if (contactPhone != null) "\nTelefon: $contactPhone" else ""
-        return "Nová rezervace na akci: $eventTitle\n\nZákazník: $contactName\nE-mail: $contactEmail$phone\nPočet míst: $seatCount\n\nObsazenost: $occupiedSpots / $capacity míst"
+    override fun lectorReservationSubject(eventTitle: String, target: LectorTarget) = when (target) {
+        is LectorTarget.Occasion -> "Nová rezervace: $eventTitle \u2014 ${target.dateTime.humanReadable}"
+        is LectorTarget.Course -> "Nová přihláška do kurzu: $eventTitle"
     }
-    override fun lectorCancellationSubject(eventTitle: String) = "Zrušená rezervace: $eventTitle"
-    override fun lectorCancellationBody(contactName: String, eventTitle: String, seatCount: Int, occupiedSpots: Int, capacity: Int) =
-        "Rezervace na akci $eventTitle byla zrušena.\n\nZákazník: $contactName\nUvolněná místa: $seatCount\n\nObsazenost: $occupiedSpots / $capacity míst"
+    override fun lectorReservationBody(contactName: String, contactEmail: String, contactPhone: String?, seatCount: Int, eventTitle: String, target: LectorTarget, occupiedSpots: Int, capacity: Int): String {
+        val phone = if (contactPhone != null) "\nTelefon: $contactPhone" else ""
+        val heading = when (target) {
+            is LectorTarget.Occasion -> "Nová rezervace na akci: $eventTitle\nTermín: ${target.dateTime.humanReadable}"
+            is LectorTarget.Course ->
+                "Nová přihláška do kurzu: $eventTitle\nRozsah: ${target.startDate.humanReadable} \u2013 ${target.endDate.humanReadable}, ${target.lessonCount} lekcí"
+        }
+        val occupancyLabel = when (target) {
+            is LectorTarget.Occasion -> "Obsazenost termínu"
+            is LectorTarget.Course -> "Obsazenost kurzu"
+        }
+        return "$heading\n\nZákazník: $contactName\nE-mail: $contactEmail$phone\nPočet míst: $seatCount\n\n$occupancyLabel: $occupiedSpots / $capacity míst"
+    }
+    override fun lectorCancellationSubject(eventTitle: String, target: LectorTarget) = when (target) {
+        is LectorTarget.Occasion -> "Zrušená rezervace: $eventTitle \u2014 ${target.dateTime.humanReadable}"
+        is LectorTarget.Course -> "Zrušená přihláška do kurzu: $eventTitle"
+    }
+    override fun lectorCancellationBody(contactName: String, eventTitle: String, target: LectorTarget, seatCount: Int, occupiedSpots: Int, capacity: Int): String {
+        val heading = when (target) {
+            is LectorTarget.Occasion -> "Rezervace na akci $eventTitle byla zrušena.\nTermín: ${target.dateTime.humanReadable}"
+            is LectorTarget.Course ->
+                "Přihláška do kurzu $eventTitle byla zrušena.\nRozsah: ${target.startDate.humanReadable} \u2013 ${target.endDate.humanReadable}, ${target.lessonCount} lekcí"
+        }
+        val occupancyLabel = when (target) {
+            is LectorTarget.Occasion -> "Obsazenost termínu"
+            is LectorTarget.Course -> "Obsazenost kurzu"
+        }
+        return "$heading\n\nZákazník: $contactName\nUvolněná místa: $seatCount\n\n$occupancyLabel: $occupiedSpots / $capacity míst"
+    }
     override fun lessonOptOutSubject(eventTitle: String) = "Odhlášení z lekce: $eventTitle"
     override fun lessonOptOutBody(eventTitle: String, lessonDate: LocalDate, isLate: Boolean): String {
         val base = "Odhlásili jste se z lekce kurzu \"$eventTitle\" dne $lessonDate."
@@ -205,14 +245,39 @@ object EnEmailStrings : EmailStrings {
     override fun lessonCancelledSubject(seriesTitle: String) = "Lesson cancelled: $seriesTitle"
     override fun lessonCancelledBody(contactName: String, seriesTitle: String, lessonDateTime: String) =
         "Hello $contactName,\n\nthe lesson of $seriesTitle on $lessonDateTime has been cancelled."
-    override fun lectorReservationSubject(eventTitle: String) = "New booking: $eventTitle"
-    override fun lectorReservationBody(contactName: String, contactEmail: String, contactPhone: String?, seatCount: Int, eventTitle: String, occupiedSpots: Int, capacity: Int): String {
-        val phone = if (contactPhone != null) "\nPhone: $contactPhone" else ""
-        return "New booking for: $eventTitle\n\nCustomer: $contactName\nEmail: $contactEmail$phone\nSeats: $seatCount\n\nOccupancy: $occupiedSpots / $capacity spots"
+    override fun lectorReservationSubject(eventTitle: String, target: LectorTarget) = when (target) {
+        is LectorTarget.Occasion -> "New booking: $eventTitle \u2014 ${target.dateTime.humanReadable}"
+        is LectorTarget.Course -> "New course sign-up: $eventTitle"
     }
-    override fun lectorCancellationSubject(eventTitle: String) = "Cancelled booking: $eventTitle"
-    override fun lectorCancellationBody(contactName: String, eventTitle: String, seatCount: Int, occupiedSpots: Int, capacity: Int) =
-        "A booking for $eventTitle has been cancelled.\n\nCustomer: $contactName\nFreed seats: $seatCount\n\nOccupancy: $occupiedSpots / $capacity spots"
+    override fun lectorReservationBody(contactName: String, contactEmail: String, contactPhone: String?, seatCount: Int, eventTitle: String, target: LectorTarget, occupiedSpots: Int, capacity: Int): String {
+        val phone = if (contactPhone != null) "\nPhone: $contactPhone" else ""
+        val heading = when (target) {
+            is LectorTarget.Occasion -> "New booking for: $eventTitle\nWhen: ${target.dateTime.humanReadable}"
+            is LectorTarget.Course ->
+                "New sign-up for course: $eventTitle\nRuns: ${target.startDate.humanReadable} \u2013 ${target.endDate.humanReadable}, ${target.lessonCount} lessons"
+        }
+        val occupancyLabel = when (target) {
+            is LectorTarget.Occasion -> "Occupancy for this date"
+            is LectorTarget.Course -> "Course occupancy"
+        }
+        return "$heading\n\nCustomer: $contactName\nEmail: $contactEmail$phone\nSeats: $seatCount\n\n$occupancyLabel: $occupiedSpots / $capacity spots"
+    }
+    override fun lectorCancellationSubject(eventTitle: String, target: LectorTarget) = when (target) {
+        is LectorTarget.Occasion -> "Cancelled booking: $eventTitle \u2014 ${target.dateTime.humanReadable}"
+        is LectorTarget.Course -> "Cancelled course sign-up: $eventTitle"
+    }
+    override fun lectorCancellationBody(contactName: String, eventTitle: String, target: LectorTarget, seatCount: Int, occupiedSpots: Int, capacity: Int): String {
+        val heading = when (target) {
+            is LectorTarget.Occasion -> "A booking for $eventTitle has been cancelled.\nWhen: ${target.dateTime.humanReadable}"
+            is LectorTarget.Course ->
+                "A sign-up for course $eventTitle has been cancelled.\nRuns: ${target.startDate.humanReadable} \u2013 ${target.endDate.humanReadable}, ${target.lessonCount} lessons"
+        }
+        val occupancyLabel = when (target) {
+            is LectorTarget.Occasion -> "Occupancy for this date"
+            is LectorTarget.Course -> "Course occupancy"
+        }
+        return "$heading\n\nCustomer: $contactName\nFreed seats: $seatCount\n\n$occupancyLabel: $occupiedSpots / $capacity spots"
+    }
     override fun lessonOptOutSubject(eventTitle: String) = "Lesson unsubscription: $eventTitle"
     override fun lessonOptOutBody(eventTitle: String, lessonDate: LocalDate, isLate: Boolean): String {
         val base = "You have unsubscribed from a lesson of \"$eventTitle\" on $lessonDate."

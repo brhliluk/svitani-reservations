@@ -6,6 +6,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.error.EmailError
+import cz.svitaninymburk.projects.reservations.i18n.LectorTarget
 import cz.svitaninymburk.projects.reservations.i18n.emailStringsFor
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
@@ -272,6 +273,7 @@ class GmailEmailService(
         contactPhone: String?,
         seatCount: Int,
         eventTitle: String,
+        target: LectorTarget,
         occupiedSpots: Int,
         capacity: Int,
         locale: String,
@@ -279,9 +281,9 @@ class GmailEmailService(
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(lectorEmail)
-        email.subject = s.lectorReservationSubject(eventTitle)
+        email.subject = s.lectorReservationSubject(eventTitle, target)
         val formattedPhone = contactPhone?.let { PhoneNumber.format(it) }
-        email.setTextMsg(s.lectorReservationBody(contactName, contactEmail, formattedPhone, seatCount, eventTitle, occupiedSpots, capacity))
+        email.setTextMsg(s.lectorReservationBody(contactName, contactEmail, formattedPhone, seatCount, eventTitle, target, occupiedSpots, capacity))
         email.send()
     }) { e: EmailException ->
         raise(EmailError.SendLectorReservationFailed(e.fullMessage()))
@@ -291,6 +293,7 @@ class GmailEmailService(
         lectorEmail: String,
         contactName: String,
         eventTitle: String,
+        target: LectorTarget,
         seatCount: Int,
         occupiedSpots: Int,
         capacity: Int,
@@ -299,8 +302,8 @@ class GmailEmailService(
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(lectorEmail)
-        email.subject = s.lectorCancellationSubject(eventTitle)
-        email.setTextMsg(s.lectorCancellationBody(contactName, eventTitle, seatCount, occupiedSpots, capacity))
+        email.subject = s.lectorCancellationSubject(eventTitle, target)
+        email.setTextMsg(s.lectorCancellationBody(contactName, eventTitle, target, seatCount, occupiedSpots, capacity))
         email.send()
     }) { e: EmailException ->
         raise(EmailError.SendLectorCancellationFailed(e.fullMessage()))
@@ -537,17 +540,17 @@ class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService
 
     override suspend fun sendLectorReservationNotification(
         lectorEmail: String, contactName: String, contactEmail: String, contactPhone: String?,
-        seatCount: Int, eventTitle: String, occupiedSpots: Int, capacity: Int, locale: String,
+        seatCount: Int, eventTitle: String, target: LectorTarget, occupiedSpots: Int, capacity: Int, locale: String,
     ): Either<EmailError.SendLectorReservation, Unit> {
-        println("[LECTOR EMAIL] To: $lectorEmail | New booking for '$eventTitle' | Customer: $contactName ($contactEmail${if (contactPhone != null) ", ${PhoneNumber.format(contactPhone)}" else ""}) | Seats: $seatCount | Occupancy: $occupiedSpots/$capacity")
+        println("[LECTOR EMAIL] To: $lectorEmail | New booking for '$eventTitle' ($target) | Customer: $contactName ($contactEmail${if (contactPhone != null) ", ${PhoneNumber.format(contactPhone)}" else ""}) | Seats: $seatCount | Occupancy: $occupiedSpots/$capacity")
         return Unit.right()
     }
 
     override suspend fun sendLectorCancellationNotification(
-        lectorEmail: String, contactName: String, eventTitle: String,
+        lectorEmail: String, contactName: String, eventTitle: String, target: LectorTarget,
         seatCount: Int, occupiedSpots: Int, capacity: Int, locale: String,
     ): Either<EmailError.SendLectorCancellation, Unit> {
-        println("[LECTOR EMAIL] To: $lectorEmail | Cancelled booking for '$eventTitle' | Customer: $contactName | Freed: $seatCount | Occupancy: $occupiedSpots/$capacity")
+        println("[LECTOR EMAIL] To: $lectorEmail | Cancelled booking for '$eventTitle' ($target) | Customer: $contactName | Freed: $seatCount | Occupancy: $occupiedSpots/$capacity")
         return Unit.right()
     }
 

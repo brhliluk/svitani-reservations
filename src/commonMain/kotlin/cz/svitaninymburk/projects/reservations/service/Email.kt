@@ -3,6 +3,7 @@ package cz.svitaninymburk.projects.reservations.service
 import arrow.core.Either
 import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.error.EmailError
+import cz.svitaninymburk.projects.reservations.i18n.LectorTarget
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import dev.kilua.rpc.annotations.RpcService
@@ -80,6 +81,7 @@ interface LectorEmailService {
         contactPhone: String?,
         seatCount: Int,
         eventTitle: String,
+        target: LectorTarget,
         occupiedSpots: Int,
         capacity: Int,
         locale: String,
@@ -89,6 +91,7 @@ interface LectorEmailService {
         lectorEmail: String,
         contactName: String,
         eventTitle: String,
+        target: LectorTarget,
         seatCount: Int,
         occupiedSpots: Int,
         capacity: Int,

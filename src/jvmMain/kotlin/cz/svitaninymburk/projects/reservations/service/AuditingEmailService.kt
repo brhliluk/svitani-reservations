@@ -6,6 +6,7 @@ import cz.svitaninymburk.projects.reservations.audit.AuditOutcome
 import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.error.EmailError
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.i18n.LectorTarget
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import kotlinx.datetime.LocalDate
@@ -158,12 +159,13 @@ class AuditingEmailService(
         contactPhone: String?,
         seatCount: Int,
         eventTitle: String,
+        target: LectorTarget,
         occupiedSpots: Int,
         capacity: Int,
         locale: String,
     ) = audited(AuditEventType.EMAIL_LECTOR_RESERVATION, lectorEmail, contactName) {
         lectorDelegate.sendLectorReservationNotification(
-            lectorEmail, contactName, contactEmail, contactPhone, seatCount, eventTitle, occupiedSpots, capacity, locale,
+            lectorEmail, contactName, contactEmail, contactPhone, seatCount, eventTitle, target, occupiedSpots, capacity, locale,
         )
     }
 
@@ -171,13 +173,14 @@ class AuditingEmailService(
         lectorEmail: String,
         contactName: String,
         eventTitle: String,
+        target: LectorTarget,
         seatCount: Int,
         occupiedSpots: Int,
         capacity: Int,
         locale: String,
     ) = audited(AuditEventType.EMAIL_LECTOR_CANCELLATION, lectorEmail, contactName) {
         lectorDelegate.sendLectorCancellationNotification(
-            lectorEmail, contactName, eventTitle, seatCount, occupiedSpots, capacity, locale,
+            lectorEmail, contactName, eventTitle, target, seatCount, occupiedSpots, capacity, locale,
         )
     }
 

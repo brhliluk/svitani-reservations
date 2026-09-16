@@ -11,6 +11,7 @@ import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.error.WalletError
 import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
 import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
+import cz.svitaninymburk.projects.reservations.i18n.LectorTarget
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.INACTIVE_RESERVATION_STATUSES
@@ -508,6 +509,7 @@ open class ReservationService(
                         contactPhone = savedReservation.contactPhone,
                         seatCount = savedReservation.seatCount,
                         eventTitle = target.title,
+                        target = target.forLector(),
                         occupiedSpots = newOccupiedSpots,
                         capacity = capacity,
                         locale = savedReservation.locale,
@@ -734,6 +736,7 @@ open class ReservationService(
                                 lectorEmail = email,
                                 contactName = cancelledReservation.contactName,
                                 eventTitle = target.title,
+                                target = target.forLector(),
                                 seatCount = cancelledReservation.seatCount,
                                 occupiedSpots = updatedSpots,
                                 capacity = capacity,
@@ -789,6 +792,19 @@ open class ReservationService(
             emailMatches = wallet.ownerEmail.equals(email, ignoreCase = true),
             seasonResetDay = settings.seasonResetDay,
             seasonResetMonth = settings.seasonResetMonth,
+        )
+    }
+
+    /**
+     * Lekce i celý kurz se jmenují stejně a každý hlásí obsazenost z jiné kapacity;
+     * bez tohoto rozlišení lektor z mailu nepozná, čeho se číslo týká.
+     */
+    private fun ReservationTarget.forLector(): LectorTarget = when (this) {
+        is ReservationTarget.Instance -> LectorTarget.Occasion(event.startDateTime)
+        is ReservationTarget.Series -> LectorTarget.Course(
+            startDate = series.startDate,
+            endDate = series.endDate,
+            lessonCount = series.lessonCount,
         )
     }
 

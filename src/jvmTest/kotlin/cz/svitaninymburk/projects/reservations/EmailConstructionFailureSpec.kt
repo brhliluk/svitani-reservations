@@ -1,11 +1,13 @@
 package cz.svitaninymburk.projects.reservations
 
+import cz.svitaninymburk.projects.reservations.i18n.LectorTarget
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
 import cz.svitaninymburk.projects.reservations.service.GmailEmailService
 import cz.svitaninymburk.projects.reservations.settings.AppSettings
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -45,6 +47,7 @@ class EmailConstructionFailureSpec {
             contactPhone = null,
             seatCount = 1,
             eventTitle = "Mikrobit a 3D tisk",
+            target = LectorTarget.Occasion(LocalDateTime(2026, 9, 17, 9, 30)),
             occupiedSpots = 3,
             capacity = 10,
             locale = "cs",
