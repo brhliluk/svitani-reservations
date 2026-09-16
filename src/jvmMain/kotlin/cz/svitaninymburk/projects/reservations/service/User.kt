@@ -3,6 +3,7 @@ package cz.svitaninymburk.projects.reservations.service
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import arrow.core.raise.Raise
 import arrow.core.raise.ensureNotNull
 import cz.svitaninymburk.projects.reservations.auth.HashingService
 import cz.svitaninymburk.projects.reservations.auth.MIN_PASSWORD_LENGTH
@@ -28,24 +29,33 @@ open class UserService(
             ?.asString()
             ?.let { runCatching { Uuid.parse(it) }.getOrNull() }
 
-    override suspend fun changeName(userId: Uuid, name: String): Either<UserError.ChangeName, User> = either {
-        val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId.toString()) }
+    /**
+     * Přihlášený uživatel z JWT. Profilové změny se týkají výhradně jeho — parametr
+     * s cizím `userId` by byl past, ne funkce.
+     */
+    private suspend fun Raise<UserError.UserNotFound>.currentUser(): User {
+        val userId = ensureNotNull(currentUserId()) { UserError.UserNotFound("") }
+        return ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId.toString()) }
+    }
+
+    override suspend fun changeName(name: String): Either<UserError.ChangeName, User> = either {
+        val user = currentUser()
         userRepository.update(user.id, when (user) {
             is User.Email -> user.copy(name = name)
             is User.Google -> user.copy(name = name)
         })
     }
 
-    override suspend fun changeSurname(userId: Uuid, surname: String): Either<UserError.ChangeName, User> = either {
-        val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId.toString()) }
+    override suspend fun changeSurname(surname: String): Either<UserError.ChangeName, User> = either {
+        val user = currentUser()
         userRepository.update(user.id, when (user) {
             is User.Email -> user.copy(surname = surname)
             is User.Google -> user.copy(surname = surname)
         })
     }
 
-    override suspend fun changeEmail(userId: Uuid, email: String): Either<UserError.ChangeEmail, User> = either {
-        val user = ensureNotNull(userRepository.findById(userId)) { UserError.UserNotFound(userId.toString()) }
+    override suspend fun changeEmail(email: String): Either<UserError.ChangeEmail, User> = either {
+        val user = currentUser()
         userRepository.update(user.id, when (user) {
             is User.Email -> user.copy(email = email)
             is User.Google -> user.copy(email = email)

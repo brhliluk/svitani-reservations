@@ -7,11 +7,16 @@ import dev.kilua.rpc.annotations.RpcService
 import kotlin.uuid.Uuid
 
 
+/**
+ * Úpravy vlastního profilu. Identita chodí z JWT, ne parametrem — jinak by kterýkoli
+ * přihlášený uživatel přepsal jméno nebo e-mail libovolného účtu, a u e-mailu je to
+ * rovnou cesta k převzetí cizích rezervací (párují se podle adresy).
+ */
 @RpcService
 interface UserServiceInterface {
-    suspend fun changeName(userId: Uuid, name: String): Either<UserError.ChangeName, User>
-    suspend fun changeSurname(userId: Uuid, surname: String): Either<UserError.ChangeName, User>
-    suspend fun changeEmail(userId: Uuid, email: String): Either<UserError.ChangeEmail, User>
+    suspend fun changeName(name: String): Either<UserError.ChangeName, User>
+    suspend fun changeSurname(surname: String): Either<UserError.ChangeName, User>
+    suspend fun changeEmail(email: String): Either<UserError.ChangeEmail, User>
     suspend fun changePassword(oldPassword: String, newPassword: String): Either<UserError.ChangePassword, Unit>
 }
 
