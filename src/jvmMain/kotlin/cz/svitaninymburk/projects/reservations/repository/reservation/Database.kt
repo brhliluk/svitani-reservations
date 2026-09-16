@@ -228,6 +228,14 @@ class ExposedReservationRepository : ReservationRepository {
             it[ReservationsTable.status] = status
         } > 0
     }
+
+    override suspend fun linkToUser(id: Uuid, userId: Uuid): Boolean = dbQuery {
+        ReservationsTable.update({
+            (ReservationsTable.id eq id) and ReservationsTable.registeredUserId.isNull()
+        }) {
+            it[registeredUserId] = userId
+        } > 0
+    }
 }
 
 fun ResultRow.toReservation(): Reservation {

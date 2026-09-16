@@ -37,6 +37,9 @@ interface ErrorStrings {
     val errorAlreadyReservedSameEvent: String
     val errorAlreadyReservedParentSeries: String
     val errorAlreadyReservedSeriesLesson: String
+    val errorReservationAlreadyClaimed: String
+    val errorReservationEmailDoesNotMatch: String
+    val errorReservationNotClaimable: String
 
     // Event errors
     fun errorEventInstanceNotFoundId(id: String): String

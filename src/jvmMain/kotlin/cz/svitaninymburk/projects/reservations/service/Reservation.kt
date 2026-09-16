@@ -16,6 +16,7 @@ import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionR
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.INACTIVE_RESERVATION_STATUSES
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
+import cz.svitaninymburk.projects.reservations.repository.reservation.ACTIVE_SIGNUP_STATUSES
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.reservation.CancellationResult
@@ -36,6 +37,8 @@ import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.audit.AuditActorType
 import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
+import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
+import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.util.AuditSubject
 import cz.svitaninymburk.projects.reservations.util.auditSubjectFor
 import cz.svitaninymburk.projects.reservations.util.withAuditSubject
@@ -87,6 +90,39 @@ internal fun Reservation.isAccessibleBy(callerUserId: Uuid?): Boolean =
     registeredUserId == null || registeredUserId == callerUserId
 
 /**
+ * Akce nebo kurz rezervace ještě běží. Jediné místo, kde ta laťka žije — drží ji
+ * „Moje rezervace“ i přivlastnění, aby tlačítko nepřipsalo k účtu rezervaci, která
+ * se pak v seznamu neobjeví.
+ *
+ * U kurzu rozhoduje jeho konec, ne jednotlivé lekce: kurz, kterému část lekcí už
+ * proběhla, pořád běží. Počítá se v provozní zóně ze stejného důvodu jako uzávěrka
+ * omluvenek — produkce nemá připnuté TZ a currentSystemDefault() by na UTC hostu
+ * posunul hranici o dvě hodiny.
+ */
+internal fun ReservationTarget.isStillRunning(now: Instant): Boolean {
+    val cancelled = when (this) {
+        is ReservationTarget.Instance -> event.isCancelled
+        is ReservationTarget.Series -> series.isCancelled
+    }
+    return !cancelled && now < endDateTime.toInstant(OPT_OUT_TIMEZONE)
+}
+
+/**
+ * Rezervaci bez účtu si smí připsat jen přihlášený uživatel se stejným kontaktním
+ * e-mailem. Adresy se ukládají tak, jak je člověk napsal, takže se normalizují
+ * stejně jako v [DuplicateReservationDetector].
+ *
+ * Neřeší, jestli akce ještě běží — to je [isStillRunning], protože na to volající
+ * potřebuje načtený cíl rezervace.
+ */
+internal fun Reservation.isClaimableBy(callerUserId: Uuid?, callerEmail: String?): Boolean {
+    if (callerUserId == null || callerEmail == null) return false
+    if (registeredUserId != null) return false
+    if (status !in ACTIVE_SIGNUP_STATUSES) return false
+    return contactEmail.trim().equals(callerEmail.trim(), ignoreCase = true)
+}
+
+/**
  * Odmítne rezervaci, na kterou už stejný e-mail přihlášku má — ale jen napoprvé.
  * Jakmile uživatel varování odklikne, [acknowledged] je `true` a detektor se ani nespouští.
  *
@@ -116,6 +152,11 @@ open class ReservationService(
     private val walletService: WalletService,
     private val walletEmailService: WalletEmailService,
     private val appSettingsProvider: AppSettingsProvider,
+    /**
+     * Jen pro e-mail přihlášeného účtu (příznak `claimable`). Bere se z databáze,
+     * ne z JWT — změna e-mailu token nepřevydává, takže by v něm zůstala stará adresa.
+     */
+    private val userRepository: UserRepository = InMemoryUserRepository(),
     private val audit: AuditService = AuditService(InMemoryAuditRepository()),
     private val refundService: RefundService = RefundService(walletService, walletEmailService, appSettingsProvider),
     private val seriesLessonsReader: SeriesLessonsReader = SeriesLessonsReader(
@@ -147,7 +188,12 @@ open class ReservationService(
         return runCatching { Uuid.parse(idString) }.getOrNull()
     }
 
-    private suspend fun isAdminCaller(): Boolean {
+    /** E-mail přihlášeného účtu podle databáze; `null`, když nikdo přihlášený není. */
+    private suspend fun currentCallerEmail(callerUserId: Uuid?): String? =
+        callerUserId?.let { userRepository.findById(it)?.email }
+
+    /** Stejný testovací seam jako [currentCallerUserId] — admin obchází kontroly přístupu. */
+    internal open suspend fun isAdminCaller(): Boolean {
         val role = currentCall()
             ?.principal<JWTPrincipal>()
             ?.payload?.getClaim("role")?.asString()
@@ -182,12 +228,17 @@ open class ReservationService(
             if (position >= 0) position + 1 else null
         } else null
 
+        val callerUserId = currentCallerUserId()
+        val claimable = reservation.isClaimableBy(callerUserId, currentCallerEmail(callerUserId)) &&
+            target?.isStillRunning(Clock.System.now()) == true
+
         ReservationDetail(
             reservation = reservation,
             target = target,
             accountNumber = qrCodeService.accountNumber,
             waitlistPosition = waitlistPosition,
             cancellationDeadline = target?.let { refundDeadlineFor(it.startDateTime) },
+            claimable = claimable,
         )
     }
 
@@ -647,6 +698,21 @@ open class ReservationService(
             }
         } else {
             // Whole-reservation cancellation path
+
+            // Stejná laťka jako u omluvenky z lekce výš: rezervaci bez účtu chrání
+            // znalost UUID, registrovanou její majitel. Bez téhle brány zruší
+            // rezervaci registrovaného kdokoli s odkazem — a protože se kredit posílá
+            // do peněženky účtu, vrátil by se mu v odpovědi i její kód, se kterým jde
+            // zůstatek utratit (walletService.validateForReservation řeší jen existenci
+            // kódu a zůstatek).
+            //
+            // Admin ruší cizí rezervace z administrace touhle samou cestou
+            // (ui/admin/**/usecase volá ReservationServiceInterface.cancelReservation),
+            // takže pro něj platí výjimka jako u getSeriesLessons.
+            ensure(isAdminCaller() || reservation.isAccessibleBy(currentCallerUserId())) {
+                ReservationError.ReservationNotFound  // Don't reveal existence to non-owner
+            }
+
             val target: ReservationTarget? = when (reservation.reference) {
                 is Reference.Instance -> eventInstanceRepository.get(reservation.reference.id)?.let { ReservationTarget.Instance(it) }
                 is Reference.Series -> eventSeriesRepository.get(reservation.reference.id)?.let { ReservationTarget.Series(it) }
@@ -857,7 +923,20 @@ open class AuthenticatedReservationService(
     private val eventInstanceRepository: EventInstanceRepository,
     private val eventSeriesRepository: EventSeriesRepository,
     private val reservationRepository: ReservationRepository,
+    private val userRepository: UserRepository = InMemoryUserRepository(),
+    private val audit: AuditService = AuditService(InMemoryAuditRepository()),
 ) : AuthenticatedReservationServiceInterface {
+
+    private val logger = KtorSimpleLogger(this::class.jvmName)
+
+    /** Volající z JWT. Testy si ho podstrčí — stejný seam jako v [ReservationService]. */
+    internal open suspend fun currentCallerUserId(): Uuid? {
+        val idString = currentCall()
+            ?.principal<JWTPrincipal>()
+            ?.payload?.getClaim("id")?.asString()
+            ?: return null
+        return runCatching { Uuid.parse(idString) }.getOrNull()
+    }
 
     override suspend fun getReservations(userId: Uuid): Either<ReservationError.GetAll, List<MyReservationListItem>> = either {
         val reservations = reservationRepository.getAll(userId)
@@ -869,13 +948,14 @@ open class AuthenticatedReservationService(
         val events = eventInstanceRepository.getAll(instanceIds).associateBy { it.id }
         val series = eventSeriesRepository.getAll(seriesIds).associateBy { it.id }
 
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val now = Clock.System.now()
 
         reservations.mapNotNull { reservation ->
             when (val ref = reservation.reference) {
                 is Reference.Instance -> {
                     val event = events[ref.id] ?: return@mapNotNull null
-                    if (event.isCancelled || event.endDateTime <= now) return@mapNotNull null
+                    val target = ReservationTarget.Instance(event)
+                    if (!target.isStillRunning(now)) return@mapNotNull null
                     reservation.toListItem(
                         title = event.title,
                         startDateTime = event.startDateTime,
@@ -884,7 +964,8 @@ open class AuthenticatedReservationService(
                 }
                 is Reference.Series -> {
                     val seriesItem = series[ref.id] ?: return@mapNotNull null
-                    if (seriesItem.endDate <= now.date) return@mapNotNull null
+                    val target = ReservationTarget.Series(seriesItem)
+                    if (!target.isStillRunning(now)) return@mapNotNull null
                     reservation.toListItem(
                         title = seriesItem.title,
                         startDateTime = LocalDateTime(seriesItem.startDate, LocalTime(0, 0)),
@@ -893,6 +974,57 @@ open class AuthenticatedReservationService(
                 }
             }
         }.sortedBy { it.startDateTime }
+    }
+
+    /**
+     * Připíše rezervaci bez účtu přihlášenému uživateli se shodným kontaktním e-mailem.
+     *
+     * Laťkou je znalost UUID rezervace — stejná, jakou má odjakživa zobrazení detailu.
+     * Přivlastnění tedy nedává nikomu přístup, který by už neměl; mění jen trvalost vazby.
+     *
+     * Podmínky se ověřují znovu, i když je klient dostal v `ReservationDetail.claimable` —
+     * ten příznak řídí jen zobrazení tlačítka.
+     */
+    override suspend fun claimReservation(reservationId: Uuid): Either<ReservationError.ClaimReservation, Unit> = either {
+        val callerUserId = currentCallerUserId() ?: raise(ReservationError.ReservationNotFound)
+        val reservation = ensureNotNull(reservationRepository.findById(reservationId)) {
+            ReservationError.ReservationNotFound
+        }
+
+        // Dvojklik na vlastní rezervaci není chyba — uživatel chtěl přesně tenhle stav.
+        if (reservation.registeredUserId == callerUserId) return@either Unit
+        ensure(reservation.registeredUserId == null) { ReservationError.AlreadyClaimed }
+
+        val callerEmail = userRepository.findById(callerUserId)?.email
+        ensure(reservation.isClaimableBy(callerUserId, callerEmail)) {
+            // Rozlišit, proč to neprošlo: neshodu e-mailu má uživatel šanci pochopit,
+            // doběhlou rezervaci taky. Obojí jsou stavy, které tlačítko vůbec neukazuje.
+            if (reservation.status !in ACTIVE_SIGNUP_STATUSES) ReservationError.NotClaimable
+            else ReservationError.EmailDoesNotMatch
+        }
+
+        val target: ReservationTarget = ensureNotNull(
+            when (val ref = reservation.reference) {
+                is Reference.Instance -> eventInstanceRepository.get(ref.id)?.let { ReservationTarget.Instance(it) }
+                is Reference.Series -> eventSeriesRepository.get(ref.id)?.let { ReservationTarget.Series(it) }
+            }
+        ) { ReservationError.NotClaimable }
+        ensure(target.isStillRunning(Clock.System.now())) { ReservationError.NotClaimable }
+
+        // Úzký UPDATE s podmínkou `registered_user_id IS NULL` — nejen aby nepřepsal
+        // souběžné spárování platby, ale i jako zámek proti dvěma claimům naráz.
+        ensure(reservationRepository.linkToUser(reservationId, callerUserId)) { ReservationError.AlreadyClaimed }
+        logger.info("Reservation claimed id=$reservationId user=$callerUserId")
+
+        val subject = auditSubjectFor(target, reservationId)
+        audit.record(
+            type = AuditEventType.RESERVATION_CLAIMED,
+            subjectLabel = reservation.contactName,
+            seriesId = subject.seriesId,
+            instanceId = subject.instanceId,
+            reservationId = reservationId,
+            detail = "shoda e-mailu ${reservation.contactEmail}",
+        )
     }
 
     private fun Reservation.toListItem(title: String, startDateTime: LocalDateTime, isSeries: Boolean): MyReservationListItem =

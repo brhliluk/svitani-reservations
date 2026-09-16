@@ -93,6 +93,10 @@ interface AppStrings : ErrorStrings {
     val totalPrice: String
     val cancelReservation: String
     val cancelReservationConfirmBody: String
+    /** Přidání rezervace bez účtu k přihlášenému účtu — tlačítko, vysvětlivka pod ním a hláška po úspěchu. */
+    val claimReservation: String
+    val claimReservationHint: String
+    val claimReservationSuccess: String
     val qrPayment: String
     val shareOrDownload: String
     val accountNumber: String

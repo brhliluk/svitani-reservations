@@ -40,4 +40,10 @@ interface ReservationServiceInterface {
 @RpcService
 interface AuthenticatedReservationServiceInterface {
     suspend fun getReservations(userId: Uuid): Either<ReservationError.GetAll, List<MyReservationListItem>>
+
+    /**
+     * Připíše rezervaci bez účtu volajícímu, když sedí kontaktní e-mail.
+     * Identita se bere z JWT, ne z parametru — přivlastnit jde jen sobě.
+     */
+    suspend fun claimReservation(reservationId: Uuid): Either<ReservationError.ClaimReservation, Unit>
 }

@@ -145,8 +145,8 @@ val appModule = module {
     single { QrCodeService() }
     single { BackendQrCodeGenerator(get(), get()) } bind QrCodeGeneratorService::class
     single { WaitlistPromoter(get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", audit = get()) }
-    single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get(), audit = get(), refundService = get(), waitlistPromoter = get()) } bind ReservationServiceInterface::class
-    single { AuthenticatedReservationService(get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
+    single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get(), userRepository = get(), audit = get(), refundService = get(), waitlistPromoter = get()) } bind ReservationServiceInterface::class
+    single { AuthenticatedReservationService(get(), get(), get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
     single { PaymentPairingService(get(), get(), get(), get(), get(), get(), get(), get()) }
     single { SeriesScheduleRefresher(get(), get()) }
     single { AdminService(get()) }

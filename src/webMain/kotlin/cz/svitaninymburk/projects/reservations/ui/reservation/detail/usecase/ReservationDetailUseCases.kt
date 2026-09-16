@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.reservation.detail.usecase
 
+import cz.svitaninymburk.projects.reservations.service.AuthenticatedReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
@@ -28,7 +29,13 @@ class ReservationDetailQueries(private val service: ReservationServiceInterface)
     suspend fun seriesLessons(id: Uuid) = service.getSeriesLessons(id)
 }
 
-class ReservationDetailMutations(private val service: ReservationServiceInterface) {
+class ReservationDetailMutations(
+    private val service: ReservationServiceInterface,
+    private val authenticated: AuthenticatedReservationServiceInterface,
+) {
     suspend fun cancelWhole(id: Uuid, walletCode: String?, force: Boolean) =
         service.cancelReservation(reservationId = id, instanceId = null, walletCode = walletCode, force = force)
+
+    /** Přivlastnění visí na službě za tvrdým JWT — identitu si server bere z tokenu. */
+    suspend fun claim(id: Uuid) = authenticated.claimReservation(id)
 }
