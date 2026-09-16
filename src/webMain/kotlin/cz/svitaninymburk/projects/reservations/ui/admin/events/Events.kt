@@ -94,17 +94,19 @@ fun IComponent.AdminEventsScreen() {
                                         }
                                     }
                                     div(className = "flex items-center gap-2 shrink-0") {
+                                        // Ikona sedí na geometrickém středu řádku, text ale opticky výš
+                                        // (drží si místo na dolní dotahy) — proto ikonu o pixel nadzvedneme.
                                         if (!hasSeries) {
                                             button(className = "btn btn-xs btn-outline btn-primary") {
                                                 onClick { router.navigate("/admin/events/create/instance/${def.id}") }
-                                                span(className = "icon-[heroicons--plus] size-3")
+                                                span(className = "icon-[heroicons--plus] size-3 -translate-y-px")
                                                 +currentStrings.addDate
                                             }
                                         }
                                         if (!hasInstances) {
                                             button(className = "btn btn-xs btn-outline btn-secondary") {
                                                 onClick { router.navigate("/admin/events/create/series/${def.id}") }
-                                                span(className = "icon-[heroicons--plus] size-3")
+                                                span(className = "icon-[heroicons--plus] size-3 -translate-y-px")
                                                 +currentStrings.adminCourse
                                             }
                                         }
