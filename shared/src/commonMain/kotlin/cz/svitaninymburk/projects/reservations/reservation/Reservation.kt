@@ -132,6 +132,11 @@ data class CreateInstanceReservationRequest(
     override val customValues: Map<String, CustomFieldValue>,
     override val locale: String = "cs",
     val walletCode: String? = null,
+    /**
+     * Uživatel viděl varování, že na tuhle akci už rezervaci má, a chce pokračovat.
+     * Default `false` znamená, že každý nový klient je chráněný, dokud se výslovně neodhlásí.
+     */
+    val acknowledgedDuplicate: Boolean = false,
 ) : ReservationRequestData
 
 @Serializable
@@ -145,6 +150,11 @@ data class CreateSeriesReservationRequest(
     override val customValues: Map<String, CustomFieldValue>,
     override val locale: String = "cs",
     val walletCode: String? = null,
+    /**
+     * Uživatel viděl varování, že na tuhle akci už rezervaci má, a chce pokračovat.
+     * Default `false` znamená, že každý nový klient je chráněný, dokud se výslovně neodhlásí.
+     */
+    val acknowledgedDuplicate: Boolean = false,
 ) : ReservationRequestData
 
 @Serializable

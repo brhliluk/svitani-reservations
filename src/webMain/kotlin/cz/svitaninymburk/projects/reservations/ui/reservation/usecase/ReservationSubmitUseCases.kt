@@ -37,6 +37,7 @@ fun interface ReservationSubmitter {
         target: ReservationTarget,
         formData: ReservationFormData,
         userId: Uuid?,
+        acknowledgedDuplicate: Boolean,
     ): Either<ReservationError.CreateReservation, Reservation>
 }
 
@@ -46,15 +47,15 @@ class ReservationSubmitUseCase(private val reservations: ReservationServiceInter
         target: ReservationTarget,
         formData: ReservationFormData,
         userId: Uuid?,
-    ): Either<ReservationError.CreateReservation, Reservation> =
-        when (reservationSubmitAction(target, formData.asWaitlist)) {
-            ReservationSubmitAction.ReserveInstance ->
-                reservations.reserveInstance(formData.toCreateInstanceReservationRequest(target.id), userId)
-            ReservationSubmitAction.ReserveSeries ->
-                reservations.reserveSeries(formData.toCreateSeriesReservationRequest(target.id), userId)
-            ReservationSubmitAction.JoinWaitlistInstance ->
-                reservations.joinWaitlistInstance(formData.toCreateInstanceReservationRequest(target.id), userId)
-            ReservationSubmitAction.JoinWaitlistSeries ->
-                reservations.joinWaitlistSeries(formData.toCreateSeriesReservationRequest(target.id), userId)
+        acknowledgedDuplicate: Boolean,
+    ): Either<ReservationError.CreateReservation, Reservation> {
+        val instance = { formData.toCreateInstanceReservationRequest(target.id, acknowledgedDuplicate) }
+        val series = { formData.toCreateSeriesReservationRequest(target.id, acknowledgedDuplicate) }
+        return when (reservationSubmitAction(target, formData.asWaitlist)) {
+            ReservationSubmitAction.ReserveInstance -> reservations.reserveInstance(instance(), userId)
+            ReservationSubmitAction.ReserveSeries -> reservations.reserveSeries(series(), userId)
+            ReservationSubmitAction.JoinWaitlistInstance -> reservations.joinWaitlistInstance(instance(), userId)
+            ReservationSubmitAction.JoinWaitlistSeries -> reservations.joinWaitlistSeries(series(), userId)
         }
+    }
 }

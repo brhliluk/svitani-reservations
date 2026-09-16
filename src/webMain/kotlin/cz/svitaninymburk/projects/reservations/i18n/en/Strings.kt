@@ -106,6 +106,8 @@ object EnStrings : AppStrings {
     override val reservationOutcomeUnknown =
         "The connection was interrupted, so we don't know whether your reservation went through. " +
             "Please check your email or My reservations before trying again."
+    override val duplicateReservationTitle = "You already have a reservation"
+    override val duplicateReservationConfirm = "Reserve anyway"
 
     // Auth messages
     override val registrationSuccess = "Registration successful! We sent a confirmation to your email."
@@ -721,6 +723,9 @@ object EnStrings : AppStrings {
     override val errorEventNotFull = "The event still has free spots; substitute registration is not available."
     override val errorWaitlistNotAvailable = "This event has no waitlist."
     override val errorWaitlistFull = "The waitlist is full."
+    override val errorAlreadyReservedSameEvent = "You already have a reservation for this event under this e-mail."
+    override val errorAlreadyReservedParentSeries = "You are already signed up for this lesson as part of the whole course."
+    override val errorAlreadyReservedSeriesLesson = "You already have a reservation for one of this course's lessons."
 
     override fun errorEventInstanceNotFoundId(id: String) = "Event with id $id not found"
     override fun errorEventDefinitionNotFoundId(id: String) = "Event template with id $id not found"

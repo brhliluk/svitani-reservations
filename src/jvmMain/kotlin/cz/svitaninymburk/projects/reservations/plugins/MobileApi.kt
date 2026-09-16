@@ -107,14 +107,17 @@ fun Route.mobileSecuredRoutes() {
         }
 
         route("reservations") {
+            // Mobilní klient potvrzovací dialog o duplicitě zatím nemá. Bez tohohle příznaku
+            // by na něj narazil jako na chybu a nemohl by udělat legitimní druhou rezervaci
+            // (druhé dítě, kamarádka). Až dialog v Androidu přibude, `copy` tady zmizí.
             post("instance") {
                 val req = call.receive<CreateInstanceReservationRequest>()
-                call.respondEither(reservationService.reserveInstance(req, call.jwtUserId()))
+                call.respondEither(reservationService.reserveInstance(req.copy(acknowledgedDuplicate = true), call.jwtUserId()))
             }
 
             post("series") {
                 val req = call.receive<CreateSeriesReservationRequest>()
-                call.respondEither(reservationService.reserveSeries(req, call.jwtUserId()))
+                call.respondEither(reservationService.reserveSeries(req.copy(acknowledgedDuplicate = true), call.jwtUserId()))
             }
 
             get("mine") {

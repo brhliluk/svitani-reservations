@@ -10,6 +10,7 @@ import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
 import cz.svitaninymburk.projects.reservations.admin.AuditLogPage
 import cz.svitaninymburk.projects.reservations.audit.AuditCategory
+import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -23,6 +24,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.Ev
 import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.SeriesLessonsUseCase
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.AdminActionType
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.PendingAction
+import cz.svitaninymburk.projects.reservations.ui.reservation.DuplicateReservationPrompt
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormData
 import cz.svitaninymburk.projects.reservations.ui.util.ScreenModel
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
@@ -78,6 +80,9 @@ class AdminEventDetailModel(
     var isWaitlistSignup by mutableStateOf(false); private set
     var isSubmittingReservation by mutableStateOf(false); private set
     var isLoadingReservationTarget by mutableStateOf(false); private set
+
+    /** Varování „na tuhle akci už rezervaci máte“ — dotaz, ne chyba. */
+    val duplicatePrompt = DuplicateReservationPrompt()
 
     // Historie — schválně mimo uiState: refresh() po každé akci s účastníkem
     // přenačítá detail a nemá přitom shodit stránkování ani filtr historie.
@@ -205,12 +210,30 @@ class AdminEventDetailModel(
         onSuccess = { reservationTarget = it; isWaitlistSignup = asWaitlist },
     )
 
-    fun submitReservation(target: ReservationTarget, form: ReservationFormData) = run(
+    fun submitReservation(
+        target: ReservationTarget,
+        form: ReservationFormData,
+        acknowledgedDuplicate: Boolean = false,
+    ) = run(
         loading = { isSubmittingReservation = it },
         errorMessage = { it.localizedMessage(currentStrings) },
-        block = { reservations.submit(target, form) },
+        block = { reservations.submit(target, form, acknowledgedDuplicate) },
         onSuccess = { showToast(currentStrings.reservationCreated); reservationTarget = null; isWaitlistSignup = false; refresh() },
+        // Duplicita není chyba, ale dotaz — admin zakládá rezervaci za někoho jiného
+        // a druhá přihláška téhož e-mailu bývá záměr.
+        onError = { error ->
+            (error as? ReservationError.AlreadyReserved)
+                ?.also { duplicatePrompt.show(it.scope, target, form) } != null
+        },
     )
+
+    /** Admin varování o duplicitě odklikl — pošleme tentýž formulář znovu, už s příznakem. */
+    fun confirmDuplicate() {
+        val pending = duplicatePrompt.take() ?: return
+        submitReservation(pending.target, pending.form, acknowledgedDuplicate = true)
+    }
+
+    fun dismissDuplicate() = duplicatePrompt.dismiss()
 
     fun dismissReservation() { reservationTarget = null; isWaitlistSignup = false }
 

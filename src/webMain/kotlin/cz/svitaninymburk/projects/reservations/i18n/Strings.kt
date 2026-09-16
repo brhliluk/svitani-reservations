@@ -127,6 +127,11 @@ interface AppStrings : ErrorStrings {
     // Nesmí tvrdit, že selhala, jinak uživatel odešle znovu a vznikne duplicita.
     val reservationOutcomeUnknown: String
 
+    // Varování, že na tuhle akci už rezervace na stejný e-mail existuje.
+    // Nebrání odeslání — druhé dítě nebo kamarádka jsou legitimní důvod.
+    val duplicateReservationTitle: String
+    val duplicateReservationConfirm: String
+
     // Auth messages
     val registrationSuccess: String
     val forgotPasswordEmailSent: String

@@ -10,6 +10,7 @@ import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.ui.events.Event
 import cz.svitaninymburk.projects.reservations.ui.events.SeriesCard
+import cz.svitaninymburk.projects.reservations.ui.reservation.DuplicateReservationModal
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationModal
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
@@ -69,6 +70,15 @@ fun IComponent.EventPreviewScreen(eventId: String, isSeries: Boolean, currentUse
             onClose = { model.closeReservation() },
             onSubmit = { target, data -> model.submitReservation(target, data, currentUser.id) },
         )
+
+        model.duplicatePrompt.pending?.let { pending ->
+            DuplicateReservationModal(
+                pending = pending,
+                isLoading = model.isSubmitting,
+                onConfirm = { model.confirmDuplicate() },
+                onDismiss = { model.dismissDuplicate() },
+            )
+        }
 
         Toast(
             message = model.toast?.message,

@@ -8,6 +8,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.ReservationActionModal
+import cz.svitaninymburk.projects.reservations.ui.reservation.DuplicateReservationModal
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationModal
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
@@ -129,6 +130,15 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
         onClose = { model.dismissReservation() },
         onSubmit = { target, form -> model.submitReservation(target, form) },
     )
+    model.duplicatePrompt.pending?.let { pending ->
+        DuplicateReservationModal(
+            pending = pending,
+            isLoading = model.isSubmittingReservation,
+            onConfirm = { model.confirmDuplicate() },
+            onDismiss = { model.dismissDuplicate() },
+        )
+    }
+
     Toast(
         message = model.toast?.message,
         type = model.toast?.type ?: ToastType.Success,

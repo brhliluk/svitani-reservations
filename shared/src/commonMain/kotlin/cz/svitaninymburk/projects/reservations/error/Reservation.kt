@@ -5,6 +5,20 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 
+/**
+ * Čím se nová rezervace tluče s tou, kterou už člověk má. Rozhoduje jen o formulaci
+ * hlášky — ve všech případech jde o varování, přes které se dá projít.
+ */
+@Serializable
+enum class DuplicateScope {
+    /** Rezervace přesně na tutéž akci nebo tentýž kurz. */
+    SAME_EVENT,
+    /** Rezervuje jednotlivou lekci, ale je přihlášený na celý kurz. */
+    PARENT_SERIES,
+    /** Rezervuje celý kurz, ale na některou jeho lekci už rezervaci má. */
+    SERIES_LESSON,
+}
+
 @Serializable @SerialName("reservation") sealed interface ReservationError : AppError {
     @Serializable @SerialName("create") sealed interface CreateReservation : ReservationError
     @Serializable @SerialName("cancel") sealed interface CancelReservation : ReservationError
@@ -35,6 +49,13 @@ import kotlinx.serialization.Serializable
     @Serializable data object EventNotFull : CreateReservation
     @Serializable data object WaitlistNotAvailable : CreateReservation
     @Serializable data object WaitlistFull : CreateReservation
+
+    /**
+     * Na tuto akci už na zadaný e-mail rezervace existuje. Není to chyba, ale dotaz —
+     * server nic nezaložil ani nezabral místo, takže se dá poslat znovu
+     * s `acknowledgedDuplicate = true` (rezervuje se druhé dítě, kamarádka…).
+     */
+    @Serializable data class AlreadyReserved(val scope: DuplicateScope) : CreateReservation
 }
 
 fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (this) {
@@ -60,4 +81,11 @@ fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (thi
     is ReservationError.EventNotFull -> strings.errorEventNotFull
     is ReservationError.WaitlistNotAvailable -> strings.errorWaitlistNotAvailable
     is ReservationError.WaitlistFull -> strings.errorWaitlistFull
+    is ReservationError.AlreadyReserved -> scope.localizedMessage(strings)
+}
+
+fun DuplicateScope.localizedMessage(strings: ErrorStrings): String = when (this) {
+    DuplicateScope.SAME_EVENT -> strings.errorAlreadyReservedSameEvent
+    DuplicateScope.PARENT_SERIES -> strings.errorAlreadyReservedParentSeries
+    DuplicateScope.SERIES_LESSON -> strings.errorAlreadyReservedSeriesLesson
 }

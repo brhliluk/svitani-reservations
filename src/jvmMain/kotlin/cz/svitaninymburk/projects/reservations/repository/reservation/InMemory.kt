@@ -22,6 +22,15 @@ class InMemoryReservationRepository : ReservationRepository {
         return reservations.filterValues { it.reference == reference }.values.toList()
     }
 
+    override suspend fun findActiveByReferenceIdsAndEmail(
+        referenceIds: List<Uuid>,
+        email: String,
+    ): List<Reservation> = reservations.values.filter {
+        it.reference.id in referenceIds &&
+            it.contactEmail.trim().lowercase() == email &&
+            it.status in ACTIVE_SIGNUP_STATUSES
+    }
+
     override suspend fun findAwaitingPayment(vs: String): Reservation? {
         return reservations.values.find { it.variableSymbol == vs && it.status == Reservation.Status.PENDING_PAYMENT }
     }

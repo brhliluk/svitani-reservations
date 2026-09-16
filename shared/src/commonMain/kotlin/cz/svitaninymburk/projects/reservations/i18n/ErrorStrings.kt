@@ -34,6 +34,9 @@ interface ErrorStrings {
     val errorEventNotFull: String
     val errorWaitlistNotAvailable: String
     val errorWaitlistFull: String
+    val errorAlreadyReservedSameEvent: String
+    val errorAlreadyReservedParentSeries: String
+    val errorAlreadyReservedSeriesLesson: String
 
     // Event errors
     fun errorEventInstanceNotFoundId(id: String): String
