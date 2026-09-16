@@ -79,8 +79,8 @@ class AdminReservationUseCase(
         else event.getInstance(id).map { ReservationTarget.Instance(it) }
 
     /** Admin zakládá rezervaci za někoho jiného, proto `userId = null`. */
-    suspend fun submit(target: ReservationTarget, form: ReservationFormData) =
-        submitter.submit(target, form, userId = null)
+    suspend fun submit(target: ReservationTarget, form: ReservationFormData, acknowledgedDuplicate: Boolean = false) =
+        submitter.submit(target, form, userId = null, acknowledgedDuplicate = acknowledgedDuplicate)
 
     suspend fun confirmPayment(reservationId: Uuid) = admin.markReservationAsPaid(reservationId)
 

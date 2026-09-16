@@ -6,6 +6,7 @@ import arrow.core.raise.Raise
 import arrow.core.raise.context.ensureNotNull
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import cz.svitaninymburk.projects.reservations.error.DuplicateScope
 import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.error.WalletError
 import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
@@ -84,6 +85,21 @@ internal fun refundDeadlineFor(start: LocalDateTime): Instant =
 internal fun Reservation.isAccessibleBy(callerUserId: Uuid?): Boolean =
     registeredUserId == null || registeredUserId == callerUserId
 
+/**
+ * Odmítne rezervaci, na kterou už stejný e-mail přihlášku má — ale jen napoprvé.
+ * Jakmile uživatel varování odklikne, [acknowledged] je `true` a detektor se ani nespouští.
+ *
+ * Volá se **před** zabráním kapacity: `attemptToReserveSpots` ukousne místo atomicky
+ * hned a odmítnutý pokus by ho už nevrátil.
+ */
+internal suspend inline fun Raise<ReservationError.CreateReservation>.ensureNoDuplicate(
+    acknowledged: Boolean,
+    detect: () -> DuplicateScope?,
+) {
+    if (acknowledged) return
+    detect()?.let { raise(ReservationError.AlreadyReserved(it)) }
+}
+
 
 open class ReservationService(
     private val eventInstanceRepository: EventInstanceRepository,
@@ -104,6 +120,10 @@ open class ReservationService(
     private val seriesLessonsReader: SeriesLessonsReader = SeriesLessonsReader(
         eventInstanceRepository,
         seriesLessonOptOutRepository,
+    ),
+    private val duplicateDetector: DuplicateReservationDetector = DuplicateReservationDetector(
+        reservationRepository,
+        eventInstanceRepository,
     ),
     private val waitlistPromoter: WaitlistPromoter = WaitlistPromoter(
         eventInstanceRepository,
@@ -205,6 +225,10 @@ open class ReservationService(
         ensure(request.seatCount >= 1) { ReservationError.InvalidSeatCount }
         ensure(instance.allowMultipleSeats || request.seatCount == 1) { ReservationError.MultipleSeatsNotAllowed }
 
+        // Musí být před zabráním kapacity — attemptToReserveSpots ukousne místo hned
+        // a odmítnutý pokus by ho už nevrátil.
+        ensureNoDuplicate(request.acknowledgedDuplicate) { duplicateDetector.forInstance(instance, request.contactEmail) }
+
         val isReserved = eventInstanceRepository.attemptToReserveSpots(instanceId = instance.id, amount = request.seatCount,)
 
         ensure(isReserved) { ReservationError.CapacityExceeded }
@@ -234,6 +258,8 @@ open class ReservationService(
         ensure(request.seatCount >= 1) { ReservationError.InvalidSeatCount }
         ensure(series.allowMultipleSeats || request.seatCount == 1) { ReservationError.MultipleSeatsNotAllowed }
 
+        ensureNoDuplicate(request.acknowledgedDuplicate) { duplicateDetector.forSeries(series.id, request.contactEmail) }
+
         val isReserved = eventSeriesRepository.attemptToReserveSpots(series.id, request.seatCount)
         ensure(isReserved) { ReservationError.CapacityExceeded }
 
@@ -260,6 +286,8 @@ open class ReservationService(
         ensure(instance.isFull) { ReservationError.EventNotFull }
         ensure(instance.hasWaitlist) { ReservationError.WaitlistNotAvailable }
 
+        ensureNoDuplicate(request.acknowledgedDuplicate) { duplicateDetector.forInstance(instance, request.contactEmail) }
+
         val claimed = eventInstanceRepository.attemptToReserveWaitlistSpot(instance.id)
         ensure(claimed) { ReservationError.WaitlistFull }
 
@@ -281,6 +309,8 @@ open class ReservationService(
 
         ensure(series.isFull) { ReservationError.EventNotFull }
         ensure(series.hasWaitlist) { ReservationError.WaitlistNotAvailable }
+
+        ensureNoDuplicate(request.acknowledgedDuplicate) { duplicateDetector.forSeries(series.id, request.contactEmail) }
 
         val claimed = eventSeriesRepository.attemptToReserveWaitlistSpot(series.id)
         ensure(claimed) { ReservationError.WaitlistFull }

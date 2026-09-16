@@ -33,16 +33,25 @@ abstract class ScreenModel(protected val scope: CoroutineScope) {
             .onLeft { toast = ToastData(errorMessage(it), ToastType.Error) }
     }
 
-    /** Spustí suspend blok ve scope, přepíká loading a foldne výsledek přes [handle]. */
+    /**
+     * Spustí suspend blok ve scope, přepíná loading a foldne výsledek na toast / [onSuccess].
+     *
+     * [onError] umí chybu odchytit dřív, než se z ní stane toast — vrátí `true`, když
+     * si ji vzal na starost (typicky ji ukáže jako dotaz v modálu). Bez něj platí
+     * obvyklé chování, tedy toast přes [errorMessage].
+     */
     protected fun <L, R> run(
         loading: ((Boolean) -> Unit)? = null,
         errorMessage: (L) -> String,
         block: suspend () -> Either<L, R>,
         onSuccess: (R) -> Unit = {},
+        onError: (L) -> Boolean = { false },
     ): Job = scope.launch {
         loading?.invoke(true)
         try {
-            handle(block(), errorMessage, onSuccess)
+            block()
+                .onRight(onSuccess)
+                .onLeft { if (!onError(it)) showToast(errorMessage(it), ToastType.Error) }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             showToast(e.message ?: "Error", ToastType.Error)

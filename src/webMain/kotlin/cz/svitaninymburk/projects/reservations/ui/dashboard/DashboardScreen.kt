@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.i18n.strings
+import cz.svitaninymburk.projects.reservations.ui.reservation.DuplicateReservationModal
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
@@ -58,6 +59,15 @@ fun IComponent.DashboardScreen(
                 }
             }
         }
+    }
+
+    model.duplicatePrompt.pending?.let { pending ->
+        DuplicateReservationModal(
+            pending = pending,
+            isLoading = model.isSubmitting,
+            onConfirm = { model.confirmDuplicate() },
+            onDismiss = { model.dismissDuplicate() },
+        )
     }
 
     Toast(

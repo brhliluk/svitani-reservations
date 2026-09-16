@@ -19,7 +19,8 @@ data class ReservationFormData(
     val walletCode: String? = null,
     val asWaitlist: Boolean = false,
 ) {
-    fun toCreateInstanceReservationRequest(id: Uuid): CreateInstanceReservationRequest = CreateInstanceReservationRequest(
+    /** [acknowledgedDuplicate] je `true` až u druhého pokusu, kdy uživatel odklikl varování o duplicitě. */
+    fun toCreateInstanceReservationRequest(id: Uuid, acknowledgedDuplicate: Boolean = false): CreateInstanceReservationRequest = CreateInstanceReservationRequest(
         eventInstanceId = id,
         seatCount = seats,
         contactName = "$name $surname",
@@ -29,9 +30,10 @@ data class ReservationFormData(
         customValues = customValues,
         locale = locale,
         walletCode = walletCode,
+        acknowledgedDuplicate = acknowledgedDuplicate,
     )
 
-    fun toCreateSeriesReservationRequest(id: Uuid): CreateSeriesReservationRequest = CreateSeriesReservationRequest(
+    fun toCreateSeriesReservationRequest(id: Uuid, acknowledgedDuplicate: Boolean = false): CreateSeriesReservationRequest = CreateSeriesReservationRequest(
         eventSeriesId = id,
         seatCount = seats,
         contactName = "$name $surname",
@@ -41,5 +43,6 @@ data class ReservationFormData(
         customValues = customValues,
         locale = locale,
         walletCode = walletCode,
+        acknowledgedDuplicate = acknowledgedDuplicate,
     )
 }

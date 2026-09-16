@@ -2,6 +2,7 @@ package cz.svitaninymburk.projects.reservations.ui.reservation
 
 import arrow.core.left
 import arrow.core.right
+import cz.svitaninymburk.projects.reservations.error.DuplicateScope
 import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.EventInstance
@@ -119,7 +120,7 @@ class ReservationSubmittingModelSpec {
     fun successfulSubmitHandsOverReservationAndShowsNoToast() {
         val created = reservation()
         val reserved = mutableListOf<Reservation>()
-        val model = TestSubmitModel({ _, _, _ -> created.right() }, reserved)
+        val model = TestSubmitModel({ _, _, _, _ -> created.right() }, reserved)
 
         model.submitReservation(instanceTarget, formData(), userId = null)
 
@@ -131,7 +132,7 @@ class ReservationSubmittingModelSpec {
     @Test
     fun failedSubmitShowsErrorToastAndKeepsUserOnTheForm() {
         val reserved = mutableListOf<Reservation>()
-        val model = TestSubmitModel({ _, _, _ -> ReservationError.CapacityExceeded.left() }, reserved)
+        val model = TestSubmitModel({ _, _, _, _ -> ReservationError.CapacityExceeded.left() }, reserved)
 
         model.submitReservation(instanceTarget, formData(), userId = null)
 
@@ -143,7 +144,7 @@ class ReservationSubmittingModelSpec {
 
     @Test
     fun screenCanWrapTheErrorMessage() {
-        val model = TestSubmitModel({ _, _, _ -> ReservationError.CapacityExceeded.left() }, mutableListOf(), wrapError = true)
+        val model = TestSubmitModel({ _, _, _, _ -> ReservationError.CapacityExceeded.left() }, mutableListOf(), wrapError = true)
 
         model.submitReservation(instanceTarget, formData(), userId = null)
 
@@ -160,7 +161,7 @@ class ReservationSubmittingModelSpec {
      */
     @Test
     fun thrownRpcErrorStopsTheSpinner() {
-        val model = TestSubmitModel({ _, _, _ -> throw IllegalStateException("connection lost") }, mutableListOf())
+        val model = TestSubmitModel({ _, _, _, _ -> throw IllegalStateException("connection lost") }, mutableListOf())
 
         model.submitReservation(instanceTarget, formData(), userId = null)
 
@@ -170,11 +171,80 @@ class ReservationSubmittingModelSpec {
     /** Rezervace mohla na serveru vzniknout — netvrdit, že selhala. */
     @Test
     fun thrownRpcErrorReportsUnknownOutcomeRatherThanFailure() {
-        val model = TestSubmitModel({ _, _, _ -> throw IllegalStateException("connection lost") }, mutableListOf(), wrapError = true)
+        val model = TestSubmitModel({ _, _, _, _ -> throw IllegalStateException("connection lost") }, mutableListOf(), wrapError = true)
 
         model.submitReservation(instanceTarget, formData(), userId = null)
 
         assertEquals(strings.value.reservationOutcomeUnknown, model.toast?.message)
         assertEquals(ToastType.Error, model.toast?.type)
+    }
+}
+
+/**
+ * Varování „na tuhle akci už rezervaci máte“ je dotaz, ne chyba: nesmí skončit
+ * jako toast a po potvrzení musí odejít tentýž formulář znovu, už s příznakem.
+ */
+class DuplicateReservationPromptSpec {
+
+    private val duplicate = ReservationError.AlreadyReserved(DuplicateScope.SAME_EVENT)
+
+    @Test
+    fun duplicateOpensThePromptInsteadOfAToast() {
+        val reserved = mutableListOf<Reservation>()
+        val model = TestSubmitModel({ _, _, _, _ -> duplicate.left() }, reserved)
+
+        model.submitReservation(instanceTarget, formData(), userId = null)
+
+        assertEquals(DuplicateScope.SAME_EVENT, model.duplicatePrompt.pending?.scope)
+        assertNull(model.toast, "Varování se ukazuje v modálu, ne jako chyba")
+        assertTrue(reserved.isEmpty())
+        assertFalse(model.isSubmitting)
+    }
+
+    @Test
+    fun confirmingResubmitsTheSameFormWithTheFlag() {
+        val created = reservation()
+        val reserved = mutableListOf<Reservation>()
+        val seen = mutableListOf<Boolean>()
+        val form = formData()
+        val submitted = mutableListOf<ReservationFormData>()
+        val model = TestSubmitModel(
+            { _, data, _, acknowledged ->
+                seen.add(acknowledged)
+                submitted.add(data)
+                if (acknowledged) created.right() else duplicate.left()
+            },
+            reserved,
+        )
+
+        model.submitReservation(instanceTarget, form, userId = null)
+        model.confirmDuplicate()
+
+        assertEquals(listOf(false, true), seen, "Druhý pokus musí nést acknowledgedDuplicate")
+        assertEquals(listOf(form, form), submitted, "Posílá se tentýž formulář, nic se neztrácí")
+        assertEquals(listOf(created), reserved)
+        assertNull(model.duplicatePrompt.pending, "Po potvrzení se modál zavírá")
+    }
+
+    @Test
+    fun dismissingClosesThePromptAndSendsNothing() {
+        var calls = 0
+        val model = TestSubmitModel({ _, _, _, _ -> calls++; duplicate.left() }, mutableListOf())
+
+        model.submitReservation(instanceTarget, formData(), userId = null)
+        model.dismissDuplicate()
+
+        assertEquals(1, calls, "Zamítnutí nesmí nic odeslat")
+        assertNull(model.duplicatePrompt.pending)
+    }
+
+    @Test
+    fun confirmingWithoutAPendingPromptDoesNothing() {
+        var calls = 0
+        val model = TestSubmitModel({ _, _, _, _ -> calls++; reservation().right() }, mutableListOf())
+
+        model.confirmDuplicate()
+
+        assertEquals(0, calls)
     }
 }

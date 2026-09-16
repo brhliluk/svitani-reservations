@@ -126,6 +126,20 @@ class ExposedReservationRepository : ReservationRepository {
             .map { it.toReservation() }
     }
 
+    override suspend fun findActiveByReferenceIdsAndEmail(
+        referenceIds: List<Uuid>,
+        email: String,
+    ): List<Reservation> = dbQuery {
+        if (referenceIds.isEmpty()) return@dbQuery emptyList()
+        ReservationsTable.selectAll()
+            .where {
+                (ReservationsTable.referenceId inList referenceIds) and
+                    (ReservationsTable.contactEmail.lowerCase() eq email) and
+                    (ReservationsTable.status inList ACTIVE_SIGNUP_STATUSES)
+            }
+            .map { it.toReservation() }
+    }
+
     override suspend fun findAwaitingPayment(vs: String): Reservation? = dbQuery {
         ReservationsTable.selectAll()
             .where {

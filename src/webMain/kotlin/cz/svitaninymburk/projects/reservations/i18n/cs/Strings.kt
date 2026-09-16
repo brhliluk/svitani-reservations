@@ -106,6 +106,8 @@ object CsStrings : AppStrings {
     override val reservationOutcomeUnknown =
         "Spojení se serverem se přerušilo, takže nevíme, jestli rezervace prošla. " +
             "Zkontrolujte si prosím e-mail nebo Moje rezervace, než to zkusíte znovu."
+    override val duplicateReservationTitle = "Rezervaci už máte"
+    override val duplicateReservationConfirm = "Rezervovat i tak"
 
     // Auth messages
     override val registrationSuccess = "Registrace úspěšná! Potvrzení jsme poslali na váš email."
@@ -729,6 +731,9 @@ object CsStrings : AppStrings {
     override val errorEventNotFull = "Na akci jsou ještě volná místa, registrace náhradníka není možná."
     override val errorWaitlistNotAvailable = "U této akce není čekací listina k dispozici."
     override val errorWaitlistFull = "Čekací listina je plná."
+    override val errorAlreadyReservedSameEvent = "Na tuto akci už na tento e-mail rezervaci máte."
+    override val errorAlreadyReservedParentSeries = "Na tuto lekci jste přihlášení už v rámci celého kurzu."
+    override val errorAlreadyReservedSeriesLesson = "Na některou lekci tohoto kurzu už rezervaci máte."
 
     override fun errorEventInstanceNotFoundId(id: String) = "Událost s id $id nenalezena"
     override fun errorEventDefinitionNotFoundId(id: String) = "Šablona události s id $id nenalezena"
