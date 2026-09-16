@@ -10,6 +10,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryRe
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reference
+import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.settings.AppSettings
@@ -67,6 +68,13 @@ class PaymentPairingServiceTest {
         }
 
         override suspend fun sendPasswordResetEmail(toEmail: String, resetToken: String): Either<EmailError.SendPasswordReset, Unit> = Unit.right()
+
+        override suspend fun sendReservationClaimEmail(
+            toEmail: String,
+            reservations: List<MyReservationListItem>,
+            claimToken: String,
+            locale: String,
+        ): Either<EmailError.SendReservationClaim, Unit> = Unit.right()
 
         override suspend fun sendLessonRescheduledNotification(
             toEmail: String,

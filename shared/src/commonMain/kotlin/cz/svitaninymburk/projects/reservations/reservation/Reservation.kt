@@ -188,6 +188,21 @@ data class MyReservationListItem(
     val isFree: Boolean get() = isFreePrice(totalPrice)
 }
 
+/**
+ * Výsledek uplatnění potvrzovacího odkazu z mailu.
+ *
+ * [skipped] jsou rezervace, které mezi odesláním odkazu a klikem přestaly jít připsat
+ * (doběhla jim akce, nebo je zabral někdo jiný) — částečný úspěch je pořád úspěch.
+ * [alreadyDone] značí už uplatněný odkaz; obnovení potvrzovací stránky je běžná věc
+ * a nemá vypadat jako chyba.
+ */
+@Serializable
+data class ClaimResult(
+    val claimed: Int,
+    val skipped: Int = 0,
+    val alreadyDone: Boolean = false,
+)
+
 @Serializable
 data class SeriesLessonItem(
     val instanceId: Uuid,

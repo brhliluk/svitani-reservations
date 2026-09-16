@@ -3,6 +3,7 @@ package cz.svitaninymburk.projects.reservations.service
 import arrow.core.Either
 import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.reservation.CancellationResult
+import cz.svitaninymburk.projects.reservations.reservation.ClaimResult
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
@@ -35,6 +36,16 @@ interface ReservationServiceInterface {
         force: Boolean = false,
     ): Either<ReservationError.CancelReservation, CancellationResult>
     suspend fun getWalletInfo(code: String, email: String): Either<ReservationError.GetWalletInfo, WalletInfo>
+
+    /**
+     * Uplatní potvrzovací odkaz z mailu a připíše rezervace bez účtu k účtu, kterému
+     * odkaz patří.
+     *
+     * Záměrně bez tvrdé autentizace: odkaz se otevírá z mailu, často v prohlížeči nebo
+     * na zařízení bez session. Průkazem je token doručený do schránky účtu — a jeho
+     * jediný možný efekt je ten, který si majitel účtu sám vyžádal.
+     */
+    suspend fun confirmReservationClaim(token: String): Either<ReservationError.ConfirmClaim, ClaimResult>
 }
 
 @RpcService
@@ -46,4 +57,15 @@ interface AuthenticatedReservationServiceInterface {
      * Identita se bere z JWT, ne z parametru — přivlastnit jde jen sobě.
      */
     suspend fun claimReservation(reservationId: Uuid): Either<ReservationError.ClaimReservation, Unit>
+
+    /**
+     * Kolik rezervací bez účtu je vedeno na e-mail přihlášeného.
+     *
+     * Jen počet — adresu volající při registraci nijak neprokázal, takže názvy akcí
+     * a termíny cizích rezervací mu ven jít nesmí. Výpis je až v potvrzovacím mailu.
+     */
+    suspend fun countClaimableReservations(): Either<ReservationError.GetAll, Int>
+
+    /** Pošle na adresu účtu potvrzovací odkaz. Vrací, kolika rezervací se týká. */
+    suspend fun requestReservationClaim(): Either<ReservationError.RequestClaim, Int>
 }

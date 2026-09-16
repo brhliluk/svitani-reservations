@@ -11,6 +11,7 @@ import cz.svitaninymburk.projects.reservations.i18n.emailStringsFor
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
+import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
@@ -25,9 +26,11 @@ import kotlinx.html.br
 import kotlinx.html.h1
 import kotlinx.html.html
 import kotlinx.html.img
+import kotlinx.html.li
 import kotlinx.html.p
 import kotlinx.html.stream.appendHTML
 import kotlinx.html.strong
+import kotlinx.html.ul
 import kotlinx.datetime.LocalDateTime
 import org.apache.commons.mail.DefaultAuthenticator
 import org.apache.commons.mail.EmailException
@@ -229,6 +232,40 @@ class GmailEmailService(
         email.send()
     }) { e: EmailException ->
         raise(EmailError.SendPasswordResetFailed(e.fullMessage()))
+    } } }
+
+    override suspend fun sendReservationClaimEmail(
+        toEmail: String,
+        reservations: List<MyReservationListItem>,
+        claimToken: String,
+        locale: String,
+    ): Either<EmailError.SendReservationClaim, Unit> = either { withContext(Dispatchers.IO) { catch({
+        val s = emailStringsFor(locale)
+        val email = setupEmail()
+        email.addTo(toEmail)
+        email.subject = s.reservationClaimSubject
+
+        email.setHtmlMsg(buildString { appendHTML().html { body {
+            h1 { +s.reservationClaimHeading }
+
+            p { +s.reservationClaimBody(reservations.size) }
+            ul {
+                reservations.forEach { item ->
+                    li { +"${item.eventTitle} — ${item.startDateTime.humanReadable}" }
+                }
+            }
+            a {
+                // href musí jít před obsah — streamovací builder atribut po prvním
+                // vloženém uzlu odmítne ("already passed to the downstream").
+                href = "$appBaseUrl/claim-reservations/$claimToken"
+                +s.reservationClaimLinkText
+            }
+            p { +s.reservationClaimIgnoreNote }
+        } } })
+
+        email.send()
+    }) { e: EmailException ->
+        raise(EmailError.SendReservationClaimFailed(e.fullMessage()))
     } } }
 
     override suspend fun sendLessonRescheduledNotification(
@@ -519,6 +556,17 @@ class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService
         resetToken: String
     ): Either<EmailError.SendPasswordReset, Unit> {
         println("📧 [MOCK EMAIL] Odesílám reset hesla na: $toEmail")
+        return Unit.right()
+    }
+
+    override suspend fun sendReservationClaimEmail(
+        toEmail: String,
+        reservations: List<MyReservationListItem>,
+        claimToken: String,
+        locale: String,
+    ): Either<EmailError.SendReservationClaim, Unit> {
+        println("📧 [MOCK EMAIL] Přidání ${reservations.size} rezervací k účtu: $toEmail")
+        println("   👉 /claim-reservations/$claimToken")
         return Unit.right()
     }
 

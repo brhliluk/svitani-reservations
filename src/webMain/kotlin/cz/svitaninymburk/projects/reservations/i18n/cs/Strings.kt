@@ -78,6 +78,29 @@ object CsStrings : AppStrings {
     override val claimReservation = "Přidat do mých rezervací"
     override val claimReservationHint = "Rezervace se naváže na váš účet. Termíny kurzu a omluvenky pak uvidíte jen po přihlášení."
     override val claimReservationSuccess = "Rezervace je teď ve vašich rezervacích"
+
+    override val claimOfferTitle = "Máme tu vaše rezervace"
+    override fun claimOfferBody(count: Int) = when (count) {
+        1 -> "Na váš e-mail máme jednu rezervaci, která zatím není navázaná na účet. Chcete si ji přidat mezi svoje rezervace?"
+        in 2..4 -> "Na váš e-mail máme $count rezervace, které zatím nejsou navázané na účet. Chcete si je přidat mezi svoje rezervace?"
+        else -> "Na váš e-mail máme $count rezervací, které zatím nejsou navázané na účet. Chcete si je přidat mezi svoje rezervace?"
+    }
+    override val claimOfferHint = "Pošleme vám potvrzovací odkaz na e-mail — tím ověříme, že adresa patří vám."
+    override val claimOfferConfirm = "Poslat potvrzovací odkaz"
+    override val claimOfferLater = "Teď ne"
+    override val claimOfferEmailSent = "Odkaz jsme poslali na váš e-mail"
+    override val claimConfirmTitle = "Přidání rezervací k účtu"
+    override val claimConfirmLoading = "Přidáváme rezervace k vašemu účtu…"
+    override fun claimConfirmSuccess(count: Int) = when (count) {
+        1 -> "Přidali jsme k vašemu účtu jednu rezervaci."
+        in 2..4 -> "Přidali jsme k vašemu účtu $count rezervace."
+        else -> "Přidali jsme k vašemu účtu $count rezervací."
+    }
+    override fun claimConfirmPartial(claimed: Int, skipped: Int) =
+        "Přidali jsme $claimed z ${claimed + skipped} rezervací. Zbytku mezitím skončila akce, nebo už je navázaný na jiný účet."
+    override val claimConfirmNothingAdded = "Nakonec nebylo co přidat — rezervacím mezitím skončila akce, nebo už jsou navázané na účet."
+    override val claimConfirmAlreadyDone = "Tenhle odkaz už byl použitý. Rezervace jsou ve vašem účtu."
+    override val claimConfirmOpenMyReservations = "Moje rezervace"
     override val qrPayment = "Platba QR kódem"
     override val shareOrDownload = "Kliknutím sdílet / stáhnout"
     override val accountNumber = "Číslo účtu"
@@ -113,7 +136,7 @@ object CsStrings : AppStrings {
     override val duplicateReservationConfirm = "Rezervovat i tak"
 
     // Auth messages
-    override val registrationSuccess = "Registrace úspěšná! Potvrzení jsme poslali na váš email."
+    override val registrationSuccess = "Registrace proběhla, jste přihlášení."
     override val forgotPasswordEmailSent = "Email s instrukcemi ke změně hesla byl odeslán."
 
     // Auth dialog labels
@@ -265,6 +288,7 @@ object CsStrings : AppStrings {
         AuditEventType.EMAIL_LESSON_OPT_OUT -> "E-mail: omluvenka"
         AuditEventType.EMAIL_WAITLIST_CONFIRMATION -> "E-mail: zápis do pořadníku"
         AuditEventType.EMAIL_WAITLIST_PROMOTION -> "E-mail: posun z pořadníku"
+        AuditEventType.EMAIL_RESERVATION_CLAIM -> "E-mail: odkaz na přidání rezervací k účtu"
         AuditEventType.EMAIL_LECTOR_RESERVATION -> "E-mail lektorovi: nová rezervace"
         AuditEventType.EMAIL_LECTOR_CANCELLATION -> "E-mail lektorovi: storno"
         AuditEventType.EMAIL_LECTOR_LESSON_OPT_OUT -> "E-mail lektorovi: omluvenka"
@@ -741,6 +765,10 @@ object CsStrings : AppStrings {
     override val errorReservationAlreadyClaimed = "Tahle rezervace už je navázaná na účet."
     override val errorReservationEmailDoesNotMatch = "Rezervace je na jiný e-mail, než má váš účet."
     override val errorReservationNotClaimable = "Tuhle rezervaci už k účtu přidat nejde."
+    override val errorNothingToClaim = "Na váš e-mail nemáme žádnou rezervaci, kterou by šlo přidat."
+    override val errorClaimLinkInvalid = "Tenhle odkaz už neplatí. Zkuste si poslat nový."
+    override val errorClaimLinkExpired = "Platnost odkazu vypršela. Pošlete si nový."
+    override fun errorClaimEmailSendFailed(cause: String) = "E-mail s odkazem se nepodařilo odeslat: $cause"
 
     override fun errorEventInstanceNotFoundId(id: String) = "Událost s id $id nenalezena"
     override fun errorEventDefinitionNotFoundId(id: String) = "Šablona události s id $id nenalezena"

@@ -52,6 +52,7 @@ enum class AuditEventType(val category: AuditCategory) {
     EMAIL_LESSON_OPT_OUT(AuditCategory.EMAIL),
     EMAIL_WAITLIST_CONFIRMATION(AuditCategory.EMAIL),
     EMAIL_WAITLIST_PROMOTION(AuditCategory.EMAIL),
+    EMAIL_RESERVATION_CLAIM(AuditCategory.EMAIL),
 
     // Maily lektorům
     EMAIL_LECTOR_RESERVATION(AuditCategory.EMAIL),

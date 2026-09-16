@@ -31,6 +31,12 @@ class InMemoryReservationRepository : ReservationRepository {
             it.status in ACTIVE_SIGNUP_STATUSES
     }
 
+    override suspend fun findUnclaimedByEmail(email: String): List<Reservation> = reservations.values.filter {
+        it.contactEmail.trim().lowercase() == email &&
+            it.registeredUserId == null &&
+            it.status in ACTIVE_SIGNUP_STATUSES
+    }
+
     override suspend fun findAwaitingPayment(vs: String): Reservation? {
         return reservations.values.find { it.variableSymbol == vs && it.status == Reservation.Status.PENDING_PAYMENT }
     }

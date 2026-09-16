@@ -97,6 +97,21 @@ interface AppStrings : ErrorStrings {
     val claimReservation: String
     val claimReservationHint: String
     val claimReservationSuccess: String
+
+    // Nabídka přidání rezervací k účtu po registraci / přihlášení
+    val claimOfferTitle: String
+    fun claimOfferBody(count: Int): String
+    val claimOfferHint: String
+    val claimOfferConfirm: String
+    val claimOfferLater: String
+    val claimOfferEmailSent: String
+    val claimConfirmTitle: String
+    val claimConfirmLoading: String
+    fun claimConfirmSuccess(count: Int): String
+    fun claimConfirmPartial(claimed: Int, skipped: Int): String
+    val claimConfirmNothingAdded: String
+    val claimConfirmAlreadyDone: String
+    val claimConfirmOpenMyReservations: String
     val qrPayment: String
     val shareOrDownload: String
     val accountNumber: String

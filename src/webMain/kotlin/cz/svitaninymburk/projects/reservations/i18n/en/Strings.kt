@@ -78,6 +78,25 @@ object EnStrings : AppStrings {
     override val claimReservation = "Add to my reservations"
     override val claimReservationHint = "The reservation will be linked to your account. Course dates and lesson opt-outs will then only be visible when you are signed in."
     override val claimReservationSuccess = "The reservation is now in your reservations"
+
+    override val claimOfferTitle = "We found your reservations"
+    override fun claimOfferBody(count: Int) =
+        if (count == 1) "There is one reservation under your e-mail that is not linked to an account yet. Add it to your reservations?"
+        else "There are $count reservations under your e-mail that are not linked to an account yet. Add them to your reservations?"
+    override val claimOfferHint = "We will send a confirmation link to your e-mail — that is how we verify the address is yours."
+    override val claimOfferConfirm = "Send confirmation link"
+    override val claimOfferLater = "Not now"
+    override val claimOfferEmailSent = "We sent the link to your e-mail"
+    override val claimConfirmTitle = "Adding reservations to your account"
+    override val claimConfirmLoading = "Adding the reservations to your account…"
+    override fun claimConfirmSuccess(count: Int) =
+        if (count == 1) "We added one reservation to your account."
+        else "We added $count reservations to your account."
+    override fun claimConfirmPartial(claimed: Int, skipped: Int) =
+        "We added $claimed out of ${claimed + skipped} reservations. The rest have finished in the meantime, or are already linked to another account."
+    override val claimConfirmNothingAdded = "There was nothing left to add — the reservations have finished in the meantime, or are already linked to an account."
+    override val claimConfirmAlreadyDone = "This link has already been used. The reservations are in your account."
+    override val claimConfirmOpenMyReservations = "My reservations"
     override val qrPayment = "QR payment"
     override val shareOrDownload = "Click to share / download"
     override val accountNumber = "Account number"
@@ -113,7 +132,7 @@ object EnStrings : AppStrings {
     override val duplicateReservationConfirm = "Reserve anyway"
 
     // Auth messages
-    override val registrationSuccess = "Registration successful! We sent a confirmation to your email."
+    override val registrationSuccess = "You are registered and signed in."
     override val forgotPasswordEmailSent = "Password reset instructions were sent to your email."
 
     // Auth dialog labels
@@ -265,6 +284,7 @@ object EnStrings : AppStrings {
         AuditEventType.EMAIL_LESSON_OPT_OUT -> "E-mail: lesson opt-out"
         AuditEventType.EMAIL_WAITLIST_CONFIRMATION -> "E-mail: waitlist confirmation"
         AuditEventType.EMAIL_WAITLIST_PROMOTION -> "E-mail: waitlist promotion"
+        AuditEventType.EMAIL_RESERVATION_CLAIM -> "E-mail: link to add reservations to account"
         AuditEventType.EMAIL_LECTOR_RESERVATION -> "Lecturer e-mail: new reservation"
         AuditEventType.EMAIL_LECTOR_CANCELLATION -> "Lecturer e-mail: cancellation"
         AuditEventType.EMAIL_LECTOR_LESSON_OPT_OUT -> "Lecturer e-mail: lesson opt-out"
@@ -733,6 +753,10 @@ object EnStrings : AppStrings {
     override val errorReservationAlreadyClaimed = "This reservation is already linked to an account."
     override val errorReservationEmailDoesNotMatch = "This reservation uses a different e-mail than your account."
     override val errorReservationNotClaimable = "This reservation can no longer be added to an account."
+    override val errorNothingToClaim = "We found no reservation under your e-mail that could be added."
+    override val errorClaimLinkInvalid = "This link is no longer valid. Try sending yourself a new one."
+    override val errorClaimLinkExpired = "The link has expired. Send yourself a new one."
+    override fun errorClaimEmailSendFailed(cause: String) = "The e-mail with the link could not be sent: $cause"
 
     override fun errorEventInstanceNotFoundId(id: String) = "Event with id $id not found"
     override fun errorEventDefinitionNotFoundId(id: String) = "Event template with id $id not found"

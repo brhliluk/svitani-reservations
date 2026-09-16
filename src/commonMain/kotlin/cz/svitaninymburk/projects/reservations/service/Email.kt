@@ -4,6 +4,7 @@ import arrow.core.Either
 import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.error.EmailError
 import cz.svitaninymburk.projects.reservations.i18n.LectorTarget
+import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import dev.kilua.rpc.annotations.RpcService
@@ -28,6 +29,18 @@ interface EmailService {
     suspend fun sendPaymentNotPaidInFull(reservation: Reservation, paymentInfo: BankTransaction, bankAccount: String, qrCodeImage: ByteArray): Either<EmailError.SendPaymentNotPaidInFull, Unit>
 
     suspend fun sendPasswordResetEmail(toEmail: String, resetToken: String) : Either<EmailError.SendPasswordReset, Unit>
+
+    /**
+     * Odkaz, kterým si uživatel potvrdí, že mu patří schránka, a tím připíše rezervace
+     * bez účtu ke svému účtu. Chodí vždy na adresu účtu — proto v něm smí být i výpis
+     * rezervací, který se v aplikaci před potvrzením neukazuje.
+     */
+    suspend fun sendReservationClaimEmail(
+        toEmail: String,
+        reservations: List<MyReservationListItem>,
+        claimToken: String,
+        locale: String,
+    ): Either<EmailError.SendReservationClaim, Unit>
 
     suspend fun sendLessonRescheduledNotification(
         toEmail: String,

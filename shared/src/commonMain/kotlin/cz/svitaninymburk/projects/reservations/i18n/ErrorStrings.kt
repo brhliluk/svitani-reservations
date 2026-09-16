@@ -40,6 +40,10 @@ interface ErrorStrings {
     val errorReservationAlreadyClaimed: String
     val errorReservationEmailDoesNotMatch: String
     val errorReservationNotClaimable: String
+    val errorNothingToClaim: String
+    val errorClaimLinkInvalid: String
+    val errorClaimLinkExpired: String
+    fun errorClaimEmailSendFailed(cause: String): String
 
     // Event errors
     fun errorEventInstanceNotFoundId(id: String): String

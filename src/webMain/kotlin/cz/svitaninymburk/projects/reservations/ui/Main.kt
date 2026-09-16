@@ -28,6 +28,8 @@ import cz.svitaninymburk.projects.reservations.ui.admin.settings.AdminSettingsSc
 import cz.svitaninymburk.projects.reservations.ui.admin.users.AdminUsersScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.wallet.AdminWalletsScreen
 import cz.svitaninymburk.projects.reservations.ui.auth.ResetPasswordScreen
+import cz.svitaninymburk.projects.reservations.ui.claim.ClaimOfferDialog
+import cz.svitaninymburk.projects.reservations.ui.claim.ClaimReservationsScreen
 import cz.svitaninymburk.projects.reservations.ui.dashboard.DashboardScreen
 import cz.svitaninymburk.projects.reservations.ui.dashboard.MyReservationsScreen
 import cz.svitaninymburk.projects.reservations.ui.reservation.detail.ReservationDetailScreen
@@ -61,6 +63,8 @@ fun IComponent.MainLayout() {
             type = session.toast?.type ?: ToastType.Success,
             onDismiss = { session.dismissToast() },
         )
+
+        ClaimOfferDialog(session)
         browserRouter {
             route("/admin") {
                 view {
@@ -292,6 +296,19 @@ fun IComponent.MainLayout() {
                     }
                 }
             }
+            route("/claim-reservations") {
+                string { token ->
+                    view {
+                        val router = Router.current
+                        UserRoute(session) {
+                            ClaimReservationsScreen(
+                                token = token.value,
+                                onOpenMyReservations = { router.navigate("/my-reservations") },
+                            )
+                        }
+                    }
+                }
+            }
             route("/privacy") {
                 view {
                     UserRoute(session) {
@@ -324,6 +341,8 @@ fun IComponent.MainLayout() {
             type = session.toast?.type ?: ToastType.Success,
             onDismiss = { session.dismissToast() },
         )
+
+        ClaimOfferDialog(session)
 
         browserRouter {
             route("/admin") {
@@ -396,6 +415,19 @@ fun IComponent.MainLayout() {
                     }
                 }
             }
+            route("/claim-reservations") {
+                string { token ->
+                    view {
+                        val router = Router.current
+                        UserRoute(session) {
+                            ClaimReservationsScreen(
+                                token = token.value,
+                                onOpenMyReservations = { router.navigate("/my-reservations") },
+                            )
+                        }
+                    }
+                }
+            }
             route("/privacy") {
                 view {
                     UserRoute(session) {
@@ -431,7 +463,7 @@ private fun IComponent.UserRoute(session: SessionModel, content: @Composable ICo
         user = session.currentUser,
         walletCode = session.walletCode,
         onShowMessage = session::showMessage,
-        onLogin = { session.refresh() },
+        onLogin = { session.refresh(); session.checkClaimable() },
         onLogout = { session.logout() },
         onOpenMyReservations = { router.navigate("/my-reservations") },
         onOpenMyWallet = { session.walletCode?.let { router.navigate("/wallet/$it") } },
