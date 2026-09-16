@@ -25,6 +25,9 @@ import org.slf4j.event.Level
 
 
 fun Application.main() {
+    log.info("Reservations ${BuildInfo.VERSION} (commit ${BuildInfo.COMMIT}, ${BuildInfo.COMMIT_TIME})")
+    // Sentry co nejdřív, ať i chyby při startu (DB, migrace) nesou release a environment.
+    configureSentry()
     install(Compression)
     // Bez tohoto nebylo v logu vidět, jak dlouho RPC volání trvalo ani jak skončilo —
     // zaseknutá rezervace se pak hledá jen v journalu podle stack trace.
@@ -54,7 +57,6 @@ fun Application.main() {
     startAuditRetentionJob()
     configureSecurity()
     configureRouting()
-    configureSentry()
 
     if (System.getenv("LOAD_MOCK_DATA").toBoolean()) {
         val mockLoader = MockDataLoader()

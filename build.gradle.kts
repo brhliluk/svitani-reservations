@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+import java.time.LocalDate
 import java.util.Properties
 
 plugins {
@@ -18,6 +19,66 @@ plugins {
 }
 
 extra["mainClassName"] = "io.ktor.server.netty.EngineMain"
+
+// --- Verzování (CalVer) -------------------------------------------------------
+// Verze se odvozuje z data posledního commitu: <rok>.<měsíc>.<den>.<pořadí commitu
+// toho dne>, např. 2026.09.16.3. Nic se needituje ručně a verze se mění jen při
+// commitu — build cache tak nepadá při každém spuštění.
+fun gitOutput(vararg args: String): String? = runCatching {
+    providers.exec {
+        workingDir = rootDir
+        commandLine(listOf("git") + args)
+    }.standardOutput.asText.get().trim().ifEmpty { null }
+}.getOrNull()
+
+val commitDate: String? = gitOutput("log", "-1", "--format=%cd", "--date=format:%Y.%m.%d")
+val appVersion: String = if (commitDate != null) {
+    val sinceMidnight = commitDate.replace('.', '-') + " 00:00:00"
+    val serial = gitOutput("rev-list", "--count", "--since=$sinceMidnight", "HEAD")?.toIntOrNull() ?: 0
+    "$commitDate.$serial"
+} else {
+    // Build mimo git checkout (např. rozbalený zdroják) — aspoň dnešní datum.
+    LocalDate.now().toString().replace('-', '.') + ".0"
+}
+val appCommit: String = gitOutput("rev-parse", "--short=8", "HEAD") ?: "unknown"
+val appCommitTime: String = gitOutput("log", "-1", "--format=%cI") ?: "unknown"
+
+version = appVersion
+
+// Deploy i systemd unit čekají fixní build/libs/reservations.jar — verze se do
+// jména archivu promítnout nesmí.
+tasks.withType<Jar>().configureEach {
+    archiveVersion.set("")
+}
+
+val generateBuildInfo by tasks.registering {
+    description = "Vygeneruje BuildInfo.kt s verzí aplikace"
+    val outputDir = layout.buildDirectory.dir("generated/buildinfo/kotlin")
+    val version = appVersion
+    val commit = appCommit
+    val commitTime = appCommitTime
+    inputs.property("version", version)
+    inputs.property("commit", commit)
+    inputs.property("commitTime", commitTime)
+    outputs.dir(outputDir)
+    doLast {
+        val pkgDir = outputDir.get().asFile.resolve("cz/svitaninymburk/projects/reservations")
+        pkgDir.mkdirs()
+        pkgDir.resolve("BuildInfo.kt").writeText(
+            """
+            |// Generováno Gradle taskem generateBuildInfo — needitovat ručně.
+            |package cz.svitaninymburk.projects.reservations
+            |
+            |object BuildInfo {
+            |    const val VERSION: String = "$version"
+            |    const val COMMIT: String = "$commit"
+            |    const val COMMIT_TIME: String = "$commitTime"
+            |}
+            |
+            """.trimMargin()
+        )
+    }
+}
 
 @OptIn(ExperimentalWasmDsl::class)
 kotlin {
@@ -86,6 +147,7 @@ kotlin {
             }
         }
         val jvmMain by getting {
+            kotlin.srcDir(generateBuildInfo)
             dependencies {
                 implementation(libs.kilua.ssr.server)
                 implementation(libs.ktor.server.netty)
