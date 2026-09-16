@@ -140,6 +140,19 @@ class ExposedReservationRepository : ReservationRepository {
             .map { it.toReservation() }
     }
 
+    override suspend fun findUnclaimedByEmail(email: String): List<Reservation> = dbQuery {
+        ReservationsTable.selectAll()
+            .where {
+                // TRIM i v SQL, ne jen v Kotlinu: adresy se ukládají tak, jak je člověk
+                // napsal, a řádek s mezerou na kraji by jinak dotaz minul úplně —
+                // filtr v paměti už ho nemá z čeho zachránit.
+                (ReservationsTable.contactEmail.trim().lowerCase() eq email) and
+                    ReservationsTable.registeredUserId.isNull() and
+                    (ReservationsTable.status inList ACTIVE_SIGNUP_STATUSES)
+            }
+            .map { it.toReservation() }
+    }
+
     override suspend fun findAwaitingPayment(vs: String): Reservation? = dbQuery {
         ReservationsTable.selectAll()
             .where {

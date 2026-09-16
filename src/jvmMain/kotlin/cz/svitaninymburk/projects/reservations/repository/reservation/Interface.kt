@@ -27,6 +27,13 @@ interface ReservationRepository {
      * na velikost písmen — implementace dostává už osekaný a zmenšený.
      */
     suspend fun findActiveByReferenceIdsAndEmail(referenceIds: List<Uuid>, email: String): List<Reservation>
+    /**
+     * Aktivní rezervace bez účtu na danou adresu — podklad pro nabídku „přidat k účtu“
+     * po registraci. E-mail se porovnává bez ohledu na velikost písmen, implementace
+     * dostává už osekaný a zmenšený.
+     */
+    suspend fun findUnclaimedByEmail(email: String): List<Reservation>
+
     suspend fun findAwaitingPayment(vs: String): Reservation?
     suspend fun hasPendingReservations(): Boolean
     suspend fun countSeats(id: Uuid): Int

@@ -28,6 +28,8 @@ import cz.svitaninymburk.projects.reservations.repository.event.SeriesAwareEvent
 import cz.svitaninymburk.projects.reservations.repository.event.SeriesLessonLoad
 import cz.svitaninymburk.projects.reservations.repository.reservation.ExposedReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ExposedSeriesLessonOptOutRepository
+import cz.svitaninymburk.projects.reservations.repository.claim.ExposedReservationClaimTokenRepository
+import cz.svitaninymburk.projects.reservations.repository.claim.ReservationClaimTokenRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutRepository
@@ -145,8 +147,21 @@ val appModule = module {
     single { QrCodeService() }
     single { BackendQrCodeGenerator(get(), get()) } bind QrCodeGeneratorService::class
     single { WaitlistPromoter(get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", audit = get()) }
-    single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get(), userRepository = get(), audit = get(), refundService = get(), waitlistPromoter = get()) } bind ReservationServiceInterface::class
-    single { AuthenticatedReservationService(get(), get(), get(), get(), get()) } bind AuthenticatedReservationServiceInterface::class
+    single<ReservationClaimTokenRepository> { ExposedReservationClaimTokenRepository() }
+    single {
+        ReservationClaimService(
+            reservationRepository = get(),
+            eventInstanceRepository = get(),
+            eventSeriesRepository = get(),
+            userRepository = get(),
+            claimTokenRepository = get(),
+            emailService = get(),
+            appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz",
+            audit = get(),
+        )
+    }
+    single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get(), userRepository = get(), audit = get(), refundService = get(), waitlistPromoter = get(), claimService = get()) } bind ReservationServiceInterface::class
+    single { AuthenticatedReservationService(get(), get(), get(), get(), get(), claimService = get()) } bind AuthenticatedReservationServiceInterface::class
     single { PaymentPairingService(get(), get(), get(), get(), get(), get(), get(), get()) }
     single { SeriesScheduleRefresher(get(), get()) }
     single { AdminService(get()) }

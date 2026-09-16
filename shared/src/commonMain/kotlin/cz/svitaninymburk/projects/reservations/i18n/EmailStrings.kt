@@ -55,6 +55,13 @@ interface EmailStrings {
     val passwordResetBody: String
     val passwordResetLinkText: String
 
+    // Přidání rezervací bez účtu k účtu
+    val reservationClaimSubject: String
+    val reservationClaimHeading: String
+    fun reservationClaimBody(count: Int): String
+    val reservationClaimLinkText: String
+    val reservationClaimIgnoreNote: String
+
     // Lesson reschedule/cancel notifications
     fun lessonRescheduledSubject(seriesTitle: String): String
     fun lessonRescheduledBody(contactName: String, seriesTitle: String, oldDateTime: String, newDateTime: String): String
@@ -124,6 +131,15 @@ object CsEmailStrings : EmailStrings {
     override val passwordResetHeading = "Změna hesla"
     override val passwordResetBody = "Pro změnu hesla klikněte na následující odkaz:"
     override val passwordResetLinkText = "rezervace.svitaninymburk.cz/reset"
+    override val reservationClaimSubject = "Přidání rezervací k vašemu účtu"
+    override val reservationClaimHeading = "Přidání rezervací k vašemu účtu"
+    override fun reservationClaimBody(count: Int) = when (count) {
+        1 -> "Na tuhle adresu máme jednu rezervaci, která zatím není navázaná na žádný účet. Kliknutím ji přidáte mezi svoje rezervace:"
+        in 2..4 -> "Na tuhle adresu máme $count rezervace, které zatím nejsou navázané na žádný účet. Kliknutím je přidáte mezi svoje rezervace:"
+        else -> "Na tuhle adresu máme $count rezervací, které zatím nejsou navázané na žádný účet. Kliknutím je přidáte mezi svoje rezervace:"
+    }
+    override val reservationClaimLinkText = "Přidat rezervace k účtu"
+    override val reservationClaimIgnoreNote = "Pokud jste o nic nežádali, tenhle e-mail ignorujte — bez kliknutí se nic nestane."
     override fun lessonRescheduledSubject(seriesTitle: String) = "Přeplánování lekce: $seriesTitle"
     override fun lessonRescheduledBody(contactName: String, seriesTitle: String, oldDateTime: String, newDateTime: String) =
         "Dobrý den $contactName,\n\nlekce kurzu $seriesTitle byla přeplánována.\nPůvodní termín: $oldDateTime\nNový termín: $newDateTime"
@@ -239,6 +255,13 @@ object EnEmailStrings : EmailStrings {
     override val passwordResetHeading = "Password reset"
     override val passwordResetBody = "To reset your password, click the following link:"
     override val passwordResetLinkText = "rezervace.svitaninymburk.cz/reset"
+    override val reservationClaimSubject = "Add reservations to your account"
+    override val reservationClaimHeading = "Add reservations to your account"
+    override fun reservationClaimBody(count: Int) =
+        if (count == 1) "We have one reservation under this address that is not linked to any account yet. Click to add it to your reservations:"
+        else "We have $count reservations under this address that are not linked to any account yet. Click to add them to your reservations:"
+    override val reservationClaimLinkText = "Add reservations to account"
+    override val reservationClaimIgnoreNote = "If you did not ask for this, just ignore this e-mail — nothing happens without the click."
     override fun lessonRescheduledSubject(seriesTitle: String) = "Lesson rescheduled: $seriesTitle"
     override fun lessonRescheduledBody(contactName: String, seriesTitle: String, oldDateTime: String, newDateTime: String) =
         "Hello $contactName,\n\na lesson of $seriesTitle has been rescheduled.\nOriginal: $oldDateTime\nNew: $newDateTime"

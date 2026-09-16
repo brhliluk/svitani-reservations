@@ -20,6 +20,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.ACTIVE_SIG
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.reservation.CancellationResult
+import cz.svitaninymburk.projects.reservations.reservation.ClaimResult
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
@@ -37,6 +38,7 @@ import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.audit.AuditActorType
 import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
+import cz.svitaninymburk.projects.reservations.repository.claim.InMemoryReservationClaimTokenRepository
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
 import cz.svitaninymburk.projects.reservations.repository.user.UserRepository
 import cz.svitaninymburk.projects.reservations.util.AuditSubject
@@ -175,6 +177,20 @@ open class ReservationService(
         qrCodeService,
         appBaseUrl,
     ),
+    /**
+     * Uplatnění odkazu z mailu visí na téhle službě jen kvůli routingu — je to jediné
+     * rozhraní pod volitelnou autentizací, a odkaz musí jít otevřít i bez session.
+     */
+    private val claimService: ReservationClaimService = ReservationClaimService(
+        reservationRepository,
+        eventInstanceRepository,
+        eventSeriesRepository,
+        userRepository,
+        InMemoryReservationClaimTokenRepository(),
+        emailService,
+        appBaseUrl,
+        audit,
+    ),
 ) : ReservationServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -211,6 +227,9 @@ open class ReservationService(
     override suspend fun get(id: Uuid): Either<ReservationError.Get, Reservation> = either {
         reservationRepository.findById(id) ?: raise(ReservationError.ReservationNotFound)
     }
+
+    override suspend fun confirmReservationClaim(token: String): Either<ReservationError.ConfirmClaim, ClaimResult> =
+        claimService.confirmClaim(token, Clock.System.now())
 
     override suspend fun getDetail(id: Uuid): Either<ReservationError.GetDetail, ReservationDetail> = either {
         val reservation = get(id).getOrElse { raise(ReservationError.ReservationNotFound) }
@@ -925,6 +944,16 @@ open class AuthenticatedReservationService(
     private val reservationRepository: ReservationRepository,
     private val userRepository: UserRepository = InMemoryUserRepository(),
     private val audit: AuditService = AuditService(InMemoryAuditRepository()),
+    private val claimService: ReservationClaimService = ReservationClaimService(
+        reservationRepository,
+        eventInstanceRepository,
+        eventSeriesRepository,
+        userRepository,
+        InMemoryReservationClaimTokenRepository(),
+        ConsoleEmailService(),
+        appBaseUrl = "",
+        audit = audit,
+    ),
 ) : AuthenticatedReservationServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -938,42 +967,27 @@ open class AuthenticatedReservationService(
         return runCatching { Uuid.parse(idString) }.getOrNull()
     }
 
+    override suspend fun countClaimableReservations(): Either<ReservationError.GetAll, Int> = either {
+        val callerUserId = currentCallerUserId() ?: raise(ReservationError.FailedToGetAllReservations)
+        claimService.countClaimable(callerUserId, Clock.System.now())
+    }
+
+    override suspend fun requestReservationClaim(): Either<ReservationError.RequestClaim, Int> = either {
+        val callerUserId = currentCallerUserId() ?: raise(ReservationError.NothingToClaim)
+        claimService.requestClaim(callerUserId, Clock.System.now()).bind()
+    }
+
     override suspend fun getReservations(userId: Uuid): Either<ReservationError.GetAll, List<MyReservationListItem>> = either {
         val reservations = reservationRepository.getAll(userId)
             .filter { it.status != Reservation.Status.CANCELLED }
         if (reservations.isEmpty()) return@either emptyList()
 
-        val instanceIds = reservations.mapNotNull { (it.reference as? Reference.Instance)?.id }
-        val seriesIds = reservations.mapNotNull { (it.reference as? Reference.Series)?.id }
-        val events = eventInstanceRepository.getAll(instanceIds).associateBy { it.id }
-        val series = eventSeriesRepository.getAll(seriesIds).associateBy { it.id }
-
-        val now = Clock.System.now()
-
-        reservations.mapNotNull { reservation ->
-            when (val ref = reservation.reference) {
-                is Reference.Instance -> {
-                    val event = events[ref.id] ?: return@mapNotNull null
-                    val target = ReservationTarget.Instance(event)
-                    if (!target.isStillRunning(now)) return@mapNotNull null
-                    reservation.toListItem(
-                        title = event.title,
-                        startDateTime = event.startDateTime,
-                        isSeries = false,
-                    )
-                }
-                is Reference.Series -> {
-                    val seriesItem = series[ref.id] ?: return@mapNotNull null
-                    val target = ReservationTarget.Series(seriesItem)
-                    if (!target.isStillRunning(now)) return@mapNotNull null
-                    reservation.toListItem(
-                        title = seriesItem.title,
-                        startDateTime = LocalDateTime(seriesItem.startDate, LocalTime(0, 0)),
-                        isSeries = true,
-                    )
-                }
-            }
-        }.sortedBy { it.startDateTime }
+        runningReservationListItems(
+            reservations = reservations,
+            eventInstanceRepository = eventInstanceRepository,
+            eventSeriesRepository = eventSeriesRepository,
+            now = Clock.System.now(),
+        )
     }
 
     /**
@@ -1027,17 +1041,61 @@ open class AuthenticatedReservationService(
         )
     }
 
-    private fun Reservation.toListItem(title: String, startDateTime: LocalDateTime, isSeries: Boolean): MyReservationListItem =
-        MyReservationListItem(
-            id = id,
-            eventTitle = title,
-            startDateTime = startDateTime,
-            seatCount = seatCount,
-            totalPrice = totalPrice,
-            status = status,
-            paymentType = paymentType,
-            variableSymbol = variableSymbol,
-            isSeries = isSeries,
-        )
-
 }
+
+/**
+ * Rezervace na položky seznamu, s vyhozením těch, jejichž akce nebo kurz už neběží.
+ *
+ * Sdílí ho „Moje rezervace“ i nabídka přidání rezervací k účtu po registraci —
+ * kdyby každá měla svou kopii filtru, nabídka by dřív nebo později slibovala
+ * rezervaci, která se pak v seznamu neukáže.
+ */
+internal suspend fun runningReservationListItems(
+    reservations: List<Reservation>,
+    eventInstanceRepository: EventInstanceRepository,
+    eventSeriesRepository: EventSeriesRepository,
+    now: Instant,
+): List<MyReservationListItem> {
+    if (reservations.isEmpty()) return emptyList()
+
+    val instanceIds = reservations.mapNotNull { (it.reference as? Reference.Instance)?.id }
+    val seriesIds = reservations.mapNotNull { (it.reference as? Reference.Series)?.id }
+    val events = eventInstanceRepository.getAll(instanceIds).associateBy { it.id }
+    val series = eventSeriesRepository.getAll(seriesIds).associateBy { it.id }
+
+    return reservations.mapNotNull { reservation ->
+        when (val ref = reservation.reference) {
+            is Reference.Instance -> {
+                val event = events[ref.id] ?: return@mapNotNull null
+                if (!ReservationTarget.Instance(event).isStillRunning(now)) return@mapNotNull null
+                reservation.toListItem(
+                    title = event.title,
+                    startDateTime = event.startDateTime,
+                    isSeries = false,
+                )
+            }
+            is Reference.Series -> {
+                val seriesItem = series[ref.id] ?: return@mapNotNull null
+                if (!ReservationTarget.Series(seriesItem).isStillRunning(now)) return@mapNotNull null
+                reservation.toListItem(
+                    title = seriesItem.title,
+                    startDateTime = LocalDateTime(seriesItem.startDate, LocalTime(0, 0)),
+                    isSeries = true,
+                )
+            }
+        }
+    }.sortedBy { it.startDateTime }
+}
+
+private fun Reservation.toListItem(title: String, startDateTime: LocalDateTime, isSeries: Boolean): MyReservationListItem =
+    MyReservationListItem(
+        id = id,
+        eventTitle = title,
+        startDateTime = startDateTime,
+        seatCount = seatCount,
+        totalPrice = totalPrice,
+        status = status,
+        paymentType = paymentType,
+        variableSymbol = variableSymbol,
+        isSeries = isSeries,
+    )

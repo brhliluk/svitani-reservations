@@ -38,6 +38,10 @@ object CsErrorStrings : ErrorStrings {
     override val errorReservationAlreadyClaimed = "Tahle rezervace už je navázaná na účet."
     override val errorReservationEmailDoesNotMatch = "Rezervace je na jiný e-mail, než má váš účet."
     override val errorReservationNotClaimable = "Tuhle rezervaci už k účtu přidat nejde."
+    override val errorNothingToClaim = "Na váš e-mail nemáme žádnou rezervaci, kterou by šlo přidat."
+    override val errorClaimLinkInvalid = "Tenhle odkaz už neplatí. Zkuste si poslat nový."
+    override val errorClaimLinkExpired = "Platnost odkazu vypršela. Pošlete si nový."
+    override fun errorClaimEmailSendFailed(cause: String) = "E-mail s odkazem se nepodařilo odeslat: $cause"
 
     override fun errorEventInstanceNotFoundId(id: String) = "Událost s id $id nenalezena"
     override fun errorEventDefinitionNotFoundId(id: String) = "Šablona události s id $id nenalezena"

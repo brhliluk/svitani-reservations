@@ -16,6 +16,7 @@ import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletR
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.Reference
+import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.settings.AppSettings
@@ -67,6 +68,7 @@ private class CapturingEmailService : EmailService {
     override suspend fun sendPaymentReceivedConfirmation(reservation: Reservation) = Unit.right()
     override suspend fun sendPaymentNotPaidInFull(reservation: Reservation, paymentInfo: BankTransaction, bankAccount: String, qrCodeImage: ByteArray) = Unit.right()
     override suspend fun sendPasswordResetEmail(toEmail: String, resetToken: String) = Unit.right()
+    override suspend fun sendReservationClaimEmail(toEmail: String, reservations: List<MyReservationListItem>, claimToken: String, locale: String) = Unit.right()
     override suspend fun sendLessonRescheduledNotification(toEmail: String, contactName: String, seriesTitle: String, oldDateTime: LocalDateTime, newDateTime: LocalDateTime, locale: String) = Unit.right()
     override suspend fun sendLessonCancelledNotification(toEmail: String, contactName: String, seriesTitle: String, lessonDateTime: LocalDateTime, locale: String) = Unit.right()
     override suspend fun sendLessonOptOutNotice(toEmail: String, eventTitle: String, lessonDate: LocalDate, isLateCancellation: Boolean, locale: String) = Unit.right()

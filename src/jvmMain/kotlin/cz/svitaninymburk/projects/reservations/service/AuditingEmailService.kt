@@ -7,6 +7,7 @@ import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.error.EmailError
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.i18n.LectorTarget
+import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import kotlinx.datetime.LocalDate
@@ -97,6 +98,15 @@ class AuditingEmailService(
         audited(AuditEventType.EMAIL_PASSWORD_RESET, toEmail, toEmail) {
             delegate.sendPasswordResetEmail(toEmail, resetToken)
         }
+
+    override suspend fun sendReservationClaimEmail(
+        toEmail: String,
+        reservations: List<MyReservationListItem>,
+        claimToken: String,
+        locale: String,
+    ) = audited(AuditEventType.EMAIL_RESERVATION_CLAIM, toEmail, toEmail) {
+        delegate.sendReservationClaimEmail(toEmail, reservations, claimToken, locale)
+    }
 
     override suspend fun sendLessonRescheduledNotification(
         toEmail: String,

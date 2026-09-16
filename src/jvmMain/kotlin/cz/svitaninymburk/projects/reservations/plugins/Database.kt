@@ -6,6 +6,7 @@ import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.deduplicateFieldKeys
 import cz.svitaninymburk.projects.reservations.event.remapValuesAfterKeyDeduplication
 import cz.svitaninymburk.projects.reservations.repository.auth.RefreshTokensTable
+import cz.svitaninymburk.projects.reservations.repository.claim.ReservationClaimTokensTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionsTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstancesTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventOwnerEmailsTable
@@ -100,6 +101,7 @@ fun Application.configureDatabases() {
             WalletTransactionsTable,
             ReservationAttendanceTable,
             AuditEventsTable,
+            ReservationClaimTokensTable,
         )
         MigrationUtils.statementsRequiredForDatabaseMigration(
             UsersTable,
@@ -116,6 +118,7 @@ fun Application.configureDatabases() {
             WalletTransactionsTable,
             ReservationAttendanceTable,
             AuditEventsTable,
+            ReservationClaimTokensTable,
             withLogs = false,
         ).forEach { exec(it) }
 

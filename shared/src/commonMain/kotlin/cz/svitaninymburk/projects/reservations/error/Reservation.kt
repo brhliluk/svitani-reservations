@@ -28,6 +28,12 @@ enum class DuplicateScope {
     @Serializable @SerialName("get_wallet") sealed interface GetWalletInfo : ReservationError
     @Serializable @SerialName("claim") sealed interface ClaimReservation : ReservationError
 
+    /** Vyžádání potvrzovacího odkazu na rezervace vedené na e-mail účtu. */
+    @Serializable @SerialName("request_claim") sealed interface RequestClaim : ReservationError
+
+    /** Uplatnění toho odkazu. */
+    @Serializable @SerialName("confirm_claim") sealed interface ConfirmClaim : ReservationError
+
     @Serializable data object ReservationNotFound : CreateReservation, CancelReservation, Get, GetDetail, ClaimReservation
     @Serializable data object EventInstanceNotFound : GetDetail
     @Serializable data object EventSeriesNotFound : GetDetail
@@ -57,6 +63,15 @@ enum class DuplicateScope {
     @Serializable data object EmailDoesNotMatch : ClaimReservation
     /** Zrušená, zamítnutá nebo doběhlá rezervace — v „Moje rezervace“ by se stejně neukázala. */
     @Serializable data object NotClaimable : ClaimReservation
+
+    /** Na e-mail účtu není co připsat. Dialog by v tu chvíli neměl být vidět. */
+    @Serializable data object NothingToClaim : RequestClaim
+    /** Odkaz se nepodařilo odeslat — bez mailu není co potvrzovat. */
+    @Serializable data class ClaimEmailSendFailed(val message: String) : RequestClaim
+    /** Neznámý odkaz, nebo už neplatí pro dnešní e-mail účtu. */
+    @Serializable data object ClaimLinkInvalid : ConfirmClaim
+    /** Odkaz je starší, než dokud platí. */
+    @Serializable data object ClaimLinkExpired : ConfirmClaim
 
     /**
      * Na tuto akci už na zadaný e-mail rezervace existuje. Není to chyba, ale dotaz —
@@ -93,6 +108,10 @@ fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (thi
     is ReservationError.AlreadyClaimed -> strings.errorReservationAlreadyClaimed
     is ReservationError.EmailDoesNotMatch -> strings.errorReservationEmailDoesNotMatch
     is ReservationError.NotClaimable -> strings.errorReservationNotClaimable
+    is ReservationError.NothingToClaim -> strings.errorNothingToClaim
+    is ReservationError.ClaimEmailSendFailed -> strings.errorClaimEmailSendFailed(message)
+    is ReservationError.ClaimLinkInvalid -> strings.errorClaimLinkInvalid
+    is ReservationError.ClaimLinkExpired -> strings.errorClaimLinkExpired
 }
 
 fun DuplicateScope.localizedMessage(strings: ErrorStrings): String = when (this) {
