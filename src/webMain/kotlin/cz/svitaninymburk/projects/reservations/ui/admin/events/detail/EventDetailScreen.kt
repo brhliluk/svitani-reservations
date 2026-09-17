@@ -65,6 +65,11 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                     onConfirmPayment = { model.confirmPayment(it) },
                     onCancelReservation = { model.cancelReservation(it) },
                 )
+                OptedOutCard(
+                    data = data,
+                    revokingId = model.revokingOptOutId,
+                    onRevokeOptOut = { model.revokeOptOutPending = it },
+                )
                 AuditLogCard(
                     currentEventId = eventId,
                     page = model.auditPageData,
@@ -106,6 +111,14 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             refundMoney = model.refundMoney, onRefundMoneyChange = { model.refundMoney = it },
             isLoading = model.isCancelLoading,
             onConfirm = { model.cancelEvent() }, onDismiss = { model.dismissCancel() },
+        )
+    }
+    model.revokeOptOutPending?.let { row ->
+        RevokeOptOutModal(
+            participantName = row.contactName,
+            isLoading = model.revokingOptOutId != null,
+            onConfirm = { model.revokeOptOut(row) },
+            onDismiss = { model.revokeOptOutPending = null },
         )
     }
     model.cancelLessonPending?.let { lesson ->

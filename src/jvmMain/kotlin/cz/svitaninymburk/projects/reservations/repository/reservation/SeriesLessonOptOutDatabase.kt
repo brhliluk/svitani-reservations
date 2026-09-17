@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
@@ -47,6 +48,12 @@ interface SeriesLessonOptOutRepository {
     suspend fun findByReservationAndInstance(reservationId: Uuid, instanceId: Uuid): SeriesLessonOptOut?
     suspend fun findByReservation(reservationId: Uuid): List<SeriesLessonOptOut>
     suspend fun findByInstance(instanceId: Uuid): List<SeriesLessonOptOut>
+
+    /**
+     * Smaže omluvenku a vrátí, jestli nějaká byla. Používá to jediné místo —
+     * admin vrací účastníka do lekce, ze které se omluvil omylem.
+     */
+    suspend fun delete(reservationId: Uuid, instanceId: Uuid): Boolean
 }
 
 class ExposedSeriesLessonOptOutRepository(private val database: Database? = null) : SeriesLessonOptOutRepository {
@@ -95,6 +102,13 @@ class ExposedSeriesLessonOptOutRepository(private val database: Database? = null
         SeriesLessonOptOutsTable.selectAll()
             .where { SeriesLessonOptOutsTable.instanceId eq instanceId }
             .map { it.toSeriesLessonOptOut() }
+    }
+
+    override suspend fun delete(reservationId: Uuid, instanceId: Uuid): Boolean = query {
+        SeriesLessonOptOutsTable.deleteWhere {
+            (SeriesLessonOptOutsTable.reservationId eq reservationId) and
+                    (SeriesLessonOptOutsTable.instanceId eq instanceId)
+        } > 0
     }
 }
 

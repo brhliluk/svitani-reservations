@@ -743,6 +743,16 @@ interface AppStrings : ErrorStrings {
     val substituteInfoNote: String
     val joinedWaitlistToast: String
     val substitutesSectionTitle: String
+
+    // Omluvenky z lekce (admin)
+    val optedOutSectionTitle: String
+    val optedOutSectionNote: String
+    val revokeOptOut: String
+    val tooltipRevokeOptOut: String
+    val revokeOptOutConfirmTitle: String
+    fun revokeOptOutConfirmText(name: String): String
+    val revokeOptOutCreditNote: String
+    fun toastOptOutRevoked(name: String): String
     val waitlistCapacityLabel: String
     val substitutesCount: String
     fun waitlistPositionLabel(position: Int): String

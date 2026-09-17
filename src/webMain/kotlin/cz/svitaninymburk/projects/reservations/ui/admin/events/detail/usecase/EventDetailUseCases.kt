@@ -65,6 +65,9 @@ class SeriesLessonsUseCase(private val admin: AdminServiceInterface) {
 
     suspend fun toggleDropIn(lesson: EventInstance) =
         admin.updateEventInstance(lesson.id, toggleDropInRequest(lesson))
+
+    suspend fun revokeOptOut(reservationId: Uuid, instanceId: Uuid) =
+        admin.revokeLessonOptOut(reservationId, instanceId)
 }
 
 class AdminReservationUseCase(

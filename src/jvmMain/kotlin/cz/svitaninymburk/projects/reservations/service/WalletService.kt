@@ -7,6 +7,7 @@ import cz.svitaninymburk.projects.reservations.error.WalletError
 import cz.svitaninymburk.projects.reservations.repository.wallet.NewWallet
 import cz.svitaninymburk.projects.reservations.repository.wallet.NewWalletTransaction
 import cz.svitaninymburk.projects.reservations.repository.wallet.WalletRepository
+import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
 import cz.svitaninymburk.projects.reservations.wallet.WalletTransaction
 import cz.svitaninymburk.projects.reservations.wallet.WalletTransactionReason
@@ -52,6 +53,17 @@ class WalletService(private val repo: WalletRepository) {
             return WalletError.EmailMismatch.left()
         }
         return wallet.right()
+    }
+
+    /**
+     * Peněženka, do které chodily refundy téhle rezervace — bez zakládání nové.
+     * Používá se, když se kredit vrací zpátky (admin bere omluvenku zpět): založit
+     * kvůli odečtu prázdnou peněženku nedává smysl.
+     */
+    suspend fun findForReservation(reservation: Reservation): Wallet? {
+        val registeredUserId = reservation.registeredUserId
+        return if (registeredUserId != null) repo.findByRegisteredUserId(registeredUserId)
+        else repo.findAnonymousByEmail(reservation.contactEmail)
     }
 
     /** Kolik kreditu už rezervace dostala za omluvenky z lekcí. */

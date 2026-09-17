@@ -177,3 +177,26 @@ fun IComponent.AddLessonModal(
         }
     }
 }
+
+@Composable
+fun IComponent.RevokeOptOutModal(
+    participantName: String,
+    isLoading: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val currentStrings by strings
+
+    ConfirmModal(
+        title = currentStrings.revokeOptOutConfirmTitle,
+        confirmLabel = currentStrings.revokeOptOut,
+        dismissLabel = currentStrings.modalBack,
+        isLoading = isLoading,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        confirmClassName = "btn-primary",
+    ) {
+        p(className = "pt-4") { +currentStrings.revokeOptOutConfirmText(participantName) }
+        p(className = "pb-4 text-sm text-base-content/70") { +currentStrings.revokeOptOutCreditNote }
+    }
+}

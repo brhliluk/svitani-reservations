@@ -63,6 +63,13 @@ interface AdminServiceInterface {
     suspend fun cancelEventSeries(id: Uuid, refund: Boolean = true): Either<AdminError.CancelSeries, Unit>
     suspend fun getSeriesInstances(seriesId: Uuid, page: Int = 0, pageSize: Int = 10): Either<AdminError.GetInstances, SeriesInstancesPage>
     suspend fun cancelSeriesLesson(instanceId: Uuid): Either<AdminError.CancelLesson, Unit>
+
+    /**
+     * Vezme zpět omluvenku z lekce: účastník se vrátí do lekce a kredit, který za
+     * omluvenku dostal, se mu z peněženky strhne. Jediná cesta, jak omylem podanou
+     * omluvenku opravit — host si ji vzít zpět nemůže.
+     */
+    suspend fun revokeLessonOptOut(reservationId: Uuid, instanceId: Uuid): Either<AdminError.RevokeOptOut, Unit>
     suspend fun getPaymentEvents(page: Int, pageSize: Int): Either<AdminError.GetPaymentEvents, PaymentEventsPage>
     suspend fun getEventAuditLog(eventId: Uuid, isSeries: Boolean, page: Int = 0, pageSize: Int = 50, category: AuditCategory? = null): Either<AdminError.GetEventAuditLog, AuditLogPage>
     suspend fun getWallets(page: Int, pageSize: Int): Either<AdminError.GetWallets, WalletsPage>

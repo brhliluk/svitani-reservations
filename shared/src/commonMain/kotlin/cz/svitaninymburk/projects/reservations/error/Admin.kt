@@ -73,6 +73,15 @@ import kotlin.uuid.Uuid
         @Serializable @SerialName("failed") object Failed : CancelLesson
     }
 
+    @Serializable @SerialName("revoke_opt_out") sealed interface RevokeOptOut : AdminError {
+        @Serializable @SerialName("opt_out_not_found") object OptOutNotFound : RevokeOptOut
+        @Serializable @SerialName("instance_not_found") object InstanceNotFound : RevokeOptOut
+        @Serializable @SerialName("reservation_not_found") object ReservationNotFound : RevokeOptOut
+        /** Místo mezitím zabral někdo z pořadníku nebo nová rezervace. */
+        @Serializable @SerialName("lesson_full") object LessonFull : RevokeOptOut
+        @Serializable @SerialName("failed") object Failed : RevokeOptOut
+    }
+
     @Serializable @SerialName("wallet_operation_failed") object WalletOperationFailed : GetWallets
 }
 
@@ -108,6 +117,11 @@ fun AdminError.localizedMessage(strings: ErrorStrings): String = when (this) {
     is AdminError.FailedToGetPaymentEvents -> message
     is AdminError.FailedToGetEventAuditLog -> message
     is AdminError.GetInstances.Failed -> strings.errorAdminGetInstancesFailed
+    is AdminError.RevokeOptOut.OptOutNotFound -> strings.errorAdminRevokeOptOutNotFound
+    is AdminError.RevokeOptOut.InstanceNotFound -> strings.errorAdminCancelLessonInstanceNotFound
+    is AdminError.RevokeOptOut.ReservationNotFound -> strings.errorReservationNotFound
+    is AdminError.RevokeOptOut.LessonFull -> strings.errorAdminRevokeOptOutLessonFull
+    is AdminError.RevokeOptOut.Failed -> strings.errorAdminRevokeOptOutFailed
     is AdminError.CancelLesson.InstanceNotFound -> strings.errorAdminCancelLessonInstanceNotFound
     is AdminError.CancelLesson.Failed -> strings.errorAdminCancelLessonFailed
     is AdminError.WalletOperationFailed -> strings.errorAdminWalletOperationFailed

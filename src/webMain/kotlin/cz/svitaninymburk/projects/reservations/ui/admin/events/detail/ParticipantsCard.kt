@@ -310,3 +310,66 @@ fun IComponent.WaitlistCard(
         }
     }
 }
+
+/**
+ * Kdo se z lekce omluvil. Místo nedrží, takže v [ParticipantsCard] není — ale
+ * omluvenku si host vzít zpět nemůže, takže se překlik opravuje jedině odsud.
+ */
+@Composable
+fun IComponent.OptedOutCard(
+    data: AdminEventDetailData,
+    revokingId: Uuid?,
+    onRevokeOptOut: (AdminParticipantRow) -> Unit,
+) {
+    val currentStrings by strings
+
+    if (data.optedOut.isEmpty()) return
+
+    div(className = "card bg-base-100 shadow-sm") {
+        div(className = "card-body p-0") {
+            div(className = "px-4 pt-4 pb-2") {
+                div(className = "flex items-center gap-2") {
+                    span(className = "icon-[heroicons--hand-raised] size-5 text-warning")
+                    h2(className = "font-bold text-lg") { +currentStrings.optedOutSectionTitle }
+                    span(className = "text-sm text-base-content/60") { +"(${data.optedOut.size})" }
+                }
+                p(className = "text-xs text-base-content/60 mt-1") { +currentStrings.optedOutSectionNote }
+            }
+            div(className = "overflow-x-auto") {
+                table(className = "table table-sm w-full") {
+                    thead {
+                        tr {
+                            th { +currentStrings.tableHeaderParticipant }
+                            th { +currentStrings.tableHeaderSeats }
+                            th(className = "text-right") { +currentStrings.tableHeaderActions }
+                        }
+                    }
+                    tbody {
+                        data.optedOut.forEach { participant ->
+                            tr {
+                                td {
+                                    div(className = "font-medium") { +participant.contactName }
+                                    div(className = "text-xs text-base-content/60") { +participant.contactEmail }
+                                }
+                                td { +"${participant.seatCount}" }
+                                td(className = "text-right") {
+                                    button(className = "btn btn-ghost btn-xs gap-1 tooltip tooltip-left") {
+                                        attribute("data-tip", currentStrings.tooltipRevokeOptOut)
+                                        disabled(revokingId != null)
+                                        onClick { onRevokeOptOut(participant) }
+                                        if (revokingId == participant.reservationId) {
+                                            span(className = "loading loading-spinner loading-xs")
+                                        } else {
+                                            span(className = "icon-[heroicons--arrow-uturn-left] size-4")
+                                        }
+                                        +currentStrings.revokeOptOut
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

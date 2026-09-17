@@ -28,6 +28,9 @@ interface ErrorStrings {
     val errorInstanceNotInSeries: String
     val errorAlreadyOptedOut: String
     val errorAlreadyCancelled: String
+    val errorAdminRevokeOptOutNotFound: String
+    val errorAdminRevokeOptOutLessonFull: String
+    val errorAdminRevokeOptOutFailed: String
     val errorWalletNotFound: String
     val errorWalletEmpty: String
     val errorWalletEmailMismatch: String

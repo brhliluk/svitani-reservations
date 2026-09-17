@@ -23,6 +23,12 @@ data class AdminEventDetailData(
     val isCancelled: Boolean = false,
     /** U lekce kurzu id té série — kvůli prokliku na kurz u řádků s [AdminParticipantRow.fromSeries]. */
     val seriesId: Uuid? = null,
+    /**
+     * Účastníci kurzu, kteří se z téhle lekce omluvili. Místo nedrží, takže do
+     * [participants] nepatří — admin je ale musí vidět, aby mohl omylem podanou
+     * omluvenku vzít zpět.
+     */
+    val optedOut: List<AdminParticipantRow> = emptyList(),
 )
 
 @Serializable

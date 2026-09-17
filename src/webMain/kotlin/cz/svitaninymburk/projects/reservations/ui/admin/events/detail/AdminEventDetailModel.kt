@@ -75,6 +75,10 @@ class AdminEventDetailModel(
     var showAddLesson by mutableStateOf(false)
     var isAddingLesson by mutableStateOf(false); private set
 
+    // omluvenky z lekce
+    var revokeOptOutPending: AdminParticipantRow? by mutableStateOf(null)
+    var revokingOptOutId: Uuid? by mutableStateOf(null); private set
+
     // manual reservation
     var reservationTarget: ReservationTarget? by mutableStateOf(null)
     var isWaitlistSignup by mutableStateOf(false); private set
@@ -248,6 +252,19 @@ class AdminEventDetailModel(
     }
 
     fun dismissPendingAction() { pendingAction = null }
+
+    /**
+     * Vrátí omluveného do lekce. Kredit za omluvenku mu server strhne, proto se to
+     * potvrzuje modalem a ne jedním klikem.
+     */
+    fun revokeOptOut(row: AdminParticipantRow) {
+        revokingOptOutId = row.reservationId
+        run(
+            errorMessage = { it.localizedMessage(currentStrings) },
+            block = { lessons.revokeOptOut(row.reservationId, uuid) },
+            onSuccess = { showToast(currentStrings.toastOptOutRevoked(row.contactName)); refresh() },
+        ).invokeOnCompletion { revokingOptOutId = null; revokeOptOutPending = null }
+    }
 
     fun confirmPendingAction(action: PendingAction) {
         when (action.type) {

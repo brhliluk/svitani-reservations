@@ -314,16 +314,25 @@ class AdminDashboardService(
         // na sérii — bez tohohle doplnění by seznam neseděl na obsazenost v hlavičce.
         // Kdo se z lekce omluvil, ten její kapacitu neukrajuje a do seznamu nepatří;
         // stejné odečtení dělá SeriesLessonLoad nad tím samým čítačem.
-        val seriesParticipants = lessonSeriesId?.let { seriesId ->
-            val optedOutReservationIds = seriesLessonOptOutRepository.findByInstance(eventId)
-                .map { it.reservationId }
-                .toSet()
+        val optedOutReservationIds = lessonSeriesId?.let {
+            seriesLessonOptOutRepository.findByInstance(eventId).map { optOut -> optOut.reservationId }.toSet()
+        }.orEmpty()
+
+        val seriesEnrollees = lessonSeriesId?.let { seriesId ->
             reservationRepository.findByReference(Reference.Series(seriesId))
                 .filter { it.status !in INACTIVE_RESERVATION_STATUSES }
-                .filter { it.id !in optedOutReservationIds }
                 .sortedBy { it.createdAt }
-                .map { toRow(it).copy(fromSeries = true) }
         }.orEmpty()
+
+        val seriesParticipants = seriesEnrollees
+            .filter { it.id !in optedOutReservationIds }
+            .map { toRow(it).copy(fromSeries = true) }
+
+        // Omluvení místo nedrží, takže mezi účastníky nepatří — vedle nich ale
+        // musí být vidět, jinak nejde omylem podanou omluvenku vzít zpět.
+        val optedOut = seriesEnrollees
+            .filter { it.id in optedOutReservationIds }
+            .map { toRow(it).copy(fromSeries = true) }
 
         // Přihlášky na kurz jdou za přímé rezervace, ne mezi ně — v tabulce i na
         // vytištěné prezenčce tak drží pohromadě a je vidět, odkud se berou.
@@ -347,6 +356,7 @@ class AdminDashboardService(
             waitlistCapacity = waitlistCapacity,
             isCancelled = isCancelled,
             seriesId = lessonSeriesId,
+            optedOut = optedOut,
         )
     }
 
@@ -1439,6 +1449,66 @@ class AdminDashboardService(
         } catch (e: Exception) {
             e.printStackTrace()
             raise(AdminError.CancelLesson.Failed)
+        }
+    }
+
+    override suspend fun revokeLessonOptOut(
+        reservationId: Uuid,
+        instanceId: Uuid,
+    ): Either<AdminError.RevokeOptOut, Unit> = either {
+        val optOut = ensureNotNull(seriesLessonOptOutRepository.findByReservationAndInstance(reservationId, instanceId)) {
+            AdminError.RevokeOptOut.OptOutNotFound
+        }
+        val reservation = ensureNotNull(reservationRepository.findById(reservationId)) {
+            AdminError.RevokeOptOut.ReservationNotFound
+        }
+        val instance = ensureNotNull(eventInstanceRepository.get(instanceId)) {
+            AdminError.RevokeOptOut.InstanceNotFound
+        }
+
+        // Omluvenka místo uvolnila a mohl ho zabrat čekatel nebo nová rezervace.
+        // Obsazenost lekce se čte přes repository, která do ní dopočítá i přihlášky
+        // na kurz (mínus omluvenky), takže tenhle člověk v ní ještě není.
+        ensure(instance.occupiedSpots + reservation.seatCount <= instance.capacity) {
+            AdminError.RevokeOptOut.LessonFull
+        }
+
+        try {
+            // Kredit zpátky. Pozdní omluvenka žádný nedostala (isLateCancellation se
+            // vyhodnocuje v čase odhlášení, proto uložený příznak a ne přepočet).
+            // Strop je to, co rezervace za omluvenky opravdu dostala — sazba kurzu
+            // se mezitím mohla změnit.
+            val series = instance.seriesId?.let { eventSeriesRepository.get(it) }
+            val perLesson = (series?.lessonRefundAmount ?: 0.0) * reservation.seatCount
+            val refunded = walletService.refundedForLessonOptOuts(reservationId)
+            val toDebit = if (optOut.isLateCancellation) 0.0 else minOf(perLesson, refunded).coerceAtLeast(0.0)
+            // Stejný důvod jako u připsání: součet transakcí toho druhu je zároveň
+            // strop pro další omluvenky, takže odečet musí jít proti němu.
+            val debited = if (toDebit > 0.0) {
+                walletService.findForReservation(reservation)?.let { wallet ->
+                    val before = wallet.balance
+                    walletService.debit(
+                        wallet.id, toDebit, WalletTransactionReason.LESSON_OPT_OUT_REFUND, reservationId
+                    )
+                    minOf(toDebit, before)
+                } ?: 0.0
+            } else 0.0
+
+            seriesLessonOptOutRepository.delete(reservationId, instanceId)
+
+            audit.record(
+                type = AuditEventType.RESERVATION_LESSON_OPT_OUT_REVOKED,
+                subjectLabel = reservation.contactName,
+                seriesId = instance.seriesId,
+                instanceId = instanceId,
+                reservationId = reservationId,
+                amount = debited,
+                detail = if (debited > 0.0) "omluvenka vzata zpět, kredit stržen"
+                else "omluvenka vzata zpět, kredit se nevracel",
+            )
+        } catch (e: Exception) {
+            logger.error("Failed to revoke lesson opt-out reservation=$reservationId instance=$instanceId", e)
+            raise(AdminError.RevokeOptOut.Failed)
         }
     }
 

@@ -24,6 +24,8 @@ enum class AuditEventType(val category: AuditCategory) {
     /** Host si rezervaci bez účtu připsal ke svému účtu (shoda kontaktního e-mailu). */
     RESERVATION_CLAIMED(AuditCategory.RESERVATION),
     RESERVATION_LESSON_OPT_OUT(AuditCategory.RESERVATION),
+    /** Admin vzal omluvenku zpět a vrátil účastníka do lekce. */
+    RESERVATION_LESSON_OPT_OUT_REVOKED(AuditCategory.RESERVATION),
     LESSON_RESCHEDULED(AuditCategory.RESERVATION),
     LESSON_CANCELLED(AuditCategory.RESERVATION),
     EVENT_CANCELLED(AuditCategory.RESERVATION),
