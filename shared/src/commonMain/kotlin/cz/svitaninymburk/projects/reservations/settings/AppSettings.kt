@@ -32,9 +32,13 @@ data class UpdateSettingsRequest(
     val senderEmail: String,
     val gmailAppPassword: String?,   // null = keep current stored value
     val senderDisplayName: String,
-    val seasonResetMonth: Int = 6,
-    val seasonResetDay: Int = 30,
-    val walletResetWarningDays: Int = 7,
+    // Bez defaultů schválně: request jde do `saveSettings` jako celek, takže
+    // nevyplněné pole není „nech, jak bylo" ale „přepiš na default". Sezónní
+    // pole needituje žádná obrazovka, a než tyhle defaulty zmizely, tiše je
+    // každé uložení nastavení přepsalo na 6/30/7.
+    val seasonResetMonth: Int,
+    val seasonResetDay: Int,
+    val walletResetWarningDays: Int,
 )
 
 fun maskSecret(secret: String): String {

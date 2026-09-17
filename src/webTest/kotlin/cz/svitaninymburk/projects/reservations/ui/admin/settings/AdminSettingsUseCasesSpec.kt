@@ -75,23 +75,22 @@ class AdminSettingsUseCasesSpec {
     }
 
     /**
-     * POZOR: tenhle test popisuje chování, které obrazovka má, ne chování, které
-     * je správné. `UpdateSettingsRequest` má na sezónní pole defaulty 6/30/7 a
-     * obrazovka je nikdy neposílá, takže uložení nastavení přepíše, co bylo
-     * nastavené (tady 15. 8. a 21 dní) na defaulty. Až se to opraví, tenhle test
-     * má spadnout — a má se přepsat, ne smazat.
+     * Sezónní pole needituje žádná karta, ale `saveSettings` bere celý request —
+     * dokud je obrazovka neposílala, každé uložení nastavení je přepsalo na
+     * defaulty 6/30/7 a s nimi se posunula expirace peněženek. V UI se to nijak
+     * neprojevilo, protože tahle pole obrazovka vůbec nezobrazuje.
      */
     @Test
-    fun settingsRequestDiscardsSeasonSettings() {
+    fun settingsRequestKeepsSeasonSettings() {
         val fromEmailCard = emailSettingsRequest(STORED, STORED.senderEmail, null, STORED.senderDisplayName)
         val fromPaymentCard = paymentSettingsRequest(STORED, STORED.bankAccountNumber, null)
 
         listOf(fromEmailCard, fromPaymentCard).forEach { request ->
-            assertEquals(6, request.seasonResetMonth)
-            assertEquals(30, request.seasonResetDay)
-            assertEquals(7, request.walletResetWarningDays)
+            assertEquals(STORED.seasonResetMonth, request.seasonResetMonth)
+            assertEquals(STORED.seasonResetDay, request.seasonResetDay)
+            assertEquals(STORED.walletResetWarningDays, request.walletResetWarningDays)
         }
-        // Uložené hodnoty byly jiné — a request je nenese.
+        // Uložené hodnoty se schválně liší od defaultů requestu (6/30/7).
         assertEquals(8, STORED.seasonResetMonth)
         assertEquals(15, STORED.seasonResetDay)
         assertEquals(21, STORED.walletResetWarningDays)

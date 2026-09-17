@@ -22,10 +22,10 @@ fun isSaveEnabled(
  * Každá karta ukládá jen svoje pole a zbytek posílá tak, jak je uložený —
  * `saveSettings` bere celý request, takže neposlat pole znamená ho přepsat.
  *
- * POZOR: `seasonResetMonth`, `seasonResetDay` ani `walletResetWarningDays` se
- * nepředávají, takže jim [UpdateSettingsRequest] nasadí defaulty (6 / 30 / 7) a
- * uložení nastavení je tím přepíše. Tohle chování má obrazovka odjakživa a
- * refaktoring ho zachovává — viz `settingsRequestDiscardsSeasonSettings`.
+ * Sezónní pole (`seasonResetMonth`, `seasonResetDay`, `walletResetWarningDays`)
+ * needituje žádná obrazovka, ale řídí expiraci peněženek — proto se protahují
+ * z uloženého stavu. Dokud měl [UpdateSettingsRequest] na ně defaulty, každé
+ * uložení nastavení je tiše srazilo na 6/30/7.
  */
 fun emailSettingsRequest(
     stored: AppSettingsDisplayDto,
@@ -38,6 +38,9 @@ fun emailSettingsRequest(
     senderEmail = senderEmail,
     gmailAppPassword = gmailAppPassword,
     senderDisplayName = senderDisplayName,
+    seasonResetMonth = stored.seasonResetMonth,
+    seasonResetDay = stored.seasonResetDay,
+    walletResetWarningDays = stored.walletResetWarningDays,
 )
 
 fun paymentSettingsRequest(
@@ -50,6 +53,9 @@ fun paymentSettingsRequest(
     senderEmail = stored.senderEmail,
     gmailAppPassword = null,
     senderDisplayName = stored.senderDisplayName,
+    seasonResetMonth = stored.seasonResetMonth,
+    seasonResetDay = stored.seasonResetDay,
+    walletResetWarningDays = stored.walletResetWarningDays,
 )
 
 // --- UseCase třídy (tenké, vrací Either) ---
