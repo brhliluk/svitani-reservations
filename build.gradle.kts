@@ -7,7 +7,6 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlinx.serialization)
-    alias(libs.plugins.compose)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kilua.rpc)
@@ -219,8 +218,8 @@ kotlin {
                 implementation(libs.kilua.ssr)
 
                 implementation(libs.kilua.tailwindcss)
-                implementation(npm("daisyui", "5.5.14"))
-                implementation(npm("@iconify/tailwind4", "1.2.0"))
+                implementation(npm("daisyui", "5.7.39"))
+                implementation(npm("@iconify/tailwind4", "1.2.3"))
                 implementation(npm("@iconify-json/heroicons", "1.2.3"))
             }
         }
