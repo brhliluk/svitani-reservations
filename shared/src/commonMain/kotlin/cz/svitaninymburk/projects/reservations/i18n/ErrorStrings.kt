@@ -27,6 +27,7 @@ interface ErrorStrings {
     val errorNotASeriesReservation: String
     val errorInstanceNotInSeries: String
     val errorAlreadyOptedOut: String
+    val errorAlreadyCancelled: String
     val errorWalletNotFound: String
     val errorWalletEmpty: String
     val errorWalletEmailMismatch: String

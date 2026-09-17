@@ -732,6 +732,12 @@ open class ReservationService(
                 ReservationError.ReservationNotFound  // Don't reveal existence to non-owner
             }
 
+            // Zrušit jde jen jednou. Tlačítko sice po stornu zmizí, ale RPC je pod
+            // `optional = true` a druhé volání by prošlo celou cestou znovu: připsalo
+            // by do peněženky celý paidAmount podruhé, znovu strhlo místa (čítač do
+            // záporu) a poslalo druhý storno e-mail.
+            ensure(reservation.status != Reservation.Status.CANCELLED) { ReservationError.AlreadyCancelled }
+
             val target: ReservationTarget? = when (reservation.reference) {
                 is Reference.Instance -> eventInstanceRepository.get(reservation.reference.id)?.let { ReservationTarget.Instance(it) }
                 is Reference.Series -> eventSeriesRepository.get(reservation.reference.id)?.let { ReservationTarget.Series(it) }

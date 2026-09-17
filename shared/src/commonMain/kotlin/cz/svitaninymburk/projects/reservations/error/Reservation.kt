@@ -49,6 +49,9 @@ enum class DuplicateScope {
     @Serializable data object NotASeriesReservation : CancelReservation
     @Serializable data object InstanceNotInSeries : CancelReservation
     @Serializable data object AlreadyOptedOut : CancelReservation
+
+    /** Rezervace už je zrušená — druhé storno by vrátilo peníze podruhé. */
+    @Serializable data object AlreadyCancelled : CancelReservation
     @Serializable data object WalletNotFound : CancelReservation, CreateReservation, GetWalletInfo
     @Serializable data object WalletEmpty : CreateReservation
     @Serializable data object WalletEmailMismatch : CancelReservation
@@ -97,6 +100,7 @@ fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (thi
     is ReservationError.NotASeriesReservation -> strings.errorNotASeriesReservation
     is ReservationError.InstanceNotInSeries -> strings.errorInstanceNotInSeries
     is ReservationError.AlreadyOptedOut -> strings.errorAlreadyOptedOut
+    is ReservationError.AlreadyCancelled -> strings.errorAlreadyCancelled
     is ReservationError.WalletNotFound -> strings.errorWalletNotFound
     is ReservationError.WalletEmpty -> strings.errorWalletEmpty
     is ReservationError.WalletEmailMismatch -> strings.errorWalletEmailMismatch

@@ -25,6 +25,7 @@ object CsErrorStrings : ErrorStrings {
     override val errorNotASeriesReservation = "Rezervace není přihlášení na kroužek"
     override val errorInstanceNotInSeries = "Tato lekce nepatří do vašeho kroužku"
     override val errorAlreadyOptedOut = "Z této lekce jste se již odhlásili"
+    override val errorAlreadyCancelled = "Rezervace už je zrušená"
     override val errorWalletNotFound = "Peněženka s tímto kódem nebyla nalezena"
     override val errorWalletEmpty = "Peněženka nemá žádný zůstatek"
     override val errorWalletEmailMismatch = "Peněženka je přiřazena k jinému emailu"

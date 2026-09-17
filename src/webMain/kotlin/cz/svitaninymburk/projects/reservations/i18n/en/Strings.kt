@@ -740,6 +740,7 @@ object EnStrings : AppStrings {
     override val errorNotASeriesReservation = "This reservation is not a course enrollment."
     override val errorInstanceNotInSeries = "This lesson does not belong to your course."
     override val errorAlreadyOptedOut = "You have already unsubscribed from this lesson."
+    override val errorAlreadyCancelled = "The reservation has already been cancelled."
     override val errorWalletNotFound = "Wallet with this code was not found."
     override val errorWalletEmpty = "Wallet has no balance."
     override val errorWalletEmailMismatch = "This wallet belongs to a different email address."
