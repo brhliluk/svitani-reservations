@@ -743,8 +743,13 @@ open class ReservationService(
                 is Reference.Series -> eventSeriesRepository.get(reservation.reference.id)?.let { ReservationTarget.Series(it) }
             }
 
-            if (target != null) {
-                ensure(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) < target.startDateTime) { ReservationError.EventAlreadyFinished }
+            // Zákazníkovi zavře storno začátek akce — u kurzu je to jeho první den,
+            // takže rozjetý kurz si sám odhlásit nemůže. Admin tuhle zeď nemá:
+            // z administrace se odhlašují i lidi, co odpadli v půlce kurzu. O peníze
+            // nejde, kredit se dole stejně řídí uzávěrkou (18:00 den předem), takže
+            // pozdní storno nevrací nic.
+            if (target != null && !isAdminCaller()) {
+                ensure(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) < target.startDateTime) { ReservationError.EventAlreadyStarted }
             }
 
             val cancelledReservation = reservation.copy(status = Reservation.Status.CANCELLED)

@@ -64,25 +64,31 @@ class CancelAccessSpec {
         override suspend fun isAdminCaller(): Boolean = admin
     }
 
-    private suspend fun givenInstance(): EventInstance = instanceRepo.create(
+    private suspend fun givenInstance(
+        start: LocalDateTime = LocalDateTime(2099, 6, 1, 10, 0),
+        end: LocalDateTime = LocalDateTime(2099, 6, 1, 11, 0),
+    ): EventInstance = instanceRepo.create(
         EventInstance(
             id = Uuid.random(),
             definitionId = Uuid.random(),
             title = "Akce",
             description = "",
-            startDateTime = LocalDateTime(2099, 6, 1, 10, 0),
-            endDateTime = LocalDateTime(2099, 6, 1, 11, 0),
+            startDateTime = start,
+            endDateTime = end,
             price = 100.0,
             capacity = 10,
             occupiedSpots = 1,
         )
     )
 
-    private suspend fun givenReservation(registeredUserId: Uuid?): Reservation =
+    private suspend fun givenReservation(
+        registeredUserId: Uuid?,
+        instance: EventInstance? = null,
+    ): Reservation =
         reservationRepo.save(
             Reservation(
                 id = Uuid.random(),
-                reference = Reference.Instance(givenInstance().id),
+                reference = Reference.Instance((instance ?: givenInstance()).id),
                 registeredUserId = registeredUserId,
                 contactName = "Jan Host",
                 contactEmail = "host@test.cz",
@@ -140,6 +146,40 @@ class CancelAccessSpec {
 
         assertTrue(result.isRight(), "admin musí projít, dostal: $result")
         assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(reservation.id)?.status)
+        Unit
+    }
+
+    /**
+     * Kurz začal a účastník odpadl v půlce — admin ho musí umět odhlásit.
+     * Zákazník má pořád zavřeno, kredit se dole stejně řídí uzávěrkou.
+     */
+    @Test
+    fun `admin zrusi rezervaci na uz zapocatou akci`() = runBlocking {
+        val past = givenInstance(
+            start = LocalDateTime(2020, 6, 1, 10, 0),
+            end = LocalDateTime(2020, 6, 1, 11, 0),
+        )
+        val reservation = givenReservation(registeredUserId = ownerId, instance = past)
+
+        val result = TestService(caller = strangerId, admin = true).cancelReservation(reservation.id)
+
+        assertTrue(result.isRight(), "admin musí projít i po začátku akce, dostal: $result")
+        assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(reservation.id)?.status)
+        Unit
+    }
+
+    @Test
+    fun `zakaznik rezervaci na uz zapocatou akci nezrusi`() = runBlocking {
+        val past = givenInstance(
+            start = LocalDateTime(2020, 6, 1, 10, 0),
+            end = LocalDateTime(2020, 6, 1, 11, 0),
+        )
+        val reservation = givenReservation(registeredUserId = ownerId, instance = past)
+
+        val result = TestService(caller = ownerId).cancelReservation(reservation.id)
+
+        assertEquals(ReservationError.EventAlreadyStarted, result.leftOrNull())
+        assertEquals(Reservation.Status.CONFIRMED, reservationRepo.findById(reservation.id)?.status)
         Unit
     }
 
