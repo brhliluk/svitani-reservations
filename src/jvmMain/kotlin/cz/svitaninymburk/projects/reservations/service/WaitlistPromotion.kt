@@ -31,6 +31,12 @@ class WaitlistPromoter(
     private val qrCodeService: QrCodeGeneratorService,
     private val appBaseUrl: String,
     private val audit: AuditService = AuditService(InMemoryAuditRepository()),
+    /**
+     * Viz stejný parametr u [ReservationService]. Povyšování se volá uvnitř
+     * požadavku — ze storna, z omluvenky i ze zvednutí kapacity v administraci —
+     * a posílá jeden mail na každého posunutého.
+     */
+    private val emailDispatcher: EmailDispatcher = InlineEmailDispatcher,
 ) {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -114,24 +120,26 @@ class WaitlistPromoter(
                     detail = "Posunuto z pořadníku, nový stav ${promoted.status}",
                 )
 
-                val qrImage: ByteArray? = if (promoted.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
-                    qrCodeService.generateQrPng(promoted)
-                } else null
-
-                val icalBytes = when (target) {
-                    is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, promoted.id, appBaseUrl)
-                    is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, promoted.id, appBaseUrl)
-                }.toByteArray(Charsets.UTF_8)
-
                 withAuditSubject(subject) {
-                    emailService.sendWaitlistPromotion(
-                        toEmail = promoted.contactEmail,
-                        reservation = promoted,
-                        target = target,
-                        bankAccount = qrCodeService.accountNumber,
-                        qrCodeImage = qrImage,
-                        icalBytes = icalBytes,
-                    ).onLeft { captureEmailError(logger, "Failed to send waitlist promotion email for reservation ${promoted.id}: $it") }
+                    emailDispatcher.dispatch {
+                        val qrImage: ByteArray? = if (promoted.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
+                            qrCodeService.generateQrPng(promoted)
+                        } else null
+
+                        val icalBytes = when (target) {
+                            is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, promoted.id, appBaseUrl)
+                            is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, promoted.id, appBaseUrl)
+                        }.toByteArray(Charsets.UTF_8)
+
+                        emailService.sendWaitlistPromotion(
+                            toEmail = promoted.contactEmail,
+                            reservation = promoted,
+                            target = target,
+                            bankAccount = qrCodeService.accountNumber,
+                            qrCodeImage = qrImage,
+                            icalBytes = icalBytes,
+                        ).onLeft { captureEmailError(logger, "Failed to send waitlist promotion email for reservation ${promoted.id}: $it") }
+                    }
                 }
             }
 

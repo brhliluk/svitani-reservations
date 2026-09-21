@@ -702,24 +702,26 @@ open class ReservationService(
                     label = instance.title,
                 )
             ) {
-                emailService.sendLessonOptOutNotice(
-                    toEmail = reservation.contactEmail,
-                    eventTitle = instance.title,
-                    lessonDate = instance.startDateTime.date,
-                    isLateCancellation = isLate,
-                    locale = reservation.locale,
-                ).onLeft { captureEmailError(logger, "Failed to send opt-out email to ${reservation.contactEmail}: $it") }
-
-                val ownerEmails = parseOwnerEmails(instance.ownerEmails)
-                ownerEmails.forEach { ownerEmail ->
-                    lectorEmailService.sendLectorLessonOptOutNotification(
-                        lectorEmail = ownerEmail,
-                        contactName = reservation.contactName,
+                emailDispatcher.dispatch {
+                    emailService.sendLessonOptOutNotice(
+                        toEmail = reservation.contactEmail,
                         eventTitle = instance.title,
                         lessonDate = instance.startDateTime.date,
                         isLateCancellation = isLate,
                         locale = reservation.locale,
-                    ).onLeft { captureEmailError(logger, "Failed to send owner opt-out email to $ownerEmail: $it") }
+                    ).onLeft { captureEmailError(logger, "Failed to send opt-out email to ${reservation.contactEmail}: $it") }
+
+                    val ownerEmails = parseOwnerEmails(instance.ownerEmails)
+                    ownerEmails.forEach { ownerEmail ->
+                        lectorEmailService.sendLectorLessonOptOutNotification(
+                            lectorEmail = ownerEmail,
+                            contactName = reservation.contactName,
+                            eventTitle = instance.title,
+                            lessonDate = instance.startDateTime.date,
+                            isLateCancellation = isLate,
+                            locale = reservation.locale,
+                        ).onLeft { captureEmailError(logger, "Failed to send owner opt-out email to $ownerEmail: $it") }
+                    }
                 }
             }
 
