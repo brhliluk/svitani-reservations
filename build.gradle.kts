@@ -296,8 +296,25 @@ tasks.register("deploy") {
             check(exit == 0) { "Command failed (exit $exit): ${cmd.joinToString(" ")}" }
         }
 
-        run("scp", "-i", sshKey, jar, "$host:/opt/reservations/reservations.jar")
-        run("ssh", "-i", sshKey, host, "sudo systemctl restart reservations")
+        // Jar na serveru patří rootovi (root:root 664), takže deploy uživatel do něj
+        // přímo nezapíše — scp rovnou na cílovou cestu končí na Permission denied.
+        // Nahraje se do /tmp a na místo ho přesune sudo install. Službu zastavujeme
+        // předem, ať se jar nepřepisuje pod běžícím JVM; výpadek je stejný jako u restartu.
+        run("scp", "-i", sshKey, jar, "$host:/tmp/reservations.jar")
+        run(
+            "ssh", "-i", sshKey, host,
+            listOf(
+                // Předchozí jar zůstane na serveru pro rychlý rollback.
+                "sudo cp /opt/reservations/reservations.jar /tmp/reservations-previous.jar",
+                "sudo systemctl stop reservations",
+                "sudo install -o root -g root -m 664 /tmp/reservations.jar /opt/reservations/reservations.jar",
+                "sudo systemctl start reservations",
+                // Bez tohohle projde i deploy, po kterém aplikace hned spadne. Start
+                // trvá ~15 s, takže se čeká, než se na stav zeptáme.
+                "sleep 20",
+                "systemctl is-active reservations",
+            ).joinToString(" && ")
+        )
         println("Deployed successfully. Service restarted.")
     }
 }
