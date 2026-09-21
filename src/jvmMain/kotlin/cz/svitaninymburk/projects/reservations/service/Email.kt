@@ -18,7 +18,12 @@ import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.util.humanReadable
+import com.sun.mail.smtp.SMTPAddressFailedException
+import com.sun.mail.smtp.SMTPSendFailedException
+import com.sun.mail.util.MailConnectException
+import io.ktor.util.logging.KtorSimpleLogger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.html.a
 import kotlinx.html.body
@@ -35,8 +40,47 @@ import kotlinx.datetime.LocalDateTime
 import org.apache.commons.mail.DefaultAuthenticator
 import org.apache.commons.mail.EmailException
 import org.apache.commons.mail.HtmlEmail
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import javax.mail.util.ByteArrayDataSource
+import kotlin.reflect.jvm.jvmName
+import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
+
+
+/**
+ * Pauzy mezi pokusy o odeslání; počet pokusů je tedy o jeden vyšší.
+ *
+ * Gmail občas odpoví `451-4.3.0 Mail server temporarily rejected message` a jediný
+ * pokus takový mail nenávratně ztratí — zbyde po něm jen FAILURE v historii a nikdo
+ * ho už nepošle. Delší čekání ale smysl nemá: maily se posílají uvnitř požadavku,
+ * takže každá pauza drží admina nebo zákazníka na odeslaném formuláři.
+ */
+private val SEND_RETRY_DELAYS = listOf(2.seconds, 5.seconds)
+
+/**
+ * Opakovat má smysl jen to, co je dočasné: SMTP odpověď 4xx a chyby spojení.
+ * Špatná adresa, odmítnutá autentizace nebo 5xx se opakováním nespraví a jen by
+ * prodloužily požadavek o dalších sedm sekund.
+ *
+ * Chodí se po `cause` — `EmailException` z commons-email je jen obal, skutečnou
+ * příčinu (a u SMTP i návratový kód) nese až zabalená výjimka z javax.mail.
+ */
+internal fun Throwable.isTransientSmtpFailure(): Boolean {
+    var cause: Throwable? = this
+    while (cause != null) {
+        val transient = when (cause) {
+            is SMTPSendFailedException -> cause.returnCode in 400..499
+            is SMTPAddressFailedException -> cause.returnCode in 400..499
+            is MailConnectException, is SocketTimeoutException, is ConnectException, is UnknownHostException -> true
+            else -> false
+        }
+        if (transient) return true
+        cause = cause.cause
+    }
+    return false
+}
 
 
 class GmailEmailService(
@@ -45,6 +89,33 @@ class GmailEmailService(
     private val eventRepository: EventInstanceRepository,
     private val eventSeriesRepository: EventSeriesRepository,
 ) : EmailService, LectorEmailService, WalletEmailService {
+
+    private val logger = KtorSimpleLogger(this::class.jvmName)
+
+    /**
+     * Odešle mail a při dočasném odmítnutí to zkusí znovu — viz [SEND_RETRY_DELAYS].
+     *
+     * MIME zpráva se staví jen jednou: `Email.send()` volané podruhé spadne na
+     * „The MimeMessage is already built.“, takže opakovat se smí samotné odeslání,
+     * ne celý `send()`. Chyba z posledního pokusu propadne ven stejně jako dřív.
+     */
+    private suspend fun HtmlEmail.sendWithRetry() {
+        buildMimeMessage()
+        SEND_RETRY_DELAYS.forEachIndexed { index, pause ->
+            try {
+                sendMimeMessage()
+                return
+            } catch (e: EmailException) {
+                if (!e.isTransientSmtpFailure()) throw e
+                logger.warn(
+                    "SMTP odmítl zprávu dočasně (pokus ${index + 1}/${SEND_RETRY_DELAYS.size + 1}), " +
+                        "zkusím znovu za $pause: ${e.fullMessage()}"
+                )
+                delay(pause)
+            }
+        }
+        sendMimeMessage()
+    }
 
     /**
      * Název akce pro platební maily. Přihláška na kurz je rezervace na sérii, ne na
@@ -133,7 +204,7 @@ class GmailEmailService(
         email.setHtmlMsg(htmlMessage)
         email.setTextMsg(s.reservationHtmlFallback)
 
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendReservationConfirmationFailed(e.fullMessage()))
     } } }
@@ -151,7 +222,7 @@ class GmailEmailService(
         } } })
         email.setTextMsg(s.cancellationBody(eventTitle) + "\n" + s.reservationViewLink(url))
 
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendCancellationFailed(e.fullMessage()))
     } } }
@@ -171,7 +242,7 @@ class GmailEmailService(
         } } })
         email.setTextMsg(s.paymentReceivedBody(eventTitle) + "\n" + s.reservationViewLink(url))
 
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendPaymentConfirmationFailed(e.fullMessage()))
     } } }
@@ -208,7 +279,7 @@ class GmailEmailService(
             p { +s.reservationViewLink("$appBaseUrl/reservation/${reservation.id}") }
         } } })
 
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendPaymentNotPaidInFullFailed(e.fullMessage()))
     } } }
@@ -229,7 +300,7 @@ class GmailEmailService(
             }
         } } })
 
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendPasswordResetFailed(e.fullMessage()))
     } } }
@@ -263,7 +334,7 @@ class GmailEmailService(
             p { +s.reservationClaimIgnoreNote }
         } } })
 
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendReservationClaimFailed(e.fullMessage()))
     } } }
@@ -281,7 +352,7 @@ class GmailEmailService(
         email.addTo(toEmail)
         email.subject = s.lessonRescheduledSubject(seriesTitle)
         email.setTextMsg(s.lessonRescheduledBody(contactName, seriesTitle, oldDateTime.humanReadable, newDateTime.humanReadable))
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendLessonRescheduledFailed(e.fullMessage()))
     } } }
@@ -298,7 +369,7 @@ class GmailEmailService(
         email.addTo(toEmail)
         email.subject = s.lessonCancelledSubject(seriesTitle)
         email.setTextMsg(s.lessonCancelledBody(contactName, seriesTitle, lessonDateTime.humanReadable))
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendLessonCancelledFailed(e.fullMessage()))
     } } }
@@ -321,7 +392,7 @@ class GmailEmailService(
         email.subject = s.lectorReservationSubject(eventTitle, target)
         val formattedPhone = contactPhone?.let { PhoneNumber.format(it) }
         email.setTextMsg(s.lectorReservationBody(contactName, contactEmail, formattedPhone, seatCount, eventTitle, target, occupiedSpots, capacity))
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendLectorReservationFailed(e.fullMessage()))
     } } }
@@ -341,7 +412,7 @@ class GmailEmailService(
         email.addTo(lectorEmail)
         email.subject = s.lectorCancellationSubject(eventTitle, target)
         email.setTextMsg(s.lectorCancellationBody(contactName, eventTitle, target, seatCount, occupiedSpots, capacity))
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendLectorCancellationFailed(e.fullMessage()))
     } } }
@@ -358,7 +429,7 @@ class GmailEmailService(
         email.addTo(toEmail)
         email.subject = s.lessonOptOutSubject(eventTitle)
         email.setTextMsg(s.lessonOptOutBody(eventTitle, lessonDate, isLateCancellation))
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendCancellationFailed(e.fullMessage()))
     } } }
@@ -376,7 +447,7 @@ class GmailEmailService(
         email.addTo(lectorEmail)
         email.subject = s.lectorLessonOptOutSubject(eventTitle)
         email.setTextMsg(s.lectorLessonOptOutBody(contactName, eventTitle, lessonDate, isLateCancellation))
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendLectorCancellationFailed(e.fullMessage()))
     } } }
@@ -397,7 +468,7 @@ class GmailEmailService(
         email.addTo(toEmail)
         email.subject = strings.walletCreditedSubject("%.0f".format(creditedAmount))
         email.setHtmlMsg(strings.walletCreditedBody(walletCode, "%.0f".format(creditedAmount), "%.0f".format(newBalance), resetDate, walletLink))
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendWalletFailed(e.fullMessage()))
     } } }
@@ -415,7 +486,7 @@ class GmailEmailService(
         email.addTo(toEmail)
         email.subject = strings.walletAppliedSubject()
         email.setHtmlMsg(strings.walletAppliedBody(walletCode, "%.0f".format(deductedAmount), "%.0f".format(remainingBalance), walletLink))
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendWalletFailed(e.fullMessage()))
     } } }
@@ -435,7 +506,7 @@ class GmailEmailService(
         email.addTo(toEmail)
         email.subject = strings.walletResetWarningSubject(resetDate)
         email.setHtmlMsg(strings.walletResetWarningBody("%.0f".format(currentBalance), walletCode, resetDate, walletLink))
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendWalletFailed(e.fullMessage()))
     } } }
@@ -458,7 +529,7 @@ class GmailEmailService(
             p { +s.reservationViewLink(url) }
         } } })
         email.setTextMsg(s.waitlistConfirmationBody(eventTitle, contactName) + "\n" + s.reservationViewLink(url))
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendWaitlistConfirmationFailed(e.fullMessage()))
     } } }
@@ -505,7 +576,7 @@ class GmailEmailService(
         } } }
         email.setHtmlMsg(htmlMessage)
         email.setTextMsg(s.reservationHtmlFallback)
-        email.send()
+        email.sendWithRetry()
     }) { e: EmailException ->
         raise(EmailError.SendWaitlistPromotionFailed(e.fullMessage()))
     } } }
