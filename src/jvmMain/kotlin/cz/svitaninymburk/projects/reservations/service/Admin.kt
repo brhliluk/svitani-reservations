@@ -91,9 +91,33 @@ class AdminDashboardService(
      * skládají ručně a QR generátor ani base URL nemají — v běhu ho vždy dodá DI.
      */
     private val emailResender: EmailResendService? = null,
+    /** Viz stejný parametr u [ReservationService]. */
+    private val emailDispatcher: EmailDispatcher = InlineEmailDispatcher,
 ): AdminServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
+
+    /**
+     * Storno mail účastníkovi, mimo požadavek.
+     *
+     * Rušení akce nebo kurzu obchází účastníky v cyklu, takže se tu sčítá jedno
+     * SMTP kolo na každého — u dvaceti přihlášených to je z požadavku minuta
+     * čekání a reálné riziko timeoutu. Na výsledku odeslání nic nezávisí, jen se
+     * loguje, takže se odpověď nemá proč zdržovat.
+     */
+    private suspend fun dispatchCancellationNotice(
+        res: Reservation,
+        eventTitle: String,
+        subject: AuditSubject? = null,
+    ) {
+        val send: suspend () -> Unit = {
+            emailService.sendCancellationNotice(res.contactEmail, eventTitle, res.id, res.locale)
+                .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+        }
+        // Subjekt si dispatcher vyzvedne z kontextu ve chvíli předání, ne až při odesílání.
+        if (subject == null) emailDispatcher.dispatch(send)
+        else withAuditSubject(subject) { emailDispatcher.dispatch(send) }
+    }
 
     /** Subjekt z polymorfní reference — helper v deleteEventDefinition nemá načtenou akci. */
     private fun auditSubjectForReference(reference: Reference, reservation: Reservation): AuditSubject =
@@ -251,8 +275,10 @@ class AdminDashboardService(
         )
 
         withAuditSubject(subject) {
-            emailService.sendPaymentReceivedConfirmation(reservation)
-                .onLeft { captureEmailError(logger, "Failed to send payment-received email for reservation ${reservation.id}: $it") }
+            emailDispatcher.dispatch {
+                emailService.sendPaymentReceivedConfirmation(reservation)
+                    .onLeft { captureEmailError(logger, "Failed to send payment-received email for reservation ${reservation.id}: $it") }
+            }
         }
     }
 
@@ -955,14 +981,16 @@ class AdminDashboardService(
                     withAuditSubject(
                         AuditSubject(seriesId = seriesId, instanceId = id, reservationId = res.id, label = res.contactName)
                     ) {
-                        emailService.sendLessonRescheduledNotification(
-                            toEmail = res.contactEmail,
-                            contactName = res.contactName,
-                            seriesTitle = series?.title ?: existing.title,
-                            oldDateTime = existing.startDateTime,
-                            newDateTime = request.startDateTime,
-                            locale = res.locale,
-                        ).onLeft { captureEmailError(logger, "Failed to send reschedule email for ${res.id}: $it") }
+                        emailDispatcher.dispatch {
+                            emailService.sendLessonRescheduledNotification(
+                                toEmail = res.contactEmail,
+                                contactName = res.contactName,
+                                seriesTitle = series?.title ?: existing.title,
+                                oldDateTime = existing.startDateTime,
+                                newDateTime = request.startDateTime,
+                                locale = res.locale,
+                            ).onLeft { captureEmailError(logger, "Failed to send reschedule email for ${res.id}: $it") }
+                        }
                     }
                 }
         }
@@ -1124,8 +1152,7 @@ class AdminDashboardService(
             .filter { it.status != Reservation.Status.CANCELLED }
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
-                    .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                dispatchCancellationNotice(res, instance.title)
                 if (refund && res.paidAmount > 0.0) {
                     try {
                         withAuditSubject(AuditSubject(instance.seriesId, id, res.id, res.contactName)) {
@@ -1148,8 +1175,7 @@ class AdminDashboardService(
             .filter { it.status != Reservation.Status.CANCELLED }
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                emailService.sendCancellationNotice(res.contactEmail, series.title, res.id, res.locale)
-                    .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                dispatchCancellationNotice(res, series.title)
                 if (refund && res.paidAmount > 0.0) {
                     try {
                         withAuditSubject(AuditSubject(id, null, res.id, res.contactName)) {
@@ -1168,8 +1194,7 @@ class AdminDashboardService(
                 .filter { it.status != Reservation.Status.CANCELLED }
                 .forEach { res ->
                     reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                    emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
-                        .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                    dispatchCancellationNotice(res, instance.title)
                     if (refund && res.paidAmount > 0.0) {
                         try {
                             withAuditSubject(AuditSubject(id, instance.id, res.id, res.contactName)) {
@@ -1199,8 +1224,7 @@ class AdminDashboardService(
                 .filter { it.status != Reservation.Status.CANCELLED }
                 .forEach { res ->
                     reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                    emailService.sendCancellationNotice(res.contactEmail, eventTitle, res.id, res.locale)
-                        .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                    dispatchCancellationNotice(res, eventTitle)
                     if (res.paidAmount > 0.0) {
                         try {
                             withAuditSubject(auditSubjectForReference(reference, res)) {
@@ -1259,10 +1283,7 @@ class AdminDashboardService(
                     amount = res.paidAmount,
                     detail = "Zrušeno se zrušením akce",
                 )
-                withAuditSubject(resSubject) {
-                    emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
-                        .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
-                }
+                dispatchCancellationNotice(res, instance.title, resSubject)
                 if (refund && res.paidAmount > 0.0) {
                     try {
                         withAuditSubject(resSubject) {
@@ -1313,10 +1334,7 @@ class AdminDashboardService(
                         amount = res.paidAmount,
                         detail = "Zrušeno se zrušením kurzu",
                     )
-                    withAuditSubject(resSubject) {
-                        emailService.sendCancellationNotice(res.contactEmail, series.title, res.id, res.locale)
-                            .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
-                    }
+                    dispatchCancellationNotice(res, series.title, resSubject)
                     if (refund && res.paidAmount > 0.0) {
                         try {
                             withAuditSubject(resSubject) {
@@ -1333,8 +1351,7 @@ class AdminDashboardService(
             .filter { it.status != Reservation.Status.CANCELLED }
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                emailService.sendCancellationNotice(res.contactEmail, series.title, res.id, res.locale)
-                    .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
+                dispatchCancellationNotice(res, series.title)
                 if (refund && res.paidAmount > 0.0) {
                     try {
                         withAuditSubject(AuditSubject(id, null, res.id, res.contactName)) {
@@ -1392,13 +1409,15 @@ class AdminDashboardService(
                     withAuditSubject(
                         AuditSubject(seriesId = seriesId, instanceId = instanceId, reservationId = res.id, label = res.contactName)
                     ) {
-                        emailService.sendLessonCancelledNotification(
-                            toEmail = res.contactEmail,
-                            contactName = res.contactName,
-                            seriesTitle = seriesTitle,
-                            lessonDateTime = instance.startDateTime,
-                            locale = res.locale,
-                        ).onLeft { captureEmailError(logger, "Failed to send lesson-cancelled email for ${res.id}: $it") }
+                        emailDispatcher.dispatch {
+                            emailService.sendLessonCancelledNotification(
+                                toEmail = res.contactEmail,
+                                contactName = res.contactName,
+                                seriesTitle = seriesTitle,
+                                lessonDateTime = instance.startDateTime,
+                                locale = res.locale,
+                            ).onLeft { captureEmailError(logger, "Failed to send lesson-cancelled email for ${res.id}: $it") }
+                        }
                     }
 
                     val alreadyOptedOut = seriesLessonOptOutRepository
@@ -1437,10 +1456,7 @@ class AdminDashboardService(
                         amount = res.paidAmount,
                         detail = "Zrušeno se zrušením lekce",
                     )
-                    withAuditSubject(resSubject) {
-                        emailService.sendCancellationNotice(res.contactEmail, instance.title, res.id, res.locale)
-                            .onLeft { captureEmailError(logger, "Failed to send cancellation email for ${res.id}: $it") }
-                    }
+                    dispatchCancellationNotice(res, instance.title, resSubject)
                     if (res.paidAmount > 0.0) {
                         try {
                             withAuditSubject(resSubject) {

@@ -23,6 +23,12 @@ class RefundService(
     private val walletEmailService: WalletEmailService,
     private val appSettingsProvider: AppSettingsProvider,
     private val audit: AuditService = AuditService(InMemoryAuditRepository()),
+    /**
+     * Viz stejný parametr u [ReservationService]. Podstatné hlavně u hromadných
+     * stornen: rušení kurzu volá vracení kreditu za každého zaplaceného účastníka
+     * a každé z nich odsud pošle mail.
+     */
+    private val emailDispatcher: EmailDispatcher = InlineEmailDispatcher,
 ) {
     private val logger = KtorSimpleLogger(this::class.jvmName)
 
@@ -97,14 +103,16 @@ class RefundService(
 
     private suspend fun notifyCredited(wallet: Wallet, creditedAmount: Double, reservation: Reservation) {
         val settings = appSettingsProvider.current
-        walletEmailService.sendWalletCredited(
-            toEmail = reservation.contactEmail,
-            walletCode = wallet.code,
-            creditedAmount = creditedAmount,
-            newBalance = wallet.balance,
-            resetMonth = settings.seasonResetMonth,
-            resetDay = settings.seasonResetDay,
-            locale = reservation.locale,
-        ).onLeft { captureEmailError(logger, "Failed to send wallet credited email to ${reservation.contactEmail}: $it") }
+        emailDispatcher.dispatch {
+            walletEmailService.sendWalletCredited(
+                toEmail = reservation.contactEmail,
+                walletCode = wallet.code,
+                creditedAmount = creditedAmount,
+                newBalance = wallet.balance,
+                resetMonth = settings.seasonResetMonth,
+                resetDay = settings.seasonResetDay,
+                locale = reservation.locale,
+            ).onLeft { captureEmailError(logger, "Failed to send wallet credited email to ${reservation.contactEmail}: $it") }
+        }
     }
 }

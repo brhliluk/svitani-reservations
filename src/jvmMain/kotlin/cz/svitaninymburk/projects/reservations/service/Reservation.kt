@@ -159,6 +159,12 @@ open class ReservationService(
      * ne z JWT — změna e-mailu token nepřevydává, takže by v něm zůstala stará adresa.
      */
     private val userRepository: UserRepository = InMemoryUserRepository(),
+    /**
+     * Kudy odchází maily. Výchozí [InlineEmailDispatcher] drží dosavadní chování
+     * pro testy, které hned po operaci tvrdí, co se odeslalo; v běhu DI dosadí
+     * [BackgroundEmailDispatcher], aby zákazník nečekal na SMTP.
+     */
+    private val emailDispatcher: EmailDispatcher = InlineEmailDispatcher,
     private val audit: AuditService = AuditService(InMemoryAuditRepository()),
     private val refundService: RefundService = RefundService(walletService, walletEmailService, appSettingsProvider),
     private val seriesLessonsReader: SeriesLessonsReader = SeriesLessonsReader(
@@ -440,13 +446,15 @@ open class ReservationService(
         )
 
         return withAuditSubject(subject) {
-            emailService.sendWaitlistConfirmation(
-                toEmail = saved.contactEmail,
-                eventTitle = target.title,
-                contactName = saved.contactName,
-                reservationId = saved.id,
-                locale = saved.locale,
-            ).onLeft { captureEmailError(logger, "Failed to send waitlist confirmation email for reservation ${saved.id}: $it") }
+            emailDispatcher.dispatch {
+                emailService.sendWaitlistConfirmation(
+                    toEmail = saved.contactEmail,
+                    eventTitle = target.title,
+                    contactName = saved.contactName,
+                    reservationId = saved.id,
+                    locale = saved.locale,
+                ).onLeft { captureEmailError(logger, "Failed to send waitlist confirmation email for reservation ${saved.id}: $it") }
+            }
 
             saved
         }
@@ -531,59 +539,68 @@ open class ReservationService(
                                 paymentType = if (fullyPaid) PaymentInfo.Type.FREE else reservation.paymentType,
                             )
                         )
-                        walletEmailService.sendWalletApplied(
-                            toEmail = reservation.contactEmail,
-                            walletCode = wallet.code,
-                            deductedAmount = deductAmount,
-                            remainingBalance = wallet.balance - deductAmount,
-                            locale = reservation.locale,
-                        ).onLeft { captureEmailError(logger, "Failed to send wallet applied email to ${reservation.contactEmail}: $it") }
+                        emailDispatcher.dispatch {
+                            walletEmailService.sendWalletApplied(
+                                toEmail = reservation.contactEmail,
+                                walletCode = wallet.code,
+                                deductedAmount = deductAmount,
+                                remainingBalance = wallet.balance - deductAmount,
+                                locale = reservation.locale,
+                            ).onLeft { captureEmailError(logger, "Failed to send wallet applied email to ${reservation.contactEmail}: $it") }
+                        }
                     }
                 }
                 // If wallet validation fails (not found / empty), silently ignore and proceed without wallet
             }
 
-            val qrImage: ByteArray? = if (savedReservation.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
-                qrCodeService.generateQrPng(savedReservation)
-            } else null
+            // Odsud dál už jen rozesílání. Běží mimo požadavek, protože na výsledku
+            // nic nezávisí (jen se loguje) a SMTP by jinak držel zákazníka na
+            // formuláři sekundy — viz [EmailDispatcher]. Stav rezervace se proto
+            // zafixuje teď; `savedReservation` je var a wallet ji výš mohl přepsat.
+            val confirmed = savedReservation
+            emailDispatcher.dispatch {
+                val qrImage: ByteArray? = if (confirmed.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
+                    qrCodeService.generateQrPng(confirmed)
+                } else null
 
-            val icalBytes = when (target) {
-                is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, savedReservation.id, appBaseUrl)
-                is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, savedReservation.id, appBaseUrl)
-            }.toByteArray(Charsets.UTF_8)
+                val icalBytes = when (target) {
+                    is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, confirmed.id, appBaseUrl)
+                    is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, confirmed.id, appBaseUrl)
+                }.toByteArray(Charsets.UTF_8)
 
-            emailService.sendReservationConfirmation(
-                toEmail = savedReservation.contactEmail,
-                reservation = savedReservation,
-                target = target,
-                bankAccount = qrCodeService.accountNumber,
-                qrCodeImage = qrImage,
-                icalBytes = icalBytes,
-            ).onLeft { captureEmailError(logger, "Failed to send confirmation email for reservation ${savedReservation.id}: $it") }
+                emailService.sendReservationConfirmation(
+                    toEmail = confirmed.contactEmail,
+                    reservation = confirmed,
+                    target = target,
+                    bankAccount = qrCodeService.accountNumber,
+                    qrCodeImage = qrImage,
+                    icalBytes = icalBytes,
+                ).onLeft { captureEmailError(logger, "Failed to send confirmation email for reservation ${confirmed.id}: $it") }
 
-            val ownerEmails = resolveOwnerEmails(target)
-            if (ownerEmails.isNotEmpty()) {
-                val newOccupiedSpots = when (target) {
-                    is ReservationTarget.Instance -> target.event.occupiedSpots + savedReservation.seatCount
-                    is ReservationTarget.Series -> target.series.occupiedSpots + savedReservation.seatCount
-                }
-                val capacity = when (target) {
-                    is ReservationTarget.Instance -> target.event.capacity
-                    is ReservationTarget.Series -> target.series.capacity
-                }
-                ownerEmails.forEach { email ->
-                    lectorEmailService.sendLectorReservationNotification(
-                        lectorEmail = email,
-                        contactName = savedReservation.contactName,
-                        contactEmail = savedReservation.contactEmail,
-                        contactPhone = savedReservation.contactPhone,
-                        seatCount = savedReservation.seatCount,
-                        eventTitle = target.title,
-                        target = target.forLector(),
-                        occupiedSpots = newOccupiedSpots,
-                        capacity = capacity,
-                        locale = savedReservation.locale,
-                    ).onLeft { captureEmailError(logger, "Failed to send owner reservation email to $email: $it") }
+                val ownerEmails = resolveOwnerEmails(target)
+                if (ownerEmails.isNotEmpty()) {
+                    val newOccupiedSpots = when (target) {
+                        is ReservationTarget.Instance -> target.event.occupiedSpots + confirmed.seatCount
+                        is ReservationTarget.Series -> target.series.occupiedSpots + confirmed.seatCount
+                    }
+                    val capacity = when (target) {
+                        is ReservationTarget.Instance -> target.event.capacity
+                        is ReservationTarget.Series -> target.series.capacity
+                    }
+                    ownerEmails.forEach { email ->
+                        lectorEmailService.sendLectorReservationNotification(
+                            lectorEmail = email,
+                            contactName = confirmed.contactName,
+                            contactEmail = confirmed.contactEmail,
+                            contactPhone = confirmed.contactPhone,
+                            seatCount = confirmed.seatCount,
+                            eventTitle = target.title,
+                            target = target.forLector(),
+                            occupiedSpots = newOccupiedSpots,
+                            capacity = capacity,
+                            locale = confirmed.locale,
+                        ).onLeft { captureEmailError(logger, "Failed to send owner reservation email to $email: $it") }
+                    }
                 }
             }
 

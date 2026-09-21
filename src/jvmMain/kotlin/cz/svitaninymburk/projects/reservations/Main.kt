@@ -20,7 +20,9 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.websocket.*
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.koin.dsl.module
 import org.slf4j.event.Level
 
 
@@ -47,8 +49,15 @@ fun Application.main() {
         json(AppJson)
     }
     configureDatabases()
+    // `Application` je CoroutineScope, která žije po celý běh serveru — přesně to,
+    // co potřebuje odesílání mailů mimo request (BackgroundEmailDispatcher).
+    // Request scope by se po odeslání odpovědi zrušila a maily s ní.
+    val applicationScope: CoroutineScope = this
     initRpcKoin(initContentNegotiation = false) {
-        modules(appModule)
+        modules(
+            module { single { applicationScope } },
+            appModule,
+        )
     }
     startPaymentCheck()
     startWalletResetJobs()

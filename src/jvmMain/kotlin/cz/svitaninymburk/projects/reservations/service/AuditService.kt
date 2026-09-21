@@ -73,8 +73,14 @@ class AuditService(private val repository: AuditRepository) {
     /**
      * Kdo operaci vyvolal. Mimo HTTP call (plánované joby, párování plateb z FIO)
      * není žádný principal — takové akce jsou [AuditActorType.SYSTEM].
+     *
+     * Přednost má aktér vložený do kontextu ([ActorContextLocal]). Odesílání mailů
+     * běží mimo request (viz [BackgroundEmailDispatcher]) a tam už žádný principal
+     * není — bez toho by se všechny mailové řádky historie zapsaly jako „systém“
+     * místo admina, který akci spustil.
      */
     suspend fun currentActor(): Actor {
+        ActorContextLocal.get()?.let { return it }
         val payload = currentCall()?.principal<JWTPrincipal>()?.payload
             ?: return Actor(AuditActorType.SYSTEM, SYSTEM_LABEL)
         val email = payload.getClaim("email")?.asString().orEmpty()
@@ -94,5 +100,12 @@ class AuditService(private val repository: AuditRepository) {
     companion object {
         const val SYSTEM_LABEL = "systém"
         const val ANONYMOUS_LABEL = "nepřihlášený"
+
+        /**
+         * Aktér přenesený do kontextu. Stejný vzor jako `AuditContextLocal`
+         * v `util/AuditContext.kt`: `ThreadLocal.asContextElement()` je
+         * `ThreadContextElement`, takže hodnota přežije i přeskok na jiný dispatcher.
+         */
+        val ActorContextLocal = ThreadLocal<Actor>()
     }
 }
