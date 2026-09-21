@@ -31,6 +31,10 @@ interface ErrorStrings {
     val errorAdminRevokeOptOutNotFound: String
     val errorAdminRevokeOptOutLessonFull: String
     val errorAdminRevokeOptOutFailed: String
+    val errorAdminResendAuditEventNotFound: String
+    val errorAdminResendNotResendable: String
+    val errorAdminResendTargetNotFound: String
+    fun errorAdminResendSendFailed(cause: String): String
     val errorWalletNotFound: String
     val errorWalletEmpty: String
     val errorWalletEmailMismatch: String

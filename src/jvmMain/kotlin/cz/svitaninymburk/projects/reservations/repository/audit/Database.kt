@@ -99,6 +99,9 @@ data class NewAuditEvent(
 interface AuditRepository {
     suspend fun record(event: NewAuditEvent)
 
+    /** Jeden záznam podle id — potřebuje ho přeposlání mailu z historie. */
+    suspend fun findById(id: Uuid): AuditEvent?
+
     /** Hromadný zápis pro backfill — jedna transakce místo tisíce. */
     suspend fun recordAll(events: List<NewAuditEvent>)
 
@@ -150,6 +153,10 @@ class ExposedAuditRepository(private val database: Database? = null) : AuditRepo
             this.apply(event)
         }
         Unit
+    }
+
+    override suspend fun findById(id: Uuid): AuditEvent? = query {
+        AuditEventsTable.selectAll().where { AuditEventsTable.id eq id }.singleOrNull()?.toAuditEvent()
     }
 
     override suspend fun findForEvent(

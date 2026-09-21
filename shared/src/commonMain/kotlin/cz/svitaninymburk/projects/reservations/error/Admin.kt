@@ -83,6 +83,17 @@ import kotlin.uuid.Uuid
     }
 
     @Serializable @SerialName("wallet_operation_failed") object WalletOperationFailed : GetWallets
+
+    @Serializable @SerialName("resend_email") sealed interface ResendEmail : AdminError {
+        @Serializable @SerialName("audit_event_not_found") object AuditEventNotFound : ResendEmail
+        /** Typ mailu, který se nedá poskládat znovu — viz `AuditEvent.isResendable`. */
+        @Serializable @SerialName("not_resendable") object NotResendable : ResendEmail
+        @Serializable @SerialName("reservation_not_found") object ReservationNotFound : ResendEmail
+        /** Akce nebo kurz, ke kterému rezervace patří, už neexistuje — není z čeho mail sestavit. */
+        @Serializable @SerialName("target_not_found") object TargetNotFound : ResendEmail
+        /** Mail se znovu odeslat pokusil, ale SMTP ho zase odmítl. */
+        @Serializable data class SendFailed(val message: String) : ResendEmail
+    }
 }
 
 fun AdminError.GetWallets.localizedMessage(): String = when (this) {
@@ -130,4 +141,9 @@ fun AdminError.localizedMessage(strings: ErrorStrings): String = when (this) {
     is AdminError.SeriesNotFoundForCancel -> strings.errorAdminCourseNotFound
     is AdminError.FailedToAddLesson -> message
     is AdminError.SeriesNotFoundForAddLesson -> strings.errorAdminCourseNotFound
+    is AdminError.ResendEmail.AuditEventNotFound -> strings.errorAdminResendAuditEventNotFound
+    is AdminError.ResendEmail.NotResendable -> strings.errorAdminResendNotResendable
+    is AdminError.ResendEmail.ReservationNotFound -> strings.errorReservationNotFound
+    is AdminError.ResendEmail.TargetNotFound -> strings.errorAdminResendTargetNotFound
+    is AdminError.ResendEmail.SendFailed -> strings.errorAdminResendSendFailed(message)
 }

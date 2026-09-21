@@ -279,6 +279,12 @@ interface AppStrings : ErrorStrings {
     val auditOpenReservation: String
     val auditOpenLesson: String
     val auditOpenWallet: String
+    val auditResend: String
+    val auditResendConfirmTitle: String
+    fun auditResendConfirmBody(recipient: String): String
+    val auditResendConfirmNote: String
+    val auditResendConfirm: String
+    fun auditResendSuccess(recipient: String): String
     fun auditEventLabel(type: AuditEventType): String
     val paginationPrevious: String
     val paginationNext: String

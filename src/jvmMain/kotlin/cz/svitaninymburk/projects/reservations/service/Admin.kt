@@ -86,6 +86,11 @@ class AdminDashboardService(
     private val waitlistPromoter: WaitlistPromoter,
     private val audit: AuditService = AuditService(InMemoryAuditRepository()),
     private val auditRepository: AuditRepository = InMemoryAuditRepository(),
+    /**
+     * Přeposílání mailů z historie. Volitelné jen kvůli testům, které si admina
+     * skládají ručně a QR generátor ani base URL nemají — v běhu ho vždy dodá DI.
+     */
+    private val emailResender: EmailResendService? = null,
 ): AdminServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -1540,6 +1545,11 @@ class AdminDashboardService(
         ) { i, c -> i to c }
 
         AuditLogPage(items = items, page = page, pageSize = pageSize, totalCount = total)
+    }
+
+    override suspend fun resendEmail(auditEventId: Uuid): Either<AdminError.ResendEmail, String> = either {
+        val resender = ensureNotNull(emailResender) { AdminError.ResendEmail.NotResendable }
+        resender.resend(auditEventId).bind()
     }
 
     override suspend fun getWallets(page: Int, pageSize: Int): Either<AdminError.GetWallets, WalletsPage> =

@@ -78,9 +78,11 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                     isLoading = model.isAuditLoading,
                     currentPage = model.auditPage,
                     category = model.auditCategory,
+                    resendingId = model.resendingAuditId,
                     onToggle = { model.toggleAuditExpanded() },
                     onPageChange = { model.goToAuditPage(it) },
                     onCategoryChange = { model.setAuditCategory(it) },
+                    onResend = { model.resendPending = it },
                 )
                 if (data.waitlistCapacity > 0) {
                     WaitlistCard(data = data, onCancelReservation = { model.cancelReservation(it) })
@@ -119,6 +121,14 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             isLoading = model.revokingOptOutId != null,
             onConfirm = { model.revokeOptOut(row) },
             onDismiss = { model.revokeOptOutPending = null },
+        )
+    }
+    model.resendPending?.let { entry ->
+        ResendEmailModal(
+            recipient = entry.recipient.orEmpty(),
+            isLoading = model.resendingAuditId != null,
+            onConfirm = { model.resendEmail(entry) },
+            onDismiss = { model.resendPending = null },
         )
     }
     model.cancelLessonPending?.let { lesson ->

@@ -70,6 +70,33 @@ fun IComponent.CancelEventModal(
     }
 }
 
+/**
+ * Přeposlání mailu z historie. Potvrzuje se, protože jeden klik odešle zákazníkovi
+ * skutečný e-mail a vrátit to nejde.
+ */
+@Composable
+fun IComponent.ResendEmailModal(
+    recipient: String,
+    isLoading: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val currentStrings by strings
+
+    ConfirmModal(
+        title = currentStrings.auditResendConfirmTitle,
+        confirmLabel = currentStrings.auditResendConfirm,
+        dismissLabel = currentStrings.modalBack,
+        isLoading = isLoading,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        confirmClassName = "btn-primary",
+    ) {
+        p(className = "pt-4") { +currentStrings.auditResendConfirmBody(recipient) }
+        p(className = "pb-2 text-sm text-base-content/60") { +currentStrings.auditResendConfirmNote }
+    }
+}
+
 @Composable
 private fun IComponent.RefundToggle(
     refundMoney: Boolean,

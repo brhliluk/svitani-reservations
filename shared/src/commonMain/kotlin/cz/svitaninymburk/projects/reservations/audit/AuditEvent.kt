@@ -92,4 +92,28 @@ data class AuditEvent(
     val detail: String? = null,
 ) {
     val category: AuditCategory get() = type.category
+
+    /**
+     * Jde tenhle mail poslat znovu?
+     *
+     * Přeposlat umíme jen to, co se dá beze zbytku poskládat znovu ze samotné
+     * rezervace — QR kód, iCal i texty se generují z aktuálního stavu, žádná
+     * kopie odeslané zprávy se neuchovává. Maily s jednorázovým tokenem (reset
+     * hesla, přivlastnění rezervace) jsou venku schválně: poslat je znovu by
+     * znamenalo vydat nový token někomu, kdo o to nepožádal.
+     *
+     * Stejný seznam si na serveru ověřuje i `EmailResendService` — tohle je jen
+     * to, co UI potřebuje k rozhodnutí, jestli vykreslit tlačítko.
+     */
+    val isResendable: Boolean
+        get() = reservationId != null && !recipient.isNullOrBlank() && type in RESENDABLE_EMAIL_TYPES
 }
+
+/** Viz [AuditEvent.isResendable]. */
+val RESENDABLE_EMAIL_TYPES: Set<AuditEventType> = setOf(
+    AuditEventType.EMAIL_RESERVATION_CONFIRMATION,
+    AuditEventType.EMAIL_WAITLIST_CONFIRMATION,
+    AuditEventType.EMAIL_WAITLIST_PROMOTION,
+    AuditEventType.EMAIL_PAYMENT_RECEIVED,
+    AuditEventType.EMAIL_CANCELLATION_NOTICE,
+)

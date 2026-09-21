@@ -72,6 +72,16 @@ interface AdminServiceInterface {
     suspend fun revokeLessonOptOut(reservationId: Uuid, instanceId: Uuid): Either<AdminError.RevokeOptOut, Unit>
     suspend fun getPaymentEvents(page: Int, pageSize: Int): Either<AdminError.GetPaymentEvents, PaymentEventsPage>
     suspend fun getEventAuditLog(eventId: Uuid, isSeries: Boolean, page: Int = 0, pageSize: Int = 50, category: AuditCategory? = null): Either<AdminError.GetEventAuditLog, AuditLogPage>
+
+    /**
+     * Pošle znovu mail, který je v historii vedený pod [auditEventId]. Vrací adresu,
+     * na kterou se odeslal.
+     *
+     * Odesílá se na **dnešní** kontaktní e-mail rezervace, ne na adresu ze starého
+     * záznamu — když admin mezitím opravil překlep, má mail dojít na opravenou.
+     * Proto se adresa vrací: obvykle je stejná jako v historii, ale nemusí být.
+     */
+    suspend fun resendEmail(auditEventId: Uuid): Either<AdminError.ResendEmail, String>
     suspend fun getWallets(page: Int, pageSize: Int): Either<AdminError.GetWallets, WalletsPage>
     suspend fun getWalletByCode(code: String): Either<AdminError.GetWallets, Wallet>
     suspend fun getWalletTransactions(walletId: String): Either<AdminError.GetWallets, List<WalletTransaction>>

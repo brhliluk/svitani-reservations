@@ -43,6 +43,8 @@ const val AUDIT_PAGE_SIZE = 25
 class EventAuditLogQueries(private val admin: AdminServiceInterface) {
     suspend fun page(id: Uuid, isSeries: Boolean, page: Int, category: AuditCategory?) =
         admin.getEventAuditLog(id, isSeries, page, AUDIT_PAGE_SIZE, category)
+
+    suspend fun resend(auditEventId: Uuid) = admin.resendEmail(auditEventId)
 }
 
 class EventLifecycleUseCase(private val admin: AdminServiceInterface) {

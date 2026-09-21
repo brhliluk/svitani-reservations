@@ -165,6 +165,17 @@ val appModule = module {
     single { PaymentPairingService(get(), get(), get(), get(), get(), get(), get(), get()) }
     single { SeriesScheduleRefresher(get(), get()) }
     single { AdminService(get()) }
-    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get(), refundService = get(), seriesLessonOptOutRepository = get(), seriesScheduleRefresher = get(), waitlistPromoter = get(), audit = get(), auditRepository = get()) } bind AdminServiceInterface::class
+    single {
+        EmailResendService(
+            auditRepository = get(),
+            reservationRepository = get(),
+            eventInstanceRepository = get(),
+            eventSeriesRepository = get(),
+            emailService = get(),
+            qrCodeService = get(),
+            appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz",
+        )
+    }
+    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get(), refundService = get(), seriesLessonOptOutRepository = get(), seriesScheduleRefresher = get(), waitlistPromoter = get(), audit = get(), auditRepository = get(), emailResender = get()) } bind AdminServiceInterface::class
     single { UserService(get(), get()) }
 }

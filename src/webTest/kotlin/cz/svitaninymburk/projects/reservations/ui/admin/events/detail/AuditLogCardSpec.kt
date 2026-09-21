@@ -7,6 +7,7 @@ import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import cz.svitaninymburk.projects.reservations.i18n.cs.CsStrings
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
@@ -20,6 +21,7 @@ class AuditLogCardSpec {
         detail: String? = null,
         instanceId: Uuid? = null,
         walletCode: String? = null,
+        reservationId: Uuid? = null,
     ) = AuditEvent(
         id = Uuid.random(),
         occurredAt = Clock.System.now(),
@@ -32,6 +34,7 @@ class AuditLogCardSpec {
         detail = detail,
         instanceId = instanceId,
         walletCode = walletCode,
+        reservationId = reservationId,
     )
 
     @Test
@@ -98,5 +101,38 @@ class AuditLogCardSpec {
     fun kodPenezenkySeUkazeVDetailu() {
         val text = auditDetailText(event(walletCode = "SVIT-AB12-CD34", amount = 300.0, detail = "z toho 200 Kč zpět z kreditu"))
         assertEquals("SVIT-AB12-CD34 · 300 Kč · z toho 200 Kč zpět z kreditu", text)
+    }
+
+    @Test
+    fun neodeslanePotvrzeniJdePoslatZnovu() {
+        val zaznam = event(
+            type = AuditEventType.EMAIL_RESERVATION_CONFIRMATION,
+            recipient = "anezka@example.com",
+            reservationId = Uuid.random(),
+        )
+        assertTrue(zaznam.isResendable)
+    }
+
+    /** Odkaz na reset hesla nese jednorázový token — poslat ho znovu by vydalo nový. */
+    @Test
+    fun mailSJednorazovymTokenemSePreposlatNeda() {
+        val zaznam = event(
+            type = AuditEventType.EMAIL_PASSWORD_RESET,
+            recipient = "kdo@example.com",
+            reservationId = Uuid.random(),
+        )
+        assertFalse(zaznam.isResendable)
+    }
+
+    /** Bez rezervace není z čeho mail poskládat — kopie odeslané zprávy se neuchovává. */
+    @Test
+    fun zaznamBezRezervaceSePreposlatNeda() {
+        val zaznam = event(type = AuditEventType.EMAIL_RESERVATION_CONFIRMATION, recipient = "kdo@example.com")
+        assertFalse(zaznam.isResendable)
+    }
+
+    @Test
+    fun zaznamMimoKategoriiMailuTlacitkoNema() {
+        assertFalse(event(type = AuditEventType.RESERVATION_CREATED, reservationId = Uuid.random()).isResendable)
     }
 }

@@ -57,9 +57,11 @@ fun IComponent.AuditLogCard(
     isLoading: Boolean,
     currentPage: Int,
     category: AuditCategory?,
+    resendingId: Uuid?,
     onToggle: () -> Unit,
     onPageChange: (Int) -> Unit,
     onCategoryChange: (AuditCategory?) -> Unit,
+    onResend: (AuditEvent) -> Unit,
 ) {
     val currentStrings by strings
     val router = Router.current
@@ -139,6 +141,13 @@ fun IComponent.AuditLogCard(
                                         }
                                         td(className = "text-sm text-base-content/60 max-w-md") { +auditDetailText(event) }
                                         td(className = "whitespace-nowrap text-right") {
+                                            if (event.isResendable) {
+                                                AuditLinkButton(
+                                                    tooltip = currentStrings.auditResend,
+                                                    icon = "icon-[heroicons--paper-airplane]",
+                                                    isLoading = resendingId == event.id,
+                                                ) { onResend(event) }
+                                            }
                                             event.reservationId?.let { reservationId ->
                                                 AuditLinkButton(currentStrings.auditOpenReservation) {
                                                     router.navigate("/reservation/$reservationId")
@@ -176,10 +185,17 @@ fun IComponent.AuditLogCard(
 
 /** „Otevřít související detail" — stejná ikonka i třídy jako v ParticipantsCard. */
 @Composable
-private fun IComponent.AuditLinkButton(tooltip: String, onOpen: () -> Unit) {
+private fun IComponent.AuditLinkButton(
+    tooltip: String,
+    icon: String = "icon-[heroicons--arrow-top-right-on-square]",
+    isLoading: Boolean = false,
+    onOpen: () -> Unit,
+) {
     button(className = "btn btn-ghost btn-xs tooltip tooltip-left") {
         attribute("data-tip", tooltip)
+        disabled(isLoading)
         onClick { onOpen() }
-        span(className = "icon-[heroicons--arrow-top-right-on-square] size-4")
+        if (isLoading) span(className = "loading loading-spinner loading-xs")
+        else span(className = "$icon size-4")
     }
 }

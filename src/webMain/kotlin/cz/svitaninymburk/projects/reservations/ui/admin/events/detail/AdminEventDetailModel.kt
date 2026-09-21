@@ -10,6 +10,7 @@ import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
 import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
 import cz.svitaninymburk.projects.reservations.admin.AuditLogPage
 import cz.svitaninymburk.projects.reservations.audit.AuditCategory
+import cz.svitaninymburk.projects.reservations.audit.AuditEvent
 import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.EventInstance
@@ -98,6 +99,10 @@ class AdminEventDetailModel(
     /** Načítá se až po rozbalení, ať se nezdržuje první vykreslení detailu. */
     var isAuditExpanded by mutableStateOf(false); private set
 
+    // Přeposlání mailu z historie — potvrzuje se, protože odešle skutečný e-mail.
+    var resendPending: AuditEvent? by mutableStateOf(null)
+    var resendingAuditId: Uuid? by mutableStateOf(null); private set
+
     private val uuid: Uuid get() = Uuid.parse(eventId)
 
     fun load() {
@@ -156,6 +161,19 @@ class AdminEventDetailModel(
                 .onLeft { auditError = it.localizedMessage(currentStrings) }
             isAuditLoading = false
         }
+    }
+
+    /**
+     * Po odeslání se historie přenačte: přibude v ní řádek nového pokusu a admin
+     * podle něj pozná, jestli e-mail tentokrát prošel.
+     */
+    fun resendEmail(entry: AuditEvent) {
+        resendingAuditId = entry.id
+        run(
+            errorMessage = { it.localizedMessage(currentStrings) },
+            block = { auditLog.resend(entry.id) },
+            onSuccess = { recipient -> showToast(currentStrings.auditResendSuccess(recipient)) },
+        ).invokeOnCompletion { resendingAuditId = null; resendPending = null; loadAudit() }
     }
 
     fun requestDelete() { refundMoney = true; showDeleteConfirm = true }

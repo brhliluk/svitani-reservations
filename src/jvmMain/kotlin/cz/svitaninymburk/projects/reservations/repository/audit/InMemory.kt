@@ -32,6 +32,8 @@ class InMemoryAuditRepository : AuditRepository {
 
     override suspend fun recordAll(events: List<NewAuditEvent>) = events.forEach { record(it) }
 
+    override suspend fun findById(id: Uuid): AuditEvent? = synchronized(events) { events.find { it.id == id } }
+
     override suspend fun findForEvent(
         eventId: Uuid,
         isSeries: Boolean,

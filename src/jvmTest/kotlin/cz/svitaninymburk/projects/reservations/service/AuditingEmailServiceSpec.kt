@@ -28,6 +28,7 @@ class AuditingEmailServiceSpec {
     private class BrokenAuditRepository : AuditRepository {
         override suspend fun record(event: NewAuditEvent) = error("DB je pryč")
         override suspend fun recordAll(events: List<NewAuditEvent>) = error("DB je pryč")
+        override suspend fun findById(id: Uuid): cz.svitaninymburk.projects.reservations.audit.AuditEvent? = null
         override suspend fun findForEvent(
             eventId: Uuid, isSeries: Boolean,
             category: cz.svitaninymburk.projects.reservations.audit.AuditCategory?,
