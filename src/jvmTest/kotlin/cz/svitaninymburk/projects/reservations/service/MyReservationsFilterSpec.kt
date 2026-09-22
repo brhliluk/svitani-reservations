@@ -5,7 +5,7 @@ import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.coroutines.runBlocking
@@ -80,7 +80,7 @@ class MyReservationsFilterSpec {
             status = status,
             createdAt = Clock.System.now(),
             customValues = emptyMap(),
-            paymentType = PaymentInfo.Type.BANK_TRANSFER,
+            paymentType = PaymentType.BANK_TRANSFER,
         )
     )
 
@@ -157,7 +157,7 @@ class MyReservationsFilterSpec {
                 status = Reservation.Status.CONFIRMED,
                 createdAt = Clock.System.now(),
                 customValues = emptyMap(),
-                paymentType = PaymentInfo.Type.BANK_TRANSFER,
+                paymentType = PaymentType.BANK_TRANSFER,
             )
         )
         assertTrue(listedIds().isEmpty())

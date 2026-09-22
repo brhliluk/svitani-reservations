@@ -6,7 +6,7 @@ import cz.svitaninymburk.projects.reservations.android.repository.reservation.Re
 import cz.svitaninymburk.projects.reservations.api.ApiError
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import io.ktor.client.HttpClient
@@ -47,7 +47,7 @@ class ReservationsRepositoryCreateTest {
         status = Reservation.Status.PENDING_PAYMENT,
         createdAt = Instant.parse("2026-06-10T10:00:00Z"),
         customValues = emptyMap(),
-        paymentType = PaymentInfo.Type.BANK_TRANSFER,
+        paymentType = PaymentType.BANK_TRANSFER,
         variableSymbol = "1234567890",
     )
 
@@ -57,7 +57,7 @@ class ReservationsRepositoryCreateTest {
         contactName = "Jan Novák",
         contactEmail = "jan@example.com",
         contactPhone = "+420123456789",
-        paymentType = PaymentInfo.Type.BANK_TRANSFER,
+        paymentType = PaymentType.BANK_TRANSFER,
         customValues = emptyMap(),
     )
 
@@ -112,7 +112,7 @@ class ReservationsRepositoryCreateTest {
                 contactName = "Jan Novák",
                 contactEmail = "jan@example.com",
                 contactPhone = "+420123456789",
-                paymentType = PaymentInfo.Type.ON_SITE,
+                paymentType = PaymentType.ON_SITE,
                 customValues = emptyMap(),
             )
         )

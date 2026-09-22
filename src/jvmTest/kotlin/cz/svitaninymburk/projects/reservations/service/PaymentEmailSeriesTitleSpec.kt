@@ -4,7 +4,7 @@ import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.settings.AppSettings
@@ -52,7 +52,7 @@ class PaymentEmailSeriesTitleSpec {
         status = Reservation.Status.PENDING_PAYMENT,
         createdAt = Clock.System.now(),
         customValues = emptyMap(),
-        paymentType = PaymentInfo.Type.BANK_TRANSFER,
+        paymentType = PaymentType.BANK_TRANSFER,
     )
 
     @Test

@@ -34,7 +34,7 @@ data class Reservation(
 
     val customValues: Map<String, CustomFieldValue>,
 
-    val paymentType: PaymentInfo.Type,
+    val paymentType: PaymentType,
     val variableSymbol: String? = null, // VS pro párování platby
     val paymentPairingToken: String? = null, // Interní ID pro bankovní API
     val locale: String = "cs",
@@ -74,7 +74,7 @@ sealed interface ReservationTarget {
     val id: Uuid
     val title: String
     val price: Double
-    val allowedPaymentTypes: List<PaymentInfo.Type>
+    val allowedPaymentTypes: List<PaymentType>
     val maxCapacity: Int
     /** Když je false, rezervační formulář pole s počtem míst skryje a rezervuje se vždy 1 místo. */
     val allowMultipleSeats: Boolean
@@ -116,7 +116,7 @@ interface ReservationRequestData {
     val contactName: String
     val contactEmail: String
     val contactPhone: String
-    val paymentType: PaymentInfo.Type
+    val paymentType: PaymentType
     val customValues: Map<String, CustomFieldValue>
     val locale: String
 }
@@ -128,7 +128,7 @@ data class CreateInstanceReservationRequest(
     override val contactName: String,
     override val contactEmail: String,
     override val contactPhone: String,
-    override val paymentType: PaymentInfo.Type,
+    override val paymentType: PaymentType,
     override val customValues: Map<String, CustomFieldValue>,
     override val locale: String = "cs",
     val walletCode: String? = null,
@@ -146,7 +146,7 @@ data class CreateSeriesReservationRequest(
     override val contactName: String,
     override val contactEmail: String,
     override val contactPhone: String,
-    override val paymentType: PaymentInfo.Type,
+    override val paymentType: PaymentType,
     override val customValues: Map<String, CustomFieldValue>,
     override val locale: String = "cs",
     val walletCode: String? = null,
@@ -181,7 +181,7 @@ data class MyReservationListItem(
     val seatCount: Int,
     val totalPrice: Double,
     val status: Reservation.Status,
-    val paymentType: PaymentInfo.Type,
+    val paymentType: PaymentType,
     val variableSymbol: String?,
     val isSeries: Boolean,
 ) {

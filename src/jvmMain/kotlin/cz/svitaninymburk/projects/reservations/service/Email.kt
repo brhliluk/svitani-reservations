@@ -12,7 +12,7 @@ import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRep
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -195,7 +195,7 @@ class GmailEmailService(
                 br
                 p { +s.reservationBankTransfer(bankAccount, reservation.variableSymbol) }
                 p { +s.reservationPaymentProcessingNote }
-            } else if (reservation.paymentType == PaymentInfo.Type.ON_SITE) {
+            } else if (reservation.paymentType == PaymentType.ON_SITE) {
                 p { +s.reservationOnSiteNote }
             }
             p { +s.reservationViewLink("$appBaseUrl/reservation/${reservation.id}") }
@@ -569,7 +569,7 @@ class GmailEmailService(
                 br
                 p { +s.reservationBankTransfer(bankAccount, reservation.variableSymbol) }
                 p { +s.reservationPaymentProcessingNote }
-            } else if (reservation.paymentType == PaymentInfo.Type.ON_SITE) {
+            } else if (reservation.paymentType == PaymentType.ON_SITE) {
                 p { +s.reservationOnSiteNote }
             }
             p { +s.reservationViewLink("$appBaseUrl/reservation/${reservation.id}") }

@@ -2,13 +2,13 @@ package cz.svitaninymburk.projects.reservations.ui.util
 
 import androidx.compose.runtime.getValue
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 
-val PaymentInfo.Type.label: String get() {
+val PaymentType.label: String get() {
     val currentStrings by strings
     return when (this) {
-        PaymentInfo.Type.BANK_TRANSFER -> currentStrings.bankTransfer
-        PaymentInfo.Type.ON_SITE -> currentStrings.onSite
-        PaymentInfo.Type.FREE -> currentStrings.free
+        PaymentType.BANK_TRANSFER -> currentStrings.bankTransfer
+        PaymentType.ON_SITE -> currentStrings.onSite
+        PaymentType.FREE -> currentStrings.free
     }
 }

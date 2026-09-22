@@ -13,7 +13,7 @@ import cz.svitaninymburk.projects.reservations.repository.audit.AuditRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -95,7 +95,7 @@ class EmailResendService(
             reservation = reservation,
             target = target,
             bankAccount = qrCodeService.accountNumber,
-            qrCodeImage = qrCodeFor(reservation),
+            qrCodeImage = qrCodeFor(reservation, target),
             icalBytes = icalFor(target, reservation),
         )
 
@@ -104,7 +104,7 @@ class EmailResendService(
             reservation = reservation,
             target = target,
             bankAccount = qrCodeService.accountNumber,
-            qrCodeImage = qrCodeFor(reservation),
+            qrCodeImage = qrCodeFor(reservation, target),
             icalBytes = icalFor(target, reservation),
         )
 
@@ -139,8 +139,8 @@ class EmailResendService(
         }
 
     /** QR kód dává smysl jen u převodem placené rezervace — stejně jako při prvním odeslání. */
-    private fun qrCodeFor(reservation: Reservation): ByteArray? =
-        if (reservation.paymentType == PaymentInfo.Type.BANK_TRANSFER) qrCodeService.generateQrPng(reservation) else null
+    private fun qrCodeFor(reservation: Reservation, target: ReservationTarget): ByteArray? =
+        if (reservation.paymentType == PaymentType.BANK_TRANSFER) qrCodeService.generateQrPng(reservation, target) else null
 
     private fun icalFor(target: ReservationTarget, reservation: Reservation): ByteArray = when (target) {
         is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, reservation.id, appBaseUrl)

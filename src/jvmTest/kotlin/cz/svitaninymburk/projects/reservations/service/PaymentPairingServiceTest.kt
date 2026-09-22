@@ -5,10 +5,11 @@ import arrow.core.right
 import cz.svitaninymburk.projects.reservations.bank.BankTransaction
 import cz.svitaninymburk.projects.reservations.error.EmailError
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
+import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.payment.InMemoryPaymentEventRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
@@ -121,7 +122,7 @@ class PaymentPairingServiceTest {
 
     class StubQrCodeGenerator : QrCodeGeneratorService {
         override val accountNumber = "2800981651/2010"
-        override fun generateQrPng(reservation: Reservation): ByteArray =
+        override fun generateQrPng(reservation: Reservation, target: ReservationTarget?): ByteArray =
             "mock-qr-${reservation.unpaidAmount.toInt()}".encodeToByteArray()
     }
 
@@ -136,7 +137,7 @@ class PaymentPairingServiceTest {
         status = Reservation.Status.PENDING_PAYMENT,
         createdAt = Clock.System.now(),
         customValues = emptyMap(),
-        paymentType = PaymentInfo.Type.BANK_TRANSFER,
+        paymentType = PaymentType.BANK_TRANSFER,
         variableSymbol = vs
     )
 
@@ -191,6 +192,7 @@ class PaymentPairingServiceTest {
             settings = settingsProvider,
             paymentEventRepository = paymentEventRepo,
             eventInstanceRepository = InMemoryEventInstanceRepository(),
+            eventSeriesRepository = InMemoryEventSeriesRepository(),
         )
     }
 

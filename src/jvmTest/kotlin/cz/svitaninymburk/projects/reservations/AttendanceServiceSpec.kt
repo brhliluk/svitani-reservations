@@ -5,7 +5,7 @@ import cz.svitaninymburk.projects.reservations.repository.attendance.InMemoryAtt
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
@@ -48,7 +48,7 @@ class AttendanceServiceSpec {
         status = status,
         createdAt = Clock.System.now(),
         customValues = emptyMap(),
-        paymentType = PaymentInfo.Type.entries.first(),
+        paymentType = PaymentType.entries.first(),
     )
 
     private fun lesson(id: Uuid, series: Uuid? = null) = EventInstance(

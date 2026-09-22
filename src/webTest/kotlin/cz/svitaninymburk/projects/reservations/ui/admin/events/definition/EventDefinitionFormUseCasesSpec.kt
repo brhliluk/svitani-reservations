@@ -1,6 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.definition
 
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.ui.admin.events.definition.usecase.DefinitionFormValidationError
 import cz.svitaninymburk.projects.reservations.ui.admin.events.definition.usecase.EventDefinitionFormData
 import cz.svitaninymburk.projects.reservations.ui.admin.events.definition.usecase.buildAllowedPaymentTypes
@@ -47,10 +47,10 @@ class EventDefinitionFormUseCasesSpec {
 
     @Test
     fun buildAllowedPaymentTypesIncludesOnlyEnabledOnes() {
-        assertEquals(listOf(PaymentInfo.Type.BANK_TRANSFER), buildAllowedPaymentTypes(allowBankTransfer = true, allowOnSite = false))
+        assertEquals(listOf(PaymentType.BANK_TRANSFER), buildAllowedPaymentTypes(allowBankTransfer = true, allowOnSite = false))
         assertEquals(emptyList(), buildAllowedPaymentTypes(allowBankTransfer = false, allowOnSite = false))
         assertEquals(
-            listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
+            listOf(PaymentType.BANK_TRANSFER, PaymentType.ON_SITE),
             buildAllowedPaymentTypes(allowBankTransfer = true, allowOnSite = true),
         )
     }
@@ -63,7 +63,7 @@ class EventDefinitionFormUseCasesSpec {
         assertEquals(150.0, request.defaultPrice)
         assertEquals(12, request.defaultCapacity)
         assertEquals(1.hours + 30.minutes, request.defaultDuration)
-        assertEquals(listOf(PaymentInfo.Type.BANK_TRANSFER), request.allowedPaymentTypes)
+        assertEquals(listOf(PaymentType.BANK_TRANSFER), request.allowedPaymentTypes)
         assertEquals(true, request.showAttendeeCount)
     }
 

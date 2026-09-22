@@ -12,7 +12,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySe
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.settings.AppSettings
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import kotlinx.coroutines.runBlocking
@@ -88,7 +88,7 @@ class AllowMultipleSeatsSpec {
         contactName = "Jan Novak",
         contactEmail = "jan@test.com",
         contactPhone = "+420777111222",
-        paymentType = PaymentInfo.Type.BANK_TRANSFER,
+        paymentType = PaymentType.BANK_TRANSFER,
         customValues = emptyMap(),
     )
 
@@ -98,7 +98,7 @@ class AllowMultipleSeatsSpec {
         contactName = "Jan Novak",
         contactEmail = "jan@test.com",
         contactPhone = "+420777111222",
-        paymentType = PaymentInfo.Type.BANK_TRANSFER,
+        paymentType = PaymentType.BANK_TRANSFER,
         customValues = emptyMap(),
     )
 

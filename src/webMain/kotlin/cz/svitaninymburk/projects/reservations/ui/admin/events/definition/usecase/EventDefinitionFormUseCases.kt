@@ -4,7 +4,7 @@ import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionReques
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.UpdateEventDefinitionRequest
 import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -38,9 +38,9 @@ fun validateDefinitionForm(title: String, ownerEmails: List<String>): Definition
     return null
 }
 
-fun buildAllowedPaymentTypes(allowBankTransfer: Boolean, allowOnSite: Boolean): List<PaymentInfo.Type> = buildList {
-    if (allowBankTransfer) add(PaymentInfo.Type.BANK_TRANSFER)
-    if (allowOnSite) add(PaymentInfo.Type.ON_SITE)
+fun buildAllowedPaymentTypes(allowBankTransfer: Boolean, allowOnSite: Boolean): List<PaymentType> = buildList {
+    if (allowBankTransfer) add(PaymentType.BANK_TRANSFER)
+    if (allowOnSite) add(PaymentType.ON_SITE)
 }
 
 fun buildCreateEventDefinitionRequest(form: EventDefinitionFormData): CreateEventDefinitionRequest =

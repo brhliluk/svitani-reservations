@@ -48,7 +48,7 @@ import cz.svitaninymburk.projects.reservations.android.feature.events.ui.Loading
 import cz.svitaninymburk.projects.reservations.android.util.toCzkString
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.wallet.WalletInfo
 import kotlin.uuid.Uuid
 import org.koin.compose.viewmodel.koinViewModel
@@ -95,7 +95,7 @@ fun ReservationFormContent(
     onEmailChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
     onSeatCountChange: (Int) -> Unit,
-    onPaymentTypeChange: (PaymentInfo.Type) -> Unit,
+    onPaymentTypeChange: (PaymentType) -> Unit,
     onUseWalletChange: (Boolean) -> Unit,
     onCustomValueChange: (CustomFieldValue) -> Unit,
     onSubmit: () -> Unit,
@@ -145,7 +145,7 @@ private fun FormBody(
     onEmailChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
     onSeatCountChange: (Int) -> Unit,
-    onPaymentTypeChange: (PaymentInfo.Type) -> Unit,
+    onPaymentTypeChange: (PaymentType) -> Unit,
     onUseWalletChange: (Boolean) -> Unit,
     onCustomValueChange: (CustomFieldValue) -> Unit,
     onSubmit: () -> Unit,
@@ -351,12 +351,12 @@ private fun ReserveButton(
 @Composable
 private fun PaymentTypeSelector(
     state: ReservationFormUiState,
-    allowed: List<PaymentInfo.Type>,
-    onPaymentTypeChange: (PaymentInfo.Type) -> Unit,
+    allowed: List<PaymentType>,
+    onPaymentTypeChange: (PaymentType) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(stringResource(R.string.reservation_form_payment_type), style = MaterialTheme.typography.bodyMedium)
-        allowed.filter { it != PaymentInfo.Type.FREE }.forEach { type ->
+        allowed.filter { it != PaymentType.FREE }.forEach { type ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -375,9 +375,9 @@ private fun PaymentTypeSelector(
                 Text(
                     stringResource(
                         when (type) {
-                            PaymentInfo.Type.BANK_TRANSFER -> R.string.reservation_payment_type_bank
-                            PaymentInfo.Type.ON_SITE -> R.string.reservation_payment_type_on_site
-                            PaymentInfo.Type.FREE -> R.string.reservation_payment_type_free
+                            PaymentType.BANK_TRANSFER -> R.string.reservation_payment_type_bank
+                            PaymentType.ON_SITE -> R.string.reservation_payment_type_on_site
+                            PaymentType.FREE -> R.string.reservation_payment_type_free
                         }
                     ),
                     style = MaterialTheme.typography.bodyMedium,

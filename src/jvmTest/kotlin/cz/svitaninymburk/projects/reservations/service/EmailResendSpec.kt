@@ -14,7 +14,7 @@ import cz.svitaninymburk.projects.reservations.repository.audit.NewAuditEvent
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -85,7 +85,7 @@ class EmailResendSpec {
                     contactName = "Anežka Brhlíková",
                     contactEmail = email,
                     contactPhone = null,
-                    paymentType = PaymentInfo.Type.BANK_TRANSFER,
+                    paymentType = PaymentType.BANK_TRANSFER,
                     customValues = emptyMap(),
                     totalPrice = 200.0,
                     status = Reservation.Status.PENDING_PAYMENT,

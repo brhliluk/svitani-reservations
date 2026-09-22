@@ -1,7 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.dashboard
 
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.MyReservationPaymentMethod
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.cardOpensOnTitleOnly
@@ -16,7 +16,7 @@ import kotlin.uuid.Uuid
 
 private fun item(
     totalPrice: Double = 500.0,
-    paymentType: PaymentInfo.Type = PaymentInfo.Type.BANK_TRANSFER,
+    paymentType: PaymentType = PaymentType.BANK_TRANSFER,
     isSeries: Boolean = false,
 ) = MyReservationListItem(
     id = Uuid.random(),
@@ -36,18 +36,18 @@ class MyReservationsUseCasesSpec {
     fun freeReservationSaysNothingAboutPayment() {
         // "Převodem" vedle "Zdarma" by si protiřečilo.
         assertNull(myReservationPaymentMethod(item(totalPrice = 0.0)))
-        assertNull(myReservationPaymentMethod(item(totalPrice = 0.0, paymentType = PaymentInfo.Type.ON_SITE)))
+        assertNull(myReservationPaymentMethod(item(totalPrice = 0.0, paymentType = PaymentType.ON_SITE)))
     }
 
     @Test
     fun paidReservationSaysCashOrTransfer() {
         assertEquals(
             MyReservationPaymentMethod.CASH,
-            myReservationPaymentMethod(item(paymentType = PaymentInfo.Type.ON_SITE)),
+            myReservationPaymentMethod(item(paymentType = PaymentType.ON_SITE)),
         )
         assertEquals(
             MyReservationPaymentMethod.TRANSFER,
-            myReservationPaymentMethod(item(paymentType = PaymentInfo.Type.BANK_TRANSFER)),
+            myReservationPaymentMethod(item(paymentType = PaymentType.BANK_TRANSFER)),
         )
     }
 

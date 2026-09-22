@@ -1,6 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.create
 
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.CourseStartDate
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.EventCreateFormData
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.EventCreateValidationError
@@ -50,7 +50,7 @@ class EventCreateFormUseCasesSpec {
 
     @Test
     fun allowedPaymentTypesFollowCheckboxes() {
-        assertEquals(listOf(PaymentInfo.Type.BANK_TRANSFER), sampleForm().allowedPaymentTypes)
+        assertEquals(listOf(PaymentType.BANK_TRANSFER), sampleForm().allowedPaymentTypes)
         assertTrue(sampleForm().copy(allowBankTransfer = false).allowedPaymentTypes.isEmpty())
     }
 
@@ -126,7 +126,7 @@ class EventCreateFormUseCasesSpec {
         assertEquals(listOf("lektor@svitani.cz"), request.ownerEmails)
         assertNull(request.reservationDeadlineMessage)
         assertEquals(1.hours + 30.minutes, request.defaultDuration)
-        assertEquals(listOf(PaymentInfo.Type.BANK_TRANSFER), request.allowedPaymentTypes)
+        assertEquals(listOf(PaymentType.BANK_TRANSFER), request.allowedPaymentTypes)
         assertEquals(2.hours, request.reservationDeadline)
         assertTrue(request.isPublished)
     }

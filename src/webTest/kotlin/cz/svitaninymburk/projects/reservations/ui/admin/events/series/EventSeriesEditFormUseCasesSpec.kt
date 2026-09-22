@@ -1,6 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.series
 
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.EventSeriesEditFormData
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.SeriesFormValidationError
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.buildUpdateEventSeriesRequest
@@ -101,7 +101,7 @@ class EventSeriesEditFormUseCasesSpec {
         assertEquals(1500.0, request.price)
         assertEquals(12, request.capacity)
         assertEquals(3, request.waitlistCapacity)
-        assertEquals(listOf(PaymentInfo.Type.BANK_TRANSFER), request.allowedPaymentTypes)
+        assertEquals(listOf(PaymentType.BANK_TRANSFER), request.allowedPaymentTypes)
         assertEquals(true, request.showAttendeeCount)
         assertEquals(100.0, request.lessonRefundAmount)
         assertEquals(2.hours, request.reservationDeadline)

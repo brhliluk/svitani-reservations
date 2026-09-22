@@ -8,7 +8,7 @@ import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSer
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.settings.AppSettings
@@ -78,7 +78,7 @@ class WaitlistPromotionSpec {
             status = Reservation.Status.CONFIRMED,
             createdAt = Clock.System.now(),
             customValues = emptyMap(),
-            paymentType = PaymentInfo.Type.BANK_TRANSFER,
+            paymentType = PaymentType.BANK_TRANSFER,
             variableSymbol = "2612300001",
         )
         val waitlistedReservation = Reservation(
@@ -91,7 +91,7 @@ class WaitlistPromotionSpec {
             status = Reservation.Status.WAITLISTED,
             createdAt = Clock.System.now(),
             customValues = emptyMap(),
-            paymentType = PaymentInfo.Type.BANK_TRANSFER,
+            paymentType = PaymentType.BANK_TRANSFER,
         )
         reservationRepo.save(confirmedReservation)
         reservationRepo.save(waitlistedReservation)
@@ -142,7 +142,7 @@ class WaitlistPromotionSpec {
             status = Reservation.Status.PENDING_PAYMENT,
             createdAt = Clock.System.now(),
             customValues = emptyMap(),
-            paymentType = PaymentInfo.Type.BANK_TRANSFER,
+            paymentType = PaymentType.BANK_TRANSFER,
             variableSymbol = "2612300002",
         )
         reservationRepo.save(reservation)

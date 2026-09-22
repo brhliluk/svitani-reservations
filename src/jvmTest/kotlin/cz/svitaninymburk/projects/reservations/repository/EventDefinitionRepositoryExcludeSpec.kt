@@ -2,7 +2,7 @@ package cz.svitaninymburk.projects.reservations.repository
 
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventDefinitionRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -13,7 +13,7 @@ class EventDefinitionRepositoryExcludeSpec {
 
     private fun definition(id: Uuid, title: String) = EventDefinition(
         id = id, title = title, description = "", defaultPrice = 100.0, defaultCapacity = 10,
-        defaultDuration = 1.hours, allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+        defaultDuration = 1.hours, allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
         customFields = emptyList(), ownerEmails = emptyList(),
     )
 

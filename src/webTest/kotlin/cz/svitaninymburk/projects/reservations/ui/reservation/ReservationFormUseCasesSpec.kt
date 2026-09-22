@@ -9,7 +9,7 @@ import cz.svitaninymburk.projects.reservations.event.BooleanValue
 import cz.svitaninymburk.projects.reservations.event.TextValue
 import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.WALLET_CODE_LENGTH
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.areCustomFieldsValid
@@ -83,21 +83,21 @@ class ReservationFormWalletSpec {
     @Test
     fun fullyCoveredReservationGoesThroughAsFree() {
         assertEquals(
-            PaymentInfo.Type.FREE,
-            effectivePaymentType(total = 300.0, deduction = 300.0, chosen = PaymentInfo.Type.BANK_TRANSFER),
+            PaymentType.FREE,
+            effectivePaymentType(total = 300.0, deduction = 300.0, chosen = PaymentType.BANK_TRANSFER),
         )
         // Akce zdarma taky: nula pokrytá nulou je celá cena.
         assertEquals(
-            PaymentInfo.Type.FREE,
-            effectivePaymentType(total = 0.0, deduction = 0.0, chosen = PaymentInfo.Type.ON_SITE),
+            PaymentType.FREE,
+            effectivePaymentType(total = 0.0, deduction = 0.0, chosen = PaymentType.ON_SITE),
         )
     }
 
     @Test
     fun partiallyCoveredReservationKeepsTheChosenPaymentType() {
         assertEquals(
-            PaymentInfo.Type.ON_SITE,
-            effectivePaymentType(total = 300.0, deduction = 100.0, chosen = PaymentInfo.Type.ON_SITE),
+            PaymentType.ON_SITE,
+            effectivePaymentType(total = 300.0, deduction = 100.0, chosen = PaymentType.ON_SITE),
         )
     }
 }

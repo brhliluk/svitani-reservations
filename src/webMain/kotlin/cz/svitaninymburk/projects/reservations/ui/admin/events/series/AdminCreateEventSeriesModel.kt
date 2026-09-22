@@ -9,7 +9,7 @@ import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.EventSeriesCreateFormData
@@ -168,8 +168,8 @@ class AdminCreateEventSeriesModel(
         ownerEmails = definition.ownerEmails.ifEmpty { listOf(currentUserEmail) }
         priceOverride = definition.defaultPrice
         capacityOverride = definition.defaultCapacity
-        allowBankTransfer = definition.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
-        allowOnSite = definition.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
+        allowBankTransfer = definition.allowedPaymentTypes.contains(PaymentType.BANK_TRANSFER)
+        allowOnSite = definition.allowedPaymentTypes.contains(PaymentType.ON_SITE)
         showAttendeeCount = definition.showAttendeeCount
         allowMultipleSeats = definition.allowMultipleSeats
         customFields = definition.customFields

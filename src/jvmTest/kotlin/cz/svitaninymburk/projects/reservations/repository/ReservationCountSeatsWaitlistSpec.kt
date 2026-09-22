@@ -1,7 +1,7 @@
 package cz.svitaninymburk.projects.reservations.repository
 
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.coroutines.runBlocking
@@ -18,7 +18,7 @@ class ReservationCountSeatsWaitlistSpec {
         contactName = "X", contactEmail = "x@test.com",
         seatCount = seats, totalPrice = 0.0,
         status = status, createdAt = Clock.System.now(),
-        customValues = emptyMap(), paymentType = PaymentInfo.Type.ON_SITE,
+        customValues = emptyMap(), paymentType = PaymentType.ON_SITE,
     )
 
     @Test

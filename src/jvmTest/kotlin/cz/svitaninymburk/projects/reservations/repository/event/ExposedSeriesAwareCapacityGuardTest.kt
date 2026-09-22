@@ -6,7 +6,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.ExposedSer
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationsTable
 import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutsTable
 import cz.svitaninymburk.projects.reservations.repository.user.UsersTable
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
@@ -93,7 +93,7 @@ class ExposedSeriesAwareCapacityGuardTest {
             status = status,
             createdAt = Clock.System.now(),
             customValues = emptyMap(),
-            paymentType = PaymentInfo.Type.BANK_TRANSFER,
+            paymentType = PaymentType.BANK_TRANSFER,
         )
     )
 

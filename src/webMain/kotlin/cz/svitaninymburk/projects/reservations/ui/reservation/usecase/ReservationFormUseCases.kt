@@ -12,7 +12,7 @@ import cz.svitaninymburk.projects.reservations.event.TextValue
 import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
 import cz.svitaninymburk.projects.reservations.event.hoursFromRange
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
@@ -31,7 +31,7 @@ fun walletDeduction(balance: Double?, total: Double): Double =
 fun remainingToPay(total: Double, deduction: Double): Double = total - deduction
 
 /**
- * Pokryje-li peněženka celou cenu, jde rezervace jako [PaymentInfo.Type.FREE] —
+ * Pokryje-li peněženka celou cenu, jde rezervace jako [PaymentType.FREE] —
  * není co převádět ani vybírat na místě, takže by výběr platby jen mátl a
  * formulář ho v tom případě vůbec nezobrazuje.
  *
@@ -40,8 +40,8 @@ fun remainingToPay(total: Double, deduction: Double): Double = total - deduction
 fun effectivePaymentType(
     total: Double,
     deduction: Double,
-    chosen: PaymentInfo.Type,
-): PaymentInfo.Type = if (deduction == total) PaymentInfo.Type.FREE else chosen
+    chosen: PaymentType,
+): PaymentType = if (deduction == total) PaymentType.FREE else chosen
 
 fun showsPaymentTypePicker(total: Double, deduction: Double): Boolean =
     remainingToPay(total, deduction) > 0.0

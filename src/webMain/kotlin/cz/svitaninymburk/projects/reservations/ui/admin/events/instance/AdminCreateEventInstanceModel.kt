@@ -11,7 +11,7 @@ import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.RecurrenceType
 import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AuthenticatedEventServiceInterface
 import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.EventInstanceCreateFormData
@@ -124,8 +124,8 @@ class AdminCreateEventInstanceModel(
             durationHours = hours.toInt()
             durationMinutes = minutes
         }
-        allowBankTransfer = definition.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
-        allowOnSite = definition.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
+        allowBankTransfer = definition.allowedPaymentTypes.contains(PaymentType.BANK_TRANSFER)
+        allowOnSite = definition.allowedPaymentTypes.contains(PaymentType.ON_SITE)
         showAttendeeCount = definition.showAttendeeCount
         allowMultipleSeats = definition.allowMultipleSeats
         customFields = definition.customFields

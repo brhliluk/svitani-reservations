@@ -8,7 +8,7 @@ import androidx.compose.runtime.setValue
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.WalletLookup
@@ -50,7 +50,7 @@ class ReservationFormModel(
 
     var seats by mutableIntStateOf(1); private set
     var seatsExceeded by mutableStateOf(false); private set
-    var paymentType by mutableStateOf(PaymentInfo.Type.BANK_TRANSFER); private set
+    var paymentType by mutableStateOf(PaymentType.BANK_TRANSFER); private set
 
     val customValues = mutableStateMapOf<String, CustomFieldValue>()
 
@@ -107,7 +107,7 @@ class ReservationFormModel(
         seatsExceeded = target.exceedsRemainingCapacity(typed)
     }
 
-    fun setPaymentType(value: PaymentInfo.Type) { paymentType = value }
+    fun setPaymentType(value: PaymentType) { paymentType = value }
 
     fun setWalletExpanded(value: Boolean) {
         walletExpanded = value

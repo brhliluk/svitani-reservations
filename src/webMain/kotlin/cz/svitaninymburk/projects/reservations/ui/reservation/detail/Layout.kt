@@ -6,7 +6,7 @@ import androidx.compose.runtime.*
 import cz.svitaninymburk.projects.reservations.i18n.AppStrings
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.qr.QrCodeService
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.shareSvgAsPng
@@ -44,8 +44,8 @@ fun IComponent.ReservationDetailLayout(
     val uiState = remember(reservation.status, reservation.isFree, currentStrings) { getReservationUiState(reservation, target, currentStrings) }
     val qrCodeService = remember { QrCodeService() }
 
-    val qrCodeSvg = remember(reservation, accountNumber, uiState.showPaymentInfo) {
-        if (uiState.showPaymentInfo) qrCodeService.generateReservationPaymentSvg(reservation, accountNumber)
+    val qrCodeSvg = remember(reservation, target, accountNumber, uiState.showPaymentInfo) {
+        if (uiState.showPaymentInfo) qrCodeService.generateReservationPaymentSvg(reservation, target, accountNumber)
         else ""
     }
 
@@ -259,7 +259,7 @@ internal fun getReservationUiState(reservation: Reservation, reservationTarget: 
     return when (reservation.status) {
         // 1. NOVÁ / ČEKÁ NA PLATBU
         Reservation.Status.PENDING_PAYMENT -> {
-            val isOnSite = reservation.paymentType == PaymentInfo.Type.ON_SITE
+            val isOnSite = reservation.paymentType == PaymentType.ON_SITE
             ReservationUiState(
                 title = strings.reservationCreated,
                 subtitle = if (isOnSite) strings.onSite else strings.waitingForPayment,

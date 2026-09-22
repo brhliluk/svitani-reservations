@@ -5,7 +5,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.ReferenceD
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationsTable
 import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutsTable
 import cz.svitaninymburk.projects.reservations.repository.user.UsersTable
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
 import kotlinx.coroutines.runBlocking
@@ -55,7 +55,7 @@ class SeriesLessonOptOutRepositoryTest {
                 row[ReservationsTable.status] = Reservation.Status.CONFIRMED
                 row[ReservationsTable.createdAt] = Clock.System.now()
                 row[ReservationsTable.customValues] = emptyMap()
-                row[ReservationsTable.paymentType] = PaymentInfo.Type.BANK_TRANSFER
+                row[ReservationsTable.paymentType] = PaymentType.BANK_TRANSFER
                 row[ReservationsTable.variableSymbol] = null
                 row[ReservationsTable.paymentPairingToken] = null
                 row[ReservationsTable.locale] = "cs"

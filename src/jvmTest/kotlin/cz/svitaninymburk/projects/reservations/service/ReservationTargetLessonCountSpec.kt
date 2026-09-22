@@ -14,7 +14,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryRe
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
@@ -156,7 +156,7 @@ class ReservationTargetLessonCountSpec {
                 contactName = "Jan",
                 contactEmail = "jan@test.com",
                 contactPhone = "123",
-                paymentType = PaymentInfo.Type.BANK_TRANSFER,
+                paymentType = PaymentType.BANK_TRANSFER,
                 customValues = emptyMap(),
             ),
             userId = null,
@@ -189,7 +189,7 @@ class ReservationTargetLessonCountSpec {
             status = Reservation.Status.CONFIRMED,
             createdAt = Clock.System.now(),
             customValues = emptyMap(),
-            paymentType = PaymentInfo.Type.BANK_TRANSFER,
+            paymentType = PaymentType.BANK_TRANSFER,
             variableSymbol = "2612300001",
         )
         val waitlistedReservation = Reservation(
@@ -202,7 +202,7 @@ class ReservationTargetLessonCountSpec {
             status = Reservation.Status.WAITLISTED,
             createdAt = Clock.System.now(),
             customValues = emptyMap(),
-            paymentType = PaymentInfo.Type.BANK_TRANSFER,
+            paymentType = PaymentType.BANK_TRANSFER,
         )
         reservationRepo.save(confirmedReservation)
         reservationRepo.save(waitlistedReservation)

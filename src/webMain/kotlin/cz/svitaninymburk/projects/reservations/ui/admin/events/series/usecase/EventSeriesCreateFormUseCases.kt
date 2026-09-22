@@ -4,7 +4,7 @@ import cz.svitaninymburk.projects.reservations.event.CreateEventSeriesRequest
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.LessonConfig
 import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
 import kotlinx.datetime.DateTimeUnit
@@ -146,8 +146,8 @@ fun buildCreateEventSeriesRequest(
     endDate = endDate,
     lessonCount = lessonCount,
     allowedPaymentTypes = buildList {
-        if (form.allowBankTransfer) add(PaymentInfo.Type.BANK_TRANSFER)
-        if (form.allowOnSite) add(PaymentInfo.Type.ON_SITE)
+        if (form.allowBankTransfer) add(PaymentType.BANK_TRANSFER)
+        if (form.allowOnSite) add(PaymentType.ON_SITE)
     },
     lessonDayOfWeek = lessonDayOfWeek,
     lessonStartTime = lessonStartTime,

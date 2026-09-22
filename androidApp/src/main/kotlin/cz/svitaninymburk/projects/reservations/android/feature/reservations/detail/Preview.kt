@@ -8,7 +8,7 @@ import cz.svitaninymburk.projects.reservations.android.error.RepositoryError
 import cz.svitaninymburk.projects.reservations.android.ui.theme.SvitaniTheme
 import cz.svitaninymburk.projects.reservations.api.MobilePaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.datetime.LocalDateTime
 import kotlin.uuid.Uuid
@@ -63,7 +63,7 @@ private val previewItemPendingBank = MyReservationListItem(
     seatCount = 2,
     totalPrice = 500.0,
     status = Reservation.Status.PENDING_PAYMENT,
-    paymentType = PaymentInfo.Type.BANK_TRANSFER,
+    paymentType = PaymentType.BANK_TRANSFER,
     variableSymbol = "1234567890",
     isSeries = false,
 )
@@ -75,7 +75,7 @@ private val previewItemConfirmed = MyReservationListItem(
     seatCount = 1,
     totalPrice = 1800.0,
     status = Reservation.Status.CONFIRMED,
-    paymentType = PaymentInfo.Type.BANK_TRANSFER,
+    paymentType = PaymentType.BANK_TRANSFER,
     variableSymbol = "9876543210",
     isSeries = true,
 )
@@ -87,7 +87,7 @@ private val previewItemCancelled = MyReservationListItem(
     seatCount = 1,
     totalPrice = 200.0,
     status = Reservation.Status.CANCELLED,
-    paymentType = PaymentInfo.Type.ON_SITE,
+    paymentType = PaymentType.ON_SITE,
     variableSymbol = null,
     isSeries = false,
 )

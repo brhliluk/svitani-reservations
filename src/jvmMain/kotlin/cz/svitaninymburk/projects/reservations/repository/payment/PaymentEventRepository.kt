@@ -2,7 +2,7 @@ package cz.svitaninymburk.projects.reservations.repository.payment
 
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationsTable
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.util.dbQuery
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.datetime.timestamp
@@ -16,7 +16,7 @@ object PaymentEventsTable : Table("payment_events") {
     val reservationId = reference("reservation_id", ReservationsTable.id, onDelete = ReferenceOption.CASCADE)
     val amount = double("amount")
     val currency = varchar("currency", 10).default("CZK")
-    val type = enumerationByName("type", 30, PaymentInfo.Type::class)
+    val type = enumerationByName("type", 30, PaymentType::class)
     val paymentSource = enumerationByName("source", 30, PaymentEvent.Source::class)
     val processedAt = timestamp("processed_at")
     override val primaryKey = PrimaryKey(id)
@@ -32,7 +32,7 @@ data class NewPaymentEvent(
     val reservationId: Uuid,
     val amount: Double,
     val currency: String = "CZK",
-    val type: PaymentInfo.Type,
+    val type: PaymentType,
     val source: PaymentEvent.Source,
 )
 

@@ -2,13 +2,14 @@ package cz.svitaninymburk.projects.reservations.service
 
 import cz.svitaninymburk.projects.reservations.qr.QrCodeService
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import qrcode.QRCode
 import qrcode.color.Colors
 
 interface QrCodeGeneratorService {
     val accountNumber: String
-    fun generateQrPng(reservation: Reservation): ByteArray
+    fun generateQrPng(reservation: Reservation, target: ReservationTarget?): ByteArray
 }
 
 /**
@@ -21,13 +22,8 @@ class BackendQrCodeGenerator(
 ) : QrCodeGeneratorService {
     override val accountNumber get() = settings.current.bankAccountNumber
 
-    override fun generateQrPng(reservation: Reservation): ByteArray {
-        val spaydContent = qrCodeService.generateSpaydString(
-            accountNumber = accountNumber,
-            amount = reservation.unpaidAmount,
-            vs = reservation.variableSymbol?.filter { it.isDigit() }?.take(10),
-            message = "Rezervace ${reservation.reference.id}"
-        )
+    override fun generateQrPng(reservation: Reservation, target: ReservationTarget?): ByteArray {
+        val spaydContent = qrCodeService.reservationSpayd(reservation, target, accountNumber)
 
         return QRCode.ofSquares()
             .withColor(Colors.BLACK)

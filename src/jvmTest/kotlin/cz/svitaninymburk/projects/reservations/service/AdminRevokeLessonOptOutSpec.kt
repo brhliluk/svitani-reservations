@@ -11,7 +11,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryRe
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
@@ -120,7 +120,7 @@ class AdminRevokeLessonOptOutSpec {
             status = Reservation.Status.CONFIRMED,
             createdAt = Clock.System.now(),
             customValues = emptyMap(),
-            paymentType = PaymentInfo.Type.BANK_TRANSFER,
+            paymentType = PaymentType.BANK_TRANSFER,
         )
     )
 

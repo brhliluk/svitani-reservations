@@ -2,7 +2,7 @@ package cz.svitaninymburk.projects.reservations.service
 
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
@@ -53,7 +53,7 @@ class RefundServiceSpec {
         status = Reservation.Status.CONFIRMED,
         createdAt = Clock.System.now(),
         customValues = emptyMap(),
-        paymentType = PaymentInfo.Type.BANK_TRANSFER,
+        paymentType = PaymentType.BANK_TRANSFER,
     )
 
     @Test

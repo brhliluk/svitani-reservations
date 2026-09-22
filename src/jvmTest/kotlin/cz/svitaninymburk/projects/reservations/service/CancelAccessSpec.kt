@@ -9,7 +9,7 @@ import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSer
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.settings.AppSettings
@@ -97,7 +97,7 @@ class CancelAccessSpec {
                 status = Reservation.Status.CONFIRMED,
                 createdAt = Clock.System.now(),
                 customValues = emptyMap(),
-                paymentType = PaymentInfo.Type.BANK_TRANSFER,
+                paymentType = PaymentType.BANK_TRANSFER,
             )
         )
 

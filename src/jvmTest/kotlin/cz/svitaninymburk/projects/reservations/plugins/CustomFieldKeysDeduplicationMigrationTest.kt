@@ -7,7 +7,7 @@ import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.event.NumberValue
 import cz.svitaninymburk.projects.reservations.event.TextFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TextValue
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionsTable
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstancesTable
@@ -61,7 +61,7 @@ class CustomFieldKeysDeduplicationMigrationTest {
             it[defaultPrice] = 100.0
             it[defaultCapacity] = 10
             it[defaultDurationMs] = 3_600_000L
-            it[allowedPaymentTypes] = listOf(PaymentInfo.Type.BANK_TRANSFER)
+            it[allowedPaymentTypes] = listOf(PaymentType.BANK_TRANSFER)
             it[EventDefinitionsTable.customFields] = customFields
         }
     }
@@ -77,7 +77,7 @@ class CustomFieldKeysDeduplicationMigrationTest {
             it[startDate] = LocalDate(2026, 9, 1)
             it[endDate] = LocalDate(2026, 12, 1)
             it[lessonCount] = 10
-            it[allowedPaymentTypes] = listOf(PaymentInfo.Type.BANK_TRANSFER)
+            it[allowedPaymentTypes] = listOf(PaymentType.BANK_TRANSFER)
             it[EventSeriesTable.customFields] = customFields
         }
     }
@@ -98,7 +98,7 @@ class CustomFieldKeysDeduplicationMigrationTest {
             it[endDateTime] = LocalDateTime(2026, 8, 25, 10, 0)
             it[price] = 50.0
             it[capacity] = 8
-            it[allowedPaymentTypes] = listOf(PaymentInfo.Type.BANK_TRANSFER)
+            it[allowedPaymentTypes] = listOf(PaymentType.BANK_TRANSFER)
             it[EventInstancesTable.customFields] = customFields
         }
     }
@@ -115,7 +115,7 @@ class CustomFieldKeysDeduplicationMigrationTest {
             it[status] = Reservation.Status.CONFIRMED
             it[createdAt] = Clock.System.now()
             it[ReservationsTable.customValues] = customValues
-            it[paymentType] = PaymentInfo.Type.BANK_TRANSFER
+            it[paymentType] = PaymentType.BANK_TRANSFER
         }
     }
 

@@ -31,7 +31,7 @@ import cz.svitaninymburk.projects.reservations.reservation.ReservationRequestDat
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonItem
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonsView
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.user.User
@@ -491,7 +491,7 @@ open class ReservationService(
             contactName = requestData.contactName,
             contactEmail = requestData.contactEmail,
             contactPhone = PhoneNumber.normalize(requestData.contactPhone) ?: requestData.contactPhone,
-            paymentType = if (isFree) PaymentInfo.Type.FREE else requestData.paymentType,
+            paymentType = if (isFree) PaymentType.FREE else requestData.paymentType,
             customValues = requestData.customValues,
             totalPrice = totalPrice,
             status = if (isFree) Reservation.Status.CONFIRMED else Reservation.Status.PENDING_PAYMENT,
@@ -536,7 +536,7 @@ open class ReservationService(
                                 walletDeductedAmount = deductAmount,
                                 paidAmount = deductAmount,
                                 status = if (fullyPaid) Reservation.Status.CONFIRMED else reservation.status,
-                                paymentType = if (fullyPaid) PaymentInfo.Type.FREE else reservation.paymentType,
+                                paymentType = if (fullyPaid) PaymentType.FREE else reservation.paymentType,
                             )
                         )
                         emailDispatcher.dispatch {
@@ -559,8 +559,8 @@ open class ReservationService(
             // zafixuje teď; `savedReservation` je var a wallet ji výš mohl přepsat.
             val confirmed = savedReservation
             emailDispatcher.dispatch {
-                val qrImage: ByteArray? = if (confirmed.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
-                    qrCodeService.generateQrPng(confirmed)
+                val qrImage: ByteArray? = if (confirmed.paymentType == PaymentType.BANK_TRANSFER) {
+                    qrCodeService.generateQrPng(confirmed, target)
                 } else null
 
                 val icalBytes = when (target) {

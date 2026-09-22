@@ -2,7 +2,7 @@ package cz.svitaninymburk.projects.reservations.ui.reservation.detail
 
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.i18n.cs.CsStrings
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -37,7 +37,7 @@ class FreeReservationDetailSpec {
     private fun reservation(
         totalPrice: Double,
         status: Reservation.Status,
-        paymentType: PaymentInfo.Type,
+        paymentType: PaymentType,
     ) = Reservation(
         id = Uuid.random(),
         reference = Reference.Instance(target.id),
@@ -54,7 +54,7 @@ class FreeReservationDetailSpec {
     @Test
     fun freeReservationStuckInPendingPaymentShowsNoPaymentInstructions() {
         val uiState = getReservationUiState(
-            reservation(0.0, Reservation.Status.PENDING_PAYMENT, PaymentInfo.Type.BANK_TRANSFER),
+            reservation(0.0, Reservation.Status.PENDING_PAYMENT, PaymentType.BANK_TRANSFER),
             target,
             CsStrings,
         )
@@ -68,7 +68,7 @@ class FreeReservationDetailSpec {
     @Test
     fun confirmedFreeReservationShowsNoPaymentInstructions() {
         val uiState = getReservationUiState(
-            reservation(0.0, Reservation.Status.CONFIRMED, PaymentInfo.Type.FREE),
+            reservation(0.0, Reservation.Status.CONFIRMED, PaymentType.FREE),
             target,
             CsStrings,
         )
@@ -81,7 +81,7 @@ class FreeReservationDetailSpec {
     @Test
     fun unpaidReservationWithAPriceStillShowsPaymentInstructions() {
         val uiState = getReservationUiState(
-            reservation(150.0, Reservation.Status.PENDING_PAYMENT, PaymentInfo.Type.BANK_TRANSFER),
+            reservation(150.0, Reservation.Status.PENDING_PAYMENT, PaymentType.BANK_TRANSFER),
             target,
             CsStrings,
         )
@@ -93,7 +93,7 @@ class FreeReservationDetailSpec {
     @Test
     fun cancelledFreeReservationStaysCancelled() {
         val uiState = getReservationUiState(
-            reservation(0.0, Reservation.Status.CANCELLED, PaymentInfo.Type.FREE),
+            reservation(0.0, Reservation.Status.CANCELLED, PaymentType.FREE),
             target,
             CsStrings,
         )
@@ -106,7 +106,7 @@ class FreeReservationDetailSpec {
     @Test
     fun waitlistedFreeReservationKeepsWaitlistLabel() {
         val uiState = getReservationUiState(
-            reservation(0.0, Reservation.Status.WAITLISTED, PaymentInfo.Type.FREE),
+            reservation(0.0, Reservation.Status.WAITLISTED, PaymentType.FREE),
             target,
             CsStrings,
         )

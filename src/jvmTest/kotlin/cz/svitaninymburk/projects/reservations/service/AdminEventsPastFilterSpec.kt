@@ -3,7 +3,7 @@ package cz.svitaninymburk.projects.reservations.service
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
@@ -57,7 +57,7 @@ class AdminEventsPastFilterSpec {
 
     private fun definition(id: Uuid, title: String = "Def") = EventDefinition(
         id = id, title = title, description = "", defaultPrice = 100.0, defaultCapacity = 10,
-        defaultDuration = 1.hours, allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+        defaultDuration = 1.hours, allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
         customFields = emptyList(), ownerEmails = emptyList(),
     )
 

@@ -12,7 +12,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySe
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.settings.AppSettings
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import kotlinx.coroutines.runBlocking
@@ -48,12 +48,12 @@ class ReservationVisibilitySpec {
 
     private fun instanceRequest(id: Uuid) = CreateInstanceReservationRequest(
         eventInstanceId = id, contactName = "Jan", contactEmail = "jan@test.com",
-        contactPhone = "123", paymentType = PaymentInfo.Type.BANK_TRANSFER, customValues = emptyMap(),
+        contactPhone = "123", paymentType = PaymentType.BANK_TRANSFER, customValues = emptyMap(),
     )
 
     private fun seriesRequest(id: Uuid) = CreateSeriesReservationRequest(
         eventSeriesId = id, contactName = "Jan", contactEmail = "jan@test.com",
-        contactPhone = "123", paymentType = PaymentInfo.Type.BANK_TRANSFER, customValues = emptyMap(),
+        contactPhone = "123", paymentType = PaymentType.BANK_TRANSFER, customValues = emptyMap(),
     )
 
     @Test

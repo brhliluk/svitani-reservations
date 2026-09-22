@@ -13,7 +13,7 @@ import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSer
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.user.User
@@ -140,7 +140,7 @@ class ClaimByEmailSpec {
             status = status,
             createdAt = Clock.System.now(),
             customValues = emptyMap(),
-            paymentType = PaymentInfo.Type.BANK_TRANSFER,
+            paymentType = PaymentType.BANK_TRANSFER,
         )
     )
 

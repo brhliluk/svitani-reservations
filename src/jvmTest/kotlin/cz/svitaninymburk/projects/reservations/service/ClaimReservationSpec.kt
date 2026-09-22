@@ -7,7 +7,7 @@ import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventIns
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.user.User
@@ -109,7 +109,7 @@ class ClaimReservationSpec {
             status = status,
             createdAt = Clock.System.now(),
             customValues = emptyMap(),
-            paymentType = PaymentInfo.Type.BANK_TRANSFER,
+            paymentType = PaymentType.BANK_TRANSFER,
         )
     )
 

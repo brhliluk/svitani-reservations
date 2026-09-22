@@ -9,7 +9,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryRe
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.settings.AppSettings
@@ -79,7 +79,7 @@ class FreeReservationSpec {
         contactName = "Jan Novak",
         contactEmail = "jan@test.com",
         contactPhone = "+420777111222",
-        paymentType = PaymentInfo.Type.BANK_TRANSFER,
+        paymentType = PaymentType.BANK_TRANSFER,
         customValues = emptyMap(),
     )
 
@@ -97,7 +97,7 @@ class FreeReservationSpec {
         val reservation = result.getOrNull()!!
         assertEquals(0.0, reservation.totalPrice)
         assertEquals(Reservation.Status.CONFIRMED, reservation.status)
-        assertEquals(PaymentInfo.Type.FREE, reservation.paymentType)
+        assertEquals(PaymentType.FREE, reservation.paymentType)
         assertEquals(0.0, reservation.unpaidAmount)
     }
 
@@ -113,7 +113,7 @@ class FreeReservationSpec {
 
         val reservation = result.getOrNull()!!
         assertEquals(Reservation.Status.PENDING_PAYMENT, reservation.status)
-        assertEquals(PaymentInfo.Type.BANK_TRANSFER, reservation.paymentType)
+        assertEquals(PaymentType.BANK_TRANSFER, reservation.paymentType)
     }
 
     @Test
@@ -139,7 +139,7 @@ class FreeReservationSpec {
             status = Reservation.Status.CONFIRMED,
             createdAt = Clock.System.now(),
             customValues = emptyMap(),
-            paymentType = PaymentInfo.Type.FREE,
+            paymentType = PaymentType.FREE,
         )
         val waitlisted = Reservation(
             id = Uuid.random(),
@@ -151,7 +151,7 @@ class FreeReservationSpec {
             status = Reservation.Status.WAITLISTED,
             createdAt = Clock.System.now(),
             customValues = emptyMap(),
-            paymentType = PaymentInfo.Type.FREE,
+            paymentType = PaymentType.FREE,
         )
         reservationRepo.save(confirmed)
         reservationRepo.save(waitlisted)
@@ -162,6 +162,6 @@ class FreeReservationSpec {
 
         val promoted = reservationRepo.findById(waitlisted.id)!!
         assertEquals(Reservation.Status.CONFIRMED, promoted.status)
-        assertEquals(PaymentInfo.Type.FREE, promoted.paymentType)
+        assertEquals(PaymentType.FREE, promoted.paymentType)
     }
 }

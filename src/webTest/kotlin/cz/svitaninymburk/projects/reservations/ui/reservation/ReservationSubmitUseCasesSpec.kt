@@ -8,7 +8,7 @@ import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -62,7 +62,7 @@ private fun formData(asWaitlist: Boolean = false) = ReservationFormData(
     email = "jan@test.cz",
     phone = "+420123456789",
     seats = 1,
-    paymentType = PaymentInfo.Type.BANK_TRANSFER,
+    paymentType = PaymentType.BANK_TRANSFER,
     customValues = emptyMap(),
     asWaitlist = asWaitlist,
 )
@@ -77,7 +77,7 @@ private fun reservation() = Reservation(
     status = Reservation.Status.PENDING_PAYMENT,
     createdAt = Clock.System.now(),
     customValues = emptyMap(),
-    paymentType = PaymentInfo.Type.BANK_TRANSFER,
+    paymentType = PaymentType.BANK_TRANSFER,
 )
 
 // Dispatchers.Unconfined: fake submitter nikde neuspí, takže launch doběhne

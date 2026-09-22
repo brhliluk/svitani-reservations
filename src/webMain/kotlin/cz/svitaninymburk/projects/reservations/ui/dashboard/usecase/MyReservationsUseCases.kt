@@ -1,7 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.dashboard.usecase
 
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AuthenticatedReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import kotlin.uuid.Uuid
@@ -20,7 +20,7 @@ enum class MyReservationPaymentMethod { CASH, TRANSFER }
 
 fun myReservationPaymentMethod(item: MyReservationListItem): MyReservationPaymentMethod? = when {
     item.isFree -> null
-    item.paymentType == PaymentInfo.Type.ON_SITE -> MyReservationPaymentMethod.CASH
+    item.paymentType == PaymentType.ON_SITE -> MyReservationPaymentMethod.CASH
     else -> MyReservationPaymentMethod.TRANSFER
 }
 

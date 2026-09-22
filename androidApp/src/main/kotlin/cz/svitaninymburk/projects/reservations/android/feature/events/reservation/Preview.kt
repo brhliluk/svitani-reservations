@@ -6,7 +6,7 @@ import cz.svitaninymburk.projects.reservations.android.ui.theme.SvitaniTheme
 import cz.svitaninymburk.projects.reservations.event.BooleanFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.PriceModifier
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.wallet.WalletInfo
 import kotlin.uuid.Uuid
@@ -53,7 +53,7 @@ private fun previewState(
     contactEmail = "jan.novak@example.com",
     contactPhone = "+420123456789",
     seatCount = 2,
-    paymentType = PaymentInfo.Type.BANK_TRANSFER,
+    paymentType = PaymentType.BANK_TRANSFER,
     wallet = wallet,
     useWallet = useWallet,
 )

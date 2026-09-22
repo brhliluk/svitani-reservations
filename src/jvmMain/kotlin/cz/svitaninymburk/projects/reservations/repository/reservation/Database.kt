@@ -2,7 +2,7 @@ package cz.svitaninymburk.projects.reservations.repository.reservation
 
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.Reference
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.repository.user.UsersTable
 import cz.svitaninymburk.projects.reservations.util.dbQuery
@@ -42,7 +42,7 @@ object ReservationsTable : Table("reservations") {
 
     val customValues = json<Map<String, CustomFieldValue>>("custom_values", Json)
 
-    val paymentType = enumerationByName("payment_type", 30, PaymentInfo.Type::class)
+    val paymentType = enumerationByName("payment_type", 30, PaymentType::class)
     val variableSymbol = varchar("variable_symbol", 50).nullable()
     val paymentPairingToken = varchar("payment_pairing_token", 255).nullable()
     val locale = varchar("locale", 10).default("cs")

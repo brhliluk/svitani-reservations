@@ -16,7 +16,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryRe
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.settings.AppSettings
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import kotlinx.coroutines.runBlocking
@@ -74,7 +74,7 @@ class AdminAllowMultipleSeatsSpec {
         defaultPrice = 100.0,
         defaultCapacity = 10,
         defaultDuration = 1.hours,
-        allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+        allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
         customFields = emptyList(),
         allowMultipleSeats = allowMultipleSeats,
     )
@@ -109,7 +109,7 @@ class AdminAllowMultipleSeatsSpec {
             title = "Šablona", description = "desc",
             defaultPrice = 100.0, defaultCapacity = 10,
             defaultDuration = 1.hours,
-            allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+            allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
             customFields = emptyList(),
             propagateToChildren = propagate,
             allowMultipleSeats = allowMultipleSeats,
@@ -134,7 +134,7 @@ class AdminAllowMultipleSeatsSpec {
                 startDateTime = LocalDateTime(2099, 6, 1, 10, 0),
                 title = "Akce", description = "desc",
                 price = 100.0, capacity = 10,
-                allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
                 customFields = emptyList(),
                 allowMultipleSeats = false,
             )
@@ -158,7 +158,7 @@ class AdminAllowMultipleSeatsSpec {
                 price = 100.0, capacity = 10,
                 startDate = LocalDate(2099, 6, 1), endDate = LocalDate(2099, 7, 1),
                 lessonCount = 4,
-                allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
                 customFields = emptyList(),
                 allowMultipleSeats = false,
             )
@@ -183,7 +183,7 @@ class AdminAllowMultipleSeatsSpec {
                 title = "Akce", description = "desc",
                 startDateTime = event.startDateTime, endDateTime = event.endDateTime,
                 price = 100.0, capacity = 10,
-                allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
                 customFields = emptyList(),
                 allowMultipleSeats = false,
             )
@@ -207,7 +207,7 @@ class AdminAllowMultipleSeatsSpec {
             UpdateEventSeriesRequest(
                 title = "Kurz", description = "desc",
                 price = 100.0, capacity = 10,
-                allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
                 customFields = emptyList(),
                 allowMultipleSeats = false,
             )

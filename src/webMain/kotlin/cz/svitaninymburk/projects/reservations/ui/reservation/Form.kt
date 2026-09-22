@@ -6,7 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.ui.components.CancellationPolicyBox
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.formatPriceHours
@@ -222,7 +222,7 @@ fun IComponent.ReservationModal(
                                     onChange { event ->
                                         val selectedValue = (event.target as? HTMLSelectElement)?.value
                                         model.setPaymentType(
-                                            PaymentInfo.Type.valueOf(selectedValue ?: PaymentInfo.Type.BANK_TRANSFER.name)
+                                            PaymentType.valueOf(selectedValue ?: PaymentType.BANK_TRANSFER.name)
                                         )
                                     }
                                 }

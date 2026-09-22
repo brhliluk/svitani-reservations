@@ -3,7 +3,7 @@ package cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.UpdateEventSeriesRequest
 import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -78,8 +78,8 @@ fun buildUpdateEventSeriesRequest(
     capacity = form.capacity,
     waitlistCapacity = form.waitlistCapacity,
     allowedPaymentTypes = buildList {
-        if (form.allowBankTransfer) add(PaymentInfo.Type.BANK_TRANSFER)
-        if (form.allowOnSite) add(PaymentInfo.Type.ON_SITE)
+        if (form.allowBankTransfer) add(PaymentType.BANK_TRANSFER)
+        if (form.allowOnSite) add(PaymentType.ON_SITE)
     },
     customFields = form.customFields,
     ownerEmails = parseOwnerEmails(form.ownerEmails),

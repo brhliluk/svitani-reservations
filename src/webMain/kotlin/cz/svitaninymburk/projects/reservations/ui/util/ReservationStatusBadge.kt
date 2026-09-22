@@ -1,6 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.util
 
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.isFreePrice
 
@@ -22,14 +22,14 @@ enum class ReservationStatusBadge { CANCELLED, WAITLISTED, FREE, PAID, ON_SITE, 
  */
 fun reservationStatusBadge(
     status: Reservation.Status,
-    paymentType: PaymentInfo.Type,
+    paymentType: PaymentType,
     totalPrice: Double,
 ): ReservationStatusBadge = when {
     status == Reservation.Status.CANCELLED || status == Reservation.Status.REJECTED -> ReservationStatusBadge.CANCELLED
     status == Reservation.Status.WAITLISTED -> ReservationStatusBadge.WAITLISTED
     isFreePrice(totalPrice) -> ReservationStatusBadge.FREE
     status == Reservation.Status.CONFIRMED -> ReservationStatusBadge.PAID
-    paymentType == PaymentInfo.Type.ON_SITE -> ReservationStatusBadge.ON_SITE
+    paymentType == PaymentType.ON_SITE -> ReservationStatusBadge.ON_SITE
     else -> ReservationStatusBadge.WAITING
 }
 

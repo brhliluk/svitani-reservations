@@ -13,8 +13,9 @@ import cz.svitaninymburk.projects.reservations.repository.payment.PaymentEventRe
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import io.ktor.client.*
 import io.ktor.client.call.body
 import io.ktor.client.request.*
@@ -26,6 +27,7 @@ import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
+import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.util.AuditSubject
 import cz.svitaninymburk.projects.reservations.util.withAuditSubject
 import io.ktor.util.logging.KtorSimpleLogger
@@ -43,6 +45,7 @@ class PaymentPairingService(
     private val settings: AppSettingsProvider,
     private val paymentEventRepository: PaymentEventRepository,
     private val eventInstanceRepository: EventInstanceRepository,
+    private val eventSeriesRepository: EventSeriesRepository,
     private val audit: AuditService = AuditService(InMemoryAuditRepository()),
 ) {
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -63,6 +66,12 @@ class PaymentPairingService(
             reservationId = reservation.id,
             label = reservation.contactName,
         )
+    }
+
+    /** Akce nebo kurz rezervace — QR kód z ní bere název do zprávy pro příjemce. */
+    private suspend fun targetFor(reservation: Reservation): ReservationTarget? = when (val ref = reservation.reference) {
+        is Reference.Instance -> eventInstanceRepository.get(ref.id)?.let { ReservationTarget.Instance(it) }
+        is Reference.Series -> eventSeriesRepository.get(ref.id)?.let { ReservationTarget.Series(it) }
     }
     suspend fun checkAndPairPayments(): Either<PaymentPairingError.CheckAndPairPayments, Unit> = either {
         logger.info("🔄 Spouštím kontrolu plateb Fio banky...")
@@ -125,7 +134,7 @@ class PaymentPairingService(
                     NewPaymentEvent(
                         reservationId = reservation.id,
                         amount = transaction.amount,
-                        type = PaymentInfo.Type.BANK_TRANSFER,
+                        type = PaymentType.BANK_TRANSFER,
                         source = PaymentEvent.Source.AUTO_FIO,
                     )
                 )
@@ -146,7 +155,7 @@ class PaymentPairingService(
                 updatedReservation,
                 transaction,
                 settings.current.bankAccountNumber,
-                qrCodeService.generateQrPng(updatedReservation),
+                qrCodeService.generateQrPng(updatedReservation, targetFor(updatedReservation)),
             )
             return
         }
@@ -163,7 +172,7 @@ class PaymentPairingService(
                 NewPaymentEvent(
                     reservationId = reservation.id,
                     amount = transaction.amount,
-                    type = PaymentInfo.Type.BANK_TRANSFER,
+                    type = PaymentType.BANK_TRANSFER,
                     source = PaymentEvent.Source.AUTO_FIO,
                 )
             )

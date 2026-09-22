@@ -137,7 +137,7 @@ fun Route.mobileSecuredRoutes() {
                         val accountNumber = System.getenv("BANK_ACCOUNT_NUMBER") ?: ""
                         val amount = detail.reservation.unpaidAmount
                         val vs = detail.reservation.variableSymbol
-                        val spayd = qrCodeService.generateSpaydString(accountNumber, amount, vs, null)
+                        val spayd = qrCodeService.reservationSpayd(detail.reservation, detail.target, accountNumber)
                         val iban = CzechIbanGenerator.toIban(accountNumber)
                         call.respond(HttpStatusCode.OK, MobilePaymentInfo(spayd, amount, vs, iban, accountNumber))
                     },

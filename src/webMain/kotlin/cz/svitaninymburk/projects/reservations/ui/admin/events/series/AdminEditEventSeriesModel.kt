@@ -8,7 +8,7 @@ import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.EventSeries
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.EventSeriesEditFormData
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.EventSeriesEditMutations
@@ -80,8 +80,8 @@ class AdminEditEventSeriesModel(
                     capacity = s.capacity
                     waitlistCapacity = s.waitlistCapacity
                     occupiedSpots = s.occupiedSpots
-                    allowBankTransfer = s.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
-                    allowOnSite = s.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
+                    allowBankTransfer = s.allowedPaymentTypes.contains(PaymentType.BANK_TRANSFER)
+                    allowOnSite = s.allowedPaymentTypes.contains(PaymentType.ON_SITE)
                     ownerEmails = s.ownerEmails.ifEmpty { listOf("") }
                     showAttendeeCount = s.showAttendeeCount
                     allowMultipleSeats = s.allowMultipleSeats

@@ -1,7 +1,7 @@
 package cz.svitaninymburk.projects.reservations.repository.event
 
 import cz.svitaninymburk.projects.reservations.event.*
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.util.dbQuery
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDateTime
@@ -75,7 +75,7 @@ object EventDefinitionsTable : Table("event_definitions") {
     val defaultWaitlistCapacity = integer("default_waitlist_capacity").default(10)
     val defaultDurationMs = long("default_duration_ms")
 
-    val allowedPaymentTypes = json<List<PaymentInfo.Type>>("allowed_payment_types", Json)
+    val allowedPaymentTypes = json<List<PaymentType>>("allowed_payment_types", Json)
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
     val showAttendeeCount = bool("show_attendee_count").default(true)
     val allowMultipleSeats = bool("allow_multiple_seats").default(true)
@@ -119,7 +119,7 @@ object EventSeriesTable : Table("event_series") {
     val endDate = date("end_date")
     val lessonCount = integer("lesson_count")
 
-    val allowedPaymentTypes = json<List<PaymentInfo.Type>>("allowed_payment_types", Json)
+    val allowedPaymentTypes = json<List<PaymentType>>("allowed_payment_types", Json)
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
     val lessonDayOfWeek = integer("lesson_day_of_week").nullable()
     val lessonStartTime = varchar("lesson_start_time", 8).nullable()
@@ -190,7 +190,7 @@ object EventInstancesTable : Table("event_instances") {
     val isCancelled = bool("is_cancelled").default(false)
     val isPublished = bool("is_published").default(false)
 
-    val allowedPaymentTypes = json<List<PaymentInfo.Type>>("allowed_payment_types", Json)
+    val allowedPaymentTypes = json<List<PaymentType>>("allowed_payment_types", Json)
     val customFields = json<List<CustomFieldDefinition>>("custom_fields", Json)
     val isDropIn = bool("is_drop_in").default(false)
     val showAttendeeCount = bool("show_attendee_count").default(true)

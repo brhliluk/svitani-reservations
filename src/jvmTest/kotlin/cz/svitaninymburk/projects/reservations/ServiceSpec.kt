@@ -8,9 +8,10 @@ import cz.svitaninymburk.projects.reservations.event.*
 import cz.svitaninymburk.projects.reservations.repository.event.*
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.service.AdminDashboardService
 import cz.svitaninymburk.projects.reservations.service.SeriesScheduleRefresher
@@ -119,7 +120,7 @@ class AdminEditDeleteSpec {
         defaultPrice = 100.0,
         defaultCapacity = 10,
         defaultDuration = 1.hours,
-        allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+        allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
         customFields = emptyList(),
     )
 
@@ -158,7 +159,7 @@ class AdminEditDeleteSpec {
         status = Reservation.Status.CONFIRMED,
         createdAt = Clock.System.now(),
         customValues = emptyMap(),
-        paymentType = PaymentInfo.Type.BANK_TRANSFER,
+        paymentType = PaymentType.BANK_TRANSFER,
     )
 
     // --- get-for-edit ---
@@ -245,7 +246,7 @@ class AdminEditDeleteSpec {
             startDateTime = LocalDateTime(2026, 7, 1, 10, 0),
             endDateTime = LocalDateTime(2026, 7, 1, 11, 0),
             price = 200.0, capacity = 5,
-            allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+            allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
             customFields = emptyList(),
         )
         val result = makeService().updateEventInstance(Uuid.random(), request)
@@ -264,7 +265,7 @@ class AdminEditDeleteSpec {
             startDateTime = LocalDateTime(2026, 7, 1, 10, 0),
             endDateTime = LocalDateTime(2026, 7, 1, 12, 0),
             price = 200.0, capacity = 5,
-            allowedPaymentTypes = listOf(PaymentInfo.Type.ON_SITE),
+            allowedPaymentTypes = listOf(PaymentType.ON_SITE),
             customFields = emptyList(),
         )
         val result = makeService(instanceRepo = instanceRepo).updateEventInstance(instance.id, request)
@@ -284,7 +285,7 @@ class AdminEditDeleteSpec {
     fun `updateEventSeries returns Left when series not found`() = runBlocking {
         val request = UpdateEventSeriesRequest(
             title = "X", description = "d", price = 100.0, capacity = 5,
-            allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+            allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
             customFields = emptyList(),
         )
         val result = makeService().updateEventSeries(Uuid.random(), request)
@@ -300,7 +301,7 @@ class AdminEditDeleteSpec {
 
         val request = UpdateEventSeriesRequest(
             title = "New Title", description = "new", price = 600.0, capacity = 15,
-            allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+            allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
             customFields = emptyList(),
         )
         val result = makeService(seriesRepo = seriesRepo).updateEventSeries(series.id, request)
@@ -326,7 +327,7 @@ class AdminEditDeleteSpec {
 
         val request = UpdateEventSeriesRequest(
             title = "New Title", description = "new", price = 600.0, capacity = 15,
-            allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+            allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
             customFields = emptyList(),
         )
         val result = makeService(seriesRepo = seriesRepo).updateEventSeries(series.id, request)
@@ -456,7 +457,7 @@ class AdminEditDeleteSpec {
                 startDateTime = LocalDateTime(2026, 9, 1, 10, 0),
                 endDateTime = LocalDateTime(2026, 9, 1, 11, 0),
                 price = second.price, capacity = second.capacity,
-                allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
                 customFields = emptyList(),
             )
         )
@@ -675,7 +676,7 @@ class AdminEditDeleteSpec {
             UpdateEventSeriesRequest(
                 title = series.title, description = series.description,
                 price = series.price, capacity = series.capacity,
-                allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
                 customFields = emptyList(),
                 lessonPrice = 300.0,
             )
@@ -706,7 +707,7 @@ class AdminEditDeleteSpec {
             UpdateEventSeriesRequest(
                 title = series.title, description = series.description,
                 price = series.price, capacity = series.capacity,
-                allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
                 customFields = emptyList(),
                 lessonPrice = null,
             )
@@ -733,7 +734,7 @@ class AdminEditDeleteSpec {
             UpdateEventSeriesRequest(
                 title = "Nový název", description = series.description,
                 price = series.price, capacity = series.capacity,
-                allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
                 customFields = emptyList(),
                 lessonPrice = 250.0,
             )
@@ -788,7 +789,7 @@ class AdminEditDeleteSpec {
                     title = "T", description = "d",
                     defaultPrice = 999.0, defaultCapacity = 10,
                     defaultDuration = 1.hours,
-                    allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                    allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
                     customFields = emptyList(),
                     propagateToChildren = true,
                 ),
@@ -818,7 +819,7 @@ class AdminEditDeleteSpec {
             title = "Propagated Title", description = "new desc",
             defaultPrice = 200.0, defaultCapacity = 20,
             defaultDuration = 2.hours,
-            allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+            allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
             customFields = emptyList(),
             propagateToChildren = true,
         )
@@ -844,7 +845,7 @@ class AdminEditDeleteSpec {
             title = "New Template Title", description = "d",
             defaultPrice = 100.0, defaultCapacity = 10,
             defaultDuration = 1.hours,
-            allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+            allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
             customFields = emptyList(),
             propagateToChildren = false,
         )
@@ -1487,7 +1488,7 @@ class PaymentEventSpec {
         status = Reservation.Status.PENDING_PAYMENT,
         createdAt = Clock.System.now(),
         customValues = emptyMap(),
-        paymentType = PaymentInfo.Type.ON_SITE,
+        paymentType = PaymentType.ON_SITE,
     )
 
     @Test
@@ -1521,14 +1522,14 @@ class PaymentEventSpec {
         assertEquals(reservation.id.toString(), inserted[0].reservationId)
         assertEquals(300.0, inserted[0].amount)
         assertEquals(PaymentEvent.Source.MANUAL_ADMIN, inserted[0].source)
-        assertEquals(PaymentInfo.Type.ON_SITE, inserted[0].type)
+        assertEquals(PaymentType.ON_SITE, inserted[0].type)
     }
 
     @Test
     fun `getPaymentEvents returns paginated results`() = runBlocking {
         val now = Clock.System.now()
-        paymentRepo.seed(PaymentEvent("id1", Uuid.random().toString(), "Alice", 100.0, "CZK", PaymentInfo.Type.BANK_TRANSFER, PaymentEvent.Source.AUTO_FIO,     now))
-        paymentRepo.seed(PaymentEvent("id2", Uuid.random().toString(), "Bob",   200.0, "CZK", PaymentInfo.Type.ON_SITE,       PaymentEvent.Source.MANUAL_ADMIN, now))
+        paymentRepo.seed(PaymentEvent("id1", Uuid.random().toString(), "Alice", 100.0, "CZK", PaymentType.BANK_TRANSFER, PaymentEvent.Source.AUTO_FIO,     now))
+        paymentRepo.seed(PaymentEvent("id2", Uuid.random().toString(), "Bob",   200.0, "CZK", PaymentType.ON_SITE,       PaymentEvent.Source.MANUAL_ADMIN, now))
 
         val seriesRepo = InMemoryEventSeriesRepository()
         val instanceRepo = InMemoryEventInstanceRepository()
@@ -1562,7 +1563,7 @@ class PaymentEventSpec {
     fun `getPaymentEvents respects pagination`() = runBlocking {
         val now = Clock.System.now()
         repeat(5) { i ->
-            paymentRepo.seed(PaymentEvent("id$i", Uuid.random().toString(), "User$i", 100.0 * i, "CZK", PaymentInfo.Type.BANK_TRANSFER, PaymentEvent.Source.AUTO_FIO, now))
+            paymentRepo.seed(PaymentEvent("id$i", Uuid.random().toString(), "User$i", 100.0 * i, "CZK", PaymentType.BANK_TRANSFER, PaymentEvent.Source.AUTO_FIO, now))
         }
 
         val seriesRepo = InMemoryEventSeriesRepository()
@@ -1622,7 +1623,7 @@ class PaginationSpec {
         defaultPrice = 100.0,
         defaultCapacity = 10,
         defaultDuration = kotlin.time.Duration.parse("1h"),
-        allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+        allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
         customFields = emptyList(),
         ownerEmails = emptyList(),
     )
@@ -1645,7 +1646,7 @@ class PaginationSpec {
         status = Reservation.Status.PENDING_PAYMENT,
         createdAt = kotlin.time.Clock.System.now(),
         customValues = emptyMap(),
-        paymentType = PaymentInfo.Type.BANK_TRANSFER,
+        paymentType = PaymentType.BANK_TRANSFER,
         variableSymbol = vs,
         paymentPairingToken = null,
         locale = "cs",
@@ -1736,7 +1737,7 @@ class PaginationSpec {
                     endDateTime = LocalDateTime(2026, 1, i + 1, 11, 0),
                     price = 100.0,
                     capacity = 10,
-                    allowedPaymentTypes = listOf(PaymentInfo.Type.BANK_TRANSFER),
+                    allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
                     customFields = emptyList(),
                     ownerEmails = emptyList(),
                 )
@@ -1787,7 +1788,7 @@ class CapturingLectorEmailService : LectorEmailService {
 /** Simple stub implementing QrCodeGeneratorService — no AppSettingsProvider required. */
 class StubQrCodeGenerator : QrCodeGeneratorService {
     override val accountNumber: String = "2003487968/2010"
-    override fun generateQrPng(reservation: Reservation): ByteArray = ByteArray(0)
+    override fun generateQrPng(reservation: Reservation, target: ReservationTarget?): ByteArray = ByteArray(0)
 }
 
 // ---------------------------------------------------------------------------
@@ -1840,7 +1841,7 @@ class ResolveOwnerEmailsTest {
             defaultPrice = 100.0,
             defaultCapacity = 10,
             defaultDuration = 1.hours,
-            allowedPaymentTypes = listOf(PaymentInfo.Type.ON_SITE),
+            allowedPaymentTypes = listOf(PaymentType.ON_SITE),
             customFields = emptyList(),
             ownerEmails = listOf("definition@example.com"),
         )
@@ -1871,7 +1872,7 @@ class ResolveOwnerEmailsTest {
             price = 100.0,
             capacity = 10,
             ownerEmails = listOf("instance@example.com"),
-            allowedPaymentTypes = listOf(PaymentInfo.Type.ON_SITE),
+            allowedPaymentTypes = listOf(PaymentType.ON_SITE),
             isPublished = true,
         )
         instanceRepo.create(instance)
@@ -1884,7 +1885,7 @@ class ResolveOwnerEmailsTest {
             contactName = "Jan Novak",
             contactEmail = "jan@test.com",
             contactPhone = "",
-            paymentType = PaymentInfo.Type.ON_SITE,
+            paymentType = PaymentType.ON_SITE,
             customValues = emptyMap(),
             locale = "cs",
         )
@@ -1914,7 +1915,7 @@ class ResolveOwnerEmailsTest {
             defaultPrice = 100.0,
             defaultCapacity = 10,
             defaultDuration = 1.hours,
-            allowedPaymentTypes = listOf(PaymentInfo.Type.ON_SITE),
+            allowedPaymentTypes = listOf(PaymentType.ON_SITE),
             customFields = emptyList(),
             ownerEmails = listOf("shared@example.com"),
         )
@@ -1931,7 +1932,7 @@ class ResolveOwnerEmailsTest {
             price = 100.0,
             capacity = 10,
             ownerEmails = listOf("shared@example.com"),
-            allowedPaymentTypes = listOf(PaymentInfo.Type.ON_SITE),
+            allowedPaymentTypes = listOf(PaymentType.ON_SITE),
             isPublished = true,
         )
         instanceRepo.create(instance)
@@ -1944,7 +1945,7 @@ class ResolveOwnerEmailsTest {
             contactName = "Jana Novakova",
             contactEmail = "jana@test.com",
             contactPhone = "",
-            paymentType = PaymentInfo.Type.ON_SITE,
+            paymentType = PaymentType.ON_SITE,
             customValues = emptyMap(),
             locale = "cs",
         )

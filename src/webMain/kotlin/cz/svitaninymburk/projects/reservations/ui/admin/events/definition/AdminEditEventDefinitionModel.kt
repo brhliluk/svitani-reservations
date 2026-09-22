@@ -9,7 +9,7 @@ import cz.svitaninymburk.projects.reservations.RpcSerializersModules
 import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.events.definition.usecase.DefinitionFormValidationError
 import cz.svitaninymburk.projects.reservations.ui.admin.events.definition.usecase.EventDefinitionFormData
@@ -69,8 +69,8 @@ class AdminEditEventDefinitionModel(
                     capacity = def.defaultCapacity
                     durationHours = def.defaultDuration.inWholeHours.toInt()
                     durationMinutes = (def.defaultDuration.inWholeMinutes % 60).toInt()
-                    allowBankTransfer = def.allowedPaymentTypes.contains(PaymentInfo.Type.BANK_TRANSFER)
-                    allowOnSite = def.allowedPaymentTypes.contains(PaymentInfo.Type.ON_SITE)
+                    allowBankTransfer = def.allowedPaymentTypes.contains(PaymentType.BANK_TRANSFER)
+                    allowOnSite = def.allowedPaymentTypes.contains(PaymentType.ON_SITE)
                     customFields = def.customFields
                     ownerEmails = def.ownerEmails.ifEmpty { listOf("") }
                     showAttendeeCount = def.showAttendeeCount

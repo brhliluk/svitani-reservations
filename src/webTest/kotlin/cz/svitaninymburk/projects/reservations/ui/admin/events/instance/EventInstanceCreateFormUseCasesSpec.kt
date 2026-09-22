@@ -1,7 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.instance
 
 import cz.svitaninymburk.projects.reservations.event.RecurrenceType
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.EventInstanceCreateFormData
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.buildCreateEventInstanceRequest
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.instanceRecurrencePreviewDates
@@ -66,7 +66,7 @@ class EventInstanceCreateFormUseCasesSpec {
         assertEquals(listOf("a@x.cz"), request.ownerEmails)
         assertEquals(1500.0, request.price)
         assertEquals(1.hours + 30.minutes, request.duration)
-        assertEquals(listOf(PaymentInfo.Type.BANK_TRANSFER), request.allowedPaymentTypes)
+        assertEquals(listOf(PaymentType.BANK_TRANSFER), request.allowedPaymentTypes)
         assertEquals(2.hours, request.reservationDeadline)
         assertEquals(true, request.isPublished)
     }

@@ -3,7 +3,7 @@ package cz.svitaninymburk.projects.reservations.service
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -99,7 +99,7 @@ class WaitlistPromoter(
             // viz stejné rozhodnutí v createReservationFlow.
             val promoted = candidate.copy(
                 status = if (candidate.isFree) Reservation.Status.CONFIRMED else Reservation.Status.PENDING_PAYMENT,
-                paymentType = if (candidate.isFree) PaymentInfo.Type.FREE else candidate.paymentType,
+                paymentType = if (candidate.isFree) PaymentType.FREE else candidate.paymentType,
                 variableSymbol = variableSymbol,
             )
             reservationRepository.save(promoted)
@@ -122,8 +122,8 @@ class WaitlistPromoter(
 
                 withAuditSubject(subject) {
                     emailDispatcher.dispatch {
-                        val qrImage: ByteArray? = if (promoted.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
-                            qrCodeService.generateQrPng(promoted)
+                        val qrImage: ByteArray? = if (promoted.paymentType == PaymentType.BANK_TRANSFER) {
+                            qrCodeService.generateQrPng(promoted, target)
                         } else null
 
                         val icalBytes = when (target) {

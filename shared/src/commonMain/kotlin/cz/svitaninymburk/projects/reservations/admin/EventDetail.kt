@@ -2,7 +2,7 @@ package cz.svitaninymburk.projects.reservations.admin
 
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
@@ -40,7 +40,7 @@ data class AdminParticipantRow(
     val seatCount: Int,
     val totalPrice: Double,
     val status: Reservation.Status,
-    val paymentType: PaymentInfo.Type,
+    val paymentType: PaymentType,
     val createdAt: Instant,
     val customValues: Map<String, CustomFieldValue>,
     /**

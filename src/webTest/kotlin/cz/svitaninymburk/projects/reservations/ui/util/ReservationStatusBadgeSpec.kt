@@ -1,6 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.util
 
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -14,7 +14,7 @@ class ReservationStatusBadgeSpec {
 
     private fun badge(
         status: Reservation.Status,
-        paymentType: PaymentInfo.Type = PaymentInfo.Type.BANK_TRANSFER,
+        paymentType: PaymentType = PaymentType.BANK_TRANSFER,
         totalPrice: Double = 150.0,
     ) = reservationStatusBadge(status, paymentType, totalPrice)
 
@@ -30,7 +30,7 @@ class ReservationStatusBadgeSpec {
     fun waitlistedForAFreeEventStaysWaitlisted() {
         assertEquals(
             ReservationStatusBadge.WAITLISTED,
-            badge(Reservation.Status.WAITLISTED, PaymentInfo.Type.FREE, totalPrice = 0.0),
+            badge(Reservation.Status.WAITLISTED, PaymentType.FREE, totalPrice = 0.0),
         )
     }
 
@@ -38,7 +38,7 @@ class ReservationStatusBadgeSpec {
     fun cancelledWinsOverEverything() {
         assertEquals(
             ReservationStatusBadge.CANCELLED,
-            badge(Reservation.Status.CANCELLED, PaymentInfo.Type.FREE, totalPrice = 0.0),
+            badge(Reservation.Status.CANCELLED, PaymentType.FREE, totalPrice = 0.0),
         )
     }
 
@@ -46,7 +46,7 @@ class ReservationStatusBadgeSpec {
     fun confirmedFreeReservationIsFreeNotPaid() {
         assertEquals(
             ReservationStatusBadge.FREE,
-            badge(Reservation.Status.CONFIRMED, PaymentInfo.Type.FREE, totalPrice = 0.0),
+            badge(Reservation.Status.CONFIRMED, PaymentType.FREE, totalPrice = 0.0),
         )
     }
 
@@ -54,7 +54,7 @@ class ReservationStatusBadgeSpec {
     fun pendingFreeReservationIsFreeNotWaiting() {
         assertEquals(
             ReservationStatusBadge.FREE,
-            badge(Reservation.Status.PENDING_PAYMENT, PaymentInfo.Type.BANK_TRANSFER, totalPrice = 0.0),
+            badge(Reservation.Status.PENDING_PAYMENT, PaymentType.BANK_TRANSFER, totalPrice = 0.0),
         )
     }
 
@@ -70,7 +70,7 @@ class ReservationStatusBadgeSpec {
     fun unpaidOnSiteReservationIsOnSite() {
         assertEquals(
             ReservationStatusBadge.ON_SITE,
-            badge(Reservation.Status.PENDING_PAYMENT, PaymentInfo.Type.ON_SITE),
+            badge(Reservation.Status.PENDING_PAYMENT, PaymentType.ON_SITE),
         )
     }
 
@@ -78,7 +78,7 @@ class ReservationStatusBadgeSpec {
     fun unpaidTransferReservationIsWaiting() {
         assertEquals(
             ReservationStatusBadge.WAITING,
-            badge(Reservation.Status.PENDING_PAYMENT, PaymentInfo.Type.BANK_TRANSFER),
+            badge(Reservation.Status.PENDING_PAYMENT, PaymentType.BANK_TRANSFER),
         )
     }
 
@@ -95,13 +95,13 @@ class ReservationStatusBadgeSpec {
         // markReservationAsPaid vyžaduje PENDING_PAYMENT (service/Admin.kt), takže
         // u náhradníka, zrušené ani u akce zdarma nemá tlačítko co dělat.
         assertEquals(true, canBeMarkedAsPaid(badge(Reservation.Status.PENDING_PAYMENT)))
-        assertEquals(true, canBeMarkedAsPaid(badge(Reservation.Status.PENDING_PAYMENT, PaymentInfo.Type.ON_SITE)))
+        assertEquals(true, canBeMarkedAsPaid(badge(Reservation.Status.PENDING_PAYMENT, PaymentType.ON_SITE)))
         assertEquals(false, canBeMarkedAsPaid(badge(Reservation.Status.WAITLISTED)))
         assertEquals(false, canBeMarkedAsPaid(badge(Reservation.Status.CANCELLED)))
         assertEquals(false, canBeMarkedAsPaid(badge(Reservation.Status.CONFIRMED)))
         assertEquals(
             false,
-            canBeMarkedAsPaid(badge(Reservation.Status.PENDING_PAYMENT, PaymentInfo.Type.FREE, totalPrice = 0.0)),
+            canBeMarkedAsPaid(badge(Reservation.Status.PENDING_PAYMENT, PaymentType.FREE, totalPrice = 0.0)),
         )
     }
 }

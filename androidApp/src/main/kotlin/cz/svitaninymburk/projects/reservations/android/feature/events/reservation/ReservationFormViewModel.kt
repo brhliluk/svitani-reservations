@@ -20,7 +20,7 @@ import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -41,7 +41,7 @@ data class ReservationFormUiState(
     val contactEmail: String = "",
     val contactPhone: String = "",
     val seatCount: Int = 1,
-    val paymentType: PaymentInfo.Type? = null,
+    val paymentType: PaymentType? = null,
     val customValues: Map<String, CustomFieldValue> = emptyMap(),
     val wallet: WalletInfo? = null,
     val useWallet: Boolean = false,
@@ -150,7 +150,7 @@ class ReservationFormViewModel(
     fun setContactName(value: String) = uiState.update { it.copy(contactName = value) }
     fun setContactEmail(value: String) = uiState.update { it.copy(contactEmail = value) }
     fun setContactPhone(value: String) = uiState.update { it.copy(contactPhone = value) }
-    fun setPaymentType(value: PaymentInfo.Type) = uiState.update { it.copy(paymentType = value) }
+    fun setPaymentType(value: PaymentType) = uiState.update { it.copy(paymentType = value) }
     fun setUseWallet(value: Boolean) = uiState.update { it.copy(useWallet = value) }
 
     fun setSeatCount(value: Int) = uiState.update {
@@ -170,7 +170,7 @@ class ReservationFormViewModel(
 
         // Zrcadlí web (Form.kt): kredit pokrývá vše (vč. ceny 0) → FREE
         val effectivePaymentType =
-            if (state.amountToPay == 0.0) PaymentInfo.Type.FREE else state.paymentType!!
+            if (state.amountToPay == 0.0) PaymentType.FREE else state.paymentType!!
         val walletCode = if (state.useWallet) state.wallet?.code else null
 
         viewModelScope.launch {

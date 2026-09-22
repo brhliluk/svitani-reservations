@@ -5,7 +5,7 @@ import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.user.User
 import kotlinx.serialization.Serializable
@@ -77,7 +77,7 @@ data class AdminReservationListItem(
     val totalPrice: Double,
     val variableSymbol: String?,
     val status: Reservation.Status,
-    val paymentType: PaymentInfo.Type,
+    val paymentType: PaymentType,
     val walletDeductedAmount: Double = 0.0,
     val createdAt: Instant,
     val customFields: List<CustomFieldDefinition>,

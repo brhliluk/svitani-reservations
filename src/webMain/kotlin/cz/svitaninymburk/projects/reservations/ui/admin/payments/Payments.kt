@@ -7,7 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.ui.admin.payments.usecase.PAYMENTS_PAGE_SIZE
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.pageCount
@@ -82,17 +82,17 @@ fun IComponent.AdminPaymentsScreen() {
                                                 }
                                                 td {
                                                     when (event.type) {
-                                                        PaymentInfo.Type.BANK_TRANSFER -> {
+                                                        PaymentType.BANK_TRANSFER -> {
                                                             div(className = "badge badge-info") {
                                                                 +currentStrings.paymentTypeBankTransfer
                                                             }
                                                         }
-                                                        PaymentInfo.Type.ON_SITE -> {
+                                                        PaymentType.ON_SITE -> {
                                                             div(className = "badge badge-success") {
                                                                 +currentStrings.paymentTypeCash
                                                             }
                                                         }
-                                                        PaymentInfo.Type.FREE -> {
+                                                        PaymentType.FREE -> {
                                                             div(className = "badge badge-ghost") {
                                                                 +currentStrings.paymentTypeFree
                                                             }

@@ -1,6 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.series
 
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.EventSeriesCreateFormData
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.SeriesCreateValidation
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.SeriesCreateValidationError
@@ -163,7 +163,7 @@ class EventSeriesCreateFormUseCasesSpec {
         assertEquals(listOf("a@x.cz"), request.ownerEmails)
         assertEquals(1500.0, request.price)
         assertEquals(3, request.lessonCount)
-        assertEquals(listOf(PaymentInfo.Type.BANK_TRANSFER), request.allowedPaymentTypes)
+        assertEquals(listOf(PaymentType.BANK_TRANSFER), request.allowedPaymentTypes)
         assertEquals(true, request.isPublished)
     }
 

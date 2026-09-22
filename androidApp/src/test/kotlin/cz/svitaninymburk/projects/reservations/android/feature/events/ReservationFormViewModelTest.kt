@@ -20,7 +20,7 @@ import cz.svitaninymburk.projects.reservations.event.TextValue
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
@@ -71,7 +71,7 @@ class ReservationFormViewModelTest {
         capacity: Int = 10,
         occupiedSpots: Int = 7,
         customFields: List<cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition> = emptyList(),
-        allowedPaymentTypes: List<PaymentInfo.Type> = listOf(PaymentInfo.Type.BANK_TRANSFER, PaymentInfo.Type.ON_SITE),
+        allowedPaymentTypes: List<PaymentType> = listOf(PaymentType.BANK_TRANSFER, PaymentType.ON_SITE),
     ) = EventInstance(
         id = instanceId,
         definitionId = definitionId,
@@ -117,7 +117,7 @@ class ReservationFormViewModelTest {
         status = Reservation.Status.PENDING_PAYMENT,
         createdAt = Instant.parse("2026-06-10T10:00:00Z"),
         customValues = emptyMap(),
-        paymentType = PaymentInfo.Type.BANK_TRANSFER,
+        paymentType = PaymentType.BANK_TRANSFER,
         variableSymbol = "1234567890",
     )
 
@@ -153,7 +153,7 @@ class ReservationFormViewModelTest {
         assertEquals("Pilates", target.title)
         assertEquals("Jan Novák", state.contactName)
         assertEquals("jan@example.com", state.contactEmail)
-        assertEquals(PaymentInfo.Type.BANK_TRANSFER, state.paymentType)
+        assertEquals(PaymentType.BANK_TRANSFER, state.paymentType)
     }
 
     @Test
@@ -393,7 +393,7 @@ class ReservationFormViewModelTest {
         assertEquals(instanceId, request.eventInstanceId)
         assertEquals(2, request.seatCount)
         assertEquals("+420 123 456 789", request.contactPhone)
-        assertEquals(PaymentInfo.Type.BANK_TRANSFER, request.paymentType)
+        assertEquals(PaymentType.BANK_TRANSFER, request.paymentType)
         assertEquals("cs", request.locale)
         assertNull(request.walletCode)
 
@@ -435,7 +435,7 @@ class ReservationFormViewModelTest {
 
         val request = assertNotNull(reservations.lastInstanceRequest)
         assertEquals("WAL12345678901", request.walletCode)
-        assertEquals(PaymentInfo.Type.FREE, request.paymentType)
+        assertEquals(PaymentType.FREE, request.paymentType)
     }
 
     @Test
@@ -448,13 +448,13 @@ class ReservationFormViewModelTest {
         )
         advanceUntilIdle()
         vm.setUseWallet(true)
-        vm.setPaymentType(PaymentInfo.Type.ON_SITE)
+        vm.setPaymentType(PaymentType.ON_SITE)
         vm.submit()
         advanceUntilIdle()
 
         val request = assertNotNull(reservations.lastInstanceRequest)
         assertEquals("WAL12345678901", request.walletCode)
-        assertEquals(PaymentInfo.Type.ON_SITE, request.paymentType)
+        assertEquals(PaymentType.ON_SITE, request.paymentType)
     }
 
     @Test

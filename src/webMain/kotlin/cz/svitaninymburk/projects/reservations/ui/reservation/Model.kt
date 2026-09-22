@@ -3,7 +3,7 @@ package cz.svitaninymburk.projects.reservations.ui.reservation
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import kotlin.uuid.Uuid
 
 
@@ -13,7 +13,7 @@ data class ReservationFormData(
     val email: String,
     val phone: String,
     val seats: Int,
-    val paymentType: PaymentInfo.Type,
+    val paymentType: PaymentType,
     val customValues: Map<String, CustomFieldValue>,
     val locale: String = "cs",
     val walletCode: String? = null,

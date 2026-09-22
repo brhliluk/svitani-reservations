@@ -162,7 +162,7 @@ val appModule = module {
     }
     single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get(), userRepository = get(), emailDispatcher = get(), audit = get(), refundService = get(), waitlistPromoter = get(), claimService = get()) } bind ReservationServiceInterface::class
     single { AuthenticatedReservationService(get(), get(), get(), get(), get(), claimService = get()) } bind AuthenticatedReservationServiceInterface::class
-    single { PaymentPairingService(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { PaymentPairingService(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single { SeriesScheduleRefresher(get(), get()) }
     single { AdminService(get()) }
     single<EmailDispatcher> { BackgroundEmailDispatcher(scope = get(), audit = get()) }

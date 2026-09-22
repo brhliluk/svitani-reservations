@@ -4,7 +4,7 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.ExposedRes
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReferenceDbDiscriminator
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationsTable
 import cz.svitaninymburk.projects.reservations.repository.user.UsersTable
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.user.User
 import kotlinx.coroutines.runBlocking
@@ -77,7 +77,7 @@ class UnclaimedByEmailSqlSpec {
                 row[ReservationsTable.status] = status
                 row[ReservationsTable.createdAt] = Clock.System.now()
                 row[ReservationsTable.customValues] = emptyMap()
-                row[ReservationsTable.paymentType] = PaymentInfo.Type.BANK_TRANSFER
+                row[ReservationsTable.paymentType] = PaymentType.BANK_TRANSFER
                 row[ReservationsTable.locale] = "cs"
             }
         }

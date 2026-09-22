@@ -8,7 +8,7 @@ import cz.svitaninymburk.projects.reservations.api.MobilePaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,7 +44,7 @@ class ReservationDetailViewModelTest {
         val paymentInfo = mockPaymentInfo()
         val item = mockItem(
             status = Reservation.Status.PENDING_PAYMENT,
-            paymentType = PaymentInfo.Type.BANK_TRANSFER,
+            paymentType = PaymentType.BANK_TRANSFER,
         )
         val vm = ReservationDetailViewModel(
             item,
@@ -59,7 +59,7 @@ class ReservationDetailViewModelTest {
     fun `does NOT fetch payment info when status is CONFIRMED`() = runTest {
         val item = mockItem(
             status = Reservation.Status.CONFIRMED,
-            paymentType = PaymentInfo.Type.BANK_TRANSFER,
+            paymentType = PaymentType.BANK_TRANSFER,
         )
         val vm = ReservationDetailViewModel(item, FakeReservationsRepositoryDetail())
         advanceUntilIdle()
@@ -71,7 +71,7 @@ class ReservationDetailViewModelTest {
     fun `does NOT fetch payment info when paymentType is ON_SITE`() = runTest {
         val item = mockItem(
             status = Reservation.Status.PENDING_PAYMENT,
-            paymentType = PaymentInfo.Type.ON_SITE,
+            paymentType = PaymentType.ON_SITE,
         )
         val vm = ReservationDetailViewModel(item, FakeReservationsRepositoryDetail())
         advanceUntilIdle()
@@ -135,7 +135,7 @@ private class FakeReservationsRepositoryDetail(
 
 private fun mockItem(
     status: Reservation.Status = Reservation.Status.CONFIRMED,
-    paymentType: PaymentInfo.Type = PaymentInfo.Type.BANK_TRANSFER,
+    paymentType: PaymentType = PaymentType.BANK_TRANSFER,
 ) = MyReservationListItem(
     id = Uuid.parse("00000000-0000-0000-0000-000000000002"),
     eventTitle = "Pilates",

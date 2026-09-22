@@ -3,7 +3,7 @@ package cz.svitaninymburk.projects.reservations.repository.event
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemoryReservationRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.coroutines.runBlocking
@@ -55,7 +55,7 @@ class SeriesAwareEventInstanceRepositoryTest {
                 status = Reservation.Status.CONFIRMED,
                 createdAt = Clock.System.now(),
                 customValues = emptyMap(),
-                paymentType = PaymentInfo.Type.BANK_TRANSFER,
+                paymentType = PaymentType.BANK_TRANSFER,
             )
         )
     }

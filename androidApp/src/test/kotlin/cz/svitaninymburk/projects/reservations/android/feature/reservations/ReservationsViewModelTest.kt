@@ -8,7 +8,7 @@ import cz.svitaninymburk.projects.reservations.api.MobilePaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservationRequest
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.Dispatchers
@@ -105,7 +105,7 @@ private class FakeReservationsRepository(
 
 private fun mockItem(
     status: Reservation.Status = Reservation.Status.CONFIRMED,
-    paymentType: PaymentInfo.Type = PaymentInfo.Type.BANK_TRANSFER,
+    paymentType: PaymentType = PaymentType.BANK_TRANSFER,
 ) = MyReservationListItem(
     id = Uuid.parse("00000000-0000-0000-0000-000000000001"),
     eventTitle = "Jóga pro začátečníky",

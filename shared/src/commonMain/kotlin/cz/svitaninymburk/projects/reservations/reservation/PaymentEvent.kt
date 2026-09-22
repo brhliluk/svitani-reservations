@@ -10,7 +10,7 @@ data class PaymentEvent(
     val contactName: String,
     val amount: Double,
     val currency: String,
-    val type: PaymentInfo.Type,
+    val type: PaymentType,
     val source: Source,
     val processedAt: Instant,
 ) {

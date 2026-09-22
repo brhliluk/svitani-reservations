@@ -27,7 +27,7 @@ import cz.svitaninymburk.projects.reservations.android.feature.reservations.util
 import cz.svitaninymburk.projects.reservations.android.util.toCzkString
 import cz.svitaninymburk.projects.reservations.api.MobilePaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
@@ -90,7 +90,7 @@ fun ReservationDetailContent(
         ) {
             InfoCard(state.item)
 
-            if (state.item.status == Reservation.Status.PENDING_PAYMENT && state.item.paymentType == PaymentInfo.Type.BANK_TRANSFER) {
+            if (state.item.status == Reservation.Status.PENDING_PAYMENT && state.item.paymentType == PaymentType.BANK_TRANSFER) {
                 PaymentSection(
                     paymentInfo = state.paymentInfo,
                     isLoading = state.isLoadingPayment,
@@ -198,9 +198,9 @@ private fun InfoCard(item: MyReservationListItem) = Card(
             label = stringResource(R.string.reservation_payment_type),
             value = stringResource(
                 when (item.paymentType) {
-                    PaymentInfo.Type.BANK_TRANSFER -> R.string.reservation_payment_type_bank
-                    PaymentInfo.Type.ON_SITE -> R.string.reservation_payment_type_on_site
-                    PaymentInfo.Type.FREE -> R.string.reservation_payment_type_free
+                    PaymentType.BANK_TRANSFER -> R.string.reservation_payment_type_bank
+                    PaymentType.ON_SITE -> R.string.reservation_payment_type_on_site
+                    PaymentType.FREE -> R.string.reservation_payment_type_free
                 }
             ),
         )

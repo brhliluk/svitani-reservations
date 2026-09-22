@@ -6,7 +6,7 @@ import cz.svitaninymburk.projects.reservations.android.error.RepositoryError
 import cz.svitaninymburk.projects.reservations.android.repository.reservation.ReservationsRepository
 import cz.svitaninymburk.projects.reservations.api.MobilePaymentInfo
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
-import cz.svitaninymburk.projects.reservations.reservation.PaymentInfo
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,7 +36,7 @@ class ReservationDetailViewModel(
 
     private fun loadPaymentInfoIfNeeded() {
         if (item.status != Reservation.Status.PENDING_PAYMENT) return
-        if (item.paymentType != PaymentInfo.Type.BANK_TRANSFER) return
+        if (item.paymentType != PaymentType.BANK_TRANSFER) return
         uiState.update { it.copy(isLoadingPayment = true, error = null) }
         viewModelScope.launch {
             repository.getPaymentInfo(item.id)
