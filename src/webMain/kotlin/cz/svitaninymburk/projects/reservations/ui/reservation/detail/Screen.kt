@@ -57,7 +57,7 @@ fun IComponent.ReservationDetailScreen(
                     div(className = "alert alert-success py-2 px-3") {
                         span(className = "icon-[heroicons--check-circle] size-5 flex-shrink-0")
                         span(className = "text-sm") {
-                            +currentStrings.cancellationRefundEligible("${refundableAmount.toInt()}")
+                            +currentStrings.cancellationRefundEligible("${paidAmount.toInt()}", "${refundableAmount.toInt()}")
                         }
                     }
                 }

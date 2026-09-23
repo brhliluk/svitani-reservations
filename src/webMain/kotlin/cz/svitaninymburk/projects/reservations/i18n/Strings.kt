@@ -719,7 +719,7 @@ interface AppStrings : ErrorStrings {
     val cancellationPolicyWalletExplain: String
 
     // Dynamic refund preview in cancellation dialog
-    val cancellationRefundEligible: (String) -> String
+    val cancellationRefundEligible: (paid: String, refund: String) -> String
     val cancellationLessonRefundEligible: String
     val cancellationNoRefund: String
     val cancellationWindowPassed: String

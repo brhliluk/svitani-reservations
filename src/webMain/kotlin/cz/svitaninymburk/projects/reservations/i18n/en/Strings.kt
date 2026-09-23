@@ -822,8 +822,9 @@ object EnStrings : AppStrings {
     override val cancellationPolicyNoRefundUnpaid = "Unpaid reservation → no credit issued"
     override val cancellationPolicyNoRefundLate = "Late cancellation (after 18:00) → no credit issued"
     override val cancellationPolicyWalletExplain = "Credit = wallet code usable on your next reservation, valid until end of season"
-    override val cancellationRefundEligible: (String) -> String = { amount ->
-        "Paid $amount CZK — if cancelled before 18:00 the previous day you will receive $amount CZK wallet credit"
+    override val cancellationRefundEligible: (String, String) -> String = { paid, refund ->
+        if (paid == refund) "Paid $paid CZK — if cancelled before 18:00 the previous day you will receive $refund CZK wallet credit"
+        else "Paid $paid CZK, part of it was already returned for lessons — if cancelled before 18:00 the previous day you will receive $refund CZK wallet credit"
     }
     override val cancellationLessonRefundEligible = "Paid — if opted out on time you will receive wallet credit per course settings"
     override val cancellationNoRefund = "No credit will be returned when cancelling this reservation"

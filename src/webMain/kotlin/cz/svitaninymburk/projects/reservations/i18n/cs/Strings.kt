@@ -834,8 +834,9 @@ object CsStrings : AppStrings {
     override val cancellationPolicyNoRefundUnpaid = "Nezaplacená rezervace → kredit nevznikne"
     override val cancellationPolicyNoRefundLate = "Pozdní storno (po 18:00) → kredit nevznikne"
     override val cancellationPolicyWalletExplain = "Kredit = kód peněženky použitelný na příští rezervaci, platný do konce sezóny"
-    override val cancellationRefundEligible: (String) -> String = { amount ->
-        "Zaplaceno $amount Kč — při stornu do 18:00 předchozího dne dostanete kredit $amount Kč do peněženky"
+    override val cancellationRefundEligible: (String, String) -> String = { paid, refund ->
+        if (paid == refund) "Zaplaceno $paid Kč — při stornu do 18:00 předchozího dne dostanete kredit $refund Kč do peněženky"
+        else "Zaplaceno $paid Kč, část už se vrátila za lekce — při stornu do 18:00 předchozího dne dostanete kredit $refund Kč do peněženky"
     }
     override val cancellationLessonRefundEligible = "Zaplaceno — při včasném odhlášení dostanete kredit do peněženky dle nastavení kurzu"
     override val cancellationNoRefund = "Při zrušení rezervace se žádný kredit nevrátí"
