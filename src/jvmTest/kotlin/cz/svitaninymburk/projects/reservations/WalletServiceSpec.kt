@@ -86,6 +86,15 @@ class WalletServiceSpec {
     }
 
     @Test
+    fun `resolveAnonymousWallet bez kodu pouzije hostovu existujici penezenku`() = runBlocking {
+        // Kdo kód z mailu nevyplní, nesmí po každém stornu dostat novou peněženku.
+        val svc = service()
+        val prvni = svc.resolveAnonymousWallet(null, "anon@test.com", false).getOrNull()!!
+        val druha = svc.resolveAnonymousWallet(null, "ANON@test.com", false).getOrNull()!!
+        assertEquals(prvni.id, druha.id)
+    }
+
+    @Test
     fun `resolveAnonymousWallet returns WalletEmailMismatch for wrong email and force=false`() = runBlocking {
         val svc = service()
         val wallet = svc.findOrCreateForRegisteredUser(Uuid.random(), "owner@test.com")

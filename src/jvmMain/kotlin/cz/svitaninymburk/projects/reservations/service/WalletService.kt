@@ -34,9 +34,15 @@ class WalletService(private val repo: WalletRepository) {
     }
 
     /**
-     * Resolve a wallet for anonymous user cancellation.
-     * Returns WalletEmailMismatch if code belongs to different email and force=false.
-     * Creates a new wallet if code is null.
+     * Peněženka pro vratku hostovi bez účtu.
+     *
+     * Bez zadaného kódu se nejdřív hledá podle e-mailu a nová se zakládá, jen když
+     * host žádnou nemá. Dřív se bez kódu zakládala pokaždé nová — kdo kód z mailu
+     * nevyplnil, měl po každém stornu další peněženku s dalším kódem a kredit
+     * roztříštěný na kousky, které jednotlivě na nic nestačily.
+     *
+     * Se zadaným kódem vrací WalletEmailMismatch, když peněženka patří jinému
+     * e-mailu a force=false.
      */
     suspend fun resolveAnonymousWallet(
         code: String?,
@@ -44,8 +50,9 @@ class WalletService(private val repo: WalletRepository) {
         force: Boolean,
     ): Either<WalletError.ResolveAnonymous, Wallet> {
         if (code == null) {
-            val newWallet = repo.create(NewWallet(code = generateUniqueCode(), ownerEmail = contactEmail))
-            return newWallet.right()
+            val wallet = repo.findAnonymousByEmail(contactEmail)
+                ?: repo.create(NewWallet(code = generateUniqueCode(), ownerEmail = contactEmail))
+            return wallet.right()
         }
         val wallet = repo.findByCode(code)
             ?: return WalletError.NotFound.left()
@@ -69,23 +76,6 @@ class WalletService(private val repo: WalletRepository) {
     /** Kolik kreditu už rezervace dostala za omluvenky z lekcí. */
     suspend fun refundedForLessonOptOuts(reservationId: Uuid): Double =
         repo.sumCreditedForReservation(reservationId, WalletTransactionReason.LESSON_OPT_OUT_REFUND)
-
-    /**
-     * Peněženka pro opakované refundy hosta (omluvenky z lekcí chodí po jedné).
-     * Bez zadaného kódu se nejdřív podívá podle e-mailu — [resolveAnonymousWallet]
-     * by pokaždé založila novou peněženku s novým kódem a kredit by se roztříštil
-     * do několika nepoužitelných kousků.
-     */
-    suspend fun resolveAnonymousWalletForRepeatedRefund(
-        code: String?,
-        contactEmail: String,
-        force: Boolean,
-    ): Either<WalletError.ResolveAnonymous, Wallet> {
-        if (code == null) {
-            repo.findAnonymousByEmail(contactEmail)?.let { return it.right() }
-        }
-        return resolveAnonymousWallet(code, contactEmail, force)
-    }
 
     /**
      * Validate a wallet code for use during reservation creation.

@@ -82,8 +82,8 @@ class LessonOptOutRefunds(
             walletService.findOrCreateForRegisteredUser(registeredUserId, reservation.contactEmail)
         } else {
             // Bez kódu nemá co nesedět na e-mail, takže je to vždy Right.
-            walletService.resolveAnonymousWalletForRepeatedRefund(null, reservation.contactEmail, force = true)
-                .getOrNull() ?: error("resolveAnonymousWalletForRepeatedRefund(null) must return a wallet")
+            walletService.resolveAnonymousWallet(null, reservation.contactEmail, force = true)
+                .getOrNull() ?: error("resolveAnonymousWallet(null) must return a wallet")
         }
     }
 }

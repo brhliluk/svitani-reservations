@@ -155,9 +155,9 @@ class AdminDashboardService(
         return if (registeredUserId != null) {
             walletService.findOrCreateForRegisteredUser(registeredUserId, reservation.contactEmail)
         } else {
-            // code = null always creates a fresh wallet (always Right); the code is emailed to the user.
+            // Bez kódu podle e-mailu, případně nová (vždy Right); kód dostane host mailem.
             walletService.resolveAnonymousWallet(code = null, contactEmail = reservation.contactEmail, force = true)
-                .getOrNull() ?: error("resolveAnonymousWallet(null) must create a wallet")
+                .getOrNull() ?: error("resolveAnonymousWallet(null) must return a wallet")
         }
     }
 

@@ -969,7 +969,7 @@ open class ReservationService(
         if (registeredUserId != null) {
             return walletService.findOrCreateForRegisteredUser(registeredUserId, reservation.contactEmail)
         }
-        return walletService.resolveAnonymousWalletForRepeatedRefund(walletCode, reservation.contactEmail, force)
+        return walletService.resolveAnonymousWallet(walletCode, reservation.contactEmail, force)
             .mapLeft { e ->
                 when (e) {
                     WalletError.NotFound -> ReservationError.WalletNotFound

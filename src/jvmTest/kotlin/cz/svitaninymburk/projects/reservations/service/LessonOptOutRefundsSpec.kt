@@ -207,10 +207,8 @@ class LessonOptOutRefundsSpec {
         val result = reservationService.cancelReservation(reservation.id, instanceId = null)
 
         assertEquals(850.0, assertNotNull(result.getOrNull()).walletCreditAmount)
-        // Storno bez kódu zakládá hostovi novou peněženku, proto součet transakcí rezervace, ne zůstatek.
-        val vraceno = walletRepo.sumCreditedForReservation(reservation.id, WalletTransactionReason.LESSON_OPT_OUT_REFUND) +
-            walletRepo.sumCreditedForReservation(reservation.id, WalletTransactionReason.CANCELLATION_REFUND)
-        assertEquals(1000.0, vraceno, "dohromady se vrátí přesně to, co bylo zaplaceno")
+        // Obojí do téže peněženky podle e-mailu — dohromady přesně to, co bylo zaplaceno.
+        assertEquals(1000.0, balance(), "dohromady se vrátí přesně to, co bylo zaplaceno")
     }
 
     @Test
