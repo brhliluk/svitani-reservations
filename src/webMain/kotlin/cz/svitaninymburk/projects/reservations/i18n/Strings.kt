@@ -686,6 +686,7 @@ interface AppStrings : ErrorStrings {
     val walletCreditApplied: String
     val remainingToPay: String
     val walletCreditIssued: String
+    val cancellationEmailNotSent: String
     val adminWallets: String
     val tooltipViewWallet: String
     val adminWalletDetail: String

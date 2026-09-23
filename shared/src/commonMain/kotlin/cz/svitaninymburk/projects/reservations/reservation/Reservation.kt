@@ -245,4 +245,6 @@ data class SeriesLessonsView(
 data class CancellationResult(
     val walletCode: String? = null,
     val walletCreditAmount: Double? = null,
+    /** Storno proběhlo, jen potvrzovací mail zákazníkovi neodešel — UI to řekne jako poznámku, ne chybu. */
+    val cancellationEmailFailed: Boolean = false,
 )

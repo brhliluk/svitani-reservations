@@ -835,9 +835,15 @@ open class ReservationService(
                     detail = if (wasWaitlisted) "storno přihlášky z pořadníku" else "storno celé rezervace",
                 )
 
-                val customerEmailResult = withAuditSubject(cancelSubject) {
+                // Mail zákazníkovi jde synchronně jen proto, aby se dalo říct, jestli
+                // odešel. Rezervace už je v tu chvíli zrušená a místo uvolněné, takže
+                // selhání SMTP (Gmail občas dočasně odmítne s 451) nesmí storno shodit —
+                // zákazník by viděl chybu u operace, která proběhla, a zkoušel by ji znovu.
+                // V historii zůstane jako FAILURE a admin ho může poslat znovu.
+                val cancellationEmailFailed = withAuditSubject(cancelSubject) {
                     emailService.sendCancellationNotice(cancelledReservation.contactEmail, target.title, cancelledReservation.id, cancelledReservation.locale)
-                }
+                }.onLeft { captureEmailError(logger, "Failed to send cancellation email to ${cancelledReservation.contactEmail}: $it") }
+                    .isLeft()
 
                 val ownerEmails = resolveOwnerEmails(target)
                 if (ownerEmails.isNotEmpty()) {
@@ -846,22 +852,22 @@ open class ReservationService(
                         is ReservationTarget.Series -> target.series.capacity
                     }
                     withAuditSubject(cancelSubject) {
-                        ownerEmails.forEach { email ->
-                            lectorEmailService.sendLectorCancellationNotification(
-                                lectorEmail = email,
-                                contactName = cancelledReservation.contactName,
-                                eventTitle = target.title,
-                                target = target.forLector(),
-                                seatCount = cancelledReservation.seatCount,
-                                occupiedSpots = updatedSpots,
-                                capacity = capacity,
-                                locale = cancelledReservation.locale,
-                            ).onLeft { captureEmailError(logger, "Failed to send owner cancellation email to $email: $it") }
+                        emailDispatcher.dispatch {
+                            ownerEmails.forEach { email ->
+                                lectorEmailService.sendLectorCancellationNotification(
+                                    lectorEmail = email,
+                                    contactName = cancelledReservation.contactName,
+                                    eventTitle = target.title,
+                                    target = target.forLector(),
+                                    seatCount = cancelledReservation.seatCount,
+                                    occupiedSpots = updatedSpots,
+                                    capacity = capacity,
+                                    locale = cancelledReservation.locale,
+                                ).onLeft { captureEmailError(logger, "Failed to send owner cancellation email to $email: $it") }
+                            }
                         }
                     }
                 }
-
-                customerEmailResult.mapLeft { ReservationError.FailedToSendCancellationEmail(it) }.bind()
 
                 // Wallet credit for whole-reservation cancellation — only within the deadline (18:00 day before)
                 val paidAmount = reservation.paidAmount
@@ -889,10 +895,10 @@ open class ReservationService(
                         }
                     }
                     val outcome = refundService.refundWholeReservation(wallet, reservation)
-                    if (outcome != null) CancellationResult(walletCode = outcome.walletCode, walletCreditAmount = outcome.creditedAmount)
-                    else CancellationResult()
+                    if (outcome != null) CancellationResult(walletCode = outcome.walletCode, walletCreditAmount = outcome.creditedAmount, cancellationEmailFailed = cancellationEmailFailed)
+                    else CancellationResult(cancellationEmailFailed = cancellationEmailFailed)
                 } else {
-                    CancellationResult()
+                    CancellationResult(cancellationEmailFailed = cancellationEmailFailed)
                 }
             }
         }

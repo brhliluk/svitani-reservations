@@ -125,6 +125,10 @@ class ReservationDetailModel(
                         if (credit != null && credit > 0.0 && code != null) {
                             showToast("${currentStrings.walletCreditIssued}: $code", ToastType.Success)
                         }
+                        // Storno proběhlo, neodešel jen mail — proto poznámka, ne chyba.
+                        if (result.cancellationEmailFailed) {
+                            showToast(currentStrings.cancellationEmailNotSent, ToastType.Success)
+                        }
                         onDone()
                         load()
                     }
