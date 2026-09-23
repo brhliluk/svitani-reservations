@@ -1017,24 +1017,24 @@ class AdminDashboardService(
 
     override suspend fun updateEventSeries(id: Uuid, request: cz.svitaninymburk.projects.reservations.event.UpdateEventSeriesRequest): Either<AdminError.UpdateSeries, Unit> = either {
         val existing = ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
-        eventSeriesRepository.update(
-            existing.copy(
-                title = request.title,
-                description = request.description,
-                price = request.price,
-                capacity = request.capacity,
-                waitlistCapacity = request.waitlistCapacity,
-                allowedPaymentTypes = request.allowedPaymentTypes,
-                customFields = request.customFields,
-                ownerEmails = parseOwnerEmails(request.ownerEmails),
-                showAttendeeCount = request.showAttendeeCount,
-                allowMultipleSeats = request.allowMultipleSeats,
-                lessonPrice = request.lessonPrice,
-                lessonRefundAmount = request.lessonRefundAmount,
-                reservationDeadline = request.reservationDeadline,
-                reservationDeadlineMessage = request.reservationDeadlineMessage,
-            )
+        val updated = existing.copy(
+            title = request.title,
+            description = request.description,
+            price = request.price,
+            capacity = request.capacity,
+            waitlistCapacity = request.waitlistCapacity,
+            allowedPaymentTypes = request.allowedPaymentTypes,
+            customFields = request.customFields,
+            ownerEmails = parseOwnerEmails(request.ownerEmails),
+            showAttendeeCount = request.showAttendeeCount,
+            allowMultipleSeats = request.allowMultipleSeats,
+            lessonPrice = request.lessonPrice,
+            lessonRefundAmount = request.lessonRefundAmount,
+            reservationDeadline = request.reservationDeadline,
+            reservationDeadlineMessage = request.reservationDeadlineMessage,
         )
+        eventSeriesRepository.update(updated)
+        propagateSeriesEditToLessons(existing, updated)
 
         // Kurz má vlastní pořadník (viz waitlist_capacity na event_series), takže zvednutá
         // kapacita posune náhradníky stejně jako u jednorázové lekce.
@@ -1051,6 +1051,45 @@ class AdminDashboardService(
                 if (lesson.price != newLessonPrice) {
                     eventInstanceRepository.update(lesson.copy(price = newLessonPrice))
                 }
+            }
+        }
+    }
+
+    /**
+     * Lekce si pole kurzu kopírují při založení (createEventSeries, addSeriesLesson),
+     * takže pozdější úprava kurzu v nich bez tohohle nikdy neobjeví — typicky popis
+     * doplněný až po vygenerování lekcí.
+     *
+     * Propisuje se jen pole, které se v kurzu opravdu změnilo, a jen do lekcí, které
+     * v něm měly pořád původní hodnotu kurzu. Lekce upravená samostatně
+     * (updateEventInstance) si svou hodnotu nechá — admin ji tam dal schválně.
+     * Cena má vlastní pravidlo níž v updateEventSeries (přepisuje všechny lekce).
+     */
+    private suspend fun propagateSeriesEditToLessons(before: EventSeries, after: EventSeries) {
+        fun <T> inherit(old: T, new: T, current: T): T = if (old != new && current == old) new else current
+
+        eventInstanceRepository.findBySeries(after.id).forEach { lesson ->
+            val propagated = lesson.copy(
+                title = inherit(before.title, after.title, lesson.title),
+                description = inherit(before.description, after.description, lesson.description),
+                capacity = inherit(before.capacity, after.capacity, lesson.capacity),
+                waitlistCapacity = inherit(before.waitlistCapacity, after.waitlistCapacity, lesson.waitlistCapacity),
+                allowedPaymentTypes = inherit(before.allowedPaymentTypes, after.allowedPaymentTypes, lesson.allowedPaymentTypes),
+                customFields = inherit(before.customFields, after.customFields, lesson.customFields),
+                ownerEmails = inherit(before.ownerEmails, after.ownerEmails, lesson.ownerEmails),
+                showAttendeeCount = inherit(before.showAttendeeCount, after.showAttendeeCount, lesson.showAttendeeCount),
+                allowMultipleSeats = inherit(before.allowMultipleSeats, after.allowMultipleSeats, lesson.allowMultipleSeats),
+                reservationDeadline = inherit(before.reservationDeadline, after.reservationDeadline, lesson.reservationDeadline),
+                reservationDeadlineMessage = inherit(
+                    before.reservationDeadlineMessage, after.reservationDeadlineMessage, lesson.reservationDeadlineMessage,
+                ),
+            )
+            if (propagated == lesson) return@forEach
+            eventInstanceRepository.update(propagated)
+            // Stejně jako u úpravy jednotlivé lekce: víc míst posune náhradníky
+            // z pořadníku lekce. Proběhlé a zrušené lekce promoter sám přeskočí.
+            if (propagated.capacity > lesson.capacity) {
+                waitlistPromoter.promoteAfterCapacityIncrease(Reference.Instance(lesson.id))
             }
         }
     }

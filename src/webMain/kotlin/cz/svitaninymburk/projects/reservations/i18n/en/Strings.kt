@@ -457,6 +457,7 @@ object EnStrings : AppStrings {
     override val fullCoursePriceLabel = "Price (full course)"
     override val lessonPriceLabel = "Price per lesson"
     override val lessonPriceHint = "Applies to single lessons. Empty = lessons are sold at the full course price."
+    override val seriesEditPropagationHint = "Changes also apply to the course lessons. Lessons where you edited a field separately keep their own value."
     override val lessonPriceEditHint = "Changing this overwrites the price of every lesson in the course. Empty = lessons are sold at the full course price."
     override val createSeriesButton = "Create course"
     override val validationDatesRequired = "You must fill in start and end date."

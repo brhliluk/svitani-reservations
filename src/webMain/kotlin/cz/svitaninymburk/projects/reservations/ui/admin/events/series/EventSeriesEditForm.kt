@@ -64,7 +64,8 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                 }
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body") {
-                        h2(className = "card-title text-lg mb-4") { +currentStrings.basicInfoHeading }
+                        h2(className = "card-title text-lg") { +currentStrings.basicInfoHeading }
+                        p(className = "text-sm text-base-content/60 mb-4") { +currentStrings.seriesEditPropagationHint }
                         div(className = "grid grid-cols-1 md:grid-cols-2 gap-4") {
                             div(className = "form-control w-full md:col-span-2") {
                                 label(className = "label") { span(className = "label-text font-medium") { +currentStrings.seriesTitleLabel } }

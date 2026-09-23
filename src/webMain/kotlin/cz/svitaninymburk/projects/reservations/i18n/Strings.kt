@@ -444,6 +444,7 @@ interface AppStrings : ErrorStrings {
     val lessonPriceLabel: String
     val lessonPriceHint: String
     val lessonPriceEditHint: String
+    val seriesEditPropagationHint: String
     val createSeriesButton: String
     val validationDatesRequired: String
     val validationSeriesTitleRequired: String

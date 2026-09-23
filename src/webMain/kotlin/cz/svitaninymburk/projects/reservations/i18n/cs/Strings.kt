@@ -461,6 +461,7 @@ object CsStrings : AppStrings {
     override val fullCoursePriceLabel = "Cena (celý kurz)"
     override val lessonPriceLabel = "Cena za lekci"
     override val lessonPriceHint = "Platí pro jednotlivé lekce. Prázdné = lekce se prodávají za cenu celého kurzu."
+    override val seriesEditPropagationHint = "Změny se propíšou i do lekcí kurzu. Lekce, u kterých jste pole upravili samostatně, si svou hodnotu nechají."
     override val lessonPriceEditHint = "Změna přepíše cenu u všech lekcí kurzu. Prázdné = lekce se prodávají za cenu celého kurzu."
     override val createSeriesButton = "Vytvořit kurz"
     override val validationDatesRequired = "Musíte vyplnit datum začátku a konce."
