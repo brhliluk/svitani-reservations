@@ -135,6 +135,16 @@ fun Application.configureDatabases() {
             println("⚠️ custom_fields backfill failed (non-fatal): ${e.message}")
         }
 
+        // Až po MigrationUtils — ty sloupec refunded_amount teprve zakládají.
+        try {
+            val doplneno = backfillOptOutRefundedAmounts()
+            if (doplneno > 0) {
+                println("ℹ️ omluvenky z lekcí: u $doplneno historických záznamů dohledána vyplacená částka")
+            }
+        } catch (e: Exception) {
+            println("⚠️ series_lesson_opt_outs refunded_amount backfill failed (non-fatal): ${e.message}")
+        }
+
         try {
             deduplicateCustomFieldKeys()
         } catch (e: Exception) {

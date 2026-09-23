@@ -166,6 +166,11 @@ data class ReservationDetail(
     /** Uzávěrka pro storno s nárokem na kredit, spočítaná serverem. */
     val cancellationDeadline: Instant? = null,
     /**
+     * Kolik by storno celé rezervace vrátilo: zaplacená částka mínus to, co už
+     * odešlo za omluvenky a zrušené lekce. null = starý server, ber zaplacenou částku.
+     */
+    val refundableAmount: Double? = null,
+    /**
      * Přihlášený uživatel si tuhle rezervaci bez účtu může připsat k účtu. Počítá to
      * server — zná volajícího z JWT a jen on smí rozhodnout, čí e-mail se s čím shoduje.
      * Klient tím jen řídí, jestli tlačítko ukázat; samotné přivlastnění si podmínky ověří znovu.

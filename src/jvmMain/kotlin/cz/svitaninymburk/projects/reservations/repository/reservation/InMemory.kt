@@ -134,6 +134,10 @@ class InMemorySeriesLessonOptOutRepository : SeriesLessonOptOutRepository {
     override suspend fun findByInstance(instanceId: Uuid): List<SeriesLessonOptOut> =
         optOuts.values.filter { it.instanceId == instanceId }
 
+    override suspend fun updateRefundedAmount(id: Uuid, amount: Double) {
+        optOuts.computeIfPresent(id) { _, optOut -> optOut.copy(refundedAmount = amount) }
+    }
+
     override suspend fun delete(reservationId: Uuid, instanceId: Uuid): Boolean = synchronized(optOuts) {
         val found = optOuts.values.filter { it.reservationId == reservationId && it.instanceId == instanceId }
         found.forEach { optOuts.remove(it.id) }

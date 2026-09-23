@@ -1,5 +1,9 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
+import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
+import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySeriesLessonOptOutRepository
+import cz.svitaninymburk.projects.reservations.event.EventSeries
 import arrow.core.Either
 import arrow.core.right
 import cz.svitaninymburk.projects.reservations.bank.BankTransaction
@@ -163,7 +167,9 @@ class PaymentPairingServiceTest {
         jsonResponse: String,
         reservationRepo: InMemoryReservationRepository,
         emailService: MockEmailService,
-        paymentEventRepo: InMemoryPaymentEventRepository
+        paymentEventRepo: InMemoryPaymentEventRepository,
+        eventSeriesRepo: InMemoryEventSeriesRepository = InMemoryEventSeriesRepository(),
+        lessonOptOutRefunds: LessonOptOutRefunds? = null,
     ): PaymentPairingService {
         val mockEngine = MockEngine { _ ->
             respond(
@@ -192,8 +198,54 @@ class PaymentPairingServiceTest {
             settings = settingsProvider,
             paymentEventRepository = paymentEventRepo,
             eventInstanceRepository = InMemoryEventInstanceRepository(),
-            eventSeriesRepository = InMemoryEventSeriesRepository(),
+            eventSeriesRepository = eventSeriesRepo,
+            lessonOptOutRefunds = lessonOptOutRefunds,
         )
+    }
+
+    @Test
+    fun `platba z banky dorovna kredit za omluvenku z doby pred zaplacenim`() = runBlocking {
+        val reservationRepo = InMemoryReservationRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val optOutRepo = InMemorySeriesLessonOptOutRepository()
+        val walletRepo = InMemoryWalletRepository()
+        val walletService = WalletService(walletRepo)
+        val settings = AppSettingsProvider.forTest(AppSettings(
+            bankAccountNumber = "", fioToken = "", senderEmail = "",
+            gmailAppPassword = "", senderDisplayName = "",
+        ))
+
+        val series = EventSeries(
+            id = Uuid.random(), definitionId = Uuid.random(), title = "Kurz", description = "",
+            price = 1000.0, capacity = 10, startDate = LocalDate(2099, 12, 1), endDate = LocalDate(2099, 12, 31),
+            lessonCount = 4, lessonRefundAmount = 150.0,
+        )
+        seriesRepo.create(series)
+        val reservation = makeReservation("7777", 1000.0).copy(reference = Reference.Series(series.id))
+        reservationRepo.save(reservation)
+        optOutRepo.save(
+            SeriesLessonOptOut(
+                id = Uuid.random(), reservationId = reservation.id, instanceId = Uuid.random(),
+                optedOutAt = Clock.System.now(), isLateCancellation = false, refundedAmount = 0.0,
+            )
+        )
+
+        val service = setupService(
+            jsonResponse = makeFioResponseJson(1000.0, "7777"),
+            reservationRepo = reservationRepo,
+            emailService = MockEmailService(),
+            paymentEventRepo = InMemoryPaymentEventRepository(),
+            eventSeriesRepo = seriesRepo,
+            lessonOptOutRefunds = LessonOptOutRefunds(
+                optOutRepo, seriesRepo, walletService,
+                RefundService(walletService, ConsoleEmailService(), settings),
+            ),
+        )
+
+        assertTrue(service.checkAndPairPayments().isRight())
+
+        assertEquals(150.0, walletRepo.findAnonymousByEmail("lukas@test.com")?.balance)
+        assertEquals(150.0, optOutRepo.findByReservation(reservation.id).single().refundedAmount)
     }
 
     @Test

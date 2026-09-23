@@ -14,6 +14,7 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import kotlin.uuid.Uuid
 
@@ -23,6 +24,9 @@ object SeriesLessonOptOutsTable : Table("series_lesson_opt_outs") {
     val instanceId = uuid("instance_id")
     val optedOutAt = timestamp("opted_out_at")
     val isLateCancellation = bool("is_late_cancellation")
+    // Nullable jen kvůli řádkům z doby před zavedením sloupce — viz
+    // backfillOptOutRefundedAmounts a SeriesLessonOptOut.refundedAmount.
+    val refundedAmount = double("refunded_amount").nullable()
     override val primaryKey = PrimaryKey(id)
 
     init {
@@ -49,6 +53,9 @@ interface SeriesLessonOptOutRepository {
     suspend fun findByReservation(reservationId: Uuid): List<SeriesLessonOptOut>
     suspend fun findByInstance(instanceId: Uuid): List<SeriesLessonOptOut>
 
+    /** Zapíše, kolik za omluvenku odešlo do peněženky — po připsání i po dodatečné vratce. */
+    suspend fun updateRefundedAmount(id: Uuid, amount: Double)
+
     /**
      * Smaže omluvenku a vrátí, jestli nějaká byla. Používá to jediné místo —
      * admin vrací účastníka do lekce, ze které se omluvil omylem.
@@ -68,6 +75,7 @@ class ExposedSeriesLessonOptOutRepository(private val database: Database? = null
             row[instanceId] = optOut.instanceId
             row[optedOutAt] = optOut.optedOutAt
             row[isLateCancellation] = optOut.isLateCancellation
+            row[refundedAmount] = optOut.refundedAmount
         }
         optOut
     }
@@ -104,6 +112,12 @@ class ExposedSeriesLessonOptOutRepository(private val database: Database? = null
             .map { it.toSeriesLessonOptOut() }
     }
 
+    override suspend fun updateRefundedAmount(id: Uuid, amount: Double) {
+        query {
+            SeriesLessonOptOutsTable.update({ SeriesLessonOptOutsTable.id eq id }) { it[refundedAmount] = amount }
+        }
+    }
+
     override suspend fun delete(reservationId: Uuid, instanceId: Uuid): Boolean = query {
         SeriesLessonOptOutsTable.deleteWhere {
             (SeriesLessonOptOutsTable.reservationId eq reservationId) and
@@ -118,6 +132,7 @@ fun ResultRow.toSeriesLessonOptOut(): SeriesLessonOptOut = SeriesLessonOptOut(
     instanceId = this[SeriesLessonOptOutsTable.instanceId],
     optedOutAt = this[SeriesLessonOptOutsTable.optedOutAt],
     isLateCancellation = this[SeriesLessonOptOutsTable.isLateCancellation],
+    refundedAmount = this[SeriesLessonOptOutsTable.refundedAmount],
 )
 
 /**

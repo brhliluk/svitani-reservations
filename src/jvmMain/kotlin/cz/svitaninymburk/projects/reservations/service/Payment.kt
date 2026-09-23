@@ -47,8 +47,23 @@ class PaymentPairingService(
     private val eventInstanceRepository: EventInstanceRepository,
     private val eventSeriesRepository: EventSeriesRepository,
     private val audit: AuditService = AuditService(InMemoryAuditRepository()),
+    /** Dorovnání kreditu za omluvenky z doby před zaplacením; null jen v testech, které ho nepotřebují. */
+    private val lessonOptOutRefunds: LessonOptOutRefunds? = null,
 ) {
     private val logger = KtorSimpleLogger(this::class.jvmName)
+
+    /**
+     * Po každém zvýšení zaplacené částky, i u nedoplatku — omluvenky mají nárok
+     * až do výše toho, co opravdu přišlo. Selhání vratky nesmí shodit párování:
+     * platba je už uložená a zbylé transakce z dávky by se nespárovaly.
+     */
+    private suspend fun settleLessonOptOutRefunds(reservation: Reservation) {
+        val refunds = lessonOptOutRefunds ?: return
+        runCatching { refunds.settleAfterPayment(reservation) }.onFailure { e ->
+            logger.error("Failed to settle lesson opt-out refunds for reservation ${reservation.id}", e)
+            Sentry.captureException(e)
+        }
+    }
 
     /**
      * Ke které akci platba patří. U rezervace na jednotlivou lekci dohledá i kurz,
@@ -149,6 +164,7 @@ class PaymentPairingService(
                     amount = transaction.amount,
                     detail = "Nedoplatek: očekáváno ${reservation.unpaidAmount}, přišlo ${transaction.amount}",
                 )
+                settleLessonOptOutRefunds(updatedReservation)
             }
 
             emailService.sendPaymentNotPaidInFull(
@@ -192,6 +208,8 @@ class PaymentPairingService(
         )
 
         withAuditSubject(paidSubject) {
+            settleLessonOptOutRefunds(paidReservation)
+
             emailService.sendPaymentReceivedConfirmation(paidReservation)
                 .onLeft { error ->
                     Sentry.withScope { scope ->

@@ -20,7 +20,10 @@ enum class LessonRefundPreview {
     /** Po uzávěrce — omluvenka projde, ale bez kreditu. */
     WINDOW_PASSED,
 
-    /** Nezaplaceno, není co vracet. */
+    /**
+     * Kurz ještě není zaplacený. Omluvenka teď kredit nedostane, server ho
+     * dopíše, až platba dorazí (LessonOptOutRefunds na backendu).
+     */
     NOT_PAID,
 
     /** Kurz kredit za jednotlivé lekce nevrací, nebo je už vyčerpaný. */
@@ -37,11 +40,17 @@ fun lessonRefundAmount(view: SeriesLessonsView): Double {
     return minOf(perLesson, view.paidAmount - view.alreadyRefunded).coerceAtLeast(0.0)
 }
 
+/** Sazba kurzu za jednu lekci přepočtená na místa, bez stropu na zaplacenou částku. */
+fun lessonRefundRate(view: SeriesLessonsView): Double = (view.lessonRefundAmount ?: 0.0) * view.seatCount
+
 fun lessonRefundPreview(view: SeriesLessonsView, lesson: SeriesLessonItem, now: Instant): LessonRefundPreview {
     val deadline = lesson.optOutDeadline
+    // Nezaplacenost až po uzávěrce a sazbě — slib „připíšeme po zaplacení“ smí
+    // padnout jen tam, kde by omluvenka kredit dostala, kdyby zaplaceno bylo.
     return when {
-        view.paidAmount <= 0.0 -> LessonRefundPreview.NOT_PAID
         deadline != null && now > deadline -> LessonRefundPreview.WINDOW_PASSED
+        lessonRefundRate(view) <= 0.0 -> LessonRefundPreview.NO_REFUND_CONFIGURED
+        view.paidAmount <= 0.0 -> LessonRefundPreview.NOT_PAID
         lessonRefundAmount(view) <= 0.0 -> LessonRefundPreview.NO_REFUND_CONFIGURED
         else -> LessonRefundPreview.REFUND_ELIGIBLE
     }

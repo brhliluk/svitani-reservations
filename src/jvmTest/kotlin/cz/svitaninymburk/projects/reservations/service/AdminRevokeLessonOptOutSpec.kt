@@ -133,6 +133,8 @@ class AdminRevokeLessonOptOutSpec {
                 instanceId = lessonId,
                 optedOutAt = Clock.System.now(),
                 isLateCancellation = isLate,
+                // Pozdní omluvenka kredit nedostane — co je v peněžence, patří jiné.
+                refundedAmount = if (isLate) 0.0 else refunded,
             )
         )
         if (refunded > 0.0) {

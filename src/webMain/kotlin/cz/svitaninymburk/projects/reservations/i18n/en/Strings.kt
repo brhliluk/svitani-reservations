@@ -537,6 +537,9 @@ object EnStrings : AppStrings {
     override val lessonOptOutDeadlineInfo: (String) -> String = { deadline ->
         "Credit is available until $deadline."
     }
+    override val lessonOptOutCreditAfterPayment: (String) -> String = { amount ->
+        "The course isn't paid yet. We'll add $amount CZK credit for this lesson to your wallet as soon as the payment arrives."
+    }
     override val lessonOptOutIrreversible = "Unsubscribing cannot be undone — the spot is offered to others right away."
     override val errorLoadingTitle = "Loading error"
 

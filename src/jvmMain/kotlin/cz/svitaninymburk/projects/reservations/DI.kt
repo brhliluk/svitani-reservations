@@ -162,7 +162,8 @@ val appModule = module {
     }
     single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get(), userRepository = get(), emailDispatcher = get(), audit = get(), refundService = get(), waitlistPromoter = get(), claimService = get()) } bind ReservationServiceInterface::class
     single { AuthenticatedReservationService(get(), get(), get(), get(), get(), claimService = get()) } bind AuthenticatedReservationServiceInterface::class
-    single { PaymentPairingService(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { LessonOptOutRefunds(get(), get(), get(), get()) }
+    single { PaymentPairingService(get(), get(), get(), get(), get(), get(), get(), get(), get(), lessonOptOutRefunds = get()) }
     single { SeriesScheduleRefresher(get(), get()) }
     single { AdminService(get()) }
     single<EmailDispatcher> { BackgroundEmailDispatcher(scope = get(), audit = get()) }
@@ -177,6 +178,6 @@ val appModule = module {
             appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz",
         )
     }
-    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get(), refundService = get(), seriesLessonOptOutRepository = get(), seriesScheduleRefresher = get(), waitlistPromoter = get(), audit = get(), auditRepository = get(), emailResender = get(), emailDispatcher = get()) } bind AdminServiceInterface::class
+    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get(), refundService = get(), seriesLessonOptOutRepository = get(), seriesScheduleRefresher = get(), waitlistPromoter = get(), audit = get(), auditRepository = get(), emailResender = get(), emailDispatcher = get(), lessonOptOutRefunds = get()) } bind AdminServiceInterface::class
     single { UserService(get(), get()) }
 }

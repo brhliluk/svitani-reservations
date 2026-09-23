@@ -545,6 +545,9 @@ object CsStrings : AppStrings {
     override val lessonOptOutDeadlineInfo: (String) -> String = { deadline ->
         "Nárok na kredit platí do $deadline."
     }
+    override val lessonOptOutCreditAfterPayment: (String) -> String = { amount ->
+        "Kurz zatím není zaplacený. Kredit $amount Kč za tuhle lekci připíšeme do peněženky, jakmile platba dorazí."
+    }
     override val lessonOptOutIrreversible = "Odhlášení nelze vzít zpět — místo se hned nabídne dalším zájemcům."
     override val errorLoadingTitle = "Chyba načítání"
 

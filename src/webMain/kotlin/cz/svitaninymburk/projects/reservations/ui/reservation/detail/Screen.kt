@@ -38,7 +38,10 @@ fun IComponent.ReservationDetailScreen(
 
     val detail = (model.uiState as? ReservationDetailUiState.Success)?.detail
     val paidAmount = detail?.reservation?.paidAmount ?: 0.0
-    val preview = cancellationPreview(paidAmount, detail?.cancellationDeadline, Clock.System.now())
+    // Kredit za už omluvené a zrušené lekce se od vratky odečítá — slibovat
+    // celé zaplacené by bylo víc, než server pošle.
+    val refundableAmount = detail?.refundableAmount ?: paidAmount
+    val preview = cancellationPreview(paidAmount, refundableAmount, detail?.cancellationDeadline, Clock.System.now())
 
     val confirmDialog = dialogRef(className = "modal") {
         div(className = "modal-box flex flex-col gap-4") {
@@ -54,7 +57,7 @@ fun IComponent.ReservationDetailScreen(
                     div(className = "alert alert-success py-2 px-3") {
                         span(className = "icon-[heroicons--check-circle] size-5 flex-shrink-0")
                         span(className = "text-sm") {
-                            +currentStrings.cancellationRefundEligible("${paidAmount.toInt()}")
+                            +currentStrings.cancellationRefundEligible("${refundableAmount.toInt()}")
                         }
                     }
                 }
@@ -68,6 +71,12 @@ fun IComponent.ReservationDetailScreen(
                     div(className = "alert alert-info py-2 px-3") {
                         span(className = "icon-[heroicons--information-circle] size-5 flex-shrink-0")
                         span(className = "text-sm") { +currentStrings.cancellationNotPaid }
+                    }
+                }
+                CancellationPreview.NOTHING_LEFT -> {
+                    div(className = "alert alert-info py-2 px-3") {
+                        span(className = "icon-[heroicons--information-circle] size-5 flex-shrink-0")
+                        span(className = "text-sm") { +currentStrings.cancellationNoRefund }
                     }
                 }
             }

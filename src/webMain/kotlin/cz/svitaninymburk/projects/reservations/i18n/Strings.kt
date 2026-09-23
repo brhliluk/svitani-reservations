@@ -517,6 +517,7 @@ interface AppStrings : ErrorStrings {
     val toastLessonOptOut: String
     val lessonOptOutCreditInfo: (amount: String) -> String
     val lessonOptOutDeadlineInfo: (deadline: String) -> String
+    val lessonOptOutCreditAfterPayment: (amount: String) -> String
     val lessonOptOutIrreversible: String
     val errorLoadingTitle: String
 

@@ -263,6 +263,7 @@ open class ReservationService(
             accountNumber = qrCodeService.accountNumber,
             waitlistPosition = waitlistPosition,
             cancellationDeadline = target?.let { refundDeadlineFor(it.startDateTime) },
+            refundableAmount = refundService.refundableForWholeReservation(reservation),
             claimable = claimable,
         )
     }
@@ -668,7 +669,9 @@ open class ReservationService(
 
             // saveIfAbsent, ne save — kontrola výš běží v jiné transakci, takže
             // dvojklik by jinak uložil dvě omluvenky a místo by se odečetlo dvakrát.
-            ensureNotNull(
+            // Částka se zapíše až po skutečném připsání (níž) — dokud neodešla,
+            // nesmí ji vzetí zpět strhávat ani dodatečná vratka brát za hotovou.
+            val optOut = ensureNotNull(
                 seriesLessonOptOutRepository.saveIfAbsent(
                     SeriesLessonOptOut(
                         id = Uuid.random(),
@@ -676,6 +679,7 @@ open class ReservationService(
                         instanceId = instanceId,
                         optedOutAt = now,
                         isLateCancellation = isLate,
+                        refundedAmount = 0.0,
                     )
                 )
             ) { ReservationError.AlreadyOptedOut }
@@ -729,6 +733,7 @@ open class ReservationService(
                 val outcome = refundService.refundFixedAmount(
                     wallet, reservation, refundAmount, WalletTransactionReason.LESSON_OPT_OUT_REFUND
                 )
+                outcome?.let { seriesLessonOptOutRepository.updateRefundedAmount(optOut.id, it.creditedAmount) }
                 if (outcome != null) CancellationResult(walletCode = outcome.walletCode, walletCreditAmount = outcome.creditedAmount)
                 else CancellationResult()
             } else {
@@ -870,14 +875,16 @@ open class ReservationService(
                 }
 
                 // Wallet credit for whole-reservation cancellation — only within the deadline (18:00 day before)
-                val paidAmount = reservation.paidAmount
+                // Bez odečtu toho, co už odešlo za lekce, by se po omluvence vracela
+                // tatáž lekce podruhé. Když není co vracet, nezakládá se ani peněženka.
+                val refundable = refundService.refundableForWholeReservation(reservation)
                 val timezone = TimeZone.of("Europe/Prague")
                 val cancellationDeadline = target.startDateTime.date
                     .minus(1, DateTimeUnit.DAY)
                     .atTime(18, 0)
                     .toInstant(timezone)
                 val withinCancellationWindow = Clock.System.now() < cancellationDeadline
-                if (paidAmount > 0.0 && withinCancellationWindow) {
+                if (refundable > 0.0 && withinCancellationWindow) {
                     val reservationRegisteredUserId = reservation.registeredUserId
                     val wallet: Wallet = if (reservationRegisteredUserId != null) {
                         walletService.findOrCreateForRegisteredUser(reservationRegisteredUserId, reservation.contactEmail)

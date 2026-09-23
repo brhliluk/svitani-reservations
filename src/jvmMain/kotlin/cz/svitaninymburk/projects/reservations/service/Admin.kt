@@ -46,6 +46,7 @@ import cz.svitaninymburk.projects.reservations.wallet.WalletTransactionReason
 import cz.svitaninymburk.projects.reservations.wallet.WalletsPage
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
 import cz.svitaninymburk.projects.reservations.reservation.isFreePrice
 import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.admin.AuditLogPage
@@ -93,6 +94,9 @@ class AdminDashboardService(
     private val emailResender: EmailResendService? = null,
     /** Viz stejný parametr u [ReservationService]. */
     private val emailDispatcher: EmailDispatcher = InlineEmailDispatcher,
+    private val lessonOptOutRefunds: LessonOptOutRefunds = LessonOptOutRefunds(
+        seriesLessonOptOutRepository, eventSeriesRepository, walletService, refundService,
+    ),
 ): AdminServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -246,9 +250,8 @@ class AdminDashboardService(
 
         ensure(reservation.status == Reservation.Status.PENDING_PAYMENT) { AdminError.WrongReservationState(reservation.status) }
 
-        reservationRepository.save(
-            reservation.copy(status = Reservation.Status.CONFIRMED, paidAmount = reservation.totalPrice)
-        )
+        val paidReservation = reservation.copy(status = Reservation.Status.CONFIRMED, paidAmount = reservation.totalPrice)
+        reservationRepository.save(paidReservation)
 
         runCatching {
             paymentEventRepository.insert(
@@ -275,6 +278,10 @@ class AdminDashboardService(
         )
 
         withAuditSubject(subject) {
+            // Platba nesmí padnout na vratce — zaplaceno už je uložené.
+            runCatching { lessonOptOutRefunds.settleAfterPayment(paidReservation) }
+                .onFailure { logger.error("Failed to settle lesson opt-out refunds for reservation $reservationId", it) }
+
             emailDispatcher.dispatch {
                 emailService.sendPaymentReceivedConfirmation(reservation)
                     .onLeft { captureEmailError(logger, "Failed to send payment-received email for reservation ${reservation.id}: $it") }
@@ -1495,14 +1502,11 @@ class AdminDashboardService(
         }
 
         try {
-            // Kredit zpátky. Pozdní omluvenka žádný nedostala (isLateCancellation se
-            // vyhodnocuje v čase odhlášení, proto uložený příznak a ne přepočet).
-            // Strop je to, co rezervace za omluvenky opravdu dostala — sazba kurzu
-            // se mezitím mohla změnit.
-            val series = instance.seriesId?.let { eventSeriesRepository.get(it) }
-            val perLesson = (series?.lessonRefundAmount ?: 0.0) * reservation.seatCount
-            val refunded = walletService.refundedForLessonOptOuts(reservationId)
-            val toDebit = if (optOut.isLateCancellation) 0.0 else minOf(perLesson, refunded).coerceAtLeast(0.0)
+            // Kredit zpátky — přesně tolik, kolik za tuhle omluvenku odešlo. Ze
+            // součtu za rezervaci to poznat nejde: je v něm i kredit za ostatní
+            // omluvenky a za lekce zrušené adminem, takže vzetí zpět neproplacené
+            // omluvenky by strhlo kredit za jinou.
+            val toDebit = optOut.refundedAmount ?: legacyRevokeDebit(optOut, reservation, instance)
             // Stejný důvod jako u připsání: součet transakcí toho druhu je zároveň
             // strop pro další omluvenky, takže odečet musí jít proti němu.
             val debited = if (toDebit > 0.0) {
@@ -1531,6 +1535,19 @@ class AdminDashboardService(
             logger.error("Failed to revoke lesson opt-out reservation=$reservationId instance=$instanceId", e)
             raise(AdminError.RevokeOptOut.Failed)
         }
+    }
+
+    /**
+     * Omluvenka, u které se vyplacenou částku nepodařilo dohledat (viz
+     * backfillOptOutRefundedAmounts) — dřívější odhad podle sazby kurzu
+     * a součtu za rezervaci.
+     */
+    private suspend fun legacyRevokeDebit(optOut: SeriesLessonOptOut, reservation: Reservation, instance: EventInstance): Double {
+        if (optOut.isLateCancellation) return 0.0
+        val series = instance.seriesId?.let { eventSeriesRepository.get(it) }
+        val perLesson = (series?.lessonRefundAmount ?: 0.0) * reservation.seatCount
+        val refunded = walletService.refundedForLessonOptOuts(reservation.id)
+        return minOf(perLesson, refunded).coerceAtLeast(0.0)
     }
 
     override suspend fun getPaymentEvents(page: Int, pageSize: Int): Either<AdminError.GetPaymentEvents, PaymentEventsPage> = either {

@@ -10,6 +10,7 @@ import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonsView
 import cz.svitaninymburk.projects.reservations.ui.components.usecase.LessonRefundPreview
 import cz.svitaninymburk.projects.reservations.ui.components.usecase.canOptOut
 import cz.svitaninymburk.projects.reservations.ui.components.usecase.lessonRefundAmount
+import cz.svitaninymburk.projects.reservations.ui.components.usecase.lessonRefundRate
 import cz.svitaninymburk.projects.reservations.ui.components.usecase.lessonRefundPreview
 import cz.svitaninymburk.projects.reservations.ui.components.usecase.needsWalletCodeInput
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
@@ -86,7 +87,16 @@ fun IComponent.SeriesLessonsSection(
                     LessonRefundPreview.NOT_PAID -> {
                         div(className = "alert alert-info py-2 px-3") {
                             span(className = "icon-[heroicons--information-circle] size-5 flex-shrink-0")
-                            span(className = "text-sm") { +currentStrings.cancellationNotPaid }
+                            div(className = "text-sm flex flex-col") {
+                                span { +currentStrings.lessonOptOutCreditAfterPayment("${lessonRefundRate(view).toInt()}") }
+                                lesson.optOutDeadline?.let { deadline ->
+                                    span(className = "text-xs opacity-90") {
+                                        +currentStrings.lessonOptOutDeadlineInfo(
+                                            deadline.toLocalDateTime(TimeZone.currentSystemDefault()).humanReadable
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                     LessonRefundPreview.NO_REFUND_CONFIGURED -> {

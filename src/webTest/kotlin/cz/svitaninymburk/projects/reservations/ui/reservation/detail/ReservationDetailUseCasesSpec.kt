@@ -33,6 +33,14 @@ class ReservationDetailUseCasesSpec {
     }
 
     @Test
+    fun `kdyz vse odeslo za lekce, storno uz nic nevrati`() {
+        assertEquals(
+            CancellationPreview.NOTHING_LEFT,
+            cancellationPreview(paidAmount = 500.0, refundableAmount = 0.0, deadline = deadline, now = beforeDeadline),
+        )
+    }
+
+    @Test
     fun `po uzaverce kredit nevznikne`() {
         assertEquals(
             CancellationPreview.WINDOW_PASSED,

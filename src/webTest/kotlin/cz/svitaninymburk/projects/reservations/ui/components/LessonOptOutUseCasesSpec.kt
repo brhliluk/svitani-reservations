@@ -6,6 +6,7 @@ import cz.svitaninymburk.projects.reservations.ui.components.usecase.LessonRefun
 import cz.svitaninymburk.projects.reservations.ui.components.usecase.canOptOut
 import cz.svitaninymburk.projects.reservations.ui.components.usecase.lessonRefundAmount
 import cz.svitaninymburk.projects.reservations.ui.components.usecase.lessonRefundPreview
+import cz.svitaninymburk.projects.reservations.ui.components.usecase.lessonRefundRate
 import cz.svitaninymburk.projects.reservations.ui.components.usecase.needsWalletCodeInput
 import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
@@ -65,6 +66,28 @@ class LessonOptOutUseCasesSpec {
             LessonRefundPreview.NOT_PAID,
             lessonRefundPreview(view(paidAmount = 0.0), lesson(), beforeDeadline),
         )
+    }
+
+    @Test
+    fun `nezaplacena rezervace po uzaverce nic neslibuje`() {
+        // „Připíšeme po zaplacení“ by bylo nepravdivé — pozdní omluvenka nedostane nic ani pak.
+        assertEquals(
+            LessonRefundPreview.WINDOW_PASSED,
+            lessonRefundPreview(view(paidAmount = 0.0), lesson(), afterDeadline),
+        )
+    }
+
+    @Test
+    fun `nezaplaceny kurz bez kreditu za lekce nic neslibuje`() {
+        assertEquals(
+            LessonRefundPreview.NO_REFUND_CONFIGURED,
+            lessonRefundPreview(view(paidAmount = 0.0, lessonRefundAmount = null), lesson(), beforeDeadline),
+        )
+    }
+
+    @Test
+    fun `slib po zaplaceni ukazuje plnou sazbu i u nezaplaceneho`() {
+        assertEquals(200.0, lessonRefundRate(view(paidAmount = 0.0, seatCount = 2)))
     }
 
     @Test

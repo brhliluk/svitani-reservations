@@ -8,7 +8,14 @@ import kotlin.uuid.Uuid
 // --- Pure helpery (testovatelné bez RPC) ---
 
 /** Co se stane s penězi při zrušení celé rezervace právě teď. */
-enum class CancellationPreview { REFUND_ELIGIBLE, WINDOW_PASSED, NOT_PAID }
+enum class CancellationPreview {
+    REFUND_ELIGIBLE,
+    WINDOW_PASSED,
+    NOT_PAID,
+
+    /** Zaplaceno, ale všechno už odešlo za omluvenky a zrušené lekce. */
+    NOTHING_LEFT,
+}
 
 /**
  * Uzávěrku (18:00 den předem) počítá server a posílá ji v ReservationDetail —
@@ -16,9 +23,15 @@ enum class CancellationPreview { REFUND_ELIGIBLE, WINDOW_PASSED, NOT_PAID }
  * jinak, než jakou pak backend uplatní. Chybějící uzávěrka = akce už v systému
  * není, takže se chová jako po lhůtě.
  */
-fun cancellationPreview(paidAmount: Double, deadline: Instant?, now: Instant): CancellationPreview = when {
+fun cancellationPreview(
+    paidAmount: Double,
+    refundableAmount: Double = paidAmount,
+    deadline: Instant?,
+    now: Instant,
+): CancellationPreview = when {
     paidAmount <= 0.0 -> CancellationPreview.NOT_PAID
     deadline == null || now > deadline -> CancellationPreview.WINDOW_PASSED
+    refundableAmount <= 0.0 -> CancellationPreview.NOTHING_LEFT
     else -> CancellationPreview.REFUND_ELIGIBLE
 }
 

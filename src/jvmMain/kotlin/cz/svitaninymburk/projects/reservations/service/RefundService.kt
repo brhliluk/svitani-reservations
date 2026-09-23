@@ -33,29 +33,36 @@ class RefundService(
     private val logger = KtorSimpleLogger(this::class.jvmName)
 
     /**
-     * Refund the whole reservation's paid amount: first reverse any wallet debit
-     * (RESERVATION_DEBIT_REVERSAL), then refund the cash remainder
-     * (CANCELLATION_REFUND). Returns null when nothing was paid.
+     * Kolik by storno celé rezervace ještě vrátilo: zaplaceno mínus to, co už
+     * odešlo za omluvenky a adminem zrušené lekce (obojí pod LESSON_OPT_OUT_REFUND,
+     * součet už je po případném stržení při vzetí omluvenky zpět).
+     */
+    suspend fun refundableForWholeReservation(reservation: Reservation): Double =
+        (reservation.paidAmount - walletService.refundedForLessonOptOuts(reservation.id)).coerceAtLeast(0.0)
+
+    /**
+     * Vrátí z rezervace to, co z ní ještě nebylo vráceno ([refundableForWholeReservation]):
+     * nejdřív zpět odpočet z peněženky (RESERVATION_DEBIT_REVERSAL), zbytek jako
+     * CANCELLATION_REFUND. Bez odečtu kreditu za lekce by omluvenka a následné
+     * storno vyplatily tutéž lekci dvakrát. Returns null when there's nothing to refund.
      */
     suspend fun refundWholeReservation(wallet: Wallet, reservation: Reservation): RefundOutcome? {
-        val paidAmount = reservation.paidAmount
-        if (paidAmount <= 0.0) return null
+        val refundable = refundableForWholeReservation(reservation)
+        if (refundable <= 0.0) return null
+        val alreadyRefunded = reservation.paidAmount - refundable
 
         var updatedWallet = wallet
-        if (reservation.walletDeductedAmount > 0.0) {
+        val reversal = minOf(reservation.walletDeductedAmount, refundable)
+        if (reversal > 0.0) {
             updatedWallet = walletService.credit(
-                wallet.id, reservation.walletDeductedAmount,
+                wallet.id, reversal,
                 WalletTransactionReason.RESERVATION_DEBIT_REVERSAL, reservation.id
             )
-            val cashPaid = paidAmount - reservation.walletDeductedAmount
-            if (cashPaid > 0.0) {
-                updatedWallet = walletService.credit(
-                    wallet.id, cashPaid, WalletTransactionReason.CANCELLATION_REFUND, reservation.id
-                )
-            }
-        } else {
+        }
+        val cash = refundable - reversal
+        if (cash > 0.0) {
             updatedWallet = walletService.credit(
-                wallet.id, paidAmount, WalletTransactionReason.CANCELLATION_REFUND, reservation.id
+                wallet.id, cash, WalletTransactionReason.CANCELLATION_REFUND, reservation.id
             )
         }
 
@@ -67,15 +74,16 @@ class RefundService(
             subjectLabel = reservation.contactName,
             reservationId = reservation.id,
             walletCode = updatedWallet.code,
-            amount = paidAmount,
+            amount = refundable,
             // Kód peněženky se v UI vykresluje zvlášť jako odkaz, do textu nepatří.
-            detail = reservation.walletDeductedAmount
-                .takeIf { it > 0.0 }
-                ?.let { "z toho ${it.toInt()} Kč zpět z kreditu" },
+            detail = listOfNotNull(
+                reversal.takeIf { it > 0.0 }?.let { "z toho ${it.toInt()} Kč zpět z kreditu" },
+                alreadyRefunded.takeIf { it > 0.0 }?.let { "${it.toInt()} Kč už vráceno za lekce" },
+            ).joinToString(", ").ifEmpty { null },
         )
 
-        notifyCredited(updatedWallet, paidAmount, reservation)
-        return RefundOutcome(updatedWallet.code, paidAmount)
+        notifyCredited(updatedWallet, refundable, reservation)
+        return RefundOutcome(updatedWallet.code, refundable)
     }
 
     /** Credit a fixed amount under [reason] (e.g. a single cancelled lesson). Returns null for non-positive amounts. */
@@ -84,6 +92,7 @@ class RefundService(
         reservation: Reservation,
         amount: Double,
         reason: WalletTransactionReason,
+        detail: String = reason.name,
     ): RefundOutcome? {
         if (amount <= 0.0) return null
         val updatedWallet = walletService.credit(wallet.id, amount, reason, reservation.id)
@@ -94,7 +103,7 @@ class RefundService(
             reservationId = reservation.id,
             walletCode = updatedWallet.code,
             amount = amount,
-            detail = reason.name,
+            detail = detail,
         )
 
         notifyCredited(updatedWallet, amount, reservation)
