@@ -698,18 +698,7 @@ open class ReservationService(
             // zápisu, byl by člověk odhlášený, čekatel posunutý a druhý pokus by spadl
             // na AlreadyOptedOut.
             val series = eventSeriesRepository.get(seriesId)
-            val perLesson = lessonCreditFor(reservation, series)
-            // Skutečně vyplacené částky z účetnictví peněženky, ne odhad z počtu
-            // omluvenek — kdo se odhlásil ještě před zaplacením, nedostal nic a
-            // nesmí mu to ukrajovat ze stropu.
-            val alreadyRefunded = walletService.refundedForLessonOptOuts(reservationId)
-            val refundAmount: Double = when {
-                reservation.paidAmount <= 0.0 -> 0.0  // nothing was paid, no refund
-                isLate -> 0.0  // late cancellation, no refund
-                // Souhrn omluvenek nesmí přerůst zaplacenou částku — ruční sazba kurzu
-                // je volná admin hodnota nezávislá na ceně kurzu.
-                else -> minOf(perLesson, reservation.paidAmount - alreadyRefunded).coerceAtLeast(0.0)
-            }
+            val refundAmount = if (isLate) 0.0 else refundService.cappedLessonCredit(reservation, series)
             val wallet: Wallet? =
                 if (refundAmount > 0.0) resolveWalletFor(reservation, walletCode, force) else null
 

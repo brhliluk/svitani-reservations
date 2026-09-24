@@ -1456,12 +1456,9 @@ class AdminDashboardService(
                     }
                 }
 
-                // Stejný kredit za lekci jako cancelSeriesLesson; dohromady ale nejvýš to,
-                // co z rezervace ještě nebylo vráceno — u vysoké sazby by součet za
-                // všechny zbývající lekce mohl přerůst zaplacenou částku.
-                val perLesson = lessonCreditFor(res, series)
-                if (refund && perLesson > 0.0 && res.paidAmount > 0.0) {
-                    val credit = minOf(perLesson * affected.size, refundService.refundableForWholeReservation(res))
+                // Stejný kredit za lekci jako cancelSeriesLesson, jen za všechny zbývající najednou.
+                val credit = if (refund) refundService.cappedLessonCredit(res, series, lessons = affected.size) else 0.0
+                if (credit > 0.0) {
                     refundSafely(res, resSubject) { wallet ->
                         refundService.refundFixedAmount(
                             wallet, res, credit,
@@ -1541,11 +1538,8 @@ class AdminDashboardService(
 
                     val alreadyOptedOut = seriesLessonOptOutRepository
                         .findByReservationAndInstance(res.id, instanceId) != null
-                    // Stejný kredit jako za omluvenku (za všechna místa), nejvýš to,
-                    // co z rezervace ještě nebylo vráceno.
-                    val refundAmount = if (res.paidAmount > 0.0 && !alreadyOptedOut) {
-                        minOf(lessonCreditFor(res, series), refundService.refundableForWholeReservation(res))
-                    } else 0.0
+                    // Stejný kredit jako za omluvenku.
+                    val refundAmount = if (alreadyOptedOut) 0.0 else refundService.cappedLessonCredit(res, series)
                     if (refundAmount > 0.0) {
                         refundSafely(res, AuditSubject(seriesId, instanceId, res.id, res.contactName)) { wallet ->
                             refundService.refundFixedAmount(

@@ -48,7 +48,7 @@ class LessonOptOutRefunds(
             .sortedBy { (optOut, _) -> optOut.optedOutAt }
         if (short.isEmpty()) return 0.0
 
-        var room = reservation.paidAmount - walletService.refundedForLessonOptOuts(reservation.id)
+        var room = refundService.refundableForWholeReservation(reservation)
         val topUps = short.mapNotNull { (optOut, missing) ->
             val add = minOf(missing, room)
             if (add <= 0.0) return@mapNotNull null

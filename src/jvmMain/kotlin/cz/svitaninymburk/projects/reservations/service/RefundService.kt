@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations.service
 
 import cz.svitaninymburk.projects.reservations.audit.AuditEventType
+import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
@@ -39,6 +40,19 @@ class RefundService(
      */
     suspend fun refundableForWholeReservation(reservation: Reservation): Double =
         (reservation.paidAmount - walletService.refundedForLessonOptOuts(reservation.id)).coerceAtLeast(0.0)
+
+    /**
+     * Kredit za [lessons] lekcí kurzu ([lessonCreditFor] za každou), dohromady nejvýš
+     * to, co z rezervace ještě nebylo vráceno — ruční sazba je volná hodnota nezávislá
+     * na ceně kurzu a součet by jinak mohl přerůst zaplacenou částku. Nezaplacená
+     * rezervace nedostane nic. Omluvenka i zrušení lekcí adminem počítají odsud.
+     */
+    suspend fun cappedLessonCredit(reservation: Reservation, series: EventSeries?, lessons: Int = 1): Double {
+        if (reservation.paidAmount <= 0.0) return 0.0
+        val perLesson = lessonCreditFor(reservation, series)
+        if (perLesson <= 0.0) return 0.0
+        return minOf(perLesson * lessons, refundableForWholeReservation(reservation))
+    }
 
     /**
      * Vrátí z rezervace to, co z ní ještě nebylo vráceno ([refundableForWholeReservation]):
