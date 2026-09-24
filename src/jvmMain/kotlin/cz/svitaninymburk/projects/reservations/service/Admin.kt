@@ -1393,14 +1393,26 @@ class AdminDashboardService(
                 }
         }
 
+        // Zápisy na kurz. Vrací se celá dosud nevrácená částka (refundWholeReservation),
+        // i když část lekcí už proběhla — poměrná vratka za proběhlé lekce zatím
+        // není obchodně rozhodnutá.
         reservationRepository.findByReference(Reference.Series(id))
             .filter { it.status != Reservation.Status.CANCELLED }
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                dispatchCancellationNotice(res, series.title)
+                val resSubject = AuditSubject(id, null, res.id, res.contactName)
+                audit.record(
+                    type = AuditEventType.RESERVATION_CANCELLED,
+                    subjectLabel = res.contactName,
+                    seriesId = id,
+                    reservationId = res.id,
+                    amount = res.paidAmount,
+                    detail = "Zrušeno se zrušením kurzu",
+                )
+                dispatchCancellationNotice(res, series.title, resSubject)
                 if (refund && res.paidAmount > 0.0) {
                     try {
-                        withAuditSubject(AuditSubject(id, null, res.id, res.contactName)) {
+                        withAuditSubject(resSubject) {
                             refundService.refundWholeReservation(resolveWalletForRefund(res), res)
                         }
                     } catch (e: Exception) {

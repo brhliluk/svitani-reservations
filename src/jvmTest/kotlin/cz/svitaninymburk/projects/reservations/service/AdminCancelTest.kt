@@ -1,8 +1,10 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import cz.svitaninymburk.projects.reservations.error.AdminError
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
+import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventSeriesRepository
@@ -33,6 +35,7 @@ class AdminCancelTest {
         seriesRepo: InMemoryEventSeriesRepository,
         reservationRepo: InMemoryReservationRepository,
         walletRepo: InMemoryWalletRepository = InMemoryWalletRepository(),
+        auditRepo: InMemoryAuditRepository = InMemoryAuditRepository(),
     ) = AdminDashboardService(
         eventDefinitionRepository = InMemoryEventDefinitionRepository(),
         eventSeriesRepository = seriesRepo,
@@ -55,6 +58,8 @@ class AdminCancelTest {
         seriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
         seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
         waitlistPromoter = testWaitlistPromoter(instanceRepo, seriesRepo, reservationRepo),
+        audit = AuditService(auditRepo),
+        auditRepository = auditRepo,
     )
 
     private fun futureInstance(seriesId: Uuid? = null) = EventInstance(
@@ -316,5 +321,53 @@ class AdminCancelTest {
             .cancelEventSeries(series.id, refund = false)
 
         assertEquals(emptyList(), walletRepo.findAllWithPositiveBalance())
+    }
+
+    /** Drop-in rezervace na lekci storno do historie zapisovaly, zápisy na kurz ne. */
+    @Test
+    fun `cancelEventSeries records cancellation of series enrolments in history`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val auditRepo = InMemoryAuditRepository()
+        val series = eventSeries()
+        seriesRepo.create(series)
+        instanceRepo.create(futureInstance(seriesId = series.id))
+        val enrolment = saveReservation(reservationRepo, Reference.Series(series.id), paidAmount = 1000.0)
+
+        service(instanceRepo, seriesRepo, reservationRepo, auditRepo = auditRepo).cancelEventSeries(series.id)
+
+        val cancelled = auditRepo.recordedEvents().filter { it.type == AuditEventType.RESERVATION_CANCELLED }
+        assertEquals(1, cancelled.size)
+        with(cancelled.single()) {
+            assertEquals(enrolment.id, reservationId)
+            assertEquals(series.id, seriesId)
+            assertEquals(null, instanceId)
+            assertEquals(enrolment.contactName, subjectLabel)
+            assertEquals(1000.0, amount)
+            assertEquals("Zrušeno se zrušením kurzu", detail)
+        }
+    }
+
+    /**
+     * Popisuje dnešní chování, ne rozhodnutí: zrušení rozběhnutého kurzu vrací
+     * celou zaplacenou částku, i když část lekcí už proběhla. Jestli má být
+     * vratka poměrná, je otevřená otázka na zadavatele.
+     */
+    @Test
+    fun `cancelEventSeries refunds the whole paid amount even when some lessons already took place`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+        val series = eventSeries()
+        seriesRepo.create(series)
+        instanceRepo.create(pastInstance(seriesId = series.id))
+        instanceRepo.create(futureInstance(seriesId = series.id))
+        saveReservation(reservationRepo, Reference.Series(series.id), paidAmount = 1000.0)
+
+        service(instanceRepo, seriesRepo, reservationRepo, walletRepo).cancelEventSeries(series.id)
+
+        assertEquals(listOf(1000.0), walletRepo.findAllWithPositiveBalance().map { it.balance })
     }
 }
