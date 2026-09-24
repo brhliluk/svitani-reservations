@@ -108,6 +108,7 @@ object CsStrings : AppStrings {
     override val reservationCancelledMessage = "Tato rezervace je zrušena."
     override val reservationPaidMessage = "Vše je uhrazeno. Těšíme se na vás!"
     override val reservationFreeMessage = "Tato akce je zdarma. Těšíme se na vás!"
+    override val reservationWaitlistedMessage = "Zatím nic neplatíte. Platební údaje pošleme, až se pro vás uvolní místo."
     override val copied = "Zkopírováno"
 
     // Reservation Statuses

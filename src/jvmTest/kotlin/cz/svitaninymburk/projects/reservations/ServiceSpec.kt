@@ -237,6 +237,23 @@ class AdminEditDeleteSpec {
         assertTrue(!subtitle.contains("8 lekcí"), "subtitle should not contain the stale stored count: $subtitle")
     }
 
+    @Test
+    fun `getEventDetail subtitle of a course lesson does not call it a one-off event`() = runBlocking {
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        val series = makeSeries(def.id)
+        seriesRepo.create(series)
+        val lesson = makeInstance(def.id).copy(seriesId = series.id)
+        val oneOff = makeInstance(def.id)
+        instanceRepo.create(lesson)
+        instanceRepo.create(oneOff)
+        val service = makeService(seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        assertContains(service.getEventDetail(lesson.id, isSeries = false).getOrNull()?.subtitle.orEmpty(), "Lekce kurzu")
+        assertContains(service.getEventDetail(oneOff.id, isSeries = false).getOrNull()?.subtitle.orEmpty(), "Jednorázová událost")
+    }
+
     // --- updateEventInstance ---
 
     @Test

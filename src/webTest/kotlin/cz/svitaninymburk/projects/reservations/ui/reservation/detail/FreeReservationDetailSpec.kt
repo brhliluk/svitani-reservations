@@ -128,4 +128,17 @@ class FreeReservationDetailSpec {
         assertTrue(label.startsWith("150"), "Čekal jsem částku, dostal '$label'")
         assertTrue(label.endsWith(CsStrings.currency), "Čekal jsem měnu, dostal '$label'")
     }
+
+    @Test
+    fun waitlistedReservationDoesNotClaimItIsPaid() {
+        val paid = reservation(200.0, Reservation.Status.WAITLISTED, PaymentType.BANK_TRANSFER)
+        assertEquals(CsStrings.reservationWaitlistedMessage, settledPaymentMessage(paid, CsStrings))
+        // Náhradník na akci zdarma žádné platební údaje nedostane — ty mu nesmíme slibovat.
+        val free = reservation(0.0, Reservation.Status.WAITLISTED, PaymentType.FREE)
+        assertEquals(CsStrings.reservationFreeMessage, settledPaymentMessage(free, CsStrings))
+        assertEquals(
+            CsStrings.reservationPaidMessage,
+            settledPaymentMessage(reservation(200.0, Reservation.Status.CONFIRMED, PaymentType.BANK_TRANSFER), CsStrings),
+        )
+    }
 }

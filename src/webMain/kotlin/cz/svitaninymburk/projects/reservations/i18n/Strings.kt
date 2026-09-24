@@ -119,6 +119,7 @@ interface AppStrings : ErrorStrings {
     val reservationCancelledMessage: String
     val reservationPaidMessage: String
     val reservationFreeMessage: String
+    val reservationWaitlistedMessage: String
     val copied: String
 
     // Reservation Statuses

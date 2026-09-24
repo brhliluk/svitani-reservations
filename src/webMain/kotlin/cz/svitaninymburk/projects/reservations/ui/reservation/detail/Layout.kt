@@ -184,9 +184,7 @@ fun IComponent.ReservationDetailLayout(
                             div(className = "opacity-50 flex flex-col items-center gap-4") {
                                 span(className = "size-24 ${uiState.iconClass}")
                                 p(className = "text-xl font-medium") {
-                                    if (reservation.status == Reservation.Status.CANCELLED) +currentStrings.reservationCancelledMessage
-                                    else if (reservation.isFree) +currentStrings.reservationFreeMessage
-                                    else +currentStrings.reservationPaidMessage
+                                    +settledPaymentMessage(reservation, currentStrings)
                                 }
                             }
                         }
@@ -216,6 +214,17 @@ fun IComponent.ReservationDetailLayout(
 }
 
 // --- LOGIKA STAVŮ (Configuration) ---
+
+/**
+ * Hláška místo platebních údajů. Náhradník zatím nic neplatí — platební údaje
+ * dostane až při posunu z pořadníku, takže „vše je uhrazeno“ by ho mátlo.
+ */
+internal fun settledPaymentMessage(reservation: Reservation, strings: AppStrings): String = when {
+    reservation.status == Reservation.Status.CANCELLED -> strings.reservationCancelledMessage
+    reservation.isFree -> strings.reservationFreeMessage
+    reservation.status == Reservation.Status.WAITLISTED -> strings.reservationWaitlistedMessage
+    else -> strings.reservationPaidMessage
+}
 
 internal data class ReservationUiState(
     val title: String,

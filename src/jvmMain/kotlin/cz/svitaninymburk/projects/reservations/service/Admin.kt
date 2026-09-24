@@ -314,7 +314,8 @@ class AdminDashboardService(
         } else {
             val instance = ensureNotNull(eventInstanceRepository.get(eventId)) { AdminError.EventInstanceNotFound(eventId) }
             title = instance.title
-            subtitle = "Jednorázová událost • ${instance.startDateTime.humanReadable}"
+            subtitle = if (instance.seriesId != null) "Lekce kurzu • ${instance.startDateTime.humanReadable}"
+            else "Jednorázová událost • ${instance.startDateTime.humanReadable}"
             capacity = instance.capacity
             occupiedSpots = instance.occupiedSpots
             waitlistCapacity = instance.waitlistCapacity

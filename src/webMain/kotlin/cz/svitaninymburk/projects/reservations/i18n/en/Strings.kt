@@ -104,6 +104,7 @@ object EnStrings : AppStrings {
     override val reservationCancelledMessage = "This reservation is cancelled."
     override val reservationPaidMessage = "Everything is paid. We look forward to seeing you!"
     override val reservationFreeMessage = "This event is free of charge. We look forward to seeing you!"
+    override val reservationWaitlistedMessage = "Nothing to pay yet. We will send the payment details once a spot opens up for you."
     override val copied = "Copied"
 
     // Reservation Statuses
