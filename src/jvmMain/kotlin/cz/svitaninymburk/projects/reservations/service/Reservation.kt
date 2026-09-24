@@ -604,6 +604,23 @@ open class ReservationService(
         }
     }
 
+    /**
+     * Zápis na kurz drží místo na každé jeho lekci, takže jeho storno uvolní místo
+     * i v pořadnících jednotlivých lekcí — ne jen v pořadníku kurzu. Volá se až po
+     * posunu v pořadníku kurzu: náhradník na celý kurz má přednost a lekce po něm
+     * rozdělí jen to, co zbylo (strop hlídá `attemptToReserveSpots` se zátěží kurzu).
+     * Lekce, ze kterých se storno omluvil, místo uvolnily už omluvenkou.
+     */
+    private suspend fun promoteLessonWaitlistsAfterEnrollmentCancelled(reservation: Reservation, seriesId: Uuid) {
+        val optedOut = seriesLessonOptOutRepository.findByReservation(reservation.id).map { it.instanceId }.toSet()
+        eventInstanceRepository.findBySeries(seriesId)
+            .lessonsNotYetStarted(nowInAppTimeZone())
+            .filter { it.id !in optedOut }
+            .forEach { lesson ->
+                waitlistPromoter.promote(Reference.Instance(lesson.id), freedSeats = reservation.seatCount)
+            }
+    }
+
     override suspend fun cancelReservation(
         reservationId: Uuid,
         instanceId: Uuid?,
@@ -832,6 +849,9 @@ open class ReservationService(
 
                 if (!wasWaitlisted) {
                     waitlistPromoter.promote(reservation.reference, freedSeats = reservation.seatCount)
+                    if (reservation.reference is Reference.Series) {
+                        promoteLessonWaitlistsAfterEnrollmentCancelled(reservation, reservation.reference.id)
+                    }
                 }
 
                 val cancelSubject = auditSubjectFor(target, cancelledReservation.id)
