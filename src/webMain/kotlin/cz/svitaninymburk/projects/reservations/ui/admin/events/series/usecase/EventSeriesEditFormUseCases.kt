@@ -57,8 +57,11 @@ fun resolveReservationDeadline(
 ): Duration? {
     if (!enabled) return null
     if (typeIsHours) return hours.hours
+    // Zóna prohlížeče, ne Europe/Prague: bundle nemá databázi časových pásem a TimeZone.of
+    // tu spadne — výjimka by skončila v catch a uzávěrka by se tiše neuložila. Admin
+    // formulář vyplňuje v Praze, takže odstup sedí i přes přechod na letní čas.
     return try {
-        val tz = TimeZone.of("Europe/Prague")
+        val tz = TimeZone.currentSystemDefault()
         val effectiveStart = LocalDateTime(startDate, lessonStartTime ?: LocalTime(0, 0))
         val deadlineDate = startDate.minus(daysBefore, DateTimeUnit.DAY)
         val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(timeStr))

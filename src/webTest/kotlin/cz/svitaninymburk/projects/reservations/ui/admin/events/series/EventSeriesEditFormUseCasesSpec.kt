@@ -79,6 +79,22 @@ class EventSeriesEditFormUseCasesSpec {
     }
 
     @Test
+    fun resolveReservationDeadlineCountsDaysBeforeAtTime() {
+        assertEquals(
+            24.hours,
+            resolveReservationDeadline(
+                startDate = LocalDate(2026, 1, 10),
+                lessonStartTime = LocalTime(18, 0),
+                enabled = true,
+                typeIsHours = false,
+                hours = 2,
+                daysBefore = 1,
+                timeStr = "18:00",
+            ),
+        )
+    }
+
+    @Test
     fun resolveReservationDeadlineReturnsNullForUnparsableTime() {
         assertNull(
             resolveReservationDeadline(
