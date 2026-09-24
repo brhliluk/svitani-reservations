@@ -279,6 +279,49 @@ class RunningCourseSpec {
     }
 
     @Test
+    fun `nezaplaceny zapis se se zrusenim bezicho kurzu stornuje`() = runBlocking {
+        seriesRepo.create(series)
+        lesson((-7).days)
+        lesson(7.days)
+        val unpaid = enroll(paidAmount = 0.0, status = Reservation.Status.PENDING_PAYMENT)
+
+        admin.cancelEventSeries(series.id, refund = true)
+
+        assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(unpaid.id)?.status)
+        assertEquals(0.0, lessonCredit(unpaid))
+        val zaznam = auditRepo.recordedEvents().single { it.type == AuditEventType.RESERVATION_CANCELLED && it.reservationId == unpaid.id }
+        assertEquals("Nezaplacený zápis zrušen se zrušením kurzu", zaznam.detail)
+    }
+
+    @Test
+    fun `castecne zaplaceny zapis zustane a dostane kredit do vyse zaplaceneho`() = runBlocking {
+        seriesRepo.create(series)
+        lesson((-7).days)
+        lesson(7.days)
+        lesson(14.days)
+        val partial = enroll(paidAmount = 200.0, status = Reservation.Status.PENDING_PAYMENT)
+
+        admin.cancelEventSeries(series.id, refund = true)
+
+        assertEquals(Reservation.Status.PENDING_PAYMENT, reservationRepo.findById(partial.id)?.status)
+        assertEquals(200.0, lessonCredit(partial), "2 × 150 = 300, ale zaplaceno jen 200")
+    }
+
+    @Test
+    fun `zapis na kurz zdarma se se zrusenim bezicho kurzu nestornuje`() = runBlocking {
+        seriesRepo.create(series.copy(price = 0.0))
+        lesson((-7).days)
+        lesson(7.days)
+        val free = reservationRepo.save(
+            enroll(paidAmount = 0.0).copy(totalPrice = 0.0, paymentType = PaymentType.FREE)
+        )
+
+        admin.cancelEventSeries(series.id, refund = true)
+
+        assertEquals(Reservation.Status.CONFIRMED, reservationRepo.findById(free.id)?.status)
+    }
+
+    @Test
     fun `zrusene lekce se zapisou do historie`() = runBlocking {
         seriesRepo.create(series)
         lesson((-7).days)

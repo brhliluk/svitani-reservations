@@ -737,7 +737,7 @@ object EnStrings : AppStrings {
         if (count > 0) "The event will remain visible as cancelled. $count reservations will be cancelled and payments returned."
         else "The event will remain visible as cancelled. This action cannot be undone."
     }
-    override val cancelRunningCourseConfirmBody = "The course is already running. Past lessons stay, only the ones that haven't started yet are cancelled. Enrolled participants keep their reservation and get credit for each cancelled lesson at the course rate."
+    override val cancelRunningCourseConfirmBody = "The course is already running. Past lessons stay, only the ones that haven't started yet are cancelled. Enrolled participants keep their reservation and get credit for each cancelled lesson at the course rate. Enrolments with no payment yet are cancelled."
     override val cancelEventSuccess = "Event cancelled"
     override val cancelEventError = "Failed to cancel event"
     override val refundOnCancelLabel = "Refund customers as wallet credit"

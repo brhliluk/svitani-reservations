@@ -749,7 +749,7 @@ object CsStrings : AppStrings {
         if (count > 0) "Událost zůstane viditelná jako zrušená. $count rezervací bude zrušeno a peníze vráceny."
         else "Událost zůstane viditelná jako zrušená. Tuto akci nelze vrátit."
     }
-    override val cancelRunningCourseConfirmBody = "Kurz už běží. Proběhlé lekce zůstanou, zruší se jen ty, které ještě nezačaly. Zapsaní si rezervaci nechají a za každou zrušenou lekci dostanou kredit podle sazby kurzu."
+    override val cancelRunningCourseConfirmBody = "Kurz už běží. Proběhlé lekce zůstanou, zruší se jen ty, které ještě nezačaly. Zapsaní si rezervaci nechají a za každou zrušenou lekci dostanou kredit podle sazby kurzu. Zápisy, za které zatím nic nepřišlo, se zruší."
     override val cancelEventSuccess = "Událost byla zrušena"
     override val cancelEventError = "Nepodařilo se zrušit událost"
     override val refundOnCancelLabel = "Vrátit peníze zákazníkům jako kredit"

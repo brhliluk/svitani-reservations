@@ -1483,6 +1483,24 @@ class AdminDashboardService(
                     return@forEach
                 }
 
+                // Nezaplacený zápis by po zrušení kurzu dál čekal na platbu celé ceny
+                // za kurz, který už nepokračuje, a kredit za zrušené lekce by nedostal
+                // ani po zaplacení (dorovnání po platbě řeší jen omluvenky). Stornuje
+                // se proto celý. Jen PENDING_PAYMENT bez jediné koruny — zápis na kurz
+                // zdarma je CONFIRMED a částečně zaplacený dostane kredit níž.
+                if (res.status == Reservation.Status.PENDING_PAYMENT && res.paidAmount <= 0.0) {
+                    reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
+                    audit.record(
+                        type = AuditEventType.RESERVATION_CANCELLED,
+                        subjectLabel = res.contactName,
+                        seriesId = series.id,
+                        reservationId = res.id,
+                        detail = "Nezaplacený zápis zrušen se zrušením kurzu",
+                    )
+                    dispatchCancellationNotice(res, series.title, resSubject)
+                    return@forEach
+                }
+
                 // Z lekcí, ze kterých se už omluvil, kredit dostal (nebo nedostal) při omluvence.
                 val optedOut = seriesLessonOptOutRepository.findByReservation(res.id).map { it.instanceId }.toSet()
                 val affected = remaining.filter { it.id !in optedOut }
