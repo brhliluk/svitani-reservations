@@ -75,6 +75,13 @@ class SeatCountSpec {
     }
 
     @Test
+    fun clampDoesNotThrowOnFullEvent() {
+        // Plná akce otevírá formulář náhradníka — zbývá 0 (u přeplněné i míň) míst.
+        assertEquals(1, instanceTarget(allowMultipleSeats = true, capacity = 5, occupied = 5).clampSeatCount(3))
+        assertEquals(1, instanceTarget(allowMultipleSeats = true, capacity = 5, occupied = 7).clampSeatCount(3))
+    }
+
+    @Test
     fun capacityIsNotReportedAsExceededWhenMultipleSeatsAreNotAllowed() {
         // Pole se vůbec nezobrazuje, takže varování o překročení kapacity nesmí vzniknout.
         assertEquals(false, instanceTarget(allowMultipleSeats = false, capacity = 2).exceedsRemainingCapacity(5))

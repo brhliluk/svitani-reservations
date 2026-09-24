@@ -1,6 +1,8 @@
 package cz.svitaninymburk.projects.reservations.service
 
 import cz.svitaninymburk.projects.reservations.StubQrCodeGenerator
+import cz.svitaninymburk.projects.reservations.error.ReservationError
+import cz.svitaninymburk.projects.reservations.reservation.CreateInstanceReservationRequest
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
@@ -137,5 +139,28 @@ class WaitlistCancellationSpec {
             instanceRepo.get(instanceId)!!.occupiedWaitlist,
             "pořadník se počítá po přihláškách — dvoumístný čekatel z něj ubere jednu, ne dvě",
         )
+    }
+
+    @Test
+    fun `do poradniku jde jen jedno misto`() = runBlocking {
+        createInstance(capacity = 2, occupiedSpots = 2, waitlistCapacity = 3, occupiedWaitlist = 0)
+        instanceRepo.update(instanceRepo.get(instanceId)!!.copy(allowMultipleSeats = true))
+
+        listOf(-5, 0, 3).forEach { seats ->
+            val result = service.joinWaitlistInstance(
+                CreateInstanceReservationRequest(
+                    eventInstanceId = instanceId,
+                    seatCount = seats,
+                    contactName = "Tester",
+                    contactEmail = "tester$seats@example.com",
+                    contactPhone = "+420777000000",
+                    paymentType = PaymentType.BANK_TRANSFER,
+                    customValues = emptyMap(),
+                ),
+                userId = null,
+            )
+            assertEquals(ReservationError.InvalidSeatCount, result.leftOrNull(), "počet míst $seats")
+        }
+        assertEquals(0, instanceRepo.get(instanceId)!!.occupiedWaitlist, "odmítnutý zápis nesmí ukrojit z pořadníku")
     }
 }

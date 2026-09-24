@@ -356,6 +356,10 @@ open class ReservationService(
 
         ensure(instance.isFull) { ReservationError.EventNotFull }
         ensure(instance.hasWaitlist) { ReservationError.WaitlistNotAvailable }
+        // Náhradník drží jedno místo (formulář jiný počet ani neposílá). Jiná hodnota
+        // z API by se při posunu propsala do kapacity: záporná by čítač míst stáhla
+        // a akci přeplnila, větší než kapacita by pořadník navždy zablokovala.
+        ensure(request.seatCount == 1) { ReservationError.InvalidSeatCount }
 
         ensureNoDuplicate(request.acknowledgedDuplicate) { duplicateDetector.forInstance(instance, request.contactEmail) }
 
@@ -380,6 +384,10 @@ open class ReservationService(
 
         ensure(series.isFull) { ReservationError.EventNotFull }
         ensure(series.hasWaitlist) { ReservationError.WaitlistNotAvailable }
+        // Náhradník drží jedno místo (formulář jiný počet ani neposílá). Jiná hodnota
+        // z API by se při posunu propsala do kapacity: záporná by čítač míst stáhla
+        // a akci přeplnila, větší než kapacita by pořadník navždy zablokovala.
+        ensure(request.seatCount == 1) { ReservationError.InvalidSeatCount }
 
         ensureNoDuplicate(request.acknowledgedDuplicate) { duplicateDetector.forSeries(series.id, request.contactEmail) }
 

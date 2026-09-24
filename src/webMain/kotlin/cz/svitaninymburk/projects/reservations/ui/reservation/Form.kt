@@ -79,7 +79,7 @@ fun IComponent.ReservationModal(
                             div(className = "stat-desc") {
                                 // Bez volby počtu míst je "× 1 osob" jen šum — rozpad ceny ho vynechá.
                                 val seatsPart =
-                                    if (target.allowMultipleSeats) " × ${model.seats} ${currentStrings.persons}" else ""
+                                    if (target.allowMultipleSeats && !asWaitlist) " × ${model.seats} ${currentStrings.persons}" else ""
                                 val hours = timeMultiplierHours(target, model.customValues)
                                 if (hours != null) {
                                     +"${target.price} ${currentStrings.currency}$seatsPart × ${formatPriceHours(hours)} ${currentStrings.hours}"
@@ -186,8 +186,10 @@ fun IComponent.ReservationModal(
                     // 4. Počet míst a Platba
                     div(className = "grid grid-cols-1 sm:grid-cols-3 gap-3") {
 
-                        // Počet míst — u akcí bez volby počtu míst se pole nezobrazuje a rezervuje se 1 místo
-                        if (target.allowMultipleSeats) {
+                        // Počet míst — u akcí bez volby počtu míst se pole nezobrazuje a rezervuje se 1 místo.
+                        // Náhradník drží vždy jedno místo (submittedSeatCount), takže ani jemu se pole neukazuje.
+                        val showsSeatCount = target.allowMultipleSeats && !asWaitlist
+                        if (showsSeatCount) {
                             label(className = "form-control w-full sm:col-span-1") {
                                 div(className = "label") {
                                     span(className = "label-text") { +currentStrings.seatCountLabel }
@@ -208,7 +210,7 @@ fun IComponent.ReservationModal(
                         // Typ platby — skryto pokud peněženka pokrývá celou cenu
                         if (model.showsPaymentPicker) {
                             // Bez pole s počtem míst zabere platba celou šířku mřížky.
-                            val paymentSpan = if (target.allowMultipleSeats) "sm:col-span-2" else "sm:col-span-3"
+                            val paymentSpan = if (showsSeatCount) "sm:col-span-2" else "sm:col-span-3"
                             label(className = "form-control w-full $paymentSpan") {
                                 div(className = "label") {
                                     span(className = "label-text") { +currentStrings.paymentType }
