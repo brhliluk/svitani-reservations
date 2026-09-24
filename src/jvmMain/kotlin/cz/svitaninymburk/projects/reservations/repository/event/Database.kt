@@ -634,6 +634,12 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
         instance
     }
 
+    /**
+     * Čítače obsazenosti (`occupiedSpots`, `occupiedWaitlist`) se tu nezapisují —
+     * mění je jen atomické inkrementy. Volá se stylem `update(instance.copy(...))`
+     * nad instancí načtenou o chvíli dřív a zápis její kopie čítačů by smazal
+     * rezervaci, která mezitím přišla. Stejně to má [ExposedEventSeriesRepository.update].
+     */
     override suspend fun update(instance: EventInstance): EventInstance = dbQuery {
         EventInstancesTable.update({ EventInstancesTable.id eq instance.id }) { row ->
             row[definitionId] = instance.definitionId
@@ -644,9 +650,7 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[endDateTime] = instance.endDateTime
             row[price] = instance.price
             row[capacity] = instance.capacity
-            row[occupiedSpots] = instance.occupiedSpots
             row[waitlistCapacity] = instance.waitlistCapacity
-            row[occupiedWaitlist] = instance.occupiedWaitlist
             row[isCancelled] = instance.isCancelled
             row[isPublished] = instance.isPublished
             row[allowedPaymentTypes] = instance.allowedPaymentTypes
@@ -658,7 +662,8 @@ class ExposedEventInstanceRepository : EventInstanceRepository {
             row[reservationDeadlineMessage] = instance.reservationDeadlineMessage
         }
         setOwnerEmails(EntityType.INSTANCE, instance.id, instance.ownerEmails)
-        instance
+        // Čítače z databáze, ne z předané kopie — ta je mohla mít zastaralé.
+        get(instance.id) ?: instance
     }
 
     override suspend fun delete(id: Uuid): Boolean = dbQuery {

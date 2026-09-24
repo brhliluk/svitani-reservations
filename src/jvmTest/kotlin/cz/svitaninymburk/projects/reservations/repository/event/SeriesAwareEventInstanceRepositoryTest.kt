@@ -88,6 +88,47 @@ class SeriesAwareEventInstanceRepositoryTest {
     }
 
     @Test
+    fun `rezervace mezi ctenim a zapisem se neztrati`() = runBlocking {
+        inner.create(lesson)
+        enrolTwo()
+
+        val loaded = repo.get(lessonId)!!
+        // Mezi načtením a uložením si někdo koupí drop-in.
+        assertTrue(repo.attemptToReserveSpots(lessonId, 1))
+        repo.update(loaded.copy(title = "Přejmenovaná"))
+
+        assertEquals(2, inner.get(lessonId)?.occupiedSpots, "1 původní + 1 nový drop-in")
+        assertEquals(4, repo.get(lessonId)?.occupiedSpots)
+    }
+
+    @Test
+    fun `zmena zateze kurzu mezi ctenim a zapisem nerozhodi ulozeny sloupec`() = runBlocking {
+        inner.create(lesson)
+        enrolTwo()
+
+        val loaded = repo.get(lessonId)!! // 1 přímá + 2 z kurzu
+        // Mezi načtením a uložením se na kurz zapíše další člověk.
+        reservationRepo.save(
+            Reservation(
+                id = Uuid.parse("00000000-0000-0000-0000-0000000000d2"),
+                reference = Reference.Series(seriesId),
+                contactName = "Druhý",
+                contactEmail = "druhy@example.com",
+                seatCount = 1,
+                totalPrice = 100.0,
+                status = Reservation.Status.CONFIRMED,
+                createdAt = Clock.System.now(),
+                customValues = emptyMap(),
+                paymentType = PaymentType.BANK_TRANSFER,
+            )
+        )
+        repo.update(loaded.copy(title = "Přejmenovaná"))
+
+        assertEquals(1, inner.get(lessonId)?.occupiedSpots, "uložené jsou jen přímé rezervace")
+        assertEquals(4, repo.get(lessonId)?.occupiedSpots)
+    }
+
+    @Test
     fun `isFull respektuje ucastniky kurzu`() = runBlocking {
         inner.create(lesson.copy(capacity = 3, occupiedSpots = 1))
         enrolTwo()

@@ -94,10 +94,12 @@ class InMemoryEventInstanceRepository : EventInstanceRepository {
         return newInstance
     }
 
-    override suspend fun update(instance: EventInstance): EventInstance {
-        instances[instance.id] = instance
-        return instance
-    }
+    /** Čítače obsazenosti nechává uložené — viz [ExposedEventInstanceRepository.update]. */
+    override suspend fun update(instance: EventInstance): EventInstance =
+        instances.compute(instance.id) { _, current ->
+            current?.let { instance.copy(occupiedSpots = it.occupiedSpots, occupiedWaitlist = it.occupiedWaitlist) }
+                ?: instance
+        }!!
 
     override suspend fun delete(id: Uuid): Boolean {
         if (instances.containsKey(id)) {
@@ -203,10 +205,12 @@ class InMemoryEventSeriesRepository : EventSeriesRepository {
         return newSeries
     }
 
-    override suspend fun update(series: EventSeries): EventSeries {
-        instances[series.id] = series
-        return series
-    }
+    /** Čítače obsazenosti nechává uložené — stejně jako [ExposedEventSeriesRepository.update]. */
+    override suspend fun update(series: EventSeries): EventSeries =
+        instances.compute(series.id) { _, current ->
+            current?.let { series.copy(occupiedSpots = it.occupiedSpots, occupiedWaitlist = it.occupiedWaitlist) }
+                ?: series
+        }!!
 
     override suspend fun delete(id: Uuid): Boolean {
         if (instances.containsKey(id)) {

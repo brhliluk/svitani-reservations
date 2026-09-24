@@ -12,10 +12,10 @@ import kotlin.uuid.Uuid
  * `spotsRemaining` jsou computed properties na [EventInstance], stačí opravit
  * `occupiedSpots` tady a celé UI i mobilní API se srovná samo.
  *
- * Zápisová cesta musí odvozenou část zase odečíst: `update()` zapisuje
- * `occupiedSpots` z předaného objektu a volá se stylem
- * `update(instance.copy(...))` nad instancí, která přišla ze čtení. Bez odečtení
- * by se odvozená místa zabetonovala do sloupce a při dalším čtení přičetla podruhé.
+ * `update()` čítače obsazenosti do databáze vůbec nezapisuje (viz
+ * [ExposedEventInstanceRepository.update]), takže odvozenou část není třeba
+ * odečítat. `create()` je zapisuje, proto ji tam před zápisem odečte [strip] —
+ * jinak by se zátěž kurzu zabetonovala do sloupce a při čtení přičetla podruhé.
  */
 class SeriesAwareEventInstanceRepository(
     private val delegate: EventInstanceRepository,
@@ -73,7 +73,7 @@ class SeriesAwareEventInstanceRepository(
         enrich(delegate.create(strip(instance)))!!
 
     override suspend fun update(instance: EventInstance): EventInstance =
-        enrich(delegate.update(strip(instance)))!!
+        enrich(delegate.update(instance))!!
 
     /**
      * Kapacitu lekce ukrajují i účastníci kurzu. Lekce mimo sérii žádnou zátěž
