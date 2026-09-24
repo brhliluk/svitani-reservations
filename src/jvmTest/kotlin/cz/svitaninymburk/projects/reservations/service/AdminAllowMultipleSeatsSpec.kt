@@ -119,13 +119,11 @@ class AdminAllowMultipleSeatsSpec {
     fun `createEventInstance persists allowMultipleSeats`() = runBlocking {
         val defRepo = InMemoryEventDefinitionRepository()
         val instanceRepo = InMemoryEventInstanceRepository()
-        val seriesRepo = InMemoryEventSeriesRepository()
         val def = definition()
         defRepo.create(def)
         val service = AuthenticatedEventService(
             eventDefinitionRepository = defRepo,
             eventInstanceRepository = instanceRepo,
-            seriesScheduleRefresher = SeriesScheduleRefresher(instanceRepo, seriesRepo),
         )
 
         val result = service.createEventInstance(

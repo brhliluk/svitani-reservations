@@ -10,19 +10,13 @@ import kotlinx.serialization.Serializable
     @Serializable @SerialName("get_series") sealed interface GetSeries: EventError, GetDashboardData
     @Serializable @SerialName("get_definitions") sealed interface GetDefinitions: EventError, GetDashboardData
 
-    @Serializable @SerialName("create_definition") sealed interface CreateEventDefinition: EventError
-    @Serializable @SerialName("update_definition") sealed interface UpdateEventDefinition: EventError
-    @Serializable @SerialName("delete_definition") sealed interface DeleteEventDefiniton: EventError
-
     @Serializable @SerialName("create_instance") sealed interface CreateEventInstance: EventError
-    @Serializable @SerialName("update_instance") sealed interface UpdateEventInstance: EventError
-    @Serializable @SerialName("delete_instance") sealed interface DeleteEventInstance: EventError
 
     @Serializable @SerialName("get_instance") sealed interface GetInstance: EventError
     @Serializable @SerialName("get_series_detail") sealed interface GetSeriesDetail: EventError
 
-    @Serializable data class EventDefinitionNotFound(val id: String): CreateEventInstance, UpdateEventDefinition, DeleteEventDefiniton
-    @Serializable data class EventInstanceNotFound(val id: String): UpdateEventInstance, DeleteEventInstance, GetInstance
+    @Serializable data class EventDefinitionNotFound(val id: String): CreateEventInstance
+    @Serializable data class EventInstanceNotFound(val id: String): GetInstance
     @Serializable data class EventSeriesNotFound(val id: String): GetSeriesDetail
 
     @Serializable data object FailedToGetInstances: GetInstances

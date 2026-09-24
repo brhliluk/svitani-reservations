@@ -192,9 +192,7 @@ class AdminManagementAuditSpec {
     @Test
     fun `nový termín ze šablony se zapíše`() = asAdmin {
         seed()
-        val authService = AuthenticatedEventService(
-            defRepo, instanceRepo, SeriesScheduleRefresher(instanceRepo, seriesRepo), AuditService(probingAudit),
-        )
+        val authService = AuthenticatedEventService(defRepo, instanceRepo, AuditService(probingAudit))
         authService.createEventInstance(
             CreateEventInstanceRequest(definitionId = definition.id, startDateTime = LocalDateTime(2099, 6, 1, 10, 0))
         )

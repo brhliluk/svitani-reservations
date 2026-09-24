@@ -133,7 +133,7 @@ val appModule = module {
     single { AuthRefreshTokenService(get(), get(), get()) } bind RefreshTokenServiceInterface::class
     single { RefreshTokenService(get(), get()) }
     single { EventService(get(), get(), get()) } bind EventServiceInterface::class
-    single { AuthenticatedEventService(get(), get(), get(), get()) } bind AuthenticatedEventServiceInterface::class
+    single { AuthenticatedEventService(get(), get(), get()) } bind AuthenticatedEventServiceInterface::class
     // Obalené auditem, ať se každý pokus o odeslání zapíše do historie na jednom místě
     single {
         val gmail = GmailEmailService(

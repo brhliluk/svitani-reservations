@@ -3,7 +3,6 @@ package cz.svitaninymburk.projects.reservations.service
 import arrow.core.Either
 import cz.svitaninymburk.projects.reservations.api.SeriesDetailResponse
 import cz.svitaninymburk.projects.reservations.error.EventError
-import cz.svitaninymburk.projects.reservations.event.CreateEventDefinitionRequest
 import cz.svitaninymburk.projects.reservations.event.CreateEventInstanceRequest
 import cz.svitaninymburk.projects.reservations.event.DashboardData
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
@@ -25,10 +24,5 @@ interface EventServiceInterface {
 
 @RpcService
 interface AuthenticatedEventServiceInterface {
-    suspend fun createEventDefinition(request: CreateEventDefinitionRequest): Either<EventError.CreateEventDefinition, Unit>
-    suspend fun updateEventDefinition(definition: EventDefinition): Either<EventError.UpdateEventDefinition, Unit>
-    suspend fun deleteEventDefinition(id: Uuid): Either<EventError.DeleteEventDefiniton, Boolean>
     suspend fun createEventInstance(request: CreateEventInstanceRequest): Either<EventError.CreateEventInstance, Unit>
-    suspend fun updateEventInstance(instance: EventInstance): Either<EventError.UpdateEventInstance, Unit>
-    suspend fun deleteEventInstance(id: Uuid): Either<EventError.DeleteEventInstance, Boolean>
 }
