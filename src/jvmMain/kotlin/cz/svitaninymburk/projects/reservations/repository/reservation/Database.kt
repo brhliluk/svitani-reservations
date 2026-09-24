@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.repository.reservation
 
+import cz.svitaninymburk.projects.reservations.repository.event.INACTIVE_RESERVATION_STATUSES
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
@@ -138,7 +139,8 @@ class ExposedReservationRepository : ReservationRepository {
         ReservationsTable.selectAll()
             .where {
                 (ReservationsTable.referenceId inList referenceIds) and
-                    (ReservationsTable.contactEmail.lowerCase() eq email) and
+                    // TRIM stejně jako ve findUnclaimedByEmail — adresa se ukládá, jak ji člověk napsal.
+                    (ReservationsTable.contactEmail.trim().lowerCase() eq email) and
                     (ReservationsTable.status inList ACTIVE_SIGNUP_STATUSES)
             }
             .map { it.toReservation() }
@@ -178,9 +180,7 @@ class ExposedReservationRepository : ReservationRepository {
         val result = ReservationsTable.select(sumColumn)
             .where {
                 (ReservationsTable.referenceId eq id) and
-                        (ReservationsTable.status neq Reservation.Status.CANCELLED) and
-                        (ReservationsTable.status neq Reservation.Status.REJECTED) and
-                        (ReservationsTable.status neq Reservation.Status.WAITLISTED)
+                        (ReservationsTable.status notInList INACTIVE_RESERVATION_STATUSES)
             }
             .firstOrNull()
 

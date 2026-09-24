@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.repository.reservation
 
+import cz.svitaninymburk.projects.reservations.repository.event.INACTIVE_RESERVATION_STATUSES
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
@@ -48,7 +49,7 @@ class InMemoryReservationRepository : ReservationRepository {
     override suspend fun countSeats(id: Uuid): Int {
         return reservations.values
             .filter { it.reference.id == id }
-            .filter { it.status != Reservation.Status.CANCELLED && it.status != Reservation.Status.REJECTED && it.status != Reservation.Status.WAITLISTED }
+            .filter { it.status !in INACTIVE_RESERVATION_STATUSES }
             .sumOf { it.seatCount }
     }
 

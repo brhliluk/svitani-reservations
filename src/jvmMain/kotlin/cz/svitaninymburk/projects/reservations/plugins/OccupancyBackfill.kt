@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.plugins
 
+import cz.svitaninymburk.projects.reservations.repository.event.INACTIVE_RESERVATION_STATUSES
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
@@ -20,14 +21,14 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
  * neviděl a tiše by o ni srazil čítač (přeprodané místo).
  */
 internal fun JdbcTransaction.recomputeOccupiedSpotsInTransaction() {
-    // Stavy jsou tu vypsané jako literál shodně s INACTIVE_RESERVATION_STATUSES
-    // z repository/event/SeriesLessonLoad.kt — druhé a poslední místo, kde žije.
+    // Stavy se skládají z INACTIVE_RESERVATION_STATUSES, aby se SQL nemohlo rozejít s Kotlinem.
+    val inactive = INACTIVE_RESERVATION_STATUSES.joinToString(",") { "'${it.name}'" }
     exec("""
         UPDATE event_instances SET occupied_spots = (
             SELECT COALESCE(SUM(r.seat_count), 0) FROM reservations r
              WHERE r.reference_type = 'INSTANCE'
                AND r.reference_id = event_instances.id
-               AND r.status NOT IN ('CANCELLED','REJECTED','WAITLISTED')
+               AND r.status NOT IN ($inactive)
         )
     """.trimIndent())
 
@@ -36,7 +37,7 @@ internal fun JdbcTransaction.recomputeOccupiedSpotsInTransaction() {
             SELECT COALESCE(SUM(r.seat_count), 0) FROM reservations r
              WHERE r.reference_type = 'SERIES'
                AND r.reference_id = event_series.id
-               AND r.status NOT IN ('CANCELLED','REJECTED','WAITLISTED')
+               AND r.status NOT IN ($inactive)
         )
     """.trimIndent())
 

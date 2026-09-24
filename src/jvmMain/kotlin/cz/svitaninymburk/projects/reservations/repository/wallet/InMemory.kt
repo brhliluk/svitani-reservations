@@ -44,7 +44,7 @@ class InMemoryWalletRepository : WalletRepository {
 
     override suspend fun addToBalance(walletId: Uuid, delta: Double): Wallet {
         val current = wallets[walletId]?.balance ?: 0.0
-        val updated = wallets[walletId]!!.copy(balance = (current + delta).coerceAtLeast(0.0))
+        val updated = wallets[walletId]!!.copy(balance = current + delta)
         wallets[walletId] = updated
         return updated
     }

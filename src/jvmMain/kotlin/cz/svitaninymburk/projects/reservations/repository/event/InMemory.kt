@@ -205,11 +205,20 @@ class InMemoryEventSeriesRepository : EventSeriesRepository {
         return newSeries
     }
 
-    /** Čítače obsazenosti nechává uložené — stejně jako [ExposedEventSeriesRepository.update]. */
+    /**
+     * Čítače obsazenosti, zrušení i šablonu nechává uložené — stejně jako
+     * [ExposedEventSeriesRepository.update]; zrušení jde jen přes [setCancelled].
+     */
     override suspend fun update(series: EventSeries): EventSeries =
         instances.compute(series.id) { _, current ->
-            current?.let { series.copy(occupiedSpots = it.occupiedSpots, occupiedWaitlist = it.occupiedWaitlist) }
-                ?: series
+            current?.let {
+                series.copy(
+                    occupiedSpots = it.occupiedSpots,
+                    occupiedWaitlist = it.occupiedWaitlist,
+                    isCancelled = it.isCancelled,
+                    definitionId = it.definitionId,
+                )
+            } ?: series
         }!!
 
     override suspend fun delete(id: Uuid): Boolean {
