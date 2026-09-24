@@ -11,6 +11,8 @@ import arrow.core.raise.ensure
 import cz.svitaninymburk.projects.reservations.error.DuplicateScope
 import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.error.WalletError
+import cz.svitaninymburk.projects.reservations.event.EventInstance
+import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
 import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
 import cz.svitaninymburk.projects.reservations.i18n.LectorTarget
@@ -291,12 +293,7 @@ open class ReservationService(
     override suspend fun reserveInstance(request: CreateInstanceReservationRequest, userId: Uuid?): Either<ReservationError.CreateReservation, Reservation> = either {
 
         val instance = ensureNotNull(eventInstanceRepository.get(request.eventInstanceId)) { ReservationError.ReservationNotFound }
-        if (!isAdminCaller()) ensure(instance.isPublished) { ReservationError.ReservationNotFound }
-
-        ensure(!instance.isCancelled) { ReservationError.EventCancelled }
-        ensure(instance.endDateTime > nowInAppTimeZone()) { ReservationError.EventAlreadyFinished }
-        ensure(instance.startDateTime > nowInAppTimeZone()) { ReservationError.EventAlreadyStarted }
-        ensure(!instance.isReservationDeadlinePassed()) { ReservationError.ReservationDeadlinePassed }
+        ensureBookable(instance)
 
         ensure(request.seatCount >= 1) { ReservationError.InvalidSeatCount }
         ensure(instance.allowMultipleSeats || request.seatCount == 1) { ReservationError.MultipleSeatsNotAllowed }
@@ -327,9 +324,7 @@ open class ReservationService(
     ): Either<ReservationError.CreateReservation, Reservation> = either {
 
         val series = ensureNotNull(eventSeriesRepository.get(request.eventSeriesId)) { ReservationError.ReservationNotFound }
-        if (!isAdminCaller()) ensure(series.isPublished) { ReservationError.ReservationNotFound }
-
-        ensure(!series.isReservationDeadlinePassed()) { ReservationError.ReservationDeadlinePassed }
+        ensureBookable(series)
 
         ensure(request.seatCount >= 1) { ReservationError.InvalidSeatCount }
         ensure(series.allowMultipleSeats || request.seatCount == 1) { ReservationError.MultipleSeatsNotAllowed }
@@ -356,8 +351,7 @@ open class ReservationService(
         userId: Uuid?,
     ): Either<ReservationError.CreateReservation, Reservation> = either {
         val instance = ensureNotNull(eventInstanceRepository.get(request.eventInstanceId)) { ReservationError.ReservationNotFound }
-        if (!isAdminCaller()) ensure(instance.isPublished) { ReservationError.ReservationNotFound }
-        ensure(!instance.isCancelled) { ReservationError.EventCancelled }
+        ensureBookable(instance)
 
         ensure(instance.isFull) { ReservationError.EventNotFull }
         ensure(instance.hasWaitlist) { ReservationError.WaitlistNotAvailable }
@@ -385,7 +379,7 @@ open class ReservationService(
         userId: Uuid?,
     ): Either<ReservationError.CreateReservation, Reservation> = either {
         val series = ensureNotNull(eventSeriesRepository.get(request.eventSeriesId)) { ReservationError.ReservationNotFound }
-        if (!isAdminCaller()) ensure(series.isPublished) { ReservationError.ReservationNotFound }
+        ensureBookable(series)
 
         ensure(series.isFull) { ReservationError.EventNotFull }
         ensure(series.hasWaitlist) { ReservationError.WaitlistNotAvailable }
@@ -406,6 +400,25 @@ open class ReservationService(
             pricePerSeat = series.price,
             target = ReservationTarget.Series(series),
         )
+    }
+
+    /**
+     * Společná brána pro rezervaci i zápis na pořadník — kdyby měl každý vstup vlastní
+     * kopii, pořadník by šel otevřít u akce, kam už se rezervovat nedá.
+     */
+    private suspend fun Raise<ReservationError.CreateReservation>.ensureBookable(instance: EventInstance) {
+        if (!isAdminCaller()) ensure(instance.isPublished) { ReservationError.ReservationNotFound }
+        ensure(!instance.isCancelled) { ReservationError.EventCancelled }
+        ensure(instance.endDateTime > nowInAppTimeZone()) { ReservationError.EventAlreadyFinished }
+        ensure(instance.startDateTime > nowInAppTimeZone()) { ReservationError.EventAlreadyStarted }
+        ensure(!instance.isReservationDeadlinePassed()) { ReservationError.ReservationDeadlinePassed }
+    }
+
+    /** Začátek se u kurzu nehlídá — na běžící kurz se zapsat jde, dokud nepadne uzávěrka. */
+    private suspend fun Raise<ReservationError.CreateReservation>.ensureBookable(series: EventSeries) {
+        if (!isAdminCaller()) ensure(series.isPublished) { ReservationError.ReservationNotFound }
+        ensure(!series.isCancelled) { ReservationError.EventCancelled }
+        ensure(!series.isReservationDeadlinePassed()) { ReservationError.ReservationDeadlinePassed }
     }
 
     private suspend fun Raise<ReservationError.CreateReservation>.joinWaitlistFlow(
