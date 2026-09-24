@@ -63,6 +63,38 @@ class AuditLogCardSpec {
         assertEquals(CsStrings.auditCategoryEmail, categoryLabel(AuditCategory.EMAIL, CsStrings))
         assertEquals(CsStrings.auditCategoryPayment, categoryLabel(AuditCategory.PAYMENT, CsStrings))
         assertEquals(CsStrings.auditCategoryReservation, categoryLabel(AuditCategory.RESERVATION, CsStrings))
+        assertEquals(CsStrings.auditCategoryManagement, categoryLabel(AuditCategory.MANAGEMENT, CsStrings))
+    }
+
+    /** Filtr býval vyjmenovaný ručně — nová kategorie by se v něm neobjevila a nešla by vybrat. */
+    @Test
+    fun filtrNabiziVsechnyKategorie() {
+        assertEquals(null, AUDIT_FILTER_OPTIONS.first())
+        assertEquals(AuditCategory.entries.toSet(), AUDIT_FILTER_OPTIONS.filterNotNull().toSet())
+    }
+
+    /** Správa akce má vlastní filtr, nesmí se míchat do rezervací. */
+    @Test
+    fun zmenyAkceMajiVlastniKategoriiAPopisky() {
+        val management = listOf(
+            AuditEventType.DEFINITION_CREATED, AuditEventType.DEFINITION_UPDATED, AuditEventType.DEFINITION_DELETED,
+            AuditEventType.EVENT_CREATED, AuditEventType.EVENT_UPDATED, AuditEventType.EVENT_PUBLISHED,
+            AuditEventType.EVENT_UNPUBLISHED, AuditEventType.EVENT_DELETED,
+            AuditEventType.SERIES_CREATED, AuditEventType.SERIES_UPDATED, AuditEventType.SERIES_PUBLISHED,
+            AuditEventType.SERIES_UNPUBLISHED, AuditEventType.SERIES_DELETED,
+            AuditEventType.LESSON_CREATED, AuditEventType.LESSON_UPDATED, AuditEventType.LESSON_PUBLISHED,
+            AuditEventType.LESSON_UNPUBLISHED, AuditEventType.LESSON_DELETED,
+        )
+        management.forEach { type ->
+            assertEquals(AuditCategory.MANAGEMENT, type.category, "$type patří do správy akce")
+            assertTrue(CsStrings.auditEventLabel(type) != type.name, "cs popisek pro $type je holý enum")
+        }
+        assertEquals("Kurz smazán", CsStrings.auditEventLabel(AuditEventType.SERIES_DELETED))
+        assertEquals(
+            "Course deleted",
+            cz.svitaninymburk.projects.reservations.i18n.en.EnStrings.auditEventLabel(AuditEventType.SERIES_DELETED),
+        )
+        assertFalse(event(type = AuditEventType.EVENT_DELETED, reservationId = Uuid.random(), recipient = "a@b.cz").isResendable)
     }
 
     /** Bez popisku by v tabulce svítil holý název enumu. */

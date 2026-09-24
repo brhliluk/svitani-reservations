@@ -274,6 +274,7 @@ interface AppStrings : ErrorStrings {
     val auditCategoryReservation: String
     val auditCategoryEmail: String
     val auditCategoryPayment: String
+    val auditCategoryManagement: String
     val auditOutcomeFailure: String
     val auditActorSystem: String
     val auditOpenReservation: String

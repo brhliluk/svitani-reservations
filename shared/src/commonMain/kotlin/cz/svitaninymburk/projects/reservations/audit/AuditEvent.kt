@@ -12,7 +12,12 @@ import kotlin.uuid.Uuid
  * aby zůstal čitelný i po smazání rezervace nebo akce, ke které patřil.
  */
 @Serializable
-enum class AuditCategory { RESERVATION, EMAIL, PAYMENT }
+enum class AuditCategory {
+    RESERVATION, EMAIL, PAYMENT,
+
+    /** Co admin udělal se samotnou akcí: založení, úpravy, zveřejnění, smazání. */
+    MANAGEMENT,
+}
 
 @Serializable
 enum class AuditEventType(val category: AuditCategory) {
@@ -29,6 +34,27 @@ enum class AuditEventType(val category: AuditCategory) {
     LESSON_RESCHEDULED(AuditCategory.RESERVATION),
     LESSON_CANCELLED(AuditCategory.RESERVATION),
     EVENT_CANCELLED(AuditCategory.RESERVATION),
+
+    // Správa akcí. Smazaná akce po sobě nenechá nic, na co by šlo z historie
+    // odkázat — proto se záznam o smazání zapisuje ještě před ním a nese její název.
+    DEFINITION_CREATED(AuditCategory.MANAGEMENT),
+    DEFINITION_UPDATED(AuditCategory.MANAGEMENT),
+    DEFINITION_DELETED(AuditCategory.MANAGEMENT),
+    EVENT_CREATED(AuditCategory.MANAGEMENT),
+    EVENT_UPDATED(AuditCategory.MANAGEMENT),
+    EVENT_PUBLISHED(AuditCategory.MANAGEMENT),
+    EVENT_UNPUBLISHED(AuditCategory.MANAGEMENT),
+    EVENT_DELETED(AuditCategory.MANAGEMENT),
+    SERIES_CREATED(AuditCategory.MANAGEMENT),
+    SERIES_UPDATED(AuditCategory.MANAGEMENT),
+    SERIES_PUBLISHED(AuditCategory.MANAGEMENT),
+    SERIES_UNPUBLISHED(AuditCategory.MANAGEMENT),
+    SERIES_DELETED(AuditCategory.MANAGEMENT),
+    LESSON_CREATED(AuditCategory.MANAGEMENT),
+    LESSON_UPDATED(AuditCategory.MANAGEMENT),
+    LESSON_PUBLISHED(AuditCategory.MANAGEMENT),
+    LESSON_UNPUBLISHED(AuditCategory.MANAGEMENT),
+    LESSON_DELETED(AuditCategory.MANAGEMENT),
 
     // Platby
     PAYMENT_PAIRED_AUTO(AuditCategory.PAYMENT),

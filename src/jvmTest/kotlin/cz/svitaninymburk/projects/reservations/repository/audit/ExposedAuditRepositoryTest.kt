@@ -65,6 +65,19 @@ class ExposedAuditRepositoryTest {
         assertEquals(AuditCategory.RESERVATION, found.single().category)
     }
 
+    /** Správa akce má vlastní kategorii — musí se uložit a jít podle ní filtrovat. */
+    @Test
+    fun `zmeny akce se ukladaji pod vlastni kategorii`() = runBlocking {
+        val kurz = Uuid.random()
+        repository.record(event(type = AuditEventType.SERIES_UNPUBLISHED, seriesId = kurz))
+        repository.record(event(seriesId = kurz))
+
+        val found = repository.findForEvent(kurz, isSeries = true, category = AuditCategory.MANAGEMENT, page = 0, pageSize = 50)
+
+        assertEquals(listOf(AuditEventType.SERIES_UNPUBLISHED), found.map { it.type })
+        assertEquals(AuditCategory.MANAGEMENT, found.single().category)
+    }
+
     @Test
     fun `detail kurzu bere i deni ve svych lekcich`() = runBlocking {
         val kurz = Uuid.random()

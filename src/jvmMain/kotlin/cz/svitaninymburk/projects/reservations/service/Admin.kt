@@ -611,6 +611,7 @@ class AdminDashboardService(
             )
 
             eventDefinitionRepository.create(newDefinition)
+            recordDefinitionCreated(newDefinition)
 
             newDefinition.id
         } catch (e: Exception) {
@@ -667,6 +668,13 @@ class AdminDashboardService(
         val lessons = lessonsForNewSeries(series, customLessons)
         lessons.forEach { eventInstanceRepository.create(it) }
         seriesScheduleRefresher.refresh(series.id)
+
+        audit.record(
+            type = AuditEventType.SERIES_CREATED,
+            subjectLabel = series.title,
+            seriesId = series.id,
+            detail = "Lekcí: ${lessons.size}",
+        )
     }
 
     /**
@@ -717,6 +725,10 @@ class AdminDashboardService(
         }
     }
 
+    private suspend fun recordDefinitionCreated(definition: EventDefinition) {
+        audit.record(type = AuditEventType.DEFINITION_CREATED, subjectLabel = definition.title)
+    }
+
     override suspend fun createEventAndInstances(request: CreateEventAndInstancesRequest): Either<AdminError.CreateEvent, Uuid> = either {
         try {
             val newDefinition = EventDefinition(
@@ -734,29 +746,35 @@ class AdminDashboardService(
                 allowMultipleSeats = request.allowMultipleSeats,
             )
             eventDefinitionRepository.create(newDefinition)
+            recordDefinitionCreated(newDefinition)
 
             val tz = APP_TIMEZONE
             request.dateTimes.forEach { startDateTime ->
-                eventInstanceRepository.create(
-                    EventInstance(
-                        id = Uuid.random(),
-                        definitionId = newDefinition.id,
-                        title = newDefinition.title,
-                        description = newDefinition.description,
-                        startDateTime = startDateTime,
-                        endDateTime = (startDateTime.toInstant(tz) + newDefinition.defaultDuration).toLocalDateTime(tz),
-                        price = newDefinition.defaultPrice,
-                        capacity = newDefinition.defaultCapacity,
-                        waitlistCapacity = request.defaultWaitlistCapacity,
-                        allowedPaymentTypes = newDefinition.allowedPaymentTypes,
-                        customFields = newDefinition.customFields,
-                        ownerEmails = newDefinition.ownerEmails,
-                        showAttendeeCount = newDefinition.showAttendeeCount,
-                        allowMultipleSeats = newDefinition.allowMultipleSeats,
-                        reservationDeadline = request.reservationDeadline,
-                        reservationDeadlineMessage = request.reservationDeadlineMessage,
-                        isPublished = request.isPublished,
-                    )
+                val instance = EventInstance(
+                    id = Uuid.random(),
+                    definitionId = newDefinition.id,
+                    title = newDefinition.title,
+                    description = newDefinition.description,
+                    startDateTime = startDateTime,
+                    endDateTime = (startDateTime.toInstant(tz) + newDefinition.defaultDuration).toLocalDateTime(tz),
+                    price = newDefinition.defaultPrice,
+                    capacity = newDefinition.defaultCapacity,
+                    waitlistCapacity = request.defaultWaitlistCapacity,
+                    allowedPaymentTypes = newDefinition.allowedPaymentTypes,
+                    customFields = newDefinition.customFields,
+                    ownerEmails = newDefinition.ownerEmails,
+                    showAttendeeCount = newDefinition.showAttendeeCount,
+                    allowMultipleSeats = newDefinition.allowMultipleSeats,
+                    reservationDeadline = request.reservationDeadline,
+                    reservationDeadlineMessage = request.reservationDeadlineMessage,
+                    isPublished = request.isPublished,
+                )
+                eventInstanceRepository.create(instance)
+                audit.record(
+                    type = AuditEventType.EVENT_CREATED,
+                    subjectLabel = instance.title,
+                    instanceId = instance.id,
+                    detail = "Termín ${instance.startDateTime}",
                 )
             }
             newDefinition.id
@@ -783,6 +801,7 @@ class AdminDashboardService(
                 allowMultipleSeats = request.allowMultipleSeats,
             )
             eventDefinitionRepository.create(newDefinition)
+            recordDefinitionCreated(newDefinition)
 
             val newSeries = EventSeries(
                 id = Uuid.random(),
@@ -937,16 +956,37 @@ class AdminDashboardService(
         }
 
         existing.seriesId?.let { seriesScheduleRefresher.refresh(it) }
+
+        audit.record(
+            type = if (existing.seriesId != null) AuditEventType.LESSON_UPDATED else AuditEventType.EVENT_UPDATED,
+            subjectLabel = request.title,
+            seriesId = existing.seriesId,
+            instanceId = id,
+        )
     }
 
     override suspend fun setInstancePublished(id: Uuid, published: Boolean): Either<AdminError.UpdateEvent, Unit> = either {
         val existing = ensureNotNull(eventInstanceRepository.get(id)) { AdminError.InstanceNotFoundForEdit(id) }
         eventInstanceRepository.update(existing.copy(isPublished = published))
+
+        val type = when {
+            existing.seriesId != null && published -> AuditEventType.LESSON_PUBLISHED
+            existing.seriesId != null -> AuditEventType.LESSON_UNPUBLISHED
+            published -> AuditEventType.EVENT_PUBLISHED
+            else -> AuditEventType.EVENT_UNPUBLISHED
+        }
+        audit.record(type = type, subjectLabel = existing.title, seriesId = existing.seriesId, instanceId = id)
     }
 
     override suspend fun setSeriesPublished(id: Uuid, published: Boolean): Either<AdminError.UpdateSeries, Unit> = either {
         val existing = ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
         eventSeriesRepository.update(existing.copy(isPublished = published))
+
+        audit.record(
+            type = if (published) AuditEventType.SERIES_PUBLISHED else AuditEventType.SERIES_UNPUBLISHED,
+            subjectLabel = existing.title,
+            seriesId = id,
+        )
     }
 
     override suspend fun updateEventSeries(id: Uuid, request: cz.svitaninymburk.projects.reservations.event.UpdateEventSeriesRequest): Either<AdminError.UpdateSeries, Unit> = either {
@@ -987,6 +1027,8 @@ class AdminDashboardService(
                 }
             }
         }
+
+        audit.record(type = AuditEventType.SERIES_UPDATED, subjectLabel = updated.title, seriesId = id)
     }
 
     /**
@@ -1058,6 +1100,13 @@ class AdminDashboardService(
             )
             eventInstanceRepository.create(instance)
             seriesScheduleRefresher.refresh(series.id)
+            audit.record(
+                type = AuditEventType.LESSON_CREATED,
+                subjectLabel = series.title,
+                seriesId = series.id,
+                instanceId = instance.id,
+                detail = "Lekce ${instance.startDateTime}",
+            )
             instance.id
         } catch (e: Exception) {
             e.printStackTrace()
@@ -1080,6 +1129,12 @@ class AdminDashboardService(
             allowMultipleSeats = request.allowMultipleSeats,
         )
         eventDefinitionRepository.update(updated)
+
+        audit.record(
+            type = AuditEventType.DEFINITION_UPDATED,
+            subjectLabel = updated.title,
+            detail = if (request.propagateToChildren) "Propsáno do akcí a kurzů ze šablony" else null,
+        )
 
         if (request.propagateToChildren) {
             val (childInstances, childSeries) = parZip(
@@ -1128,6 +1183,15 @@ class AdminDashboardService(
     override suspend fun deleteEventInstance(id: Uuid, refund: Boolean): Either<AdminError.DeleteEvent, Unit> = either {
         val instance = ensureNotNull(eventInstanceRepository.get(id)) { AdminError.InstanceNotFoundForEdit(id) }
 
+        // Ještě před smazáním — pak už nebude z čeho vzít název.
+        audit.record(
+            type = if (instance.seriesId != null) AuditEventType.LESSON_DELETED else AuditEventType.EVENT_DELETED,
+            subjectLabel = instance.title,
+            seriesId = instance.seriesId,
+            instanceId = id,
+            detail = "Smazáno: ${instance.title} (${instance.startDateTime})",
+        )
+
         reservationRepository.findByReference(Reference.Instance(id))
             .filter { it.status != Reservation.Status.CANCELLED }
             .forEach { res ->
@@ -1150,6 +1214,14 @@ class AdminDashboardService(
 
     override suspend fun deleteEventSeries(id: Uuid, refund: Boolean): Either<AdminError.DeleteSeries, Unit> = either {
         val series = ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
+
+        // Ještě před smazáním — pak už nebude z čeho vzít název.
+        audit.record(
+            type = AuditEventType.SERIES_DELETED,
+            subjectLabel = series.title,
+            seriesId = id,
+            detail = "Smazáno: ${series.title}",
+        )
 
         reservationRepository.findByReference(Reference.Series(id))
             .filter { it.status != Reservation.Status.CANCELLED }
@@ -1192,7 +1264,14 @@ class AdminDashboardService(
     }
 
     override suspend fun deleteEventDefinition(id: Uuid): Either<AdminError.DeleteDefinition, Unit> = either {
-        ensureNotNull(eventDefinitionRepository.get(id)) { AdminError.DefinitionNotFound(id) }
+        val definition = ensureNotNull(eventDefinitionRepository.get(id)) { AdminError.DefinitionNotFound(id) }
+
+        // Ještě před smazáním — pak už nebude z čeho vzít název.
+        audit.record(
+            type = AuditEventType.DEFINITION_DELETED,
+            subjectLabel = definition.title,
+            detail = "Smazáno: ${definition.title}",
+        )
 
         val (childInstances, childSeries) = parZip(
             { eventInstanceRepository.getAllByDefinitionIds(listOf(id)) },
@@ -1217,11 +1296,26 @@ class AdminDashboardService(
                 }
         }
 
+        // Se šablonou mizí i její akce a kurzy; každá má vlastní historii,
+        // takže záznam o smazání dostane každá zvlášť.
         childInstances.forEach { instance ->
+            audit.record(
+                type = if (instance.seriesId != null) AuditEventType.LESSON_DELETED else AuditEventType.EVENT_DELETED,
+                subjectLabel = instance.title,
+                seriesId = instance.seriesId,
+                instanceId = instance.id,
+                detail = "Smazáno se šablonou ${definition.title}",
+            )
             cancelReservations(Reference.Instance(instance.id), instance.title)
             eventInstanceRepository.delete(instance.id)
         }
         childSeries.forEach { series ->
+            audit.record(
+                type = AuditEventType.SERIES_DELETED,
+                subjectLabel = series.title,
+                seriesId = series.id,
+                detail = "Smazáno se šablonou ${definition.title}",
+            )
             cancelReservations(Reference.Series(series.id), series.title)
             eventSeriesRepository.delete(series.id)
         }

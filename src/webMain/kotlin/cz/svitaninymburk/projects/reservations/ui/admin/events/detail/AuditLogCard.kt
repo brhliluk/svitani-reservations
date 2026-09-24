@@ -26,7 +26,11 @@ fun categoryLabel(category: AuditCategory?, strings: AppStrings): String = when 
     AuditCategory.RESERVATION -> strings.auditCategoryReservation
     AuditCategory.EMAIL -> strings.auditCategoryEmail
     AuditCategory.PAYMENT -> strings.auditCategoryPayment
+    AuditCategory.MANAGEMENT -> strings.auditCategoryManagement
 }
+
+/** Pořadí tlačítek filtru; `null` je „Vše“. Každá kategorie tu musí být, jinak ji nejde vyfiltrovat. */
+val AUDIT_FILTER_OPTIONS: List<AuditCategory?> = listOf(null) + AuditCategory.entries
 
 /**
  * Lekce, na kterou má smysl z řádku odkázat.
@@ -84,7 +88,7 @@ fun IComponent.AuditLogCard(
             if (!isExpanded) return@div
 
             div(className = "flex gap-2 flex-wrap mt-4") {
-                listOf(null, AuditCategory.RESERVATION, AuditCategory.PAYMENT, AuditCategory.EMAIL).forEach { option ->
+                AUDIT_FILTER_OPTIONS.forEach { option ->
                     val active = option == category
                     button(className = if (active) "btn btn-xs btn-primary" else "btn btn-xs btn-ghost") {
                         onClick { onCategoryChange(option) }

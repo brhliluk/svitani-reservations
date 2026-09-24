@@ -9,6 +9,8 @@ import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import arrow.fx.coroutines.parZip
 import cz.svitaninymburk.projects.reservations.api.SeriesDetailResponse
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
+import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
 import cz.svitaninymburk.projects.reservations.error.EventError
 import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.util.currentCall
@@ -28,10 +30,15 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.uuid.Uuid
 
 
+/**
+ * Zakládání a úpravy nad šablonou mimo [AdminDashboardService] — z UI sem vede
+ * „nový termín ze šablony“. Do historie zapisuje stejné typy jako admin služba.
+ */
 class AuthenticatedEventService(
     private val eventDefinitionRepository: EventDefinitionRepository,
     private val eventInstanceRepository: EventInstanceRepository,
     private val seriesScheduleRefresher: SeriesScheduleRefresher,
+    private val audit: AuditService = AuditService(InMemoryAuditRepository()),
 ): AuthenticatedEventServiceInterface {
     override suspend fun createEventDefinition(request: CreateEventDefinitionRequest): Either<EventError.CreateEventDefinition, Unit> = either {
         eventDefinitionRepository.create(
@@ -46,15 +53,23 @@ class AuthenticatedEventService(
                 allowMultipleSeats = request.allowMultipleSeats,
             )
         )
+        audit.record(type = AuditEventType.DEFINITION_CREATED, subjectLabel = request.title)
     }
 
     override suspend fun updateEventDefinition(definition: EventDefinition): Either<EventError.UpdateEventDefinition, Unit> = either {
         ensureNotNull(eventDefinitionRepository.get(definition.id)) { EventError.EventDefinitionNotFound(definition.id.toString()) }
         eventDefinitionRepository.update(definition)
+        audit.record(type = AuditEventType.DEFINITION_UPDATED, subjectLabel = definition.title)
     }
 
     override suspend fun deleteEventDefinition(id: Uuid): Either<EventError.DeleteEventDefiniton, Boolean> = either {
-        ensureNotNull(eventDefinitionRepository.get(id)) { EventError.EventDefinitionNotFound(id.toString()) }
+        val definition = ensureNotNull(eventDefinitionRepository.get(id)) { EventError.EventDefinitionNotFound(id.toString()) }
+        // Ještě před smazáním — pak už nebude z čeho vzít název.
+        audit.record(
+            type = AuditEventType.DEFINITION_DELETED,
+            subjectLabel = definition.title,
+            detail = "Smazáno: ${definition.title}",
+        )
         eventInstanceRepository.deleteAllByDefinitionId(id)
         eventDefinitionRepository.delete(id)
     }
@@ -62,26 +77,31 @@ class AuthenticatedEventService(
     override suspend fun createEventInstance(request: CreateEventInstanceRequest): Either<EventError.CreateEventInstance, Unit> = either {
         val eventDefinition = ensureNotNull(eventDefinitionRepository.get(request.definitionId)) { EventError.EventDefinitionNotFound(request.definitionId.toString()) }
 
-        eventInstanceRepository.create(
-            EventInstance(
-                id = Uuid.random(),
-                definitionId = eventDefinition.id,
-                title = request.title ?: eventDefinition.title,
-                description = request.description ?: eventDefinition.description,
-                startDateTime = request.startDateTime,
-                endDateTime =
-                    (request.startDateTime.toInstant(APP_TIMEZONE) + (request.duration
-                        ?: eventDefinition.defaultDuration))
-                        .toLocalDateTime(APP_TIMEZONE),
-                price = request.price ?: eventDefinition.defaultPrice,
-                capacity = request.capacity ?: eventDefinition.defaultCapacity,
-                customFields = request.customFields.ifEmpty { eventDefinition.customFields },
-                showAttendeeCount = request.showAttendeeCount,
-                allowMultipleSeats = request.allowMultipleSeats,
-                reservationDeadline = request.reservationDeadline,
-                reservationDeadlineMessage = request.reservationDeadlineMessage,
-                isPublished = request.isPublished,
-            )
+        val instance = EventInstance(
+            id = Uuid.random(),
+            definitionId = eventDefinition.id,
+            title = request.title ?: eventDefinition.title,
+            description = request.description ?: eventDefinition.description,
+            startDateTime = request.startDateTime,
+            endDateTime =
+                (request.startDateTime.toInstant(APP_TIMEZONE) + (request.duration
+                    ?: eventDefinition.defaultDuration))
+                    .toLocalDateTime(APP_TIMEZONE),
+            price = request.price ?: eventDefinition.defaultPrice,
+            capacity = request.capacity ?: eventDefinition.defaultCapacity,
+            customFields = request.customFields.ifEmpty { eventDefinition.customFields },
+            showAttendeeCount = request.showAttendeeCount,
+            allowMultipleSeats = request.allowMultipleSeats,
+            reservationDeadline = request.reservationDeadline,
+            reservationDeadlineMessage = request.reservationDeadlineMessage,
+            isPublished = request.isPublished,
+        )
+        eventInstanceRepository.create(instance)
+        audit.record(
+            type = AuditEventType.EVENT_CREATED,
+            subjectLabel = instance.title,
+            instanceId = instance.id,
+            detail = "Termín ${instance.startDateTime}",
         )
     }
 
@@ -89,10 +109,24 @@ class AuthenticatedEventService(
         val existing = ensureNotNull(eventInstanceRepository.get(instance.id)) { EventError.EventInstanceNotFound(instance.id.toString()) }
         eventInstanceRepository.update(instance)
         existing.seriesId?.let { seriesScheduleRefresher.refresh(it) }
+        audit.record(
+            type = if (existing.seriesId != null) AuditEventType.LESSON_UPDATED else AuditEventType.EVENT_UPDATED,
+            subjectLabel = instance.title,
+            seriesId = existing.seriesId,
+            instanceId = instance.id,
+        )
     }
 
     override suspend fun deleteEventInstance(id: Uuid): Either<EventError.DeleteEventInstance, Boolean> = either {
         val existing = ensureNotNull(eventInstanceRepository.get(id)) { EventError.EventInstanceNotFound(id.toString()) }
+        // Ještě před smazáním — pak už nebude z čeho vzít název.
+        audit.record(
+            type = if (existing.seriesId != null) AuditEventType.LESSON_DELETED else AuditEventType.EVENT_DELETED,
+            subjectLabel = existing.title,
+            seriesId = existing.seriesId,
+            instanceId = id,
+            detail = "Smazáno: ${existing.title} (${existing.startDateTime})",
+        )
         val deleted = eventInstanceRepository.delete(id)
         existing.seriesId?.let { seriesScheduleRefresher.refresh(it) }
         deleted
