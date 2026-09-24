@@ -101,6 +101,7 @@ class AdminDashboardService(
 ): AdminServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
+    private val lessonParticipants = LessonParticipants(reservationRepository, seriesLessonOptOutRepository)
 
     /**
      * Storno mail účastníkovi, mimo požadavek.
@@ -202,30 +203,9 @@ class AdminDashboardService(
 
         val todaysInstances = eventInstanceRepository.findByDateRange(todayStart, todayEnd)
             .filter { !it.isCancelled }
-        val todaysInstanceIds = todaysInstances.map { it.id }.toSet()
 
-        // Musí sedět s prezenčkou lekce (AttendanceService.getAttendance): přihláška
-        // na kurz je jedna rezervace na sérii, takže se do počtu nepropíše sama od
-        // sebe — připočítá se za každou dnešní lekci té série, mínus ti, kdo se
-        // z konkrétní lekce omluvili.
-        val activeReservations = allReservations.filter { it.status !in INACTIVE_RESERVATION_STATUSES }
-
-        val todayDirectParticipants = activeReservations
-            .filter { it.reference is Reference.Instance && it.reference.id in todaysInstanceIds }
-            .sumOf { it.seatCount }
-
-        val todayEnrolledParticipants = todaysInstances.sumOf { instance ->
-            val seriesId = instance.seriesId ?: return@sumOf 0
-            val optedOut = seriesLessonOptOutRepository.findByInstance(instance.id)
-                .map { it.reservationId }
-                .toSet()
-            activeReservations
-                .filter { it.reference is Reference.Series && it.reference.id == seriesId }
-                .filterNot { it.id in optedOut }
-                .sumOf { it.seatCount }
-        }
-
-        val todayParticipantsCount = todayDirectParticipants + todayEnrolledParticipants
+        // Stejné číslo jako na prezenčce každé dnešní lekce.
+        val todayParticipantsCount = todaysInstances.sumOf { lessonParticipants.seatCount(it) }
 
         val instancesThisWeek = eventInstanceRepository.findByDateRange(now, endOfWeek).filter { !it.isCancelled }
         val freeSpotsThisWeek = instancesThisWeek.sumOf { maxOf(0, it.capacity - it.occupiedSpots) }
@@ -326,6 +306,7 @@ class AdminDashboardService(
         var isCancelled = false
         var isRunningCourse = false
         var lessonSeriesId: Uuid? = null
+        var lessonInstance: EventInstance? = null
 
         if (isSeries) {
             val series = ensureNotNull(eventSeriesRepository.get(eventId)) { AdminError.EventSeriesNotFound(eventId) }
@@ -339,6 +320,7 @@ class AdminDashboardService(
             isRunningCourse = eventInstanceRepository.findBySeries(eventId).courseHasStarted(nowInAppTimeZone())
         } else {
             val instance = ensureNotNull(eventInstanceRepository.get(eventId)) { AdminError.EventInstanceNotFound(eventId) }
+            lessonInstance = instance
             title = instance.title
             subtitle = if (instance.seriesId != null) "Lekce kurzu • ${instance.startDateTime.humanReadable}"
             else "Jednorázová událost • ${instance.startDateTime.humanReadable}"
@@ -372,34 +354,21 @@ class AdminDashboardService(
             customValues = res.customValues,
         )
 
-        val directParticipants = activeReservations
-            .filter { it.status != Reservation.Status.WAITLISTED }
+        val directParticipants = eventReservations
+            .filter { it.holdsSeat }
             .sortedBy { it.createdAt }
             .map { toRow(it) }
 
-        // Účastníci kurzu drží místo i na jednotlivé lekci (dopočítává to
-        // SeriesAwareEventInstanceRepository do occupiedSpots), ale rezervaci mají
-        // na sérii — bez tohohle doplnění by seznam neseděl na obsazenost v hlavičce.
-        // Kdo se z lekce omluvil, ten její kapacitu neukrajuje a do seznamu nepatří;
-        // stejné odečtení dělá SeriesLessonLoad nad tím samým čítačem.
-        val optedOutReservationIds = lessonSeriesId?.let {
-            seriesLessonOptOutRepository.findByInstance(eventId).map { optOut -> optOut.reservationId }.toSet()
-        }.orEmpty()
-
-        val seriesEnrollees = lessonSeriesId?.let { seriesId ->
-            reservationRepository.findByReference(Reference.Series(seriesId))
-                .filter { it.status !in INACTIVE_RESERVATION_STATUSES }
-                .sortedBy { it.createdAt }
-        }.orEmpty()
-
-        val seriesParticipants = seriesEnrollees
-            .filter { it.id !in optedOutReservationIds }
+        // U lekce kurzu drží místo i zapsaní na kurz (viz LessonParticipants) — bez
+        // nich by seznam neseděl na obsazenost v hlavičce. Omluvení místo nedrží,
+        // takže mezi účastníky nepatří; vedle nich ale musí být vidět, jinak nejde
+        // omylem podanou omluvenku vzít zpět.
+        val enrollees = lessonInstance?.let { lessonParticipants.courseEnrollees(it) }
+        val seriesParticipants = enrollees?.attending.orEmpty()
+            .sortedBy { it.createdAt }
             .map { toRow(it).copy(fromSeries = true) }
-
-        // Omluvení místo nedrží, takže mezi účastníky nepatří — vedle nich ale
-        // musí být vidět, jinak nejde omylem podanou omluvenku vzít zpět.
-        val optedOut = seriesEnrollees
-            .filter { it.id in optedOutReservationIds }
+        val optedOut = enrollees?.optedOut.orEmpty()
+            .sortedBy { it.createdAt }
             .map { toRow(it).copy(fromSeries = true) }
 
         // Přihlášky na kurz jdou za přímé rezervace, ne mezi ně — v tabulce i na
