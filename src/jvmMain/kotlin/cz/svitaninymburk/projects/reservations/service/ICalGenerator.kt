@@ -1,10 +1,10 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.util.APP_TIMEZONE
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -12,7 +12,7 @@ import kotlin.uuid.Uuid
 
 object ICalGenerator {
 
-    private val tz = TimeZone.of("Europe/Prague")
+    private val tz = APP_TIMEZONE
 
     fun forInstance(instance: EventInstance, reservationId: Uuid, appBaseUrl: String): String =
         buildVCal(

@@ -1,9 +1,7 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.util.nowInAppTimeZone
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 
 /**
  * Vygeneruje variabilní symbol, který ještě žádná rezervace nemá.
@@ -26,7 +24,7 @@ internal suspend fun ReservationRepository.generateUniqueVariableSymbol(): Strin
 }
 
 private fun generateCandidateVS(): String {
-    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    val now = nowInAppTimeZone()
     // 1. ROK (2 znaky): "26"
     val year = now.year.toString().takeLast(2)
     // 2. DEN V ROCE (3 znaky): "030" (30. leden)

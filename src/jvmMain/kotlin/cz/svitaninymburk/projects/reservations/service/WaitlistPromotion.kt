@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.util.APP_TIMEZONE
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
@@ -13,7 +14,6 @@ import cz.svitaninymburk.projects.reservations.util.auditSubjectFor
 import cz.svitaninymburk.projects.reservations.util.withAuditSubject
 import cz.svitaninymburk.projects.reservations.util.captureEmailError
 import io.ktor.util.logging.KtorSimpleLogger
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlin.reflect.jvm.jvmName
 import kotlin.time.Clock
@@ -53,8 +53,7 @@ class WaitlistPromoter(
                 val instance = eventInstanceRepository.get(reference.id) ?: return
                 if (instance.isCancelled) return
                 // Zvednutí kapacity u proběhlé lekce nemá rozesílat pozvánky.
-                val timezone = TimeZone.of("Europe/Prague")
-                if (instance.startDateTime.toInstant(timezone) < Clock.System.now()) return
+                if (instance.startDateTime.toInstant(APP_TIMEZONE) < Clock.System.now()) return
                 instance.capacity - instance.occupiedSpots
             }
 

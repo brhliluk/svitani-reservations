@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.util.nowInAppTimeZone
+import cz.svitaninymburk.projects.reservations.util.APP_TIMEZONE
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
@@ -20,7 +22,6 @@ import io.ktor.http.Cookie
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.util.date.GMTDate
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.mindrot.jbcrypt.BCrypt
 import kotlin.reflect.KClass
@@ -158,7 +159,7 @@ class AuthService(
 
         val updatedUser = user.copy(
             passwordResetToken = token,
-            passwordResetTokenExpiresAt = Clock.System.now().plus(1.hours).toLocalDateTime(TimeZone.currentSystemDefault())
+            passwordResetTokenExpiresAt = Clock.System.now().plus(1.hours).toLocalDateTime(APP_TIMEZONE)
         )
         userRepository.update(user.id, updatedUser)
         emailService.sendPasswordResetEmail(user.email, token)
@@ -168,7 +169,7 @@ class AuthService(
         val user = ensureNotNull(userRepository.findByResetToken(token)) { AuthError.UserNotFound }
 
         val passwordResetTokenExpiresAt = user.passwordResetTokenExpiresAt
-        if (passwordResetTokenExpiresAt == null || passwordResetTokenExpiresAt < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) {
+        if (passwordResetTokenExpiresAt == null || passwordResetTokenExpiresAt < nowInAppTimeZone()) {
             raise(AuthError.TokenExpired)
         }
 

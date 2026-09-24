@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.util.nowInAppTimeZone
+import cz.svitaninymburk.projects.reservations.util.APP_TIMEZONE
 import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.raise.either
@@ -21,10 +23,8 @@ import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.event.EventSeriesRepository
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 
@@ -70,9 +70,9 @@ class AuthenticatedEventService(
                 description = request.description ?: eventDefinition.description,
                 startDateTime = request.startDateTime,
                 endDateTime =
-                    (request.startDateTime.toInstant(TimeZone.currentSystemDefault()) + (request.duration
+                    (request.startDateTime.toInstant(APP_TIMEZONE) + (request.duration
                         ?: eventDefinition.defaultDuration))
-                        .toLocalDateTime(TimeZone.currentSystemDefault()),
+                        .toLocalDateTime(APP_TIMEZONE),
                 price = request.price ?: eventDefinition.defaultPrice,
                 capacity = request.capacity ?: eventDefinition.defaultCapacity,
                 customFields = request.customFields.ifEmpty { eventDefinition.customFields },
@@ -110,7 +110,7 @@ class EventService(
     }
 
     override suspend fun getDashboardData(): Either<EventError.GetDashboardData, DashboardData> = either {
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val now = nowInAppTimeZone()
         val today = now.date
 
         parZip(

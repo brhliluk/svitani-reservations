@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.util.APP_TIMEZONE
 import cz.svitaninymburk.projects.reservations.repository.event.EventInstanceRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.SeriesLessonOptOutRepository
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonItem
@@ -30,7 +31,7 @@ class SeriesLessonsReader(
                 isCancelled = instance.isCancelled,
                 isOptedOut = optOut != null,
                 isLateCancellation = optOut?.isLateCancellation ?: false,
-                startsAt = instance.startDateTime.toInstant(OPT_OUT_TIMEZONE),
+                startsAt = instance.startDateTime.toInstant(APP_TIMEZONE),
                 optOutDeadline = refundDeadlineFor(instance.startDateTime),
             )
         }

@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.plugins
 
+import cz.svitaninymburk.projects.reservations.util.nowInAppTimeZone
 import cz.svitaninymburk.projects.reservations.service.WalletEmailService
 import cz.svitaninymburk.projects.reservations.service.WalletService
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
@@ -10,11 +11,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.number
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 import org.koin.ktor.ext.inject
 import kotlin.time.Duration.Companion.hours
 
@@ -27,8 +25,7 @@ fun Application.startWalletResetJobs() {
         while (isActive) {
             runCatching {
                 val settings = settingsProvider.current
-                val tz = TimeZone.of("Europe/Prague")
-                val today = Clock.System.now().toLocalDateTime(tz).date
+                val today = nowInAppTimeZone().date
 
                 // Season reset
                 if (today.month.number == settings.seasonResetMonth && today.day == settings.seasonResetDay) {

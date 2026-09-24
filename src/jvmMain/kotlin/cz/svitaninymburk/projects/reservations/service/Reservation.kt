@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.util.nowInAppTimeZone
+import cz.svitaninymburk.projects.reservations.util.APP_TIMEZONE
 import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.raise.Raise
@@ -57,22 +59,13 @@ import kotlin.reflect.jvm.jvmName
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
-
-/**
- * Provoz běží v Praze a podle Prahy se počítá i uzávěrka omluvenek (18:00 den předem).
- * Produkce nemá připnuté TZ, takže currentSystemDefault() by na UTC hostu pustil
- * omluvenku z lekce, která už dvě hodiny běží.
- */
-internal val OPT_OUT_TIMEZONE = TimeZone.of("Europe/Prague")
 
 /**
  * Uzávěrka pro storno/omluvenku s nárokem na kredit: 18:00 den předem. Jediné
@@ -80,7 +73,7 @@ internal val OPT_OUT_TIMEZONE = TimeZone.of("Europe/Prague")
  * databázi časových pásem a sám by ji spočítal v zóně návštěvníka.
  */
 internal fun refundDeadlineFor(start: LocalDateTime): Instant =
-    start.date.minus(1, DateTimeUnit.DAY).atTime(18, 0).toInstant(OPT_OUT_TIMEZONE)
+    start.date.minus(1, DateTimeUnit.DAY).atTime(18, 0).toInstant(APP_TIMEZONE)
 
 /**
  * Rezervaci bez účtu chrání jen znalost UUID — stejná laťka, jakou má odjakživa
@@ -106,7 +99,7 @@ internal fun ReservationTarget.isStillRunning(now: Instant): Boolean {
         is ReservationTarget.Instance -> event.isCancelled
         is ReservationTarget.Series -> series.isCancelled
     }
-    return !cancelled && now < endDateTime.toInstant(OPT_OUT_TIMEZONE)
+    return !cancelled && now < endDateTime.toInstant(APP_TIMEZONE)
 }
 
 /**
@@ -296,8 +289,8 @@ open class ReservationService(
         if (!isAdminCaller()) ensure(instance.isPublished) { ReservationError.ReservationNotFound }
 
         ensure(!instance.isCancelled) { ReservationError.EventCancelled }
-        ensure(instance.endDateTime > Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) { ReservationError.EventAlreadyFinished }
-        ensure(instance.startDateTime > Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) { ReservationError.EventAlreadyStarted }
+        ensure(instance.endDateTime > nowInAppTimeZone()) { ReservationError.EventAlreadyFinished }
+        ensure(instance.startDateTime > nowInAppTimeZone()) { ReservationError.EventAlreadyStarted }
         ensure(!instance.isDeadlinePassed) { ReservationError.ReservationDeadlinePassed }
 
         ensure(request.seatCount >= 1) { ReservationError.InvalidSeatCount }
@@ -638,7 +631,7 @@ open class ReservationService(
             ensure(instance.seriesId == seriesId) { ReservationError.InstanceNotInSeries }
             ensure(!instance.isCancelled) { ReservationError.EventAlreadyFinished }
             ensure(
-                Clock.System.now() < instance.startDateTime.toInstant(OPT_OUT_TIMEZONE)
+                Clock.System.now() < instance.startDateTime.toInstant(APP_TIMEZONE)
             ) { ReservationError.EventAlreadyStarted }
             ensure(
                 seriesLessonOptOutRepository.findByReservationAndInstance(reservationId, instanceId) == null
@@ -773,7 +766,7 @@ open class ReservationService(
             // nejde, kredit se dole stejně řídí uzávěrkou (18:00 den předem), takže
             // pozdní storno nevrací nic.
             if (target != null && !isAdminCaller()) {
-                ensure(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) < target.startDateTime) { ReservationError.EventAlreadyStarted }
+                ensure(nowInAppTimeZone() < target.startDateTime) { ReservationError.EventAlreadyStarted }
             }
 
             val cancelledReservation = reservation.copy(status = Reservation.Status.CANCELLED)
@@ -878,11 +871,10 @@ open class ReservationService(
                 // Bez odečtu toho, co už odešlo za lekce, by se po omluvence vracela
                 // tatáž lekce podruhé. Když není co vracet, nezakládá se ani peněženka.
                 val refundable = refundService.refundableForWholeReservation(reservation)
-                val timezone = TimeZone.of("Europe/Prague")
                 val cancellationDeadline = target.startDateTime.date
                     .minus(1, DateTimeUnit.DAY)
                     .atTime(18, 0)
-                    .toInstant(timezone)
+                    .toInstant(APP_TIMEZONE)
                 val withinCancellationWindow = Clock.System.now() < cancellationDeadline
                 if (refundable > 0.0 && withinCancellationWindow) {
                     val reservationRegisteredUserId = reservation.registeredUserId

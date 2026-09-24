@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.util.nowInAppTimeZone
+import cz.svitaninymburk.projects.reservations.util.APP_TIMEZONE
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.context.ensureNotNull
@@ -64,12 +66,10 @@ import kotlin.reflect.jvm.jvmName
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 class AdminDashboardService(
@@ -162,7 +162,7 @@ class AdminDashboardService(
     }
 
     override suspend fun getDashboardSummary(): Either<AdminError.GetSummary, AdminDashboardData> = either {
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val now = nowInAppTimeZone()
         val todayStart = now.date.atTime(0, 0)
         val todayEnd = now.date.atTime(23, 59, 59)
         val endOfWeek = now.date.plus(DatePeriod(days = 7)).atTime(23, 59, 59)
@@ -462,7 +462,7 @@ class AdminDashboardService(
         ensure(page >= 0) { AdminError.FailedToGetEvents("Neplatná stránka.") }
         ensure(pageSize in 1..200) { AdminError.FailedToGetEvents("Neplatná velikost stránky.") }
         try {
-            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val now = nowInAppTimeZone()
             val today = now.date
 
             fun isInstancePast(i: EventInstance) = i.endDateTime < now
@@ -557,7 +557,7 @@ class AdminDashboardService(
         ensure(page >= 0) { AdminError.FailedToGetSchedule("Neplatná stránka.") }
         ensure(pageSize in 1..200) { AdminError.FailedToGetSchedule("Neplatná velikost stránky.") }
         try {
-            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val now = nowInAppTimeZone()
             // Bez minulosti se okno posouvá podle konce termínu, aby právě probíhající
             // akce ze seznamu nadcházejících nezmizela.
             val from = if (includePast) null else now
@@ -739,7 +739,7 @@ class AdminDashboardService(
             )
             eventDefinitionRepository.create(newDefinition)
 
-            val tz = TimeZone.currentSystemDefault()
+            val tz = APP_TIMEZONE
             request.dateTimes.forEach { startDateTime ->
                 eventInstanceRepository.create(
                     EventInstance(
@@ -1300,7 +1300,7 @@ class AdminDashboardService(
             AdminError.InstanceNotFoundForCancel(id)
         }
 
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val now = nowInAppTimeZone()
         ensure(instance.startDateTime >= now) {
             AdminError.EventAlreadyPassed(id)
         }
@@ -1347,7 +1347,7 @@ class AdminDashboardService(
             AdminError.SeriesNotFoundForCancel(id)
         }
 
-        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val today = nowInAppTimeZone().date
         val futureInstances = eventInstanceRepository.findBySeries(id)
             .filter { it.startDateTime.date >= today }
 
