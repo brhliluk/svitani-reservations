@@ -75,6 +75,10 @@ import kotlin.uuid.Uuid
 internal fun refundDeadlineFor(start: LocalDateTime): Instant =
     start.date.minus(1, DateTimeUnit.DAY).atTime(18, 0).toInstant(APP_TIMEZONE)
 
+/** Přesně v 18:00 se ještě vrací — stejně to čte klient v náhledu storna i omluvenky. */
+internal fun isPastRefundDeadline(start: LocalDateTime, now: Instant = Clock.System.now()): Boolean =
+    now > refundDeadlineFor(start)
+
 /**
  * Rezervaci bez účtu chrání jen znalost UUID — stejná laťka, jakou má odjakživa
  * zrušení celé rezervace. Registrovanou rezervaci smí měnit jen její majitel;
@@ -674,7 +678,7 @@ open class ReservationService(
             ) { ReservationError.AlreadyOptedOut }
 
             val now = Clock.System.now()
-            val isLate = now > refundDeadlineFor(instance.startDateTime)
+            val isLate = isPastRefundDeadline(instance.startDateTime, now)
 
             // Kredit i peněženku řešíme JEŠTĚ PŘED zápisem omluvenky. Neshoda e-mailu
             // u peněženky je uživatelská chyba k opakování — kdyby se vyhodila až po
@@ -923,12 +927,7 @@ open class ReservationService(
                 // Bez odečtu toho, co už odešlo za lekce, by se po omluvence vracela
                 // tatáž lekce podruhé. Když není co vracet, nezakládá se ani peněženka.
                 val refundable = refundService.refundableForWholeReservation(reservation)
-                val cancellationDeadline = target.startDateTime.date
-                    .minus(1, DateTimeUnit.DAY)
-                    .atTime(18, 0)
-                    .toInstant(APP_TIMEZONE)
-                val withinCancellationWindow = Clock.System.now() < cancellationDeadline
-                if (refundable > 0.0 && withinCancellationWindow) {
+                if (refundable > 0.0 && !isPastRefundDeadline(target.startDateTime)) {
                     val reservationRegisteredUserId = reservation.registeredUserId
                     val wallet: Wallet = if (reservationRegisteredUserId != null) {
                         walletService.findOrCreateForRegisteredUser(reservationRegisteredUserId, reservation.contactEmail)
