@@ -219,6 +219,9 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
                             ShowAttendeeCountCheckbox(value = model.showAttendeeCount) { model.showAttendeeCount = it }
                             AllowMultipleSeatsCheckbox(value = model.allowMultipleSeats) { model.allowMultipleSeats = it }
 
+                            PriceCurrencyField(currentStrings.lessonRefundAmount, model.lessonRefundAmountOverride) {
+                                model.lessonRefundAmountOverride = it
+                            }
                         }
                     }
                 }

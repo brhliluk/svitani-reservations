@@ -26,6 +26,7 @@ private fun sampleForm() = EventSeriesCreateFormData(
     ownerEmails = listOf("a@x.cz", "not-an-email"),
     price = 1500.0,
     lessonPrice = null,
+    lessonRefundAmount = null,
     capacity = 12,
     waitlistCapacity = 3,
     allowBankTransfer = true,

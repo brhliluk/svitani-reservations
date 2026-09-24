@@ -7,8 +7,10 @@ import cz.svitaninymburk.projects.reservations.event.LessonConfig
 import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -25,6 +27,7 @@ data class EventCreateFormData(
     val ownerEmails: List<String>,
     val price: Double,
     val capacity: Int,
+    val waitlistCapacity: Int,
     val durationHours: Int,
     val durationMinutes: Int,
     val allowBankTransfer: Boolean,
@@ -111,6 +114,7 @@ fun buildCreateEventAndInstancesRequest(
     ownerEmails = parseOwnerEmails(form.ownerEmails),
     defaultPrice = form.price,
     defaultCapacity = form.capacity,
+    defaultWaitlistCapacity = form.waitlistCapacity,
     defaultDuration = form.duration,
     allowedPaymentTypes = form.allowedPaymentTypes,
     customFields = form.customFields,
@@ -131,22 +135,31 @@ fun buildCreateEventAndSeriesRequest(
     lessonPrice: Double?,
     reservationDeadline: Duration?,
     isPublished: Boolean,
+    lessonDayOfWeek: DayOfWeek? = null,
+    lessonStartTime: LocalTime? = null,
+    lessonEndTime: LocalTime? = null,
+    lessonRefundAmount: Double? = null,
 ): CreateEventAndSeriesRequest = CreateEventAndSeriesRequest(
     title = form.title,
     description = form.description,
     ownerEmails = parseOwnerEmails(form.ownerEmails),
     defaultPrice = form.price,
     defaultCapacity = form.capacity,
+    defaultWaitlistCapacity = form.waitlistCapacity,
     defaultDuration = form.duration,
     allowedPaymentTypes = form.allowedPaymentTypes,
     customFields = form.customFields,
     startDate = startDate,
     endDate = endDate,
     lessonCount = lessonCount,
+    lessonDayOfWeek = lessonDayOfWeek,
+    lessonStartTime = lessonStartTime,
+    lessonEndTime = lessonEndTime,
     customLessons = customLessons,
     showAttendeeCount = form.showAttendeeCount,
     allowMultipleSeats = form.allowMultipleSeats,
     lessonPrice = lessonPrice?.takeIf { it > 0 },
+    lessonRefundAmount = lessonRefundAmount?.takeIf { it > 0 },
     reservationDeadline = reservationDeadline,
     reservationDeadlineMessage = form.deadlineMessage.takeIf { it.isNotBlank() },
     isPublished = isPublished,

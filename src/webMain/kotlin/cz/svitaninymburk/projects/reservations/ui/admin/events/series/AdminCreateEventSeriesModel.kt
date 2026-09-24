@@ -69,6 +69,7 @@ class AdminCreateEventSeriesModel(
     var ownerEmails by mutableStateOf(listOf(currentUserEmail))
     var priceOverride: Number? by mutableStateOf(0)
     var lessonPriceOverride: Number? by mutableStateOf(null)
+    var lessonRefundAmountOverride: Number? by mutableStateOf(null)
     var capacityOverride by mutableIntStateOf(10)
     var waitlistCapacityOverride by mutableIntStateOf(10)
     var allowBankTransfer by mutableStateOf(true)
@@ -230,6 +231,7 @@ class AdminCreateEventSeriesModel(
         ownerEmails = ownerEmails,
         price = priceOverride?.toDouble() ?: 0.0,
         lessonPrice = lessonPriceOverride?.toDouble(),
+        lessonRefundAmount = lessonRefundAmountOverride?.toDouble(),
         capacity = capacityOverride,
         waitlistCapacity = waitlistCapacityOverride,
         allowBankTransfer = allowBankTransfer,

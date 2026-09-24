@@ -25,6 +25,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.va
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.instanceRecurrencePreviewDates
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.resolveReservationDeadline
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.buildSeriesLessonConfigs
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.computeLessonEndTime
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.computeSeriesDates
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.effectiveSeriesDates
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.keptLessonIndices
@@ -36,6 +37,7 @@ import dev.kilua.rpc.getService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -65,6 +67,7 @@ class AdminCreateEventModel(
     var ownerEmails by mutableStateOf(listOf(currentUserEmail))
     var price: Number? by mutableStateOf(0)
     var capacity by mutableIntStateOf(10)
+    var waitlistCapacity by mutableIntStateOf(10)
     var durationHours by mutableIntStateOf(1)
     var durationMinutes by mutableIntStateOf(0)
     var allowBankTransfer by mutableStateOf(true)
@@ -87,6 +90,7 @@ class AdminCreateEventModel(
     var courseLessonDayOrdinal by mutableStateOf<Int?>(null); private set
     var courseLessonStartTimeStr by mutableStateOf("")
     var courseLessonPrice: Number? by mutableStateOf(null)
+    var courseLessonRefundAmount: Number? by mutableStateOf(null)
     var lessonDateOverrides by mutableStateOf(mapOf<Int, String>()); private set
     var lessonDropIn by mutableStateOf(mapOf<Int, Boolean>()); private set
     var excludedLessonIndices by mutableStateOf(setOf<Int>()); private set
@@ -217,12 +221,16 @@ class AdminCreateEventModel(
 
         val form = formData()
         val lessonStartTime = courseLessonStartTime
+        val lessonEndTime = lessonStartTime?.let { computeLessonEndTime(it, form.totalDurationMinutes) }
         val firstLessonDate = effective.firstOrNull() ?: parsedStart
         val request = buildCreateEventAndSeriesRequest(
             form = form,
             startDate = firstLessonDate,
             endDate = effective.lastOrNull() ?: parsedStart,
             lessonCount = effective.size.takeIf { it > 0 } ?: lessonCount,
+            lessonDayOfWeek = courseLessonDayOrdinal?.let { DayOfWeek(it) },
+            lessonStartTime = lessonStartTime,
+            lessonEndTime = lessonEndTime,
             customLessons = buildSeriesLessonConfigs(
                 dates = generated,
                 lessonDateOverrides = lessonDateOverrides,
@@ -232,6 +240,7 @@ class AdminCreateEventModel(
                 excludedIndices = excludedLessonIndices,
             ),
             lessonPrice = courseLessonPrice?.toDouble(),
+            lessonRefundAmount = courseLessonRefundAmount?.toDouble(),
             reservationDeadline = deadlineFor(LocalDateTime(firstLessonDate, lessonStartTime ?: LocalTime(0, 0))),
             isPublished = isPublished,
         )
@@ -263,6 +272,7 @@ class AdminCreateEventModel(
         ownerEmails = ownerEmails,
         price = price?.toDouble() ?: 0.0,
         capacity = capacity,
+        waitlistCapacity = waitlistCapacity,
         durationHours = durationHours,
         durationMinutes = durationMinutes,
         allowBankTransfer = allowBankTransfer,

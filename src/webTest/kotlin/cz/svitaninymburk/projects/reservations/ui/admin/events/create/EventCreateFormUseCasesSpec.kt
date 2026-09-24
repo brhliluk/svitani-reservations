@@ -11,8 +11,10 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.bu
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.parseCourseStartDate
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.parseSingleEventDateTime
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.validateEventCreateCommon
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -30,6 +32,7 @@ private fun sampleForm(
     ownerEmails = ownerEmails,
     price = 300.0,
     capacity = 12,
+    waitlistCapacity = 4,
     durationHours = 1,
     durationMinutes = 30,
     allowBankTransfer = true,
@@ -173,5 +176,59 @@ class EventCreateFormUseCasesSpec {
             isPublished = false,
         )
         assertEquals(120.0, request.lessonPrice)
+    }
+
+    /**
+     * Server dřív bez rozpisu lekcí neměl z čeho kurz poskládat a pořadník
+     * i kredit za omluvenku zahodil — formulář je teď musí poslat.
+     */
+    @Test
+    fun seriesRequestCarriesScheduleWaitlistAndRefund() {
+        val request = buildCreateEventAndSeriesRequest(
+            form = sampleForm(),
+            startDate = LocalDate(2026, 3, 2),
+            endDate = LocalDate(2026, 3, 23),
+            lessonCount = 4,
+            customLessons = null,
+            lessonPrice = null,
+            reservationDeadline = null,
+            isPublished = false,
+            lessonDayOfWeek = DayOfWeek.MONDAY,
+            lessonStartTime = LocalTime(17, 0),
+            lessonEndTime = LocalTime(18, 30),
+            lessonRefundAmount = 80.0,
+        )
+        assertEquals(4, request.defaultWaitlistCapacity)
+        assertEquals(DayOfWeek.MONDAY, request.lessonDayOfWeek)
+        assertEquals(LocalTime(17, 0), request.lessonStartTime)
+        assertEquals(LocalTime(18, 30), request.lessonEndTime)
+        assertEquals(80.0, request.lessonRefundAmount)
+    }
+
+    @Test
+    fun seriesRequestDropsNonPositiveRefund() {
+        val request = buildCreateEventAndSeriesRequest(
+            form = sampleForm(),
+            startDate = LocalDate(2026, 3, 2),
+            endDate = LocalDate(2026, 3, 23),
+            lessonCount = 4,
+            customLessons = null,
+            lessonPrice = null,
+            reservationDeadline = null,
+            isPublished = false,
+            lessonRefundAmount = 0.0,
+        )
+        assertNull(request.lessonRefundAmount)
+    }
+
+    @Test
+    fun instancesRequestCarriesWaitlistCapacity() {
+        val request = buildCreateEventAndInstancesRequest(
+            form = sampleForm(),
+            dateTimes = listOf(LocalDateTime(2026, 3, 1, 10, 0)),
+            reservationDeadline = null,
+            isPublished = false,
+        )
+        assertEquals(4, request.defaultWaitlistCapacity)
     }
 }

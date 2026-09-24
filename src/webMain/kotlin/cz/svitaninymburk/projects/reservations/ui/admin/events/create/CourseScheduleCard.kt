@@ -71,6 +71,10 @@ fun IComponent.CourseScheduleCard(model: AdminCreateEventModel) {
                     value = model.courseLessonPrice,
                     hint = currentStrings.lessonPriceHint,
                 ) { model.courseLessonPrice = it }
+
+                PriceCurrencyField(currentStrings.lessonRefundAmount, model.courseLessonRefundAmount) {
+                    model.courseLessonRefundAmount = it
+                }
             }
 
             LessonScheduleTable(

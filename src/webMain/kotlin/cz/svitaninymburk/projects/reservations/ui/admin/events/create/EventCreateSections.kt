@@ -11,6 +11,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.DurationField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ShowAttendeeCountCheckbox
+import cz.svitaninymburk.projects.reservations.ui.admin.events.WaitlistCapacityField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.EventCreateType
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
@@ -97,6 +98,8 @@ fun IComponent.EventBasicInfoCard(model: AdminCreateEventModel) {
                 PriceCurrencyField(label = currentStrings.priceLabel, value = model.price) { model.price = it }
 
                 CapacityField(model.capacity) { model.capacity = it }
+
+                WaitlistCapacityField(model.waitlistCapacity) { model.waitlistCapacity = it }
 
                 DurationField(
                     label = currentStrings.durationLabel,

@@ -40,6 +40,7 @@ import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
+import cz.svitaninymburk.projects.reservations.event.LessonConfig
 import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
 import cz.svitaninymburk.projects.reservations.repository.event.EventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
@@ -600,6 +601,7 @@ class AdminDashboardService(
                 description = request.description,
                 defaultPrice = request.defaultPrice,
                 defaultCapacity = request.defaultCapacity,
+                defaultWaitlistCapacity = request.defaultWaitlistCapacity,
                 defaultDuration = request.defaultDuration,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
@@ -645,80 +647,73 @@ class AdminDashboardService(
                 isPublished = request.isPublished,
             )
 
-            eventSeriesRepository.create(newSeries)
-
-            // Bez ceny za lekci se lekce zakládají za cenu celého kurzu (chování před jejím zavedením).
-            val perLessonPrice = newSeries.lessonPrice ?: newSeries.price
-
-            // Auto-generate lesson instances if schedule is defined
-            val customLessons = request.customLessons
-            if (customLessons != null) {
-                customLessons.forEach { lesson ->
-                    eventInstanceRepository.create(
-                        EventInstance(
-                            id = Uuid.random(),
-                            definitionId = newSeries.definitionId,
-                            seriesId = newSeries.id,
-                            title = newSeries.title,
-                            description = newSeries.description,
-                            startDateTime = lesson.startDateTime,
-                            endDateTime = lesson.endDateTime,
-                            price = perLessonPrice,
-                            capacity = newSeries.capacity,
-                            waitlistCapacity = newSeries.waitlistCapacity,
-                            allowedPaymentTypes = newSeries.allowedPaymentTypes,
-                            customFields = newSeries.customFields,
-                            isDropIn = lesson.isDropIn,
-                            ownerEmails = newSeries.ownerEmails,
-                            showAttendeeCount = newSeries.showAttendeeCount,
-                            allowMultipleSeats = newSeries.allowMultipleSeats,
-                            reservationDeadline = newSeries.reservationDeadline,
-                            reservationDeadlineMessage = newSeries.reservationDeadlineMessage,
-                            isPublished = request.isPublished,
-                        )
-                    )
-                }
-            } else if (newSeries.lessonDayOfWeek != null && newSeries.lessonStartTime != null && newSeries.lessonEndTime != null) {
-                val lessonStartTime = newSeries.lessonStartTime!!
-                val lessonEndTime = newSeries.lessonEndTime!!
-                var date = newSeries.startDate
-                while (date.dayOfWeek != newSeries.lessonDayOfWeek) {
-                    date = date.plus(1, DateTimeUnit.DAY)
-                }
-                repeat(newSeries.lessonCount) {
-                    eventInstanceRepository.create(
-                        EventInstance(
-                            id = Uuid.random(),
-                            definitionId = newSeries.definitionId,
-                            seriesId = newSeries.id,
-                            title = newSeries.title,
-                            description = newSeries.description,
-                            startDateTime = LocalDateTime(date, lessonStartTime),
-                            endDateTime = LocalDateTime(date, lessonEndTime),
-                            price = perLessonPrice,
-                            capacity = newSeries.capacity,
-                            waitlistCapacity = newSeries.waitlistCapacity,
-                            allowedPaymentTypes = newSeries.allowedPaymentTypes,
-                            customFields = newSeries.customFields,
-                            isDropIn = false,
-                            ownerEmails = newSeries.ownerEmails,
-                            showAttendeeCount = newSeries.showAttendeeCount,
-                            allowMultipleSeats = newSeries.allowMultipleSeats,
-                            reservationDeadline = newSeries.reservationDeadline,
-                            reservationDeadlineMessage = newSeries.reservationDeadlineMessage,
-                            isPublished = request.isPublished,
-                        )
-                    )
-                    date = date.plus(1, DateTimeUnit.WEEK)
-                }
-            }
-
-            seriesScheduleRefresher.refresh(newSeries.id)
+            createSeriesWithLessons(newSeries, request.customLessons)
 
             newSeries.id
         } catch (e: Exception) {
             e.printStackTrace()
             raise(AdminError.FailedToCreateSeries("Nepodařilo se vytvořit kurz: ${e.message}"))
+        }
+    }
+
+    /**
+     * Uloží nový kurz a založí mu lekce. Jediné místo pro obě cesty zakládání kurzu
+     * (createEventSeries nad existující šablonou, createEventAndSeries i se šablonou) —
+     * dřív měla každá svou kopii a ta druhá bez customLessons nezaložila ani jednu
+     * lekci, protože jí chyběl den a čas lekcí.
+     */
+    private suspend fun createSeriesWithLessons(series: EventSeries, customLessons: List<LessonConfig>?) {
+        eventSeriesRepository.create(series)
+        val lessons = lessonsForNewSeries(series, customLessons)
+        lessons.forEach { eventInstanceRepository.create(it) }
+        seriesScheduleRefresher.refresh(series.id)
+    }
+
+    /**
+     * Lekce nového kurzu: buď přesně podle rozpisu z formuláře ([customLessons]),
+     * nebo týdně od prvního výskytu dne lekce po [EventSeries.startDate]. Bez rozpisu
+     * i bez dne a času kurz vznikne prázdný a lekce se přidávají ručně.
+     */
+    private fun lessonsForNewSeries(series: EventSeries, customLessons: List<LessonConfig>?): List<EventInstance> {
+        // Bez ceny za lekci se lekce zakládají za cenu celého kurzu (chování před jejím zavedením).
+        val perLessonPrice = series.lessonPrice ?: series.price
+
+        fun lesson(start: LocalDateTime, end: LocalDateTime, isDropIn: Boolean) = EventInstance(
+            id = Uuid.random(),
+            definitionId = series.definitionId,
+            seriesId = series.id,
+            title = series.title,
+            description = series.description,
+            startDateTime = start,
+            endDateTime = end,
+            price = perLessonPrice,
+            capacity = series.capacity,
+            waitlistCapacity = series.waitlistCapacity,
+            allowedPaymentTypes = series.allowedPaymentTypes,
+            customFields = series.customFields,
+            isDropIn = isDropIn,
+            ownerEmails = series.ownerEmails,
+            showAttendeeCount = series.showAttendeeCount,
+            allowMultipleSeats = series.allowMultipleSeats,
+            reservationDeadline = series.reservationDeadline,
+            reservationDeadlineMessage = series.reservationDeadlineMessage,
+            isPublished = series.isPublished,
+        )
+
+        if (customLessons != null) {
+            return customLessons.map { lesson(it.startDateTime, it.endDateTime, it.isDropIn) }
+        }
+
+        val dayOfWeek = series.lessonDayOfWeek ?: return emptyList()
+        val startTime = series.lessonStartTime ?: return emptyList()
+        val endTime = series.lessonEndTime ?: return emptyList()
+        var date = series.startDate
+        while (date.dayOfWeek != dayOfWeek) {
+            date = date.plus(1, DateTimeUnit.DAY)
+        }
+        return List(series.lessonCount) { week ->
+            val lessonDate = date.plus(week, DateTimeUnit.WEEK)
+            lesson(LocalDateTime(lessonDate, startTime), LocalDateTime(lessonDate, endTime), isDropIn = false)
         }
     }
 
@@ -730,6 +725,7 @@ class AdminDashboardService(
                 description = request.description,
                 defaultPrice = request.defaultPrice,
                 defaultCapacity = request.defaultCapacity,
+                defaultWaitlistCapacity = request.defaultWaitlistCapacity,
                 defaultDuration = request.defaultDuration,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
@@ -778,6 +774,7 @@ class AdminDashboardService(
                 description = request.description,
                 defaultPrice = request.defaultPrice,
                 defaultCapacity = request.defaultCapacity,
+                defaultWaitlistCapacity = request.defaultWaitlistCapacity,
                 defaultDuration = request.defaultDuration,
                 allowedPaymentTypes = request.allowedPaymentTypes,
                 customFields = request.customFields,
@@ -794,88 +791,25 @@ class AdminDashboardService(
                 description = newDefinition.description,
                 price = newDefinition.defaultPrice,
                 capacity = newDefinition.defaultCapacity,
+                waitlistCapacity = request.defaultWaitlistCapacity,
                 startDate = request.startDate,
                 endDate = request.endDate,
                 lessonCount = request.lessonCount,
                 allowedPaymentTypes = newDefinition.allowedPaymentTypes,
                 customFields = newDefinition.customFields,
-                ownerEmails = parseOwnerEmails(request.ownerEmails),
+                lessonDayOfWeek = request.lessonDayOfWeek,
+                lessonStartTime = request.lessonStartTime,
+                lessonEndTime = request.lessonEndTime,
+                ownerEmails = newDefinition.ownerEmails,
                 showAttendeeCount = newDefinition.showAttendeeCount,
                 allowMultipleSeats = newDefinition.allowMultipleSeats,
                 lessonPrice = request.lessonPrice,
+                lessonRefundAmount = request.lessonRefundAmount,
                 reservationDeadline = request.reservationDeadline,
                 reservationDeadlineMessage = request.reservationDeadlineMessage,
                 isPublished = request.isPublished,
             )
-            eventSeriesRepository.create(newSeries)
-
-            // Bez ceny za lekci se lekce zakládají za cenu celého kurzu (chování před jejím zavedením).
-            val perLessonPrice = newSeries.lessonPrice ?: newDefinition.defaultPrice
-
-            // Auto-generate lesson instances if schedule is defined
-            val customLessons = request.customLessons
-            if (customLessons != null) {
-                customLessons.forEach { lesson ->
-                    eventInstanceRepository.create(
-                        EventInstance(
-                            id = Uuid.random(),
-                            definitionId = newDefinition.id,
-                            seriesId = newSeries.id,
-                            title = newDefinition.title,
-                            description = newDefinition.description,
-                            startDateTime = lesson.startDateTime,
-                            endDateTime = lesson.endDateTime,
-                            price = perLessonPrice,
-                            capacity = newDefinition.defaultCapacity,
-                            waitlistCapacity = newSeries.waitlistCapacity,
-                            allowedPaymentTypes = newDefinition.allowedPaymentTypes,
-                            customFields = newDefinition.customFields,
-                            isDropIn = lesson.isDropIn,
-                            ownerEmails = newSeries.ownerEmails,
-                            showAttendeeCount = newSeries.showAttendeeCount,
-                            allowMultipleSeats = newSeries.allowMultipleSeats,
-                            reservationDeadline = newSeries.reservationDeadline,
-                            reservationDeadlineMessage = newSeries.reservationDeadlineMessage,
-                            isPublished = request.isPublished,
-                        )
-                    )
-                }
-            } else if (newSeries.lessonDayOfWeek != null && newSeries.lessonStartTime != null && newSeries.lessonEndTime != null) {
-                val lessonStartTime = newSeries.lessonStartTime!!
-                val lessonEndTime = newSeries.lessonEndTime!!
-                var date = newSeries.startDate
-                while (date.dayOfWeek != newSeries.lessonDayOfWeek) {
-                    date = date.plus(1, DateTimeUnit.DAY)
-                }
-                repeat(newSeries.lessonCount) {
-                    eventInstanceRepository.create(
-                        EventInstance(
-                            id = Uuid.random(),
-                            definitionId = newSeries.definitionId,
-                            seriesId = newSeries.id,
-                            title = newSeries.title,
-                            description = newSeries.description,
-                            startDateTime = LocalDateTime(date, lessonStartTime),
-                            endDateTime = LocalDateTime(date, lessonEndTime),
-                            price = perLessonPrice,
-                            capacity = newSeries.capacity,
-                            waitlistCapacity = newSeries.waitlistCapacity,
-                            allowedPaymentTypes = newSeries.allowedPaymentTypes,
-                            customFields = newSeries.customFields,
-                            isDropIn = false,
-                            ownerEmails = newSeries.ownerEmails,
-                            showAttendeeCount = newSeries.showAttendeeCount,
-                            allowMultipleSeats = newSeries.allowMultipleSeats,
-                            reservationDeadline = newSeries.reservationDeadline,
-                            reservationDeadlineMessage = newSeries.reservationDeadlineMessage,
-                            isPublished = request.isPublished,
-                        )
-                    )
-                    date = date.plus(1, DateTimeUnit.WEEK)
-                }
-            }
-
-            seriesScheduleRefresher.refresh(newSeries.id)
+            createSeriesWithLessons(newSeries, request.customLessons)
 
             newDefinition.id
         } catch (e: Exception) {

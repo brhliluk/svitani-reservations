@@ -169,11 +169,19 @@ data class CreateEventAndSeriesRequest(
     val startDate: LocalDate,
     val endDate: LocalDate,
     val lessonCount: Int,
+    /**
+     * Den a čas lekcí pro týdenní rozpis, když formulář nepošle [customLessons].
+     * Stejná pole a stejné pravidlo jako u [CreateEventSeriesRequest].
+     */
+    val lessonDayOfWeek: DayOfWeek? = null,
+    val lessonStartTime: LocalTime? = null,
+    val lessonEndTime: LocalTime? = null,
     val customLessons: List<LessonConfig>? = null,
     val showAttendeeCount: Boolean = true,
     val allowMultipleSeats: Boolean = true,
     /** Cena jedné lekce; null = lekce se zakládají za cenu celého kurzu ([defaultPrice]). */
     val lessonPrice: Double? = null,
+    val lessonRefundAmount: Double? = null,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
     val isPublished: Boolean = false,
