@@ -18,6 +18,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.parseInstanceStartDateTime
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.resolveReservationDeadline
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.validateInstanceForm
+import cz.svitaninymburk.projects.reservations.ui.admin.events.EditGuard
 import cz.svitaninymburk.projects.reservations.ui.util.ScreenModel
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import dev.kilua.core.IComponent
@@ -74,8 +75,13 @@ class AdminEditEventInstanceModel(
     var deadlineMessage by mutableStateOf("")
 
     var isSubmitting by mutableStateOf(false); private set
-    var showCapacityWarning by mutableStateOf(false); private set
-    var showHideConfirm by mutableStateOf(false); private set
+    val guard = EditGuard(
+        occupiedSpots = { occupiedSpots },
+        capacity = { capacity },
+        isPublished = { (uiState as? EditInstanceUiState.Loaded)?.instance?.isPublished },
+        save = ::performSave,
+        setPublished = ::setPublished,
+    )
 
     fun load() {
         val uuid = runCatching { Uuid.parse(id) }.getOrNull()
@@ -120,39 +126,7 @@ class AdminEditEventInstanceModel(
             showToast(validationErrorMessage(validationError), ToastType.Error)
             return
         }
-        if (capacity < occupiedSpots) {
-            showCapacityWarning = true
-            return
-        }
-        performSave()
-    }
-
-    fun confirmCapacityWarning() {
-        showCapacityWarning = false
-        performSave()
-    }
-
-    fun dismissCapacityWarning() {
-        showCapacityWarning = false
-    }
-
-    fun requestTogglePublished() {
-        val loaded = uiState as? EditInstanceUiState.Loaded ?: return
-        val isPublished = loaded.instance.isPublished
-        if (isPublished && occupiedSpots > 0) {
-            showHideConfirm = true
-            return
-        }
-        setPublished(!isPublished)
-    }
-
-    fun confirmHide() {
-        showHideConfirm = false
-        setPublished(false)
-    }
-
-    fun dismissHideConfirm() {
-        showHideConfirm = false
+        guard.requestSave()
     }
 
     private fun performSave() {
@@ -179,14 +153,15 @@ class AdminEditEventInstanceModel(
     private fun setPublished(published: Boolean) {
         val loaded = uiState as? EditInstanceUiState.Loaded ?: return
         val uuid = runCatching { Uuid.parse(id) }.getOrNull() ?: return
-        scope.launch {
-            mutations.setPublished(uuid, published)
-                .onRight {
-                    showToast(if (published) currentStrings.toastPublished else currentStrings.toastHidden)
-                    uiState = EditInstanceUiState.Loaded(loaded.instance.copy(isPublished = published))
-                }
-                .onLeft { showToast(currentStrings.errorToast(it.localizedMessage(currentStrings)), ToastType.Error) }
-        }
+        run(
+            loading = { isSubmitting = it },
+            errorMessage = { currentStrings.errorToast(it.localizedMessage(currentStrings)) },
+            block = { mutations.setPublished(uuid, published) },
+            onSuccess = {
+                showToast(if (published) currentStrings.toastPublished else currentStrings.toastHidden)
+                uiState = EditInstanceUiState.Loaded(loaded.instance.copy(isPublished = published))
+            },
+        )
     }
 
     private fun formData() = EventInstanceEditFormData(

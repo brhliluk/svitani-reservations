@@ -10,6 +10,8 @@ import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.ui.admin.events.AllowedPaymentsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CapacityField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.CustomFieldsBuilderSection
+import cz.svitaninymburk.projects.reservations.ui.admin.events.EditGuardModals
+import cz.svitaninymburk.projects.reservations.ui.admin.events.EditHeader
 import cz.svitaninymburk.projects.reservations.ui.admin.events.OwnerEmailsField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.PriceCurrencyField
 import cz.svitaninymburk.projects.reservations.ui.admin.events.ReservationDeadlineSection
@@ -24,9 +26,7 @@ import dev.kilua.form.text.text
 import dev.kilua.form.text.textArea
 import dev.kilua.html.button
 import dev.kilua.html.div
-import dev.kilua.html.h1
 import dev.kilua.html.h2
-import dev.kilua.html.h3
 import dev.kilua.html.label
 import dev.kilua.html.p
 import dev.kilua.html.span
@@ -45,24 +45,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
         is EditSeriesUiState.Error -> div(className = "alert alert-error max-w-lg mx-auto mt-10") { +state.message }
         is EditSeriesUiState.Loaded -> {
             div(className = "flex flex-col gap-6 animate-fade-in max-w-4xl mx-auto pb-20") {
-                div(className = "flex items-center gap-4") {
-                    button(className = "btn btn-circle btn-ghost btn-sm") {
-                        span(className = "icon-[heroicons--arrow-left] size-5"); onClick { history.back() }
-                    }
-                    div(className = "flex-1") {
-                        h1(className = "text-3xl font-bold text-base-content") { +currentStrings.editSeriesTitle }
-                        p(className = "text-base-content/60") { +state.series.title }
-                    }
-                    if (state.series.isPublished) {
-                        span(className = "badge badge-primary badge-sm") { +currentStrings.statusPublished }
-                    } else {
-                        span(className = "badge badge-ghost badge-sm") { +currentStrings.statusHidden }
-                    }
-                    button(className = if (state.series.isPublished) "btn btn-sm btn-outline" else "btn btn-sm btn-primary") {
-                        onClick { model.requestTogglePublished() }
-                        +if (state.series.isPublished) currentStrings.hideButton else currentStrings.publishButton
-                    }
-                }
+                EditHeader(currentStrings.editSeriesTitle, state.series.title, state.series.isPublished, model.isSubmitting, model.guard)
                 div(className = "card bg-base-100 shadow-sm") {
                     div(className = "card-body") {
                         h2(className = "card-title text-lg") { +currentStrings.basicInfoHeading }
@@ -135,31 +118,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
         }
     }
 
-    if (model.showCapacityWarning) {
-        div(className = "modal modal-open") {
-            div(className = "modal-box") {
-                h3(className = "font-bold text-lg") { +currentStrings.capacityWarningTitle }
-                p(className = "py-4") { +currentStrings.capacityWarningBody }
-                div(className = "modal-action") {
-                    button(className = "btn") { onClick { model.dismissCapacityWarning() }; +currentStrings.cancel }
-                    button(className = "btn btn-warning") { onClick { model.confirmCapacityWarning() }; +currentStrings.saveChanges }
-                }
-            }
-        }
-    }
-
-    if (model.showHideConfirm) {
-        div(className = "modal modal-open") {
-            div(className = "modal-box") {
-                h3(className = "font-bold text-lg") { +currentStrings.hideButton }
-                p(className = "py-4") { +currentStrings.hideWithReservationsConfirm }
-                div(className = "modal-action") {
-                    button(className = "btn") { onClick { model.dismissHideConfirm() }; +currentStrings.cancel }
-                    button(className = "btn btn-warning") { onClick { model.confirmHide() }; +currentStrings.hideButton }
-                }
-            }
-        }
-    }
+    EditGuardModals(model.guard)
 
     Toast(message = model.toast?.message, type = model.toast?.type ?: ToastType.Success, onDismiss = { model.dismissToast() })
 }
