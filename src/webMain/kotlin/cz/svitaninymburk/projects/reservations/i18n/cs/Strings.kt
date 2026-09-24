@@ -2,9 +2,10 @@ package cz.svitaninymburk.projects.reservations.i18n.cs
 
 import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import cz.svitaninymburk.projects.reservations.i18n.AppStrings
+import cz.svitaninymburk.projects.reservations.i18n.CsErrorStrings
+import cz.svitaninymburk.projects.reservations.i18n.ErrorStrings
 
-
-object CsStrings : AppStrings {
+object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val locale = "cs"
     override val appName = "Rezervace"
     override val logIn = "Přihlásit se"
@@ -764,75 +765,6 @@ object CsStrings : AppStrings {
     override val previewBannerPublished = "Náhled — tato událost je zveřejněna"
     override val backToAdmin = "Zpět do administrace"
 
-    // ErrorStrings
-    override val errorInvalidCredentials = "Neplatné přihlašovací údaje"
-    override val errorUserAlreadyExists = "Účet již existuje"
-    override val errorInvalidGoogleToken = "Neplatný Google Token"
-    override val errorInvalidToken = "Neplatný token"
-    override val errorTokenExpired = "Token vypršel"
-    override val errorUserNotFound = "Uživatel nenalezen"
-    override val errorProcessingRequest = "Chyba při zpracování požadavku"
-    override val errorNotLoggedIn = "Uživatel není přihlášen"
-    override fun errorLoggedInWithAnotherProvider(providerName: String?) = "Přihlášení jinou metodou: $providerName"
-
-    override val errorReservationNotFound = "Rezervace nebyla nalezena"
-    override val errorEventInstanceNotFound = "Událost nebyla nalezena"
-    override val errorEventSeriesNotFound = "Kroužek nebyl nalezen"
-    override val errorCapacityExceeded = "Kapacita události překročena"
-    override val errorMultipleSeatsNotAllowed = "U této akce lze rezervovat pouze jedno místo."
-    override val errorInvalidSeatCount = "Počet míst musí být alespoň 1."
-    override val errorEventAlreadyFinished = "Událost již skončila"
-    override val errorEventAlreadyStarted = "Událost již začala"
-    override val errorSeriesAlreadyStarted = "Kurz už běží, celou rezervaci zrušit nejde. Zrušit se dají jednotlivé lekce."
-    override val errorEventCancelled = "Událost byla zrušena"
-    override val errorFailedToGetReservations = "Nelze získat seznam rezervací"
-    override val errorNotASeriesReservation = "Rezervace není přihlášení na kroužek."
-    override val errorInstanceNotInSeries = "Tato lekce nepatří do vašeho kroužku."
-    override val errorAlreadyOptedOut = "Z této lekce jste se již odhlásili."
-    override val errorAlreadyCancelled = "Rezervace už je zrušená."
-    override val errorAdminRevokeOptOutNotFound = "Omluvenka už neexistuje."
-    override val errorAdminRevokeOptOutLessonFull = "Lekce je plná, místo mezitím zabral někdo jiný."
-    override val errorAdminRevokeOptOutFailed = "Omluvenku se nepodařilo vzít zpět."
-    override val errorAdminResendAuditEventNotFound = "Záznam v historii už neexistuje."
-    override val errorAdminResendNotResendable = "Tenhle typ e-mailu znovu poslat nejde."
-    override val errorAdminResendTargetNotFound = "Akce, ke které rezervace patří, už neexistuje."
-    override fun errorAdminResendSendFailed(cause: String) = "E-mail se nepodařilo odeslat: $cause"
-    override val errorWalletNotFound = "Peněženka s tímto kódem nebyla nalezena."
-    override val errorWalletEmpty = "Peněženka nemá žádný zůstatek."
-    override val errorWalletEmailMismatch = "Peněženka je přiřazena k jinému emailu."
-    override val errorReservationDeadlinePassed = "Uzávěrka rezervací pro tuto událost již proběhla."
-    override val errorEventNotFull = "Na akci jsou ještě volná místa, registrace náhradníka není možná."
-    override val errorWaitlistNotAvailable = "U této akce není čekací listina k dispozici."
-    override val errorWaitlistFull = "Čekací listina je plná."
-    override val errorAlreadyReservedSameEvent = "Na tuto akci už na tento e-mail rezervaci máte."
-    override val errorAlreadyReservedParentSeries = "Na tuto lekci jste přihlášení už v rámci celého kurzu."
-    override val errorAlreadyReservedSeriesLesson = "Na některou lekci tohoto kurzu už rezervaci máte."
-    override val errorReservationAlreadyClaimed = "Tahle rezervace už je navázaná na účet."
-    override val errorReservationEmailDoesNotMatch = "Rezervace je na jiný e-mail, než má váš účet."
-    override val errorReservationNotClaimable = "Tuhle rezervaci už k účtu přidat nejde."
-    override val errorNothingToClaim = "Na váš e-mail nemáme žádnou rezervaci, kterou by šlo přidat."
-    override val errorClaimLinkInvalid = "Tenhle odkaz už neplatí. Zkuste si poslat nový."
-    override val errorClaimLinkExpired = "Platnost odkazu vypršela. Pošlete si nový."
-    override fun errorClaimEmailSendFailed(cause: String) = "E-mail s odkazem se nepodařilo odeslat: $cause"
-
-    override fun errorEventInstanceNotFoundId(id: String) = "Událost s id $id nenalezena"
-    override fun errorEventDefinitionNotFoundId(id: String) = "Šablona události s id $id nenalezena"
-    override val errorFailedToGetDefinitions = "Nepodařilo se získat definice"
-    override val errorFailedToGetInstances = "Nepodařilo se získat události"
-    override val errorFailedToGetSeries = "Nepodařilo se získat kurzy"
-
-    override val errorAdminReservationNotFound = "Rezervace nenalezena"
-    override fun errorWrongReservationState(stateName: String) = "Stav rezervace není k zaplacení, ale: $stateName"
-    override val errorAdminEventNotFound = "Událost nenalezena"
-    override val errorAdminCourseNotFound = "Kroužek nenalezen"
-    override val errorAdminUserNotFound = "Uživatel nenalezen"
-    override val errorAdminDefinitionNotFound = "Definice nenalezena"
-    override val errorAdminGetInstancesFailed = "Nepodařilo se získat lekce"
-    override val errorAdminCancelLessonInstanceNotFound = "Lekce nenalezena"
-    override val errorAdminCancelLessonFailed = "Nepodařilo se zrušit lekci"
-    override val errorAdminEventAlreadyPassed = "Událost již proběhla a nelze ji zrušit"
-    override val errorAdminWalletOperationFailed = "Operace s peněženkou selhala"
-
     // Privacy Policy
     override val privacyTitle = "Zásady ochrany osobních údajů"
     override val privacyControllerHeading = "Správce osobních údajů"
@@ -888,17 +820,6 @@ object CsStrings : AppStrings {
     override val settingsSavedSuccess = "Nastavení bylo uloženo"
     override val settingsGmailPasswordHint = "Google účet → Zabezpečení → Hesla aplikací"
     override val settingsFioTokenHint = "FIO internetové bankovnictví → Nastavení → API"
-    // Settings error strings
-    override val errorSettingsLoadFailed = "Nepodařilo se načíst nastavení"
-    override val errorSettingsSaveFailed = "Nepodařilo se uložit nastavení"
-    override fun errorSettingsEmailTestFailed(reason: String) = "Test e-mailu selhal: $reason"
-    override fun errorSettingsFioTestFailed(reason: String) = "Test FIO selhal: $reason"
-    override val errorSettingsEncryptionKeyMissing = "Chybí šifrovací klíč (SETTINGS_ENCRYPTION_KEY)"
-
-    // Password change errors
-    override val errorWrongOldPassword = "Zadané heslo není správné"
-    override val errorNotEmailUser = "Tento účet je přihlášen přes Google a nemá heslo"
-    override val errorPasswordTooWeak = "Heslo musí mít alespoň 6 znaků"
 
     // Waitlist
     override val registerAsSubstitute = "Přihlásit se jako náhradník"
