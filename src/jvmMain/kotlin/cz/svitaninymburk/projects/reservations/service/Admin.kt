@@ -298,6 +298,7 @@ class AdminDashboardService(
         val waitlistCapacity: Int
         val customFields: List<CustomFieldDefinition>
         var isCancelled = false
+        var isRunningCourse = false
         var lessonSeriesId: Uuid? = null
 
         if (isSeries) {
@@ -309,6 +310,7 @@ class AdminDashboardService(
             waitlistCapacity = series.waitlistCapacity
             customFields = series.customFields
             isCancelled = series.isCancelled
+            isRunningCourse = eventInstanceRepository.findBySeries(eventId).courseHasStarted(nowInAppTimeZone())
         } else {
             val instance = ensureNotNull(eventInstanceRepository.get(eventId)) { AdminError.EventInstanceNotFound(eventId) }
             title = instance.title
@@ -396,6 +398,7 @@ class AdminDashboardService(
             isCancelled = isCancelled,
             seriesId = lessonSeriesId,
             optedOut = optedOut,
+            isRunningCourse = isRunningCourse,
         )
     }
 
@@ -1375,13 +1378,15 @@ class AdminDashboardService(
             AdminError.SeriesNotFoundForCancel(id)
         }
 
-        val today = nowInAppTimeZone().date
-        val futureInstances = eventInstanceRepository.findBySeries(id)
-            .filter { it.startDateTime.date >= today }
-
-        ensure(futureInstances.isNotEmpty()) {
+        val now = nowInAppTimeZone()
+        val lessons = eventInstanceRepository.findBySeries(id)
+        // Proběhlé lekce se neruší, ani ta dnešní, která už začala — konaly se
+        // a patří k nim docházka i historie.
+        val remaining = lessons.lessonsNotYetStarted(now)
+        ensure(remaining.isNotEmpty()) {
             AdminError.EventAlreadyPassed(id)
         }
+        val started = lessons.courseHasStarted(now)
 
         eventSeriesRepository.setCancelled(id)
 
@@ -1389,55 +1394,153 @@ class AdminDashboardService(
             type = AuditEventType.EVENT_CANCELLED,
             subjectLabel = series.title,
             seriesId = id,
-            detail = if (refund) "Kurz zrušen, kredit vracen" else "Kurz zrušen bez vracení kreditu",
+            detail = when {
+                started && refund -> "Zrušen zbytek rozběhnutého kurzu (${remaining.size} lekcí), kredit za lekce vracen"
+                started -> "Zrušen zbytek rozběhnutého kurzu (${remaining.size} lekcí) bez vracení kreditu"
+                refund -> "Kurz zrušen, kredit vracen"
+                else -> "Kurz zrušen bez vracení kreditu"
+            },
         )
 
-        futureInstances.forEach { instance ->
+        remaining.forEach { instance ->
             eventInstanceRepository.setCancelled(instance.id)
-            reservationRepository.findByReference(Reference.Instance(instance.id))
-                .filter { it.status != Reservation.Status.CANCELLED }
-                .forEach { res ->
-                    reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                    val resSubject = AuditSubject(id, instance.id, res.id, res.contactName)
-                    audit.record(
-                        type = AuditEventType.RESERVATION_CANCELLED,
-                        subjectLabel = res.contactName,
-                        seriesId = id,
-                        instanceId = instance.id,
-                        reservationId = res.id,
-                        amount = res.paidAmount,
-                        detail = "Zrušeno se zrušením kurzu",
-                    )
-                    dispatchCancellationNotice(res, series.title, resSubject)
-                    if (refund && res.paidAmount > 0.0) {
-                        try {
-                            withAuditSubject(resSubject) {
-                                refundService.refundWholeReservation(resolveWalletForRefund(res), res)
-                            }
-                        } catch (e: Exception) {
-                            logger.error("Failed to refund reservation ${res.id}", e)
-                        }
-                    }
-                }
+            if (started) {
+                audit.record(
+                    type = AuditEventType.LESSON_CANCELLED,
+                    subjectLabel = series.title,
+                    seriesId = id,
+                    instanceId = instance.id,
+                    detail = "Lekce ${instance.startDateTime} zrušena se zrušením kurzu",
+                )
+            }
+            cancelDropInReservations(instance, series.title, refund, detail = "Zrušeno se zrušením kurzu")
         }
 
-        // Zápisy na kurz. Vrací se celá dosud nevrácená částka (refundWholeReservation),
-        // i když část lekcí už proběhla — poměrná vratka za proběhlé lekce zatím
-        // není obchodně rozhodnutá.
-        reservationRepository.findByReference(Reference.Series(id))
+        if (started) {
+            cancelRemainingLessonsForEnrollees(series, remaining, refund)
+            seriesScheduleRefresher.refresh(id)
+        } else {
+            cancelEnrollments(series, refund)
+        }
+    }
+
+    /**
+     * Kurz, který ještě nezačal: zápisy se stornují a vrací se celá dosud
+     * nevrácená částka — nikdo z kurzu nic neměl.
+     */
+    private suspend fun cancelEnrollments(series: EventSeries, refund: Boolean) {
+        reservationRepository.findByReference(Reference.Series(series.id))
             .filter { it.status != Reservation.Status.CANCELLED }
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                val resSubject = AuditSubject(id, null, res.id, res.contactName)
+                val resSubject = AuditSubject(series.id, null, res.id, res.contactName)
                 audit.record(
                     type = AuditEventType.RESERVATION_CANCELLED,
                     subjectLabel = res.contactName,
-                    seriesId = id,
+                    seriesId = series.id,
                     reservationId = res.id,
                     amount = res.paidAmount,
                     detail = "Zrušeno se zrušením kurzu",
                 )
                 dispatchCancellationNotice(res, series.title, resSubject)
+                if (refund && res.paidAmount > 0.0) {
+                    try {
+                        withAuditSubject(resSubject) {
+                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
+                        }
+                    } catch (e: Exception) {
+                        logger.error("Failed to refund reservation ${res.id}", e)
+                    }
+                }
+            }
+    }
+
+    /**
+     * Rozběhnutý kurz: celé rezervace se nestornují (na část lekcí se už chodilo),
+     * zruší se jen zbývající lekce — jako by admin rušil jednu po druhé
+     * ([cancelSeriesLesson]). Každý zapsaný dostane jeden mail a jeden kredit za
+     * všechny zbývající lekce dohromady místo jednoho za každou.
+     */
+    private suspend fun cancelRemainingLessonsForEnrollees(series: EventSeries, remaining: List<EventInstance>, refund: Boolean) {
+        val rate = series.lessonRefundAmount ?: 0.0
+
+        reservationRepository.findByReference(Reference.Series(series.id))
+            .filter { it.status != Reservation.Status.CANCELLED }
+            .forEach { res ->
+                val resSubject = AuditSubject(series.id, null, res.id, res.contactName)
+
+                // Náhradník místo v kurzu nemá a kurz už pokračovat nebude — z pořadníku ven.
+                if (res.status == Reservation.Status.WAITLISTED) {
+                    reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
+                    audit.record(
+                        type = AuditEventType.RESERVATION_CANCELLED,
+                        subjectLabel = res.contactName,
+                        seriesId = series.id,
+                        reservationId = res.id,
+                        detail = "Pořadník zrušen se zrušením kurzu",
+                    )
+                    dispatchCancellationNotice(res, series.title, resSubject)
+                    return@forEach
+                }
+
+                // Z lekcí, ze kterých se už omluvil, kredit dostal (nebo nedostal) při omluvence.
+                val optedOut = seriesLessonOptOutRepository.findByReservation(res.id).map { it.instanceId }.toSet()
+                val affected = remaining.filter { it.id !in optedOut }
+                if (affected.isEmpty()) return@forEach
+
+                withAuditSubject(resSubject) {
+                    emailDispatcher.dispatch {
+                        emailService.sendRemainingLessonsCancelledNotification(
+                            toEmail = res.contactEmail,
+                            contactName = res.contactName,
+                            seriesTitle = series.title,
+                            lessonDateTimes = affected.map { it.startDateTime },
+                            locale = res.locale,
+                        ).onLeft { captureEmailError(logger, "Failed to send remaining-lessons-cancelled email for ${res.id}: $it") }
+                    }
+                }
+
+                // Stejná sazba jako cancelSeriesLesson; dohromady ale nejvýš to, co
+                // z rezervace ještě nebylo vráceno — u vysoké sazby by součet za
+                // všechny zbývající lekce mohl přerůst zaplacenou částku.
+                if (refund && rate > 0.0 && res.paidAmount > 0.0) {
+                    val credit = minOf(rate * affected.size, refundService.refundableForWholeReservation(res))
+                    try {
+                        withAuditSubject(resSubject) {
+                            refundService.refundFixedAmount(
+                                resolveWalletForRefund(res), res, credit,
+                                WalletTransactionReason.LESSON_OPT_OUT_REFUND,
+                                detail = "Za ${affected.size} zrušených lekcí kurzu",
+                            )
+                        }
+                    } catch (e: Exception) {
+                        logger.error("Failed to refund reservation ${res.id}", e)
+                    }
+                }
+            }
+    }
+
+    /**
+     * Kdo si koupil jen jednu lekci (drop-in), přišel o celou svou rezervaci, ne
+     * o lekci z kurzu — proto storno rezervace a vrácení zaplacené částky, ne
+     * sazba za lekci. Uzávěrka 18:00 se neuplatní, chyba není na jeho straně.
+     */
+    private suspend fun cancelDropInReservations(instance: EventInstance, noticeTitle: String, refund: Boolean, detail: String) {
+        reservationRepository.findByReference(Reference.Instance(instance.id))
+            .filter { it.status != Reservation.Status.CANCELLED }
+            .forEach { res ->
+                reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
+                val resSubject = AuditSubject(instance.seriesId, instance.id, res.id, res.contactName)
+                audit.record(
+                    type = AuditEventType.RESERVATION_CANCELLED,
+                    subjectLabel = res.contactName,
+                    seriesId = instance.seriesId,
+                    instanceId = instance.id,
+                    reservationId = res.id,
+                    amount = res.paidAmount,
+                    detail = detail,
+                )
+                dispatchCancellationNotice(res, noticeTitle, resSubject)
                 if (refund && res.paidAmount > 0.0) {
                     try {
                         withAuditSubject(resSubject) {
@@ -1524,35 +1627,8 @@ class AdminDashboardService(
                     }
                 }
 
-            // Kdo si koupil jen tuhle lekci (drop-in), přišel o celou svou rezervaci,
-            // ne o jednu lekci z kurzu — proto storno rezervace a vrácení zaplacené
-            // částky, ne lessonRefundAmount. Uzávěrka 18:00 se neuplatní, chyba není
-            // na jeho straně. Stejný postup jako cancelEventInstance.
-            reservationRepository.findByReference(Reference.Instance(instanceId))
-                .filter { it.status != Reservation.Status.CANCELLED }
-                .forEach { res ->
-                    reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                    val resSubject = AuditSubject(seriesId, instanceId, res.id, res.contactName)
-                    audit.record(
-                        type = AuditEventType.RESERVATION_CANCELLED,
-                        subjectLabel = res.contactName,
-                        seriesId = seriesId,
-                        instanceId = instanceId,
-                        reservationId = res.id,
-                        amount = res.paidAmount,
-                        detail = "Zrušeno se zrušením lekce",
-                    )
-                    dispatchCancellationNotice(res, instance.title, resSubject)
-                    if (res.paidAmount > 0.0) {
-                        try {
-                            withAuditSubject(resSubject) {
-                                refundService.refundWholeReservation(resolveWalletForRefund(res), res)
-                            }
-                        } catch (e: Exception) {
-                            logger.error("Failed to refund reservation ${res.id}", e)
-                        }
-                    }
-                }
+            // Stejný postup jako cancelEventInstance — viz cancelDropInReservations.
+            cancelDropInReservations(instance, instance.title, refund = true, detail = "Zrušeno se zrušením lekce")
         } catch (e: Exception) {
             e.printStackTrace()
             raise(AdminError.CancelLesson.Failed)

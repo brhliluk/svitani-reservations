@@ -129,6 +129,16 @@ class AuditingEmailService(
         delegate.sendLessonCancelledNotification(toEmail, contactName, seriesTitle, lessonDateTime, locale)
     }
 
+    override suspend fun sendRemainingLessonsCancelledNotification(
+        toEmail: String,
+        contactName: String,
+        seriesTitle: String,
+        lessonDateTimes: List<LocalDateTime>,
+        locale: String,
+    ) = audited(AuditEventType.EMAIL_REMAINING_LESSONS_CANCELLED, toEmail, contactName) {
+        delegate.sendRemainingLessonsCancelledNotification(toEmail, contactName, seriesTitle, lessonDateTimes, locale)
+    }
+
     override suspend fun sendLessonOptOutNotice(
         toEmail: String,
         eventTitle: String,

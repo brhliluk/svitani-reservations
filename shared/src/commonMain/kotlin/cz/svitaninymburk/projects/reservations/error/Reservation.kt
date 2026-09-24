@@ -39,6 +39,8 @@ enum class DuplicateScope {
     @Serializable data object EventSeriesNotFound : GetDetail
     @Serializable data object EventAlreadyFinished : CreateReservation, CancelReservation
     @Serializable data object EventAlreadyStarted : CreateReservation, CancelReservation
+    /** Rozběhnutý kurz se celý zrušit nedá — ani adminem; zbývá omluvenka z jednotlivých lekcí. */
+    @Serializable data object SeriesAlreadyStarted : CancelReservation
     @Serializable data object EventCancelled : CreateReservation
     @Serializable data object CapacityExceeded : CreateReservation
     @Serializable data object MultipleSeatsNotAllowed : CreateReservation
@@ -92,6 +94,7 @@ fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (thi
     is ReservationError.InvalidSeatCount -> strings.errorInvalidSeatCount
     is ReservationError.EventAlreadyFinished -> strings.errorEventAlreadyFinished
     is ReservationError.EventAlreadyStarted -> strings.errorEventAlreadyStarted
+    is ReservationError.SeriesAlreadyStarted -> strings.errorSeriesAlreadyStarted
     is ReservationError.EventCancelled -> strings.errorEventCancelled
     is ReservationError.FailedToGetAllReservations -> strings.errorFailedToGetReservations
     is ReservationError.SystemError -> message

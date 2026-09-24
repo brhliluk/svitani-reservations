@@ -760,13 +760,26 @@ open class ReservationService(
                 is Reference.Series -> eventSeriesRepository.get(reservation.reference.id)?.let { ReservationTarget.Series(it) }
             }
 
-            // Zákazníkovi zavře storno začátek akce — u kurzu je to jeho první den,
-            // takže rozjetý kurz si sám odhlásit nemůže. Admin tuhle zeď nemá:
-            // z administrace se odhlašují i lidi, co odpadli v půlce kurzu. O peníze
-            // nejde, kredit se dole stejně řídí uzávěrkou (18:00 den předem), takže
-            // pozdní storno nevrací nic.
-            if (target != null && !isAdminCaller()) {
-                ensure(nowInAppTimeZone() < target.startDateTime) { ReservationError.EventAlreadyStarted }
+            // Rozběhnutý kurz se celý neruší — ani adminem. Kdo odpadne v půlce,
+            // omlouvá se z jednotlivých lekcí; storno celé rezervace by ho vyřadilo
+            // i z lekcí, na které už chodil, a počítalo vratku z celého kurzu.
+            // Zákazníkovi navíc zavře storno už první den kurzu (00:00), jako dřív.
+            // U jednorázové akce zavře storno zákazníkovi její začátek; admin tuhle
+            // zeď nemá, kredit se dole stejně řídí uzávěrkou (18:00 den předem).
+            val now = nowInAppTimeZone()
+            when (target) {
+                is ReservationTarget.Series -> {
+                    ensure(isAdminCaller() || now < target.startDateTime) { ReservationError.SeriesAlreadyStarted }
+                    // Náhradník v pořadníku na lekce nechodí a nic nezaplatil —
+                    // z pořadníku ho jde odebrat i u běžícího kurzu.
+                    val isWaitlisted = reservation.status == Reservation.Status.WAITLISTED
+                    ensure(isWaitlisted || !eventInstanceRepository.findBySeries(target.series.id).courseHasStarted(now)) {
+                        ReservationError.SeriesAlreadyStarted
+                    }
+                }
+                is ReservationTarget.Instance ->
+                    if (!isAdminCaller()) ensure(now < target.startDateTime) { ReservationError.EventAlreadyStarted }
+                null -> Unit
             }
 
             val cancelledReservation = reservation.copy(status = Reservation.Status.CANCELLED)

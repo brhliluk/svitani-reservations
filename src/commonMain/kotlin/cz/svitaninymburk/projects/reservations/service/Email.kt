@@ -59,6 +59,18 @@ interface EmailService {
         locale: String,
     ): Either<EmailError.SendLessonCancelled, Unit>
 
+    /**
+     * Kurz zrušený v půlce: zbývající lekce se nekonají, zápis na kurz ale platí
+     * dál. Jeden mail za všechny lekce místo jednoho za každou.
+     */
+    suspend fun sendRemainingLessonsCancelledNotification(
+        toEmail: String,
+        contactName: String,
+        seriesTitle: String,
+        lessonDateTimes: List<LocalDateTime>,
+        locale: String,
+    ): Either<EmailError.SendLessonCancelled, Unit>
+
     suspend fun sendLessonOptOutNotice(
         toEmail: String,
         eventTitle: String,

@@ -26,6 +26,7 @@ fun AppError.httpStatus(): HttpStatusCode = when (this) {
     is ReservationError.CapacityExceeded,
     is ReservationError.AlreadyReserved,
     is ReservationError.AlreadyCancelled,
+    is ReservationError.SeriesAlreadyStarted,
     is AuthError.UserAlreadyExists -> HttpStatusCode.Conflict
 
     else -> HttpStatusCode.BadRequest

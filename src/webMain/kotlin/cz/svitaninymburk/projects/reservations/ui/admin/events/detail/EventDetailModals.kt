@@ -47,6 +47,7 @@ fun IComponent.DeleteEventModal(
 @Composable
 fun IComponent.CancelEventModal(
     reservationCount: Int,
+    isRunningCourse: Boolean,
     refundMoney: Boolean,
     onRefundMoneyChange: (Boolean) -> Unit,
     isLoading: Boolean,
@@ -65,7 +66,9 @@ fun IComponent.CancelEventModal(
         titleClassName = "text-warning",
         confirmClassName = "btn-warning",
     ) {
-        p(className = "py-4") { +currentStrings.cancelEventConfirmBody(reservationCount) }
+        p(className = "py-4") {
+            +if (isRunningCourse) currentStrings.cancelRunningCourseConfirmBody else currentStrings.cancelEventConfirmBody(reservationCount)
+        }
         RefundToggle(refundMoney, onRefundMoneyChange, toggleClassName = "toggle-warning")
     }
 }

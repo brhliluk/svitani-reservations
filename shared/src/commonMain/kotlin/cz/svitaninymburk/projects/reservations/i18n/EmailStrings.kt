@@ -67,6 +67,8 @@ interface EmailStrings {
     fun lessonRescheduledBody(contactName: String, seriesTitle: String, oldDateTime: String, newDateTime: String): String
     fun lessonCancelledSubject(seriesTitle: String): String
     fun lessonCancelledBody(contactName: String, seriesTitle: String, lessonDateTime: String): String
+    fun remainingLessonsCancelledSubject(seriesTitle: String): String
+    fun remainingLessonsCancelledBody(contactName: String, seriesTitle: String, lessonDateTimes: List<String>): String
 
     // Lector notifications
     fun lectorReservationSubject(eventTitle: String, target: LectorTarget): String
@@ -146,6 +148,11 @@ object CsEmailStrings : EmailStrings {
     override fun lessonCancelledSubject(seriesTitle: String) = "Zrušení lekce: $seriesTitle"
     override fun lessonCancelledBody(contactName: String, seriesTitle: String, lessonDateTime: String) =
         "Dobrý den $contactName,\n\nlekce kurzu $seriesTitle dne $lessonDateTime byla zrušena."
+    override fun remainingLessonsCancelledSubject(seriesTitle: String) = "Zrušení zbytku kurzu: $seriesTitle"
+    override fun remainingLessonsCancelledBody(contactName: String, seriesTitle: String, lessonDateTimes: List<String>) =
+        "Dobrý den $contactName,\n\nkurz $seriesTitle byl zrušen. Tyto zbývající lekce se nekonají:\n" +
+            lessonDateTimes.joinToString("\n") { "– $it" } +
+            "\n\nPokud kurz za lekce vrací kredit, připíšeme vám ho do peněženky — přijde o tom samostatný e-mail."
     override fun lectorReservationSubject(eventTitle: String, target: LectorTarget) = when (target) {
         is LectorTarget.Occasion -> "Nová rezervace: $eventTitle \u2014 ${target.dateTime.humanReadable}"
         is LectorTarget.Course -> "Nová přihláška do kurzu: $eventTitle"
@@ -268,6 +275,11 @@ object EnEmailStrings : EmailStrings {
     override fun lessonCancelledSubject(seriesTitle: String) = "Lesson cancelled: $seriesTitle"
     override fun lessonCancelledBody(contactName: String, seriesTitle: String, lessonDateTime: String) =
         "Hello $contactName,\n\nthe lesson of $seriesTitle on $lessonDateTime has been cancelled."
+    override fun remainingLessonsCancelledSubject(seriesTitle: String) = "Rest of course cancelled: $seriesTitle"
+    override fun remainingLessonsCancelledBody(contactName: String, seriesTitle: String, lessonDateTimes: List<String>) =
+        "Hello $contactName,\n\nthe course $seriesTitle has been cancelled. These remaining lessons will not take place:\n" +
+            lessonDateTimes.joinToString("\n") { "– $it" } +
+            "\n\nIf the course refunds lessons, we will add the credit to your wallet — you will get a separate e-mail about it."
     override fun lectorReservationSubject(eventTitle: String, target: LectorTarget) = when (target) {
         is LectorTarget.Occasion -> "New booking: $eventTitle \u2014 ${target.dateTime.humanReadable}"
         is LectorTarget.Course -> "New course sign-up: $eventTitle"

@@ -77,6 +77,7 @@ enum class AuditEventType(val category: AuditCategory) {
     EMAIL_PASSWORD_RESET(AuditCategory.EMAIL),
     EMAIL_LESSON_RESCHEDULED(AuditCategory.EMAIL),
     EMAIL_LESSON_CANCELLED(AuditCategory.EMAIL),
+    EMAIL_REMAINING_LESSONS_CANCELLED(AuditCategory.EMAIL),
     EMAIL_LESSON_OPT_OUT(AuditCategory.EMAIL),
     EMAIL_WAITLIST_CONFIRMATION(AuditCategory.EMAIL),
     EMAIL_WAITLIST_PROMOTION(AuditCategory.EMAIL),

@@ -348,26 +348,4 @@ class AdminCancelTest {
             assertEquals("Zrušeno se zrušením kurzu", detail)
         }
     }
-
-    /**
-     * Popisuje dnešní chování, ne rozhodnutí: zrušení rozběhnutého kurzu vrací
-     * celou zaplacenou částku, i když část lekcí už proběhla. Jestli má být
-     * vratka poměrná, je otevřená otázka na zadavatele.
-     */
-    @Test
-    fun `cancelEventSeries refunds the whole paid amount even when some lessons already took place`() = runBlocking {
-        val instanceRepo = InMemoryEventInstanceRepository()
-        val seriesRepo = InMemoryEventSeriesRepository()
-        val reservationRepo = InMemoryReservationRepository()
-        val walletRepo = InMemoryWalletRepository()
-        val series = eventSeries()
-        seriesRepo.create(series)
-        instanceRepo.create(pastInstance(seriesId = series.id))
-        instanceRepo.create(futureInstance(seriesId = series.id))
-        saveReservation(reservationRepo, Reference.Series(series.id), paidAmount = 1000.0)
-
-        service(instanceRepo, seriesRepo, reservationRepo, walletRepo).cancelEventSeries(series.id)
-
-        assertEquals(listOf(1000.0), walletRepo.findAllWithPositiveBalance().map { it.balance })
-    }
 }

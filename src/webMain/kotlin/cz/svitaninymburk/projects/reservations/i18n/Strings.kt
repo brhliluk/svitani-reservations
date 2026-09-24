@@ -639,6 +639,7 @@ interface AppStrings : ErrorStrings {
     val cancelEventLabel: String
     val cancelEventConfirmTitle: String
     val cancelEventConfirmBody: (reservationCount: Int) -> String
+    val cancelRunningCourseConfirmBody: String
     val cancelEventSuccess: String
     val cancelEventError: String
     val refundOnCancelLabel: String

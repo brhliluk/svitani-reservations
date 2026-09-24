@@ -110,6 +110,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
     if (model.showCancelConfirm) {
         CancelEventModal(
             reservationCount = (model.uiState as? AdminEventDetailUiState.Success)?.data?.participants?.size ?: 0,
+            isRunningCourse = (model.uiState as? AdminEventDetailUiState.Success)?.data?.isRunningCourse ?: false,
             refundMoney = model.refundMoney, onRefundMoneyChange = { model.refundMoney = it },
             isLoading = model.isCancelLoading,
             onConfirm = { model.cancelEvent() }, onDismiss = { model.dismissCancel() },

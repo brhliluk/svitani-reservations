@@ -312,6 +312,7 @@ object CsStrings : AppStrings {
         AuditEventType.EMAIL_PASSWORD_RESET -> "E-mail: reset hesla"
         AuditEventType.EMAIL_LESSON_RESCHEDULED -> "E-mail: lekce přesunuta"
         AuditEventType.EMAIL_LESSON_CANCELLED -> "E-mail: lekce zrušena"
+        AuditEventType.EMAIL_REMAINING_LESSONS_CANCELLED -> "E-mail: zbytek kurzu zrušen"
         AuditEventType.EMAIL_LESSON_OPT_OUT -> "E-mail: omluvenka"
         AuditEventType.EMAIL_WAITLIST_CONFIRMATION -> "E-mail: zápis do pořadníku"
         AuditEventType.EMAIL_WAITLIST_PROMOTION -> "E-mail: posun z pořadníku"
@@ -748,6 +749,7 @@ object CsStrings : AppStrings {
         if (count > 0) "Událost zůstane viditelná jako zrušená. $count rezervací bude zrušeno a peníze vráceny."
         else "Událost zůstane viditelná jako zrušená. Tuto akci nelze vrátit."
     }
+    override val cancelRunningCourseConfirmBody = "Kurz už běží. Proběhlé lekce zůstanou, zruší se jen ty, které ještě nezačaly. Zapsaní si rezervaci nechají a za každou zrušenou lekci dostanou kredit podle sazby kurzu."
     override val cancelEventSuccess = "Událost byla zrušena"
     override val cancelEventError = "Nepodařilo se zrušit událost"
     override val refundOnCancelLabel = "Vrátit peníze zákazníkům jako kredit"
@@ -778,6 +780,7 @@ object CsStrings : AppStrings {
     override val errorInvalidSeatCount = "Počet míst musí být alespoň 1."
     override val errorEventAlreadyFinished = "Událost již skončila"
     override val errorEventAlreadyStarted = "Událost již začala"
+    override val errorSeriesAlreadyStarted = "Kurz už běží, celou rezervaci zrušit nejde. Zrušit se dají jednotlivé lekce."
     override val errorEventCancelled = "Událost byla zrušena"
     override val errorFailedToGetReservations = "Nelze získat seznam rezervací"
     override val errorNotASeriesReservation = "Rezervace není přihlášení na kroužek."

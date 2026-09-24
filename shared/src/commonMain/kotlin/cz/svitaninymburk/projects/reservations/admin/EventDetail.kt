@@ -29,6 +29,12 @@ data class AdminEventDetailData(
      * omluvenku vzít zpět.
      */
     val optedOut: List<AdminParticipantRow> = emptyList(),
+    /**
+     * Kurz, jehož první lekce už začala. Zrušení takového kurzu nestornuje
+     * rezervace, jen zbývající lekce — dialog to musí říct předem. Počítá server,
+     * prohlížeč neumí pražský čas.
+     */
+    val isRunningCourse: Boolean = false,
 )
 
 @Serializable

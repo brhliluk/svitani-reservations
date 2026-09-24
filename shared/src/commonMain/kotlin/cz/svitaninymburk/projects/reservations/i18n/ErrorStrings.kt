@@ -21,6 +21,7 @@ interface ErrorStrings {
     val errorInvalidSeatCount: String
     val errorEventAlreadyFinished: String
     val errorEventAlreadyStarted: String
+    val errorSeriesAlreadyStarted: String
     val errorEventCancelled: String
     val errorFailedToGetReservations: String
     val errorNotASeriesReservation: String

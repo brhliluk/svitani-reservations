@@ -71,6 +71,7 @@ private class CapturingEmailService : EmailService {
     override suspend fun sendReservationClaimEmail(toEmail: String, reservations: List<MyReservationListItem>, claimToken: String, locale: String) = Unit.right()
     override suspend fun sendLessonRescheduledNotification(toEmail: String, contactName: String, seriesTitle: String, oldDateTime: LocalDateTime, newDateTime: LocalDateTime, locale: String) = Unit.right()
     override suspend fun sendLessonCancelledNotification(toEmail: String, contactName: String, seriesTitle: String, lessonDateTime: LocalDateTime, locale: String) = Unit.right()
+    override suspend fun sendRemainingLessonsCancelledNotification(toEmail: String, contactName: String, seriesTitle: String, lessonDateTimes: List<LocalDateTime>, locale: String) = Unit.right()
     override suspend fun sendLessonOptOutNotice(toEmail: String, eventTitle: String, lessonDate: LocalDate, isLateCancellation: Boolean, locale: String) = Unit.right()
     override suspend fun sendWaitlistConfirmation(toEmail: String, eventTitle: String, contactName: String, reservationId: Uuid, locale: String) = Unit.right()
 }

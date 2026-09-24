@@ -98,6 +98,14 @@ class PaymentPairingServiceTest {
             locale: String
         ): Either<EmailError.SendLessonCancelled, Unit> = Unit.right()
 
+        override suspend fun sendRemainingLessonsCancelledNotification(
+            toEmail: String,
+            contactName: String,
+            seriesTitle: String,
+            lessonDateTimes: List<LocalDateTime>,
+            locale: String
+        ): Either<EmailError.SendLessonCancelled, Unit> = Unit.right()
+
         override suspend fun sendLessonOptOutNotice(
             toEmail: String,
             eventTitle: String,

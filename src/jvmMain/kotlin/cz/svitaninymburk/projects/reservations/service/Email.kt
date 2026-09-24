@@ -374,6 +374,23 @@ class GmailEmailService(
         raise(EmailError.SendLessonCancelledFailed(e.fullMessage()))
     } } }
 
+    override suspend fun sendRemainingLessonsCancelledNotification(
+        toEmail: String,
+        contactName: String,
+        seriesTitle: String,
+        lessonDateTimes: List<LocalDateTime>,
+        locale: String,
+    ): Either<EmailError.SendLessonCancelled, Unit> = either { withContext(Dispatchers.IO) { catch({
+        val email = setupEmail()
+        val s = emailStringsFor(locale)
+        email.addTo(toEmail)
+        email.subject = s.remainingLessonsCancelledSubject(seriesTitle)
+        email.setTextMsg(s.remainingLessonsCancelledBody(contactName, seriesTitle, lessonDateTimes.map { it.humanReadable }))
+        email.sendWithRetry()
+    }) { e: EmailException ->
+        raise(EmailError.SendLessonCancelledFailed(e.fullMessage()))
+    } } }
+
     override suspend fun sendLectorReservationNotification(
         lectorEmail: String,
         contactName: String,
@@ -654,6 +671,14 @@ class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService
         lessonDateTime: LocalDateTime, locale: String,
     ): Either<EmailError.SendLessonCancelled, Unit> {
         println("📧 [MOCK] Lekce zrušena: $seriesTitle | $toEmail | $lessonDateTime")
+        return Unit.right()
+    }
+
+    override suspend fun sendRemainingLessonsCancelledNotification(
+        toEmail: String, contactName: String, seriesTitle: String,
+        lessonDateTimes: List<LocalDateTime>, locale: String,
+    ): Either<EmailError.SendLessonCancelled, Unit> {
+        println("📧 [MOCK] Zbytek kurzu zrušen: $seriesTitle | $toEmail | ${lessonDateTimes.size} lekcí")
         return Unit.right()
     }
 
