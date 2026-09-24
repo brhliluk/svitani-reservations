@@ -35,13 +35,18 @@ enum class LessonRefundPreview {
  * omluvenek nesmí přerůst zaplacenou částku.
  */
 fun lessonRefundAmount(view: SeriesLessonsView): Double {
-    val perLesson = (view.lessonRefundAmount ?: 0.0) * view.seatCount
+    val perLesson = lessonRefundRate(view)
     if (perLesson <= 0.0) return 0.0
     return minOf(perLesson, view.paidAmount - view.alreadyRefunded).coerceAtLeast(0.0)
 }
 
-/** Sazba kurzu za jednu lekci přepočtená na místa, bez stropu na zaplacenou částku. */
-fun lessonRefundRate(view: SeriesLessonsView): Double = (view.lessonRefundAmount ?: 0.0) * view.seatCount
+/**
+ * Kredit za jednu lekci pro celou rezervaci, bez stropu na zaplacenou částku.
+ * Počítá ho server (ruční sazba × místa, jinak poměrná část ceny); starší server
+ * posílal jen sazbu, tak se z ní dopočítá.
+ */
+fun lessonRefundRate(view: SeriesLessonsView): Double =
+    view.lessonCredit ?: ((view.lessonRefundAmount ?: 0.0) * view.seatCount)
 
 fun lessonRefundPreview(view: SeriesLessonsView, lesson: SeriesLessonItem, now: Instant): LessonRefundPreview {
     val deadline = lesson.optOutDeadline

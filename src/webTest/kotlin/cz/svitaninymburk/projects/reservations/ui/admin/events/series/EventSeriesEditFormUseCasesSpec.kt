@@ -108,8 +108,15 @@ class EventSeriesEditFormUseCasesSpec {
     }
 
     @Test
-    fun buildUpdateEventSeriesRequestDropsNonPositiveLessonRefundAmount() {
+    fun buildUpdateEventSeriesRequestKeepsZeroLessonRefundAmountAsNoRefund() {
+        // Prázdné pole = poměrný kredit, 0 = kurz za lekce nic nevrací — nula se nesmí ztratit.
         val request = buildUpdateEventSeriesRequest(sampleForm().copy(lessonRefundAmount = 0.0), reservationDeadline = null)
+        assertEquals(0.0, request.lessonRefundAmount)
+    }
+
+    @Test
+    fun buildUpdateEventSeriesRequestDropsNegativeLessonRefundAmount() {
+        val request = buildUpdateEventSeriesRequest(sampleForm().copy(lessonRefundAmount = -10.0), reservationDeadline = null)
         assertNull(request.lessonRefundAmount)
     }
 

@@ -1462,8 +1462,6 @@ class AdminDashboardService(
      * všechny zbývající lekce dohromady místo jednoho za každou.
      */
     private suspend fun cancelRemainingLessonsForEnrollees(series: EventSeries, remaining: List<EventInstance>, refund: Boolean) {
-        val rate = series.lessonRefundAmount ?: 0.0
-
         reservationRepository.findByReference(Reference.Series(series.id))
             .filter { it.status != Reservation.Status.CANCELLED }
             .forEach { res ->
@@ -1518,11 +1516,12 @@ class AdminDashboardService(
                     }
                 }
 
-                // Stejná sazba jako cancelSeriesLesson; dohromady ale nejvýš to, co
-                // z rezervace ještě nebylo vráceno — u vysoké sazby by součet za
+                // Stejný kredit za lekci jako cancelSeriesLesson; dohromady ale nejvýš to,
+                // co z rezervace ještě nebylo vráceno — u vysoké sazby by součet za
                 // všechny zbývající lekce mohl přerůst zaplacenou částku.
-                if (refund && rate > 0.0 && res.paidAmount > 0.0) {
-                    val credit = minOf(rate * affected.size, refundService.refundableForWholeReservation(res))
+                val perLesson = lessonCreditFor(res, series)
+                if (refund && perLesson > 0.0 && res.paidAmount > 0.0) {
+                    val credit = minOf(perLesson * affected.size, refundService.refundableForWholeReservation(res))
                     try {
                         withAuditSubject(resSubject) {
                             refundService.refundFixedAmount(
@@ -1600,7 +1599,6 @@ class AdminDashboardService(
             // Notify all active series enrollees + refund the lesson amount
             val series = eventSeriesRepository.get(seriesId)
             val seriesTitle = series?.title ?: instance.title
-            val refundAmount = series?.lessonRefundAmount ?: 0.0
 
             audit.record(
                 type = AuditEventType.LESSON_CANCELLED,
@@ -1629,7 +1627,12 @@ class AdminDashboardService(
 
                     val alreadyOptedOut = seriesLessonOptOutRepository
                         .findByReservationAndInstance(res.id, instanceId) != null
-                    if (refundAmount > 0.0 && res.paidAmount > 0.0 && !alreadyOptedOut) {
+                    // Stejný kredit jako za omluvenku (za všechna místa), nejvýš to,
+                    // co z rezervace ještě nebylo vráceno.
+                    val refundAmount = if (res.paidAmount > 0.0 && !alreadyOptedOut) {
+                        minOf(lessonCreditFor(res, series), refundService.refundableForWholeReservation(res))
+                    } else 0.0
+                    if (refundAmount > 0.0) {
                         try {
                             withAuditSubject(
                                 AuditSubject(seriesId, instanceId, res.id, res.contactName)
@@ -1718,7 +1721,7 @@ class AdminDashboardService(
     private suspend fun legacyRevokeDebit(optOut: SeriesLessonOptOut, reservation: Reservation, instance: EventInstance): Double {
         if (optOut.isLateCancellation) return 0.0
         val series = instance.seriesId?.let { eventSeriesRepository.get(it) }
-        val perLesson = (series?.lessonRefundAmount ?: 0.0) * reservation.seatCount
+        val perLesson = lessonCreditFor(reservation, series)
         val refunded = walletService.refundedForLessonOptOuts(reservation.id)
         return minOf(perLesson, refunded).coerceAtLeast(0.0)
     }

@@ -86,7 +86,7 @@ fun buildUpdateEventSeriesRequest(
     showAttendeeCount = form.showAttendeeCount,
     allowMultipleSeats = form.allowMultipleSeats,
     lessonPrice = form.lessonPrice?.takeIf { it > 0 },
-    lessonRefundAmount = form.lessonRefundAmount?.takeIf { it > 0 },
+    lessonRefundAmount = form.lessonRefundAmount?.takeIf { it >= 0 },
     reservationDeadline = reservationDeadline,
     reservationDeadlineMessage = form.deadlineMessage.takeIf { it.isNotBlank() },
 )

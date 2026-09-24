@@ -48,6 +48,7 @@ object ReservationsTable : Table("reservations") {
     val locale = varchar("locale", 10).default("cs")
     val walletId = uuid("wallet_id").nullable()
     val walletDeductedAmount = double("wallet_deducted_amount").default(0.0)
+    val lessonShare = double("lesson_share").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -103,6 +104,9 @@ class ExposedReservationRepository : ReservationRepository {
                 row[locale] = reservation.locale
                 row[walletId] = reservation.walletId
                 row[walletDeductedAmount] = reservation.walletDeductedAmount
+                // Jen při vzniku: je to snímek a kopie rezervace poskládaná bez něj
+                // by ho při save() přepsala na null.
+                row[lessonShare] = reservation.lessonShare
             }
         }
         reservation
@@ -279,5 +283,6 @@ fun ResultRow.toReservation(): Reservation {
         locale = this[ReservationsTable.locale],
         walletId = this[ReservationsTable.walletId],
         walletDeductedAmount = this[ReservationsTable.walletDeductedAmount],
+        lessonShare = this[ReservationsTable.lessonShare],
     )
 }

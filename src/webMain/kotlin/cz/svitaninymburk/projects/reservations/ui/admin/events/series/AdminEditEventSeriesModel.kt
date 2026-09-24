@@ -55,6 +55,8 @@ class AdminEditEventSeriesModel(
     var allowMultipleSeats by mutableStateOf(true)
     var lessonPriceInput: Number? by mutableStateOf(null)
     var lessonRefundAmountInput: Number? by mutableStateOf(null)
+    /** Jen pro náhled poměrného kreditu — počet lekcí se v tomhle formuláři neupravuje. */
+    var lessonCount by mutableIntStateOf(0); private set
     var customFields by mutableStateOf(listOf<CustomFieldDefinition>())
 
     var deadlineEnabled by mutableStateOf(false)
@@ -87,6 +89,7 @@ class AdminEditEventSeriesModel(
                     allowMultipleSeats = s.allowMultipleSeats
                     lessonPriceInput = s.lessonPrice
                     lessonRefundAmountInput = s.lessonRefundAmount
+                    lessonCount = s.lessonCount
                     val seriesDeadline = s.reservationDeadline
                     if (seriesDeadline != null) {
                         deadlineEnabled = true

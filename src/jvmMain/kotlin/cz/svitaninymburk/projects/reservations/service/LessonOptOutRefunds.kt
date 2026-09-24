@@ -19,7 +19,7 @@ import kotlin.reflect.jvm.jvmName
  *
  * Idempotentní — dorovnává se jen rozdíl proti [SeriesLessonOptOut.refundedAmount],
  * takže opakované volání nic nezdvojí. Stejné stropy jako u omluvenky samotné:
- * nejvýš sazba kurzu × místa za lekci a dohromady nejvýš zaplacená částka.
+ * nejvýš kredit za lekci ([lessonCreditFor]) a dohromady nejvýš zaplacená částka.
  */
 class LessonOptOutRefunds(
     private val seriesLessonOptOutRepository: SeriesLessonOptOutRepository,
@@ -35,7 +35,7 @@ class LessonOptOutRefunds(
         val seriesId = (reservation.reference as? Reference.Series)?.id ?: return 0.0
         if (reservation.paidAmount <= 0.0) return 0.0
 
-        val perLesson = (eventSeriesRepository.get(seriesId)?.lessonRefundAmount ?: 0.0) * reservation.seatCount
+        val perLesson = lessonCreditFor(reservation, eventSeriesRepository.get(seriesId))
         if (perLesson <= 0.0) return 0.0
 
         // Pozdní omluvenka nic nedostává — příznak se vyhodnotil v čase odhlášení,

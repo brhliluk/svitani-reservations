@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.create
 
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.proportionalLessonRefundPreview
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import cz.svitaninymburk.projects.reservations.i18n.strings
@@ -72,9 +73,13 @@ fun IComponent.CourseScheduleCard(model: AdminCreateEventModel) {
                     hint = currentStrings.lessonPriceHint,
                 ) { model.courseLessonPrice = it }
 
-                PriceCurrencyField(currentStrings.lessonRefundAmount, model.courseLessonRefundAmount) {
-                    model.courseLessonRefundAmount = it
-                }
+                PriceCurrencyField(
+                    label = currentStrings.lessonRefundAmount,
+                    value = model.courseLessonRefundAmount,
+                    hint = currentStrings.lessonRefundAmountHint,
+                    placeholder = proportionalLessonRefundPreview(model.price, model.effectiveCourseDates.size)
+                        ?.let(currentStrings.lessonRefundAmountPlaceholder),
+                ) { model.courseLessonRefundAmount = it }
             }
 
             LessonScheduleTable(

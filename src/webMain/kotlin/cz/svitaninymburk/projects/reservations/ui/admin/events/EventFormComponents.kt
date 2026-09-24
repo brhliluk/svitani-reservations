@@ -55,13 +55,14 @@ fun IComponent.PriceCurrencyField(
     label: String,
     value: Number?,
     hint: String? = null,
+    placeholder: String? = null,
     onChange: (Number?) -> Unit,
 ) {
     val currentStrings by strings
     div(className = "form-control w-full") {
         label(className = "label") { span(className = "label-text font-medium") { +label } }
         div(className = "relative flex items-center") {
-            numeric(value = value, min = 0, className = "input input-bordered w-full pr-12") {
+            numeric(value = value, min = 0, placeholder = placeholder, className = "input input-bordered w-full pr-12") {
                 onInput { onChange(this.value) }
                 onChange { onChange(this.value) }
             }

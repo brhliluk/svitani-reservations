@@ -694,6 +694,8 @@ object EnStrings : AppStrings {
     override val adminWalletCreditButton = "Add credit"
     override val adminWalletDebitButton = "Remove credit"
     override val lessonRefundAmount = "Opt-out refund per lesson (CZK)"
+    override val lessonRefundAmountHint = "Per seat. Empty = proportional share of the booking price (price ÷ number of lessons, including custom field surcharges). 0 = no refund."
+    override val lessonRefundAmountPlaceholder: (Int) -> String = { amount -> "Proportional ≈ $amount per seat" }
     override val walletExpiresOn = "Credits expire on"
     override val adminWalletTransactions = "Transactions"
     override val adminWalletNoTransactions = "No transactions"

@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.series
 
+import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.proportionalLessonRefundPreview
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -94,7 +95,13 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                             ShowAttendeeCountCheckbox(value = model.showAttendeeCount) { model.showAttendeeCount = it }
                             AllowMultipleSeatsCheckbox(value = model.allowMultipleSeats) { model.allowMultipleSeats = it }
 
-                            PriceCurrencyField(currentStrings.lessonRefundAmount, model.lessonRefundAmountInput) { model.lessonRefundAmountInput = it }
+                            PriceCurrencyField(
+                                label = currentStrings.lessonRefundAmount,
+                                value = model.lessonRefundAmountInput,
+                                hint = currentStrings.lessonRefundAmountHint,
+                                placeholder = proportionalLessonRefundPreview(model.price, model.lessonCount)
+                                    ?.let(currentStrings.lessonRefundAmountPlaceholder),
+                            ) { model.lessonRefundAmountInput = it }
                         }
                     }
                 }

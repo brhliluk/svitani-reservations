@@ -270,13 +270,14 @@ open class ReservationService(
         ensure(isAdminCaller() || reservation.isAccessibleBy(currentCallerUserId())) { ReservationError.ReservationNotFound }
 
         val seriesId = reservation.reference.id
-        val lessonRefundAmount = eventSeriesRepository.get(seriesId)?.lessonRefundAmount
+        val series = eventSeriesRepository.get(seriesId)
 
         SeriesLessonsView(
             lessons = seriesLessonsReader.lessonsFor(reservationId, seriesId),
             paidAmount = reservation.paidAmount,
             alreadyRefunded = walletService.refundedForLessonOptOuts(reservationId),
-            lessonRefundAmount = lessonRefundAmount,
+            lessonRefundAmount = series?.lessonRefundAmount,
+            lessonCredit = lessonCreditFor(reservation, series),
             seatCount = reservation.seatCount,
             isAnonymousReservation = reservation.registeredUserId == null,
         )
@@ -410,6 +411,12 @@ open class ReservationService(
         pricePerSeat: Double,
         target: ReservationTarget,
     ): Reservation {
+        val totalPrice = calculateTotalPrice(
+            basePrice = pricePerSeat,
+            seatCount = requestData.seatCount,
+            customFields = target.customFields,
+            customValues = requestData.customValues,
+        )
         val reservation = Reservation(
             id = Uuid.random(),
             reference = reference,
@@ -420,12 +427,8 @@ open class ReservationService(
             contactPhone = PhoneNumber.normalize(requestData.contactPhone) ?: requestData.contactPhone,
             paymentType = requestData.paymentType,
             customValues = requestData.customValues,
-            totalPrice = calculateTotalPrice(
-                basePrice = pricePerSeat,
-                seatCount = requestData.seatCount,
-                customFields = target.customFields,
-                customValues = requestData.customValues,
-            ),
+            totalPrice = totalPrice,
+            lessonShare = lessonShareFor(target, totalPrice),
             status = Reservation.Status.WAITLISTED,
             createdAt = Clock.System.now(),
             variableSymbol = null,
@@ -496,6 +499,7 @@ open class ReservationService(
             paymentType = if (isFree) PaymentType.FREE else requestData.paymentType,
             customValues = requestData.customValues,
             totalPrice = totalPrice,
+            lessonShare = lessonShareFor(target, totalPrice),
             status = if (isFree) Reservation.Status.CONFIRMED else Reservation.Status.PENDING_PAYMENT,
             createdAt = Clock.System.now(),
             variableSymbol = variableSymbol,
@@ -612,6 +616,13 @@ open class ReservationService(
         }
     }
 
+    /** Poměrná část ceny za lekci se fixuje při vzniku rezervace — viz [Reservation.lessonShare]. */
+    private suspend fun lessonShareFor(target: ReservationTarget, totalPrice: Double): Double? = when (target) {
+        is ReservationTarget.Series ->
+            lessonShareOf(totalPrice, eventInstanceRepository.countActiveBySeries(target.series.id).toInt())
+        is ReservationTarget.Instance -> null
+    }
+
     /**
      * Zápis na kurz drží místo na každé jeho lekci, takže jeho storno uvolní místo
      * i v pořadnících jednotlivých lekcí — ne jen v pořadníku kurzu. Volá se až po
@@ -670,7 +681,7 @@ open class ReservationService(
             // zápisu, byl by člověk odhlášený, čekatel posunutý a druhý pokus by spadl
             // na AlreadyOptedOut.
             val series = eventSeriesRepository.get(seriesId)
-            val perLesson = (series?.lessonRefundAmount ?: 0.0) * reservation.seatCount
+            val perLesson = lessonCreditFor(reservation, series)
             // Skutečně vyplacené částky z účetnictví peněženky, ne odhad z počtu
             // omluvenek — kdo se odhlásil ještě před zaplacením, nedostal nic a
             // nesmí mu to ukrajovat ze stropu.
@@ -678,7 +689,7 @@ open class ReservationService(
             val refundAmount: Double = when {
                 reservation.paidAmount <= 0.0 -> 0.0  // nothing was paid, no refund
                 isLate -> 0.0  // late cancellation, no refund
-                // Souhrn omluvenek nesmí přerůst zaplacenou částku — lessonRefundAmount
+                // Souhrn omluvenek nesmí přerůst zaplacenou částku — ruční sazba kurzu
                 // je volná admin hodnota nezávislá na ceně kurzu.
                 else -> minOf(perLesson, reservation.paidAmount - alreadyRefunded).coerceAtLeast(0.0)
             }

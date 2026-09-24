@@ -35,11 +35,13 @@ class LessonOptOutUseCasesSpec {
         lessonRefundAmount: Double? = 100.0,
         seatCount: Int = 1,
         isAnonymous: Boolean = true,
+        lessonCredit: Double? = null,
     ) = SeriesLessonsView(
         lessons = emptyList(),
         paidAmount = paidAmount,
         alreadyRefunded = alreadyRefunded,
         lessonRefundAmount = lessonRefundAmount,
+        lessonCredit = lessonCredit,
         seatCount = seatCount,
         isAnonymousReservation = isAnonymous,
     )
@@ -156,5 +158,19 @@ class LessonOptOutUseCasesSpec {
         assertFalse(needsWalletCodeInput(false, LessonRefundPreview.REFUND_ELIGIBLE), "přihlášený má peněženku od účtu")
         assertFalse(needsWalletCodeInput(true, LessonRefundPreview.WINDOW_PASSED), "po uzávěrce není co připsat")
         assertFalse(needsWalletCodeInput(true, LessonRefundPreview.NOT_PAID))
+    }
+
+    @Test
+    fun serverComputedCreditWinsOverRate() {
+        // Kurz bez ruční sazby: server pošle poměrnou část ceny rezervace.
+        val v = view(lessonRefundAmount = null, lessonCredit = 214.0, seatCount = 3)
+        assertEquals(214.0, lessonRefundAmount(v))
+        assertEquals(LessonRefundPreview.REFUND_ELIGIBLE, lessonRefundPreview(v, lesson(), beforeDeadline))
+    }
+
+    @Test
+    fun serverComputedCreditIsStillCappedByPaidAmount() {
+        val v = view(paidAmount = 300.0, alreadyRefunded = 200.0, lessonRefundAmount = null, lessonCredit = 214.0)
+        assertEquals(100.0, lessonRefundAmount(v))
     }
 }

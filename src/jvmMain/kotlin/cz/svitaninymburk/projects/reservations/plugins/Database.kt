@@ -145,6 +145,16 @@ fun Application.configureDatabases() {
             println("⚠️ series_lesson_opt_outs refunded_amount backfill failed (non-fatal): ${e.message}")
         }
 
+        // Až po MigrationUtils — ty sloupec lesson_share teprve zakládají.
+        try {
+            val doplneno = backfillLessonShares()
+            if (doplneno > 0) {
+                println("ℹ️ zápisy na kurz: u $doplneno historických rezervací doplněna poměrná část ceny za lekci")
+            }
+        } catch (e: Exception) {
+            println("⚠️ reservations lesson_share backfill failed (non-fatal): ${e.message}")
+        }
+
         try {
             deduplicateCustomFieldKeys()
         } catch (e: Exception) {

@@ -141,7 +141,7 @@ fun buildCreateEventSeriesRequest(
     ownerEmails = parseOwnerEmails(form.ownerEmails),
     price = form.price,
     lessonPrice = form.lessonPrice?.takeIf { it > 0 },
-    lessonRefundAmount = form.lessonRefundAmount?.takeIf { it > 0 },
+    lessonRefundAmount = form.lessonRefundAmount?.takeIf { it >= 0 },
     capacity = form.capacity,
     waitlistCapacity = form.waitlistCapacity,
     startDate = startDate,

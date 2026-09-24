@@ -706,6 +706,8 @@ object CsStrings : AppStrings {
     override val adminWalletCreditButton = "Přidat kredit"
     override val adminWalletDebitButton = "Odebrat kredit"
     override val lessonRefundAmount = "Kredit za odhlášení z lekce (Kč)"
+    override val lessonRefundAmountHint = "Za jedno místo. Prázdné = poměrná část ceny rezervace (cena ÷ počet lekcí, i s příplatky z vlastních polí). 0 = nevracet nic."
+    override val lessonRefundAmountPlaceholder: (Int) -> String = { amount -> "Poměrně ≈ $amount za místo" }
     override val walletExpiresOn = "Platnost kreditu do"
     override val adminWalletTransactions = "Transakce"
     override val adminWalletNoTransactions = "Žádné transakce"

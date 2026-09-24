@@ -40,6 +40,14 @@ data class Reservation(
     val locale: String = "cs",
     val walletId: Uuid? = null,
     val walletDeductedAmount: Double = 0.0,
+    /**
+     * Poměrná část ceny za jednu lekci kurzu (cena rezervace ÷ počet lekcí v době
+     * rezervace, dolů na celé koruny) — už za všechna místa a včetně vlastních polí.
+     * Zafixovaná při vzniku, aby ji pozdější přidání nebo zrušení lekce nepohnulo.
+     * Kredit za lekci se z ní bere, když kurz nemá ruční sazbu; null = rezervace
+     * na jednorázovou akci.
+     */
+    val lessonShare: Double? = null,
 ) {
     val unpaidAmount: Double get() = totalPrice - paidAmount
 
@@ -238,8 +246,14 @@ data class SeriesLessonsView(
     val paidAmount: Double,
     /** Kolik už bylo za včasné omluvenky vráceno — kredit se stropuje zaplacenou částkou. */
     val alreadyRefunded: Double,
-    /** Kredit za jednu včas odhlášenou lekci a jedno místo; null = kurz kredit nevrací. */
+    /** Ruční sazba kurzu za jednu lekci a jedno místo; null = kurz ji nemá. Jen pro starší klienty — UI bere [lessonCredit]. */
     val lessonRefundAmount: Double? = null,
+    /**
+     * Kredit za jednu včas odhlášenou lekci pro celou rezervaci, bez stropu na
+     * zaplacenou částku — spočítaný serverem (ruční sazba × místa, jinak poměrná
+     * část ceny). null = starý server, dopočítá se z [lessonRefundAmount].
+     */
+    val lessonCredit: Double? = null,
     /** Počet míst rezervace — omluvenka uvolní všechna, takže se kredit násobí. */
     val seatCount: Int = 1,
     /** Rezervace bez účtu — UI musí nabídnout pole na kód peněženky. */

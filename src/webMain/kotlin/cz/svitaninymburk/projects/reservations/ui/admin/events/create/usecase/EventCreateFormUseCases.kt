@@ -159,7 +159,7 @@ fun buildCreateEventAndSeriesRequest(
     showAttendeeCount = form.showAttendeeCount,
     allowMultipleSeats = form.allowMultipleSeats,
     lessonPrice = lessonPrice?.takeIf { it > 0 },
-    lessonRefundAmount = lessonRefundAmount?.takeIf { it > 0 },
+    lessonRefundAmount = lessonRefundAmount?.takeIf { it >= 0 },
     reservationDeadline = reservationDeadline,
     reservationDeadlineMessage = form.deadlineMessage.takeIf { it.isNotBlank() },
     isPublished = isPublished,

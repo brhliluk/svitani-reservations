@@ -206,7 +206,7 @@ class EventCreateFormUseCasesSpec {
     }
 
     @Test
-    fun seriesRequestDropsNonPositiveRefund() {
+    fun seriesRequestKeepsZeroRefundAsNoRefund() {
         val request = buildCreateEventAndSeriesRequest(
             form = sampleForm(),
             startDate = LocalDate(2026, 3, 2),
@@ -218,7 +218,8 @@ class EventCreateFormUseCasesSpec {
             isPublished = false,
             lessonRefundAmount = 0.0,
         )
-        assertNull(request.lessonRefundAmount)
+        // Prázdné pole = poměrný kredit, 0 = kurz za lekce nic nevrací — nula se nesmí ztratit.
+        assertEquals(0.0, request.lessonRefundAmount)
     }
 
     @Test

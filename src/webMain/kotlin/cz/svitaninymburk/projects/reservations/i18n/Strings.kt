@@ -699,6 +699,9 @@ interface AppStrings : ErrorStrings {
     val adminWalletCreditButton: String
     val adminWalletDebitButton: String
     val lessonRefundAmount: String
+    val lessonRefundAmountHint: String
+    /** Placeholder prázdného pole — kolik se za lekci a místo vrátí poměrně. */
+    val lessonRefundAmountPlaceholder: (Int) -> String
     val walletExpiresOn: String
     val adminWalletTransactions: String
     val adminWalletNoTransactions: String
