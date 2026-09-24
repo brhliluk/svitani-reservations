@@ -941,22 +941,7 @@ open class ReservationService(
                 // tatáž lekce podruhé. Když není co vracet, nezakládá se ani peněženka.
                 val refundable = refundService.refundableForWholeReservation(reservation)
                 if (refundable > 0.0 && !isPastRefundDeadline(target.startDateTime)) {
-                    val reservationRegisteredUserId = reservation.registeredUserId
-                    val wallet: Wallet = if (reservationRegisteredUserId != null) {
-                        walletService.findOrCreateForRegisteredUser(reservationRegisteredUserId, reservation.contactEmail)
-                    } else {
-                        val resolved = walletService.resolveAnonymousWallet(walletCode, reservation.contactEmail, force)
-                        .mapLeft { e ->
-                            when (e) {
-                                WalletError.NotFound -> ReservationError.WalletNotFound
-                                WalletError.EmailMismatch -> ReservationError.WalletEmailMismatch
-                            }
-                        }
-                        when (resolved) {
-                            is Either.Left -> raise(resolved.value)
-                            is Either.Right -> resolved.value
-                        }
-                    }
+                    val wallet = resolveWalletFor(reservation, walletCode, force)
                     val outcome = refundService.refundWholeReservation(wallet, reservation)
                     if (outcome != null) CancellationResult(walletCode = outcome.walletCode, walletCreditAmount = outcome.creditedAmount, cancellationEmailFailed = cancellationEmailFailed)
                     else CancellationResult(cancellationEmailFailed = cancellationEmailFailed)
@@ -1020,12 +1005,8 @@ open class ReservationService(
         reservation: Reservation,
         walletCode: String?,
         force: Boolean,
-    ): Wallet {
-        val registeredUserId = reservation.registeredUserId
-        if (registeredUserId != null) {
-            return walletService.findOrCreateForRegisteredUser(registeredUserId, reservation.contactEmail)
-        }
-        return walletService.resolveAnonymousWallet(walletCode, reservation.contactEmail, force)
+    ): Wallet =
+        walletService.walletForRefund(reservation, walletCode, force)
             .mapLeft { e ->
                 when (e) {
                     WalletError.NotFound -> ReservationError.WalletNotFound
@@ -1033,7 +1014,6 @@ open class ReservationService(
                 }
             }
             .bind()
-    }
 
 }
 

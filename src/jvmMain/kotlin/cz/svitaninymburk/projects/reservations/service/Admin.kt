@@ -124,17 +124,6 @@ class AdminDashboardService(
         else withAuditSubject(subject) { emailDispatcher.dispatch(send) }
     }
 
-    /** Subjekt z polymorfní reference — helper v deleteEventDefinition nemá načtenou akci. */
-    private fun auditSubjectForReference(reference: Reference, reservation: Reservation): AuditSubject =
-        when (reference) {
-            is Reference.Instance -> AuditSubject(
-                instanceId = reference.id, reservationId = reservation.id, label = reservation.contactName,
-            )
-            is Reference.Series -> AuditSubject(
-                seriesId = reference.id, reservationId = reservation.id, label = reservation.contactName,
-            )
-        }
-
     /** Ke které akci rezervace patří; u lekce kurzu dohledá i kurz. */
     private suspend fun auditSubjectOf(reservation: Reservation): AuditSubject = when (val ref = reservation.reference) {
         is Reference.Instance -> AuditSubject(
@@ -150,16 +139,53 @@ class AdminDashboardService(
         )
     }
 
-    /** Resolve the wallet to refund into: existing for registered users, a fresh one for anonymous. */
-    private suspend fun resolveWalletForRefund(reservation: Reservation): Wallet {
-        val registeredUserId = reservation.registeredUserId
-        return if (registeredUserId != null) {
-            walletService.findOrCreateForRegisteredUser(registeredUserId, reservation.contactEmail)
-        } else {
-            // Bez kódu podle e-mailu, případně nová (vždy Right); kód dostane host mailem.
-            walletService.resolveAnonymousWallet(code = null, contactEmail = reservation.contactEmail, force = true)
-                .getOrNull() ?: error("resolveAnonymousWallet(null) must return a wallet")
+    /**
+     * Vratka do peněženky při rušení z adminu. Storno už proběhlo a nesmí se kvůli
+     * vratce vrátit, takže chyba se jen zaloguje.
+     */
+    private suspend fun refundSafely(res: Reservation, subject: AuditSubject, refund: suspend (Wallet) -> Unit) {
+        try {
+            withAuditSubject(subject) { refund(walletService.walletForRefund(res)) }
+        } catch (e: Exception) {
+            logger.error("Failed to refund reservation ${res.id}", e)
         }
+    }
+
+    /**
+     * Stornuje každou dosud nezrušenou rezervaci na [reference], pošle oznámení a při
+     * [refund] vrátí, co z ní ještě nebylo vráceno. S [historyDetail] se do historie
+     * zapíše i storno každé rezervace a oznámení se přiřadí k akci; mazání ho
+     * nepředává — tam stačí záznam o smazání akce.
+     */
+    private suspend fun cancelAllReservations(
+        reference: Reference,
+        noticeTitle: String,
+        refund: Boolean,
+        seriesId: Uuid?,
+        instanceId: Uuid?,
+        historyDetail: String?,
+    ) {
+        reservationRepository.findByReference(reference)
+            .filter { it.status != Reservation.Status.CANCELLED }
+            .forEach { res ->
+                reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
+                val resSubject = AuditSubject(seriesId, instanceId, res.id, res.contactName)
+                if (historyDetail != null) {
+                    audit.record(
+                        type = AuditEventType.RESERVATION_CANCELLED,
+                        subjectLabel = res.contactName,
+                        seriesId = seriesId,
+                        instanceId = instanceId,
+                        reservationId = res.id,
+                        amount = res.paidAmount,
+                        detail = historyDetail,
+                    )
+                }
+                dispatchCancellationNotice(res, noticeTitle, resSubject.takeIf { historyDetail != null })
+                if (refund && res.paidAmount > 0.0) {
+                    refundSafely(res, resSubject) { wallet -> refundService.refundWholeReservation(wallet, res) }
+                }
+            }
     }
 
     override suspend fun getDashboardSummary(): Either<AdminError.GetSummary, AdminDashboardData> = either {
@@ -1196,21 +1222,10 @@ class AdminDashboardService(
             detail = "Smazáno: ${instance.title} (${instance.startDateTime})",
         )
 
-        reservationRepository.findByReference(Reference.Instance(id))
-            .filter { it.status != Reservation.Status.CANCELLED }
-            .forEach { res ->
-                reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                dispatchCancellationNotice(res, instance.title)
-                if (refund && res.paidAmount > 0.0) {
-                    try {
-                        withAuditSubject(AuditSubject(instance.seriesId, id, res.id, res.contactName)) {
-                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
-                        }
-                    } catch (e: Exception) {
-                        logger.error("Failed to refund reservation ${res.id}", e)
-                    }
-                }
-            }
+        cancelAllReservations(
+            Reference.Instance(id), instance.title, refund,
+            seriesId = instance.seriesId, instanceId = id, historyDetail = null,
+        )
 
         eventInstanceRepository.delete(id)
         instance.seriesId?.let { seriesScheduleRefresher.refresh(it) }
@@ -1227,40 +1242,18 @@ class AdminDashboardService(
             detail = "Smazáno: ${series.title}",
         )
 
-        reservationRepository.findByReference(Reference.Series(id))
-            .filter { it.status != Reservation.Status.CANCELLED }
-            .forEach { res ->
-                reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                dispatchCancellationNotice(res, series.title)
-                if (refund && res.paidAmount > 0.0) {
-                    try {
-                        withAuditSubject(AuditSubject(id, null, res.id, res.contactName)) {
-                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
-                        }
-                    } catch (e: Exception) {
-                        logger.error("Failed to refund reservation ${res.id}", e)
-                    }
-                }
-            }
+        cancelAllReservations(
+            Reference.Series(id), series.title, refund,
+            seriesId = id, instanceId = null, historyDetail = null,
+        )
 
         // Delete the series' lesson instances so they aren't left orphaned in the DB.
         // Cancel/refund any per-lesson (drop-in) reservations that reference an instance directly.
         eventInstanceRepository.findBySeries(id).forEach { instance ->
-            reservationRepository.findByReference(Reference.Instance(instance.id))
-                .filter { it.status != Reservation.Status.CANCELLED }
-                .forEach { res ->
-                    reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                    dispatchCancellationNotice(res, instance.title)
-                    if (refund && res.paidAmount > 0.0) {
-                        try {
-                            withAuditSubject(AuditSubject(id, instance.id, res.id, res.contactName)) {
-                                refundService.refundWholeReservation(resolveWalletForRefund(res), res)
-                            }
-                        } catch (e: Exception) {
-                            logger.error("Failed to refund reservation ${res.id}", e)
-                        }
-                    }
-                }
+            cancelAllReservations(
+                Reference.Instance(instance.id), instance.title, refund,
+                seriesId = id, instanceId = instance.id, historyDetail = null,
+            )
             eventInstanceRepository.delete(instance.id)
         }
 
@@ -1282,24 +1275,6 @@ class AdminDashboardService(
             { eventSeriesRepository.getAllByDefinitionIds(listOf(id)) },
         ) { i, s -> i to s }
 
-        suspend fun cancelReservations(reference: Reference, eventTitle: String) {
-            reservationRepository.findByReference(reference)
-                .filter { it.status != Reservation.Status.CANCELLED }
-                .forEach { res ->
-                    reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                    dispatchCancellationNotice(res, eventTitle)
-                    if (res.paidAmount > 0.0) {
-                        try {
-                            withAuditSubject(auditSubjectForReference(reference, res)) {
-                                refundService.refundWholeReservation(resolveWalletForRefund(res), res)
-                            }
-                        } catch (e: Exception) {
-                            logger.error("Failed to refund reservation ${res.id}", e)
-                        }
-                    }
-                }
-        }
-
         // Se šablonou mizí i její akce a kurzy; každá má vlastní historii,
         // takže záznam o smazání dostane každá zvlášť.
         childInstances.forEach { instance ->
@@ -1310,7 +1285,10 @@ class AdminDashboardService(
                 instanceId = instance.id,
                 detail = "Smazáno se šablonou ${definition.title}",
             )
-            cancelReservations(Reference.Instance(instance.id), instance.title)
+            cancelAllReservations(
+                Reference.Instance(instance.id), instance.title, refund = true,
+                seriesId = instance.seriesId, instanceId = instance.id, historyDetail = null,
+            )
             eventInstanceRepository.delete(instance.id)
         }
         childSeries.forEach { series ->
@@ -1320,7 +1298,10 @@ class AdminDashboardService(
                 seriesId = series.id,
                 detail = "Smazáno se šablonou ${definition.title}",
             )
-            cancelReservations(Reference.Series(series.id), series.title)
+            cancelAllReservations(
+                Reference.Series(series.id), series.title, refund = true,
+                seriesId = series.id, instanceId = null, historyDetail = null,
+            )
             eventSeriesRepository.delete(series.id)
         }
 
@@ -1347,31 +1328,10 @@ class AdminDashboardService(
             detail = if (refund) "Akce zrušena, kredit vracen" else "Akce zrušena bez vracení kreditu",
         )
 
-        reservationRepository.findByReference(Reference.Instance(id))
-            .filter { it.status != Reservation.Status.CANCELLED }
-            .forEach { res ->
-                reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                val resSubject = AuditSubject(instance.seriesId, id, res.id, res.contactName)
-                audit.record(
-                    type = AuditEventType.RESERVATION_CANCELLED,
-                    subjectLabel = res.contactName,
-                    seriesId = resSubject.seriesId,
-                    instanceId = id,
-                    reservationId = res.id,
-                    amount = res.paidAmount,
-                    detail = "Zrušeno se zrušením akce",
-                )
-                dispatchCancellationNotice(res, instance.title, resSubject)
-                if (refund && res.paidAmount > 0.0) {
-                    try {
-                        withAuditSubject(resSubject) {
-                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
-                        }
-                    } catch (e: Exception) {
-                        logger.error("Failed to refund reservation ${res.id}", e)
-                    }
-                }
-            }
+        cancelAllReservations(
+            Reference.Instance(id), instance.title, refund,
+            seriesId = instance.seriesId, instanceId = id, historyDetail = "Zrušeno se zrušením akce",
+        )
     }
 
     override suspend fun cancelEventSeries(id: Uuid, refund: Boolean): Either<AdminError.CancelSeries, Unit> = either {
@@ -1429,32 +1389,11 @@ class AdminDashboardService(
      * Kurz, který ještě nezačal: zápisy se stornují a vrací se celá dosud
      * nevrácená částka — nikdo z kurzu nic neměl.
      */
-    private suspend fun cancelEnrollments(series: EventSeries, refund: Boolean) {
-        reservationRepository.findByReference(Reference.Series(series.id))
-            .filter { it.status != Reservation.Status.CANCELLED }
-            .forEach { res ->
-                reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                val resSubject = AuditSubject(series.id, null, res.id, res.contactName)
-                audit.record(
-                    type = AuditEventType.RESERVATION_CANCELLED,
-                    subjectLabel = res.contactName,
-                    seriesId = series.id,
-                    reservationId = res.id,
-                    amount = res.paidAmount,
-                    detail = "Zrušeno se zrušením kurzu",
-                )
-                dispatchCancellationNotice(res, series.title, resSubject)
-                if (refund && res.paidAmount > 0.0) {
-                    try {
-                        withAuditSubject(resSubject) {
-                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
-                        }
-                    } catch (e: Exception) {
-                        logger.error("Failed to refund reservation ${res.id}", e)
-                    }
-                }
-            }
-    }
+    private suspend fun cancelEnrollments(series: EventSeries, refund: Boolean) =
+        cancelAllReservations(
+            Reference.Series(series.id), series.title, refund,
+            seriesId = series.id, instanceId = null, historyDetail = "Zrušeno se zrušením kurzu",
+        )
 
     /**
      * Rozběhnutý kurz: celé rezervace se nestornují (na část lekcí se už chodilo),
@@ -1523,16 +1462,12 @@ class AdminDashboardService(
                 val perLesson = lessonCreditFor(res, series)
                 if (refund && perLesson > 0.0 && res.paidAmount > 0.0) {
                     val credit = minOf(perLesson * affected.size, refundService.refundableForWholeReservation(res))
-                    try {
-                        withAuditSubject(resSubject) {
-                            refundService.refundFixedAmount(
-                                resolveWalletForRefund(res), res, credit,
-                                WalletTransactionReason.LESSON_OPT_OUT_REFUND,
-                                detail = "Za ${affected.size} zrušených lekcí kurzu",
-                            )
-                        }
-                    } catch (e: Exception) {
-                        logger.error("Failed to refund reservation ${res.id}", e)
+                    refundSafely(res, resSubject) { wallet ->
+                        refundService.refundFixedAmount(
+                            wallet, res, credit,
+                            WalletTransactionReason.LESSON_OPT_OUT_REFUND,
+                            detail = "Za ${affected.size} zrušených lekcí kurzu",
+                        )
                     }
                 }
             }
@@ -1543,33 +1478,11 @@ class AdminDashboardService(
      * o lekci z kurzu — proto storno rezervace a vrácení zaplacené částky, ne
      * sazba za lekci. Uzávěrka 18:00 se neuplatní, chyba není na jeho straně.
      */
-    private suspend fun cancelDropInReservations(instance: EventInstance, noticeTitle: String, refund: Boolean, detail: String) {
-        reservationRepository.findByReference(Reference.Instance(instance.id))
-            .filter { it.status != Reservation.Status.CANCELLED }
-            .forEach { res ->
-                reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
-                val resSubject = AuditSubject(instance.seriesId, instance.id, res.id, res.contactName)
-                audit.record(
-                    type = AuditEventType.RESERVATION_CANCELLED,
-                    subjectLabel = res.contactName,
-                    seriesId = instance.seriesId,
-                    instanceId = instance.id,
-                    reservationId = res.id,
-                    amount = res.paidAmount,
-                    detail = detail,
-                )
-                dispatchCancellationNotice(res, noticeTitle, resSubject)
-                if (refund && res.paidAmount > 0.0) {
-                    try {
-                        withAuditSubject(resSubject) {
-                            refundService.refundWholeReservation(resolveWalletForRefund(res), res)
-                        }
-                    } catch (e: Exception) {
-                        logger.error("Failed to refund reservation ${res.id}", e)
-                    }
-                }
-            }
-    }
+    private suspend fun cancelDropInReservations(instance: EventInstance, noticeTitle: String, refund: Boolean, detail: String) =
+        cancelAllReservations(
+            Reference.Instance(instance.id), noticeTitle, refund,
+            seriesId = instance.seriesId, instanceId = instance.id, historyDetail = detail,
+        )
 
     override suspend fun getSeriesInstances(seriesId: Uuid, page: Int, pageSize: Int): Either<AdminError.GetInstances, SeriesInstancesPage> = either {
         ensure(page >= 0) { AdminError.GetInstances.Failed }
@@ -1634,17 +1547,11 @@ class AdminDashboardService(
                         minOf(lessonCreditFor(res, series), refundService.refundableForWholeReservation(res))
                     } else 0.0
                     if (refundAmount > 0.0) {
-                        try {
-                            withAuditSubject(
-                                AuditSubject(seriesId, instanceId, res.id, res.contactName)
-                            ) {
-                                refundService.refundFixedAmount(
-                                    resolveWalletForRefund(res), res, refundAmount,
-                                    WalletTransactionReason.LESSON_OPT_OUT_REFUND,
-                                )
-                            }
-                        } catch (e: Exception) {
-                            logger.error("Failed to refund reservation ${res.id}", e)
+                        refundSafely(res, AuditSubject(seriesId, instanceId, res.id, res.contactName)) { wallet ->
+                            refundService.refundFixedAmount(
+                                wallet, res, refundAmount,
+                                WalletTransactionReason.LESSON_OPT_OUT_REFUND,
+                            )
                         }
                     }
                 }

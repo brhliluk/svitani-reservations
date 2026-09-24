@@ -61,7 +61,7 @@ class LessonOptOutRefunds(
         // Jedno připsání a jeden mail za všechny omluvenky — host bez účtu se kód
         // peněženky dozví jen z toho mailu.
         refundService.refundFixedAmount(
-            walletFor(reservation), reservation, total,
+            walletService.walletForRefund(reservation), reservation, total,
             WalletTransactionReason.LESSON_OPT_OUT_REFUND,
             detail = "dodatečně po zaplacení za ${topUps.size} omluven${if (topUps.size == 1) "ku" else "ky"}",
         )
@@ -72,18 +72,4 @@ class LessonOptOutRefunds(
         return total
     }
 
-    /**
-     * Stejná peněženka, kam chodí ostatní vratky omluvenek — u hosta podle e-mailu,
-     * aby se kredit netříštil do nových peněženek s novými kódy.
-     */
-    private suspend fun walletFor(reservation: Reservation): Wallet {
-        val registeredUserId = reservation.registeredUserId
-        return if (registeredUserId != null) {
-            walletService.findOrCreateForRegisteredUser(registeredUserId, reservation.contactEmail)
-        } else {
-            // Bez kódu nemá co nesedět na e-mail, takže je to vždy Right.
-            walletService.resolveAnonymousWallet(null, reservation.contactEmail, force = true)
-                .getOrNull() ?: error("resolveAnonymousWallet(null) must return a wallet")
-        }
-    }
 }

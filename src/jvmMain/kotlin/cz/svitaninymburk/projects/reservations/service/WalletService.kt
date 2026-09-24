@@ -63,6 +63,25 @@ class WalletService(private val repo: WalletRepository) {
     }
 
     /**
+     * Peněženka, do které se vrací kredit za rezervaci: s účtem ta jeho, host podle
+     * zadaného kódu, bez kódu podle kontaktního e-mailu (viz [resolveAnonymousWallet]).
+     */
+    suspend fun walletForRefund(
+        reservation: Reservation,
+        code: String?,
+        force: Boolean,
+    ): Either<WalletError.ResolveAnonymous, Wallet> {
+        val registeredUserId = reservation.registeredUserId
+            ?: return resolveAnonymousWallet(code, reservation.contactEmail, force)
+        return findOrCreateForRegisteredUser(registeredUserId, reservation.contactEmail).right()
+    }
+
+    /** Vratka bez kódu od člověka (admin, systém) — bez kódu nemá co nesedět, takže vždy uspěje. */
+    suspend fun walletForRefund(reservation: Reservation): Wallet =
+        walletForRefund(reservation, code = null, force = true).getOrNull()
+            ?: error("walletForRefund bez kódu musí vrátit peněženku")
+
+    /**
      * Peněženka, do které chodily refundy téhle rezervace — bez zakládání nové.
      * Používá se, když se kredit vrací zpátky (admin bere omluvenku zpět): založit
      * kvůli odečtu prázdnou peněženku nedává smysl.
