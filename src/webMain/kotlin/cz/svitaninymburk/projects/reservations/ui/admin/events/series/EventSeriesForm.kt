@@ -224,7 +224,7 @@ fun IComponent.AdminCreateEventSeriesScreen(currentUser: User, preselectedDefini
                                 label = currentStrings.lessonRefundAmount,
                                 value = model.lessonRefundAmountOverride,
                                 hint = currentStrings.lessonRefundAmountHint,
-                                placeholder = proportionalLessonRefundPreview(model.priceOverride, model.effectiveLessonDates.size)
+                                placeholder = proportionalLessonRefundPreview(model.priceOverride, model.lessonCountForRefundPreview)
                                     ?.let(currentStrings.lessonRefundAmountPlaceholder),
                             ) { model.lessonRefundAmountOverride = it }
                         }

@@ -99,6 +99,10 @@ class AdminCreateEventSeriesModel(
     val effectiveLessonDates: List<LocalDate>
         get() = effectiveSeriesDates(computedSeriesDates, lessonDateOverrides, excludedLessonIndices)
 
+    /** Kolik lekcí kurz dostane — bez dne v týdnu termíny nevzniknou a platí zadaný počet (viz submit). */
+    val lessonCountForRefundPreview: Int
+        get() = effectiveLessonDates.size.takeIf { it > 0 } ?: lessonCount
+
     fun isLessonExcluded(index: Int) = index in excludedLessonIndices
 
     fun load() {

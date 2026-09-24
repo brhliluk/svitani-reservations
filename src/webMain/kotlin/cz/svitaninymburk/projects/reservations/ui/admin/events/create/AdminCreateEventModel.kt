@@ -123,6 +123,10 @@ class AdminCreateEventModel(
 
     val courseLessonStartTime: LocalTime? get() = parseTimeOrNull(courseLessonStartTimeStr)
 
+    /** Kolik lekcí kurz dostane — bez dne v týdnu termíny nevzniknou a platí zadaný počet (viz submitCourse). */
+    val courseLessonCountForRefundPreview: Int
+        get() = effectiveCourseDates.size.takeIf { it > 0 } ?: lessonCount
+
     fun isLessonExcluded(index: Int) = index in excludedLessonIndices
 
     fun onEventTypeChange(type: EventCreateType) { eventType = type }

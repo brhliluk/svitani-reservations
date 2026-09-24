@@ -77,7 +77,7 @@ fun IComponent.CourseScheduleCard(model: AdminCreateEventModel) {
                     label = currentStrings.lessonRefundAmount,
                     value = model.courseLessonRefundAmount,
                     hint = currentStrings.lessonRefundAmountHint,
-                    placeholder = proportionalLessonRefundPreview(model.price, model.effectiveCourseDates.size)
+                    placeholder = proportionalLessonRefundPreview(model.price, model.courseLessonCountForRefundPreview)
                         ?.let(currentStrings.lessonRefundAmountPlaceholder),
                 ) { model.courseLessonRefundAmount = it }
             }
