@@ -162,16 +162,18 @@ class EventService(
             val definitions = definitions.getOrElse { raise(EventError.FailedToGetDefinitions) }
                 .filter { def -> instances.any { it.definitionId == def.id } || series.any { it.definitionId == def.id } }
 
-            DashboardData(instances, series, definitions)
+            // Uzávěrku rezervace si prohlížeč spočítat neumí (nemá databázi
+            // časových pásem), proto ji dostává hotovou; kurzy ji mají už z getAllSeries.
+            DashboardData(instances.map { it.withReservationClosesAt() }, series, definitions)
         }
     }
 
     override suspend fun getAllInstances(): Either<EventError.GetInstances, List<EventInstance>> = either {
-        eventInstanceRepository.getAllPublished()
+        eventInstanceRepository.getAllPublished().map { it.withReservationClosesAt() }
     }
 
     override suspend fun getAllSeries(): Either<EventError.GetSeries, List<EventSeries>> = either {
-        eventSeriesRepository.getAllPublished()
+        eventSeriesRepository.getAllPublished().map { it.withReservationClosesAt() }
     }
 
     override suspend fun getAllDefinitions(): Either<EventError.GetDefinitions, List<EventDefinition>> = either {
@@ -183,7 +185,7 @@ class EventService(
         if (!isAdminCaller()) {
             ensure(instance.isPublished) { EventError.EventInstanceNotFound(id.toString()) }
         }
-        instance
+        instance.withReservationClosesAt()
     }
 
     override suspend fun getSeriesDetail(id: Uuid): Either<EventError.GetSeriesDetail, SeriesDetailResponse> = either {
@@ -192,6 +194,6 @@ class EventService(
             ensure(series.isPublished) { EventError.EventSeriesNotFound(id.toString()) }
         }
         val lessons = eventInstanceRepository.findBySeries(id).sortedBy { it.startDateTime }
-        SeriesDetailResponse(series, lessons)
+        SeriesDetailResponse(series.withReservationClosesAt(), lessons.map { it.withReservationClosesAt() })
     }
 }

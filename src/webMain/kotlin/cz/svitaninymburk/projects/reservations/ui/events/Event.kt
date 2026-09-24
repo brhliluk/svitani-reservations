@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.events
 
 import androidx.compose.runtime.Composable
+import kotlin.time.Clock
 import androidx.compose.runtime.getValue
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.i18n.strings
@@ -84,8 +85,10 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit, onWaitlistClick:
                     }
                 }
                 // Right: reserve button or deadline message
-                val canJoinWaitlist = event.isFull && event.hasWaitlist && !event.isWaitlistFull && !event.isCancelled && !event.isDeadlinePassed
-                val isDisabled = event.isCancelled || event.isFull || event.isDeadlinePassed
+                // Uzávěrku spočítal server — prohlížeč nemá databázi časových pásem.
+                val isDeadlinePassed = event.isReservationClosed(Clock.System.now())
+                val canJoinWaitlist = event.isFull && event.hasWaitlist && !event.isWaitlistFull && !event.isCancelled && !isDeadlinePassed
+                val isDisabled = event.isCancelled || event.isFull || isDeadlinePassed
                 div(className = "flex flex-col items-end gap-1") {
                     if (canJoinWaitlist && onWaitlistClick != null) {
                         button(className = "btn btn-outline btn-secondary rounded-full px-6 min-h-11") {
@@ -98,7 +101,7 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit, onWaitlistClick:
                             if (!isDisabled) onClick { onClick() }
                         }
                     }
-                    if (event.isDeadlinePassed) {
+                    if (isDeadlinePassed) {
                         span(className = "text-xs text-base-content/60 text-right") {
                             +(event.reservationDeadlineMessage ?: currentStrings.reservationClosed)
                         }

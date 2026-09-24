@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.events
 
 import androidx.compose.runtime.Composable
+import kotlin.time.Clock
 import androidx.compose.runtime.getValue
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.i18n.strings
@@ -99,7 +100,8 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                                 +currentStrings.cancelled
                             }
                         } else {
-                            val isDeadlinePassed = series.isDeadlinePassed
+                            // Uzávěrku spočítal server — prohlížeč nemá databázi časových pásem.
+                            val isDeadlinePassed = series.isReservationClosed(Clock.System.now())
                             button(className = "btn btn-primary rounded-full px-6 min-h-11 shadow-sm${if (isDeadlinePassed) " btn-disabled" else ""}") {
                                 span(className = "icon-[heroicons--pencil-square] size-5")
                                 +currentStrings.courseSignUp

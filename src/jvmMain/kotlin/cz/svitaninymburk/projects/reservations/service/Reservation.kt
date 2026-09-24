@@ -291,7 +291,7 @@ open class ReservationService(
         ensure(!instance.isCancelled) { ReservationError.EventCancelled }
         ensure(instance.endDateTime > nowInAppTimeZone()) { ReservationError.EventAlreadyFinished }
         ensure(instance.startDateTime > nowInAppTimeZone()) { ReservationError.EventAlreadyStarted }
-        ensure(!instance.isDeadlinePassed) { ReservationError.ReservationDeadlinePassed }
+        ensure(!instance.isReservationDeadlinePassed()) { ReservationError.ReservationDeadlinePassed }
 
         ensure(request.seatCount >= 1) { ReservationError.InvalidSeatCount }
         ensure(instance.allowMultipleSeats || request.seatCount == 1) { ReservationError.MultipleSeatsNotAllowed }
@@ -324,7 +324,7 @@ open class ReservationService(
         val series = ensureNotNull(eventSeriesRepository.get(request.eventSeriesId)) { ReservationError.ReservationNotFound }
         if (!isAdminCaller()) ensure(series.isPublished) { ReservationError.ReservationNotFound }
 
-        ensure(!series.isDeadlinePassed) { ReservationError.ReservationDeadlinePassed }
+        ensure(!series.isReservationDeadlinePassed()) { ReservationError.ReservationDeadlinePassed }
 
         ensure(request.seatCount >= 1) { ReservationError.InvalidSeatCount }
         ensure(series.allowMultipleSeats || request.seatCount == 1) { ReservationError.MultipleSeatsNotAllowed }

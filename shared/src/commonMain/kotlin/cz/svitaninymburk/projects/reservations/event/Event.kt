@@ -8,7 +8,6 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.serialization.Serializable
-import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
@@ -60,17 +59,15 @@ data class EventSeries(
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
     val isCancelled: Boolean = false,
+    /** Viz [EventInstance.reservationClosesAt]. */
+    val reservationClosesAt: Instant? = null,
 ) {
     val isFull: Boolean get() = occupiedSpots >= capacity
     val hasWaitlist: Boolean get() = waitlistCapacity > 0
     val isWaitlistFull: Boolean get() = occupiedWaitlist >= waitlistCapacity
-    val isDeadlinePassed: Boolean get() {
-        val deadline = reservationDeadline ?: return false
-        val tz = TimeZone.of("Europe/Prague")
-        val effectiveStart = LocalDateTime(startDate, lessonStartTime ?: LocalTime(0, 0))
-        val deadlineInstant = effectiveStart.toInstant(tz) - deadline
-        return Clock.System.now() >= deadlineInstant
-    }
+
+    /** Viz [EventInstance.isReservationClosed]. */
+    fun isReservationClosed(now: Instant): Boolean = reservationClosesAt?.let { now >= it } ?: false
 }
 
 @Serializable
@@ -98,6 +95,14 @@ data class EventInstance(
     val allowMultipleSeats: Boolean = true,
     val reservationDeadline: Duration? = null,
     val reservationDeadlineMessage: String? = null,
+    /**
+     * Kdy se zavírá rezervace ([reservationDeadline] před začátkem), spočítané
+     * serverem v provozní zóně; null = bez uzávěrky, nebo objekt z úložiště, kterému
+     * ji server ještě nedopočítal. Prohlížeč nemá databázi časových pásem, takže si
+     * uzávěrku sám spočítat nemůže — stejně jako u uzávěrky storna ji dostává hotovou.
+     * Server se na tohle pole při rezervaci nespoléhá a počítá si ji znovu.
+     */
+    val reservationClosesAt: Instant? = null,
 ) {
     val currentTimeZone get() = TimeZone.currentSystemDefault()
     val isFull: Boolean
@@ -108,12 +113,9 @@ data class EventInstance(
         get() = endDateTime.toInstant(currentTimeZone) - startDateTime.toInstant(currentTimeZone)
     val isSeries: Boolean
         get() = seriesId != null
-    val isDeadlinePassed: Boolean get() {
-        val deadline = reservationDeadline ?: return false
-        val tz = TimeZone.of("Europe/Prague")
-        val deadlineInstant = startDateTime.toInstant(tz) - deadline
-        return Clock.System.now() >= deadlineInstant
-    }
+
+    /** Uplynula uzávěrka rezervace? Jen porovnání s hotovým [reservationClosesAt], bez časové zóny. */
+    fun isReservationClosed(now: Instant): Boolean = reservationClosesAt?.let { now >= it } ?: false
 }
 
 @Serializable
