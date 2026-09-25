@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.events
 
+import cz.svitaninymburk.projects.reservations.util.hourMinute
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -10,7 +11,6 @@ import cz.svitaninymburk.projects.reservations.ui.events.usecase.MAX_EVENTS_PER_
 import cz.svitaninymburk.projects.reservations.ui.events.usecase.calendarEventKind
 import cz.svitaninymburk.projects.reservations.ui.events.usecase.calendarGrid
 import cz.svitaninymburk.projects.reservations.ui.events.usecase.daysWithEvents
-import cz.svitaninymburk.projects.reservations.ui.events.usecase.eventTimeLabel
 import cz.svitaninymburk.projects.reservations.ui.events.usecase.eventsOn
 import cz.svitaninymburk.projects.reservations.ui.events.usecase.hiddenEventCount
 import cz.svitaninymburk.projects.reservations.ui.events.usecase.monthNameIndex
@@ -95,7 +95,7 @@ fun IComponent.CalendarView(
                                             eventChipColors(event)
                                 ) {
                                     onClick { onEventClick(event) }
-                                    span(className = "font-bold shrink-0") { +eventTimeLabel(event.startDateTime) }
+                                    span(className = "font-bold shrink-0") { +event.startDateTime.time.hourMinute }
                                     span(className = "truncate") { +event.title }
                                 }
                             }
@@ -148,7 +148,7 @@ fun IComponent.CalendarView(
                                             eventChipColors(event)
                                 ) {
                                     onClick { onEventClick(event) }
-                                    span(className = "font-bold mr-1") { +eventTimeLabel(event.startDateTime) }
+                                    span(className = "font-bold mr-1") { +event.startDateTime.time.hourMinute }
                                     +event.title
                                 }
                             }

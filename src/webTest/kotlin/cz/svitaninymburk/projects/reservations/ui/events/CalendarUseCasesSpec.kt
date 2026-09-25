@@ -6,7 +6,7 @@ import cz.svitaninymburk.projects.reservations.ui.events.usecase.MAX_EVENTS_PER_
 import cz.svitaninymburk.projects.reservations.ui.events.usecase.calendarEventKind
 import cz.svitaninymburk.projects.reservations.ui.events.usecase.calendarGrid
 import cz.svitaninymburk.projects.reservations.ui.events.usecase.daysWithEvents
-import cz.svitaninymburk.projects.reservations.ui.events.usecase.eventTimeLabel
+import cz.svitaninymburk.projects.reservations.util.hourMinute
 import cz.svitaninymburk.projects.reservations.ui.events.usecase.eventsOn
 import cz.svitaninymburk.projects.reservations.ui.events.usecase.hiddenEventCount
 import cz.svitaninymburk.projects.reservations.ui.events.usecase.monthNameIndex
@@ -164,10 +164,10 @@ class CalendarLabelsSpec {
 
     @Test
     fun minutesArePaddedButHoursAreNot() {
-        assertEquals("9:05", eventTimeLabel(LocalDateTime(2026, 9, 10, 9, 5)))
-        assertEquals("9:00", eventTimeLabel(LocalDateTime(2026, 9, 10, 9, 0)))
-        assertEquals("18:30", eventTimeLabel(LocalDateTime(2026, 9, 10, 18, 30)))
-        assertEquals("0:00", eventTimeLabel(LocalDateTime(2026, 9, 10, 0, 0)))
+        assertEquals("9:05", LocalDateTime(2026, 9, 10, 9, 5).time.hourMinute)
+        assertEquals("9:00", LocalDateTime(2026, 9, 10, 9, 0).time.hourMinute)
+        assertEquals("18:30", LocalDateTime(2026, 9, 10, 18, 30).time.hourMinute)
+        assertEquals("0:00", LocalDateTime(2026, 9, 10, 0, 0).time.hourMinute)
     }
 
     @Test

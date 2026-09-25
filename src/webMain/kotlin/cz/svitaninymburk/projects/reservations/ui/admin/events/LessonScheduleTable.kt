@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events
 
+import cz.svitaninymburk.projects.reservations.util.hourMinute
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import cz.svitaninymburk.projects.reservations.i18n.strings
@@ -143,4 +144,3 @@ fun IComponent.LessonScheduleTable(
 }
 
 /** Čas ve tvaru `9:05`, jak ho tabulka lekcí ukazuje na obou obrazovkách. */
-private val LocalTime.hourMinute: String get() = "$hour:${minute.toString().padStart(2, '0')}"

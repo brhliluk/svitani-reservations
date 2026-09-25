@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.instance
 
+import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.toTimeInputValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -87,7 +88,7 @@ class AdminEditEventInstanceModel(
                     title = inst.title
                     description = inst.description
                     startDate = inst.startDateTime.date.toString()
-                    startTime = "${inst.startDateTime.hour.toString().padStart(2, '0')}:${inst.startDateTime.minute.toString().padStart(2, '0')}"
+                    startTime = inst.startDateTime.time.toTimeInputValue()
                     val dur = inst.duration
                     durationHours = dur.inWholeHours.toInt()
                     durationMinutes = (dur.inWholeMinutes % 60).toInt()

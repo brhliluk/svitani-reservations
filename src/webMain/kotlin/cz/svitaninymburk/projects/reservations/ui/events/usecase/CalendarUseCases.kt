@@ -57,10 +57,6 @@ fun daysWithEvents(events: List<EventInstance>, month: LocalDate): List<Pair<Loc
 /** Kolik akcí se do dne nevešlo. Nula znamená, že se "+N dalších" nepíše. */
 fun hiddenEventCount(dayEventCount: Int): Int = (dayEventCount - MAX_EVENTS_PER_DAY).coerceAtLeast(0)
 
-/** "9:05" — hodina bez vycpávání, minuty s nulou. */
-fun eventTimeLabel(dateTime: LocalDateTime): String =
-    "${dateTime.hour}:${dateTime.minute.toString().padStart(2, '0')}"
-
 /** Lekce kurzu se v kalendáři odlišuje barvou od jednorázové akce. */
 enum class CalendarEventKind { SERIES_LESSON, ONE_OFF }
 

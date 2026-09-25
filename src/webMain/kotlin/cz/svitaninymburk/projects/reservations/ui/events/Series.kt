@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.events
 
+import cz.svitaninymburk.projects.reservations.util.hourMinute
 import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
 import androidx.compose.runtime.Composable
 import kotlin.time.Clock
@@ -76,8 +77,8 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                         span {
                             +currentStrings.lessonScheduleText(
                                 dayIndex = dow.ordinal,
-                                startTime = "${startT.hour}:${startT.minute.toString().padStart(2, '0')}",
-                                endTime = "${endT.hour}:${endT.minute.toString().padStart(2, '0')}",
+                                startTime = startT.hourMinute,
+                                endTime = endT.hourMinute,
                             )
                         }
                     }

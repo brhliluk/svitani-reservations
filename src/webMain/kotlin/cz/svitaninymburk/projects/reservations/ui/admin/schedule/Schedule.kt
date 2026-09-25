@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.schedule
 
+import cz.svitaninymburk.projects.reservations.util.timeRangeLabel
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -108,7 +109,7 @@ private fun IComponent.ScheduleRow(item: AdminScheduleItem, onClick: () -> Unit)
         onClick { onClick() }
         td(className = "font-medium whitespace-nowrap") { +item.startDateTime.date.humanReadable }
         td(className = "text-sm text-base-content/70 whitespace-nowrap") {
-            +"${item.startDateTime.hour}:${item.startDateTime.minute.toString().padStart(2, '0')} – ${item.endDateTime.hour}:${item.endDateTime.minute.toString().padStart(2, '0')}"
+            +timeRangeLabel(item.startDateTime.time, item.endDateTime.time)
         }
         td(className = "font-medium") {
             +item.title

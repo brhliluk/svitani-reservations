@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.detail
 
+import cz.svitaninymburk.projects.reservations.util.timeRangeLabel
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import app.softwork.routingcompose.Router
@@ -85,7 +86,7 @@ private fun IComponent.LessonRow(
 
     tr {
         td(className = "font-medium") { +lesson.startDateTime.date.humanReadable }
-        td { +"${lesson.startDateTime.hour}:${lesson.startDateTime.minute.toString().padStart(2, '0')} – ${lesson.endDateTime.hour}:${lesson.endDateTime.minute.toString().padStart(2, '0')}" }
+        td { +timeRangeLabel(lesson.startDateTime.time, lesson.endDateTime.time) }
         td {
             val isFull = lesson.occupiedSpots >= lesson.capacity
             div(className = "flex items-center gap-2") {
