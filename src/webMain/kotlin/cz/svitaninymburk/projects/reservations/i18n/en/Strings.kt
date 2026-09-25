@@ -6,7 +6,6 @@ import cz.svitaninymburk.projects.reservations.i18n.AppStrings
 
 object EnStrings : AppStrings {
     override val locale = "en"
-    override val appName = "Reservations"
     override val logIn = "Log in"
     override val reserve = "Reserve"
     override val dashboard = "Dashboard"
@@ -29,9 +28,7 @@ object EnStrings : AppStrings {
     override val individualEvents = "Individual Events"
 
     // States
-    override val noEvents = "No events"
     override val noEventsFoundForFilter = "No events found for this selection."
-    override val calendarUnderConstruction = "Calendar is under construction :)"
 
     // Filter
     override val filter = "Filter"
@@ -61,7 +58,6 @@ object EnStrings : AppStrings {
     override val phoneHint = "+420 123 456 789"
     override val phoneHintAlt = "Including country code, e.g. +420"
     override val seatCountLabel = "Number of seats"
-    override val seatCountHint = "1"
     override val seatCountMaxReached: (Int) -> String = { "Only $it seats available" }
     override val ownerEmailsLabel = "Owner / responsible person emails"
     override val ownerEmailPlaceholder = "Email"
@@ -257,7 +253,6 @@ object EnStrings : AppStrings {
     override val auditCategoryPayment = "Payments"
     override val auditCategoryManagement = "Event changes"
     override val auditOutcomeFailure = "Not sent"
-    override val auditActorSystem = "system"
     override val auditOpenReservation = "Open reservation"
     override val auditOpenLesson = "Open lesson"
     override val auditOpenWallet = "Open wallet"
@@ -339,7 +334,6 @@ object EnStrings : AppStrings {
     override val badgeOneTime = "One-time"
     override val capacityFull = "FULL"
     override val showLess = "Show less"
-    override val showMore: (Int) -> String = { "Show $it more" }
     override val loadingError: (String) -> String = { "Loading error: $it" }
     override val tooltipEditDefinition = "Edit template"
     override val tooltipDeleteDefinition = "Delete template"
@@ -388,7 +382,6 @@ object EnStrings : AppStrings {
     override val eventNameLabel = "Name (e.g. Yoga for Beginners)"
     override val newTemplateTitle = "New event template"
     override val newTemplateSubtitle = "Create a base definition to schedule dates from."
-    override val recurrenceHeading = "Recurrence"
     override val recurrenceTypeLabel = "Recurrence type"
     override val recurrenceNone = "None"
     override val recurrenceDaily = "Daily"
@@ -423,8 +416,6 @@ object EnStrings : AppStrings {
     override val fieldTieredFallbackLabel = "Price per unit above last tier (CZK)"
     override val validationNameRequired = "Name is required"
     override val validationOwnerEmailRequired = "At least one owner email is required"
-    override val validationRecurrenceEndRequired = "Enter the recurrence end date."
-    override val validationRecurrenceDateFormat = "Invalid recurrence end date format."
     override val templateSavedToast = "Template saved successfully!"
 
     // Event Instance Form
@@ -448,7 +439,6 @@ object EnStrings : AppStrings {
     override val toastInstanceCreated = "Date was successfully scheduled!"
 
     // Event publishing
-    override val publishImmediatelyLabel = "Publish immediately"
     override val saveDraftButton = "Save as draft"
     override val statusPublished = "Published"
     override val statusHidden = "Hidden"
@@ -468,10 +458,8 @@ object EnStrings : AppStrings {
     override val lessonDayLabel = "Lesson day (optional)"
     override val lessonTimeLabel = "Lesson start time"
     override val lessonDayPlaceholder = "— Not selected —"
-    override val lessonSchedule = "Schedule"
     override fun lessonScheduleText(dayIndex: Int, startTime: String, endTime: String) =
         "every ${dayName(dayIndex)} $startTime–$endTime"
-    override val autoFillAlert = "End date and lesson count were prefilled from the template. You can edit them."
     override val seriesOverrideHeading = "Edits for this course"
     override val seriesOverrideDescription = "Prefilled from template. Changes apply only to this course."
     override val seriesTitleLabel = "Course name"
@@ -501,7 +489,6 @@ object EnStrings : AppStrings {
     override val toastEventsCreated: (Int) -> String = { "Created $it events!" }
     override val toastCourseCreated = "Course was successfully created!"
     override val validationTitleRequired = "Event name is required."
-    override val validationDateRequired = "You must select an event date."
     override val validationDatesOrTimeRequired = "You must fill in date and time."
     override val validationCourseDatesRequired = "You must fill in start date, end date and lesson count."
 
@@ -706,10 +693,8 @@ object EnStrings : AppStrings {
     override val walletLookupSubtitle = "Enter your wallet code and email to verify your balance."
     override val walletLookupEmailLabel = "Your email"
     override val walletLookupSubmit = "Check"
-    override val walletLookupNotFound = "No wallet found with this code."
 
     // Admin Edit & Delete
-    override val editTemplate = "Edit template"
     override val editEvent = "Edit event"
     override val editSeries = "Edit course"
     override val deleteTemplate = "Delete template"
@@ -742,7 +727,6 @@ object EnStrings : AppStrings {
     }
     override val cancelRunningCourseConfirmBody = "The course is already running. Past lessons stay, only the ones that haven't started yet are cancelled. Enrolled participants keep their reservation and get credit for each cancelled lesson at the course rate. Enrolments with no payment yet are cancelled."
     override val cancelEventSuccess = "Event cancelled"
-    override val cancelEventError = "Failed to cancel event"
     override val refundOnCancelLabel = "Refund customers as wallet credit"
     override val editTemplateTitle = "Edit template"
     override val editInstanceTitle = "Edit event"
@@ -851,7 +835,6 @@ object EnStrings : AppStrings {
         if (paid == refund) "Paid $paid CZK — if cancelled before 18:00 the previous day you will receive $refund CZK wallet credit"
         else "Paid $paid CZK, part of it was already returned for lessons — if cancelled before 18:00 the previous day you will receive $refund CZK wallet credit"
     }
-    override val cancellationLessonRefundEligible = "Paid — if opted out on time you will receive wallet credit per course settings"
     override val cancellationNoRefund = "No credit will be returned when cancelling this reservation"
     override val cancellationWindowPassed = "Cancellation window has passed (after 18:00 the day before) — no credit will be issued"
     override val cancellationNotPaid = "Reservation was not paid — no credit will be issued"
@@ -891,10 +874,8 @@ object EnStrings : AppStrings {
     // Waitlist
     override val registerAsSubstitute = "Join waitlist"
     override val substituteFormHeading = "Join the waitlist"
-    override val waitlistFullMessage = "The waitlist is full"
     override val waitlistedStatus = "Waitlisted"
     override val substituteInfoNote = "You will be added to the waitlist. If a spot opens up, you will receive an email with payment details."
-    override val joinedWaitlistToast = "You have been added to the waitlist."
     override val substitutesSectionTitle = "Waitlist"
 
     override val optedOutSectionTitle = "Opted out of this lesson"
@@ -906,6 +887,5 @@ object EnStrings : AppStrings {
     override val revokeOptOutCreditNote = "The credit they received for the opt-out will be taken back from their wallet."
     override fun toastOptOutRevoked(name: String) = "$name is back in the lesson."
     override val waitlistCapacityLabel = "Max. substitutes"
-    override val substitutesCount = "Substitutes"
     override fun waitlistPositionLabel(position: Int) = "You are #$position on the waitlist"
 }

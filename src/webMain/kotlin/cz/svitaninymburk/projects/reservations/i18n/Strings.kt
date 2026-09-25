@@ -24,7 +24,6 @@ val strings = mutableStateOf(resolveStrings())
 
 interface AppStrings : ErrorStrings {
     val locale: String
-    val appName: String
     val logIn: String
     val reserve: String
     val dashboard: String
@@ -47,9 +46,7 @@ interface AppStrings : ErrorStrings {
     val individualEvents: String
 
     // Feedback & Empty states
-    val noEvents: String
     val noEventsFoundForFilter: String
-    val calendarUnderConstruction: String
 
     // Filter logic
     val filter: String
@@ -79,7 +76,6 @@ interface AppStrings : ErrorStrings {
     val phoneHint: String
     val phoneHintAlt: String
     val seatCountLabel: String
-    val seatCountHint: String
     val seatCountMaxReached: (Int) -> String
     val ownerEmailsLabel: String
     val ownerEmailPlaceholder: String
@@ -277,7 +273,6 @@ interface AppStrings : ErrorStrings {
     val auditCategoryPayment: String
     val auditCategoryManagement: String
     val auditOutcomeFailure: String
-    val auditActorSystem: String
     val auditOpenReservation: String
     val auditOpenLesson: String
     val auditOpenWallet: String
@@ -306,7 +301,6 @@ interface AppStrings : ErrorStrings {
     val badgeOneTime: String
     val capacityFull: String
     val showLess: String
-    val showMore: (Int) -> String
     val loadingError: (String) -> String
     val tooltipEditDefinition: String
     val tooltipDeleteDefinition: String
@@ -355,7 +349,6 @@ interface AppStrings : ErrorStrings {
     val eventNameLabel: String
     val newTemplateTitle: String
     val newTemplateSubtitle: String
-    val recurrenceHeading: String
     val recurrenceTypeLabel: String
     val recurrenceNone: String
     val recurrenceDaily: String
@@ -390,8 +383,6 @@ interface AppStrings : ErrorStrings {
     val fieldTieredFallbackLabel: String
     val validationNameRequired: String
     val validationOwnerEmailRequired: String
-    val validationRecurrenceEndRequired: String
-    val validationRecurrenceDateFormat: String
     val templateSavedToast: String
 
     // Event Instance Form
@@ -415,7 +406,6 @@ interface AppStrings : ErrorStrings {
     val toastInstanceCreated: String
 
     // Event publishing
-    val publishImmediatelyLabel: String
     val saveDraftButton: String
     val statusPublished: String
     val statusHidden: String
@@ -435,10 +425,8 @@ interface AppStrings : ErrorStrings {
     val lessonDayLabel: String
     val lessonTimeLabel: String
     val lessonDayPlaceholder: String
-    val lessonSchedule: String
     /** Popis rozvrhu lekcí. [dayIndex] je 0 = pondělí, aby si každý jazyk poradil se skloňováním sám. */
     fun lessonScheduleText(dayIndex: Int, startTime: String, endTime: String): String
-    val autoFillAlert: String
     val seriesOverrideHeading: String
     val seriesOverrideDescription: String
     val seriesTitleLabel: String
@@ -468,7 +456,6 @@ interface AppStrings : ErrorStrings {
     val toastEventsCreated: (Int) -> String
     val toastCourseCreated: String
     val validationTitleRequired: String
-    val validationDateRequired: String
     val validationDatesOrTimeRequired: String
     val validationCourseDatesRequired: String
 
@@ -617,7 +604,6 @@ interface AppStrings : ErrorStrings {
     val no: String
 
     // Admin Edit & Delete
-    val editTemplate: String
     val editEvent: String
     val editSeries: String
     val deleteTemplate: String
@@ -642,7 +628,6 @@ interface AppStrings : ErrorStrings {
     val cancelEventConfirmBody: (reservationCount: Int) -> String
     val cancelRunningCourseConfirmBody: String
     val cancelEventSuccess: String
-    val cancelEventError: String
     val refundOnCancelLabel: String
     val editTemplateTitle: String
     val editInstanceTitle: String
@@ -714,7 +699,6 @@ interface AppStrings : ErrorStrings {
     val walletLookupSubtitle: String
     val walletLookupEmailLabel: String
     val walletLookupSubmit: String
-    val walletLookupNotFound: String
 
     // Cancellation policy box
     val cancellationPolicyTitle: String
@@ -726,7 +710,6 @@ interface AppStrings : ErrorStrings {
 
     // Dynamic refund preview in cancellation dialog
     val cancellationRefundEligible: (paid: String, refund: String) -> String
-    val cancellationLessonRefundEligible: String
     val cancellationNoRefund: String
     val cancellationWindowPassed: String
     val cancellationNotPaid: String
@@ -753,10 +736,8 @@ interface AppStrings : ErrorStrings {
     // Waitlist
     val registerAsSubstitute: String
     val substituteFormHeading: String
-    val waitlistFullMessage: String
     val waitlistedStatus: String
     val substituteInfoNote: String
-    val joinedWaitlistToast: String
     val substitutesSectionTitle: String
 
     // Omluvenky z lekce (admin)
@@ -769,6 +750,5 @@ interface AppStrings : ErrorStrings {
     val revokeOptOutCreditNote: String
     fun toastOptOutRevoked(name: String): String
     val waitlistCapacityLabel: String
-    val substitutesCount: String
     fun waitlistPositionLabel(position: Int): String
 }

@@ -7,7 +7,6 @@ import cz.svitaninymburk.projects.reservations.i18n.ErrorStrings
 
 object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val locale = "cs"
-    override val appName = "Rezervace"
     override val logIn = "Přihlásit se"
     override val reserve = "Rezervovat"
     override val dashboard = "Přehled"
@@ -30,9 +29,7 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val individualEvents = "Jednotlivé termíny"
 
     // States
-    override val noEvents = "Žádné události"
     override val noEventsFoundForFilter = "Pro tento výběr nejsou vypsané žádné termíny."
-    override val calendarUnderConstruction = "Kalendář je zatím ve výstavbě :)"
 
     // Filter
     override val filter = "Filtr"
@@ -62,7 +59,6 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val phoneHint = "+420 123 456 789"
     override val phoneHintAlt = "Včetně předvolby, např. +420"
     override val seatCountLabel = "Počet míst"
-    override val seatCountHint = "1"
     override val seatCountMaxReached: (Int) -> String = { "K dispozici je jen $it míst" }
     override val ownerEmailsLabel = "E-maily vlastníků / osob zodpovědných za akci"
     override val ownerEmailPlaceholder = "E-mail"
@@ -262,7 +258,6 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val auditCategoryPayment = "Platby"
     override val auditCategoryManagement = "Správa akce"
     override val auditOutcomeFailure = "Neodesláno"
-    override val auditActorSystem = "systém"
     override val auditOpenReservation = "Otevřít rezervaci"
     override val auditOpenLesson = "Otevřít lekci"
     override val auditOpenWallet = "Otevřít peněženku"
@@ -344,7 +339,6 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val badgeOneTime = "Jednorázovka"
     override val capacityFull = "PLNO"
     override val showLess = "Zobrazit méně"
-    override val showMore: (Int) -> String = { "Zobrazit dalších $it" }
     override val loadingError: (String) -> String = { "Chyba načítání: $it" }
     override val tooltipEditDefinition = "Upravit šablonu"
     override val tooltipDeleteDefinition = "Smazat šablonu"
@@ -393,7 +387,6 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val eventNameLabel = "Název (např. Jóga pro začátečníky)"
     override val newTemplateTitle = "Nová šablona události"
     override val newTemplateSubtitle = "Vytvořte základní definici, ze které pak budete vypisovat termíny."
-    override val recurrenceHeading = "Opakování"
     override val recurrenceTypeLabel = "Typ opakování"
     override val recurrenceNone = "Žádné"
     override val recurrenceDaily = "Denně"
@@ -428,8 +421,6 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val fieldTieredFallbackLabel = "Cena za jednotku nad poslední stupeň (Kč)"
     override val validationNameRequired = "Název je povinný"
     override val validationOwnerEmailRequired = "Je potřeba zadat alespoň jeden e-mail vlastníka"
-    override val validationRecurrenceEndRequired = "Zadejte datum konce opakování."
-    override val validationRecurrenceDateFormat = "Neplatný formát data konce opakování."
     override val templateSavedToast = "Šablona úspěšně uložena!"
 
     // Event Instance Form
@@ -453,7 +444,6 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val toastInstanceCreated = "Termín byl úspěšně vypsán!"
 
     // Event publishing
-    override val publishImmediatelyLabel = "Zveřejnit ihned"
     override val saveDraftButton = "Uložit koncept"
     override val statusPublished = "Zveřejněno"
     override val statusHidden = "Skryté"
@@ -473,10 +463,8 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val lessonDayLabel = "Den lekce (volitelné)"
     override val lessonTimeLabel = "Čas začátku lekce"
     override val lessonDayPlaceholder = "— Nevybráno —"
-    override val lessonSchedule = "Rozvrh"
     override fun lessonScheduleText(dayIndex: Int, startTime: String, endTime: String) =
         "${everyDay.getOrElse(dayIndex) { "" }} $startTime–$endTime".trim()
-    override val autoFillAlert = "Datum konce a počet lekcí byly předvyplněny ze šablony. Můžete je upravit."
     override val seriesOverrideHeading = "Úpravy pro tento kurz"
     override val seriesOverrideDescription = "Předvyplněno ze šablony. Změny se projeví pouze u tohoto kurzu."
     override val seriesTitleLabel = "Název kurzu"
@@ -506,7 +494,6 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val toastEventsCreated: (Int) -> String = { "Vytvořeno $it termínů!" }
     override val toastCourseCreated = "Kurz byl úspěšně vytvořen!"
     override val validationTitleRequired = "Název události je povinný."
-    override val validationDateRequired = "Musíte vybrat datum konání."
     override val validationDatesOrTimeRequired = "Musíte vyplnit datum a čas."
     override val validationCourseDatesRequired = "Musíte vyplnit datum začátku, konce a počet lekcí."
 
@@ -719,10 +706,8 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val walletLookupSubtitle = "Zadejte kód peněženky a svůj e-mail pro ověření zůstatku."
     override val walletLookupEmailLabel = "Váš e-mail"
     override val walletLookupSubmit = "Zkontrolovat"
-    override val walletLookupNotFound = "Peněženka s tímto kódem nebyla nalezena."
 
     // Admin Edit & Delete
-    override val editTemplate = "Upravit šablonu"
     override val editEvent = "Upravit termín"
     override val editSeries = "Upravit kurz"
     override val deleteTemplate = "Smazat šablonu"
@@ -755,7 +740,6 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     }
     override val cancelRunningCourseConfirmBody = "Kurz už běží. Proběhlé lekce zůstanou, zruší se jen ty, které ještě nezačaly. Zapsaní si rezervaci nechají a za každou zrušenou lekci dostanou kredit podle sazby kurzu. Zápisy, za které zatím nic nepřišlo, se zruší."
     override val cancelEventSuccess = "Událost byla zrušena"
-    override val cancelEventError = "Nepodařilo se zrušit událost"
     override val refundOnCancelLabel = "Vrátit peníze zákazníkům jako kredit"
     override val editTemplateTitle = "Upravit šablonu"
     override val editInstanceTitle = "Upravit termín"
@@ -795,7 +779,6 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
         if (paid == refund) "Zaplaceno $paid Kč — při stornu do 18:00 předchozího dne dostanete kredit $refund Kč do peněženky"
         else "Zaplaceno $paid Kč, část už se vrátila za lekce — při stornu do 18:00 předchozího dne dostanete kredit $refund Kč do peněženky"
     }
-    override val cancellationLessonRefundEligible = "Zaplaceno — při včasném odhlášení dostanete kredit do peněženky dle nastavení kurzu"
     override val cancellationNoRefund = "Při zrušení rezervace se žádný kredit nevrátí"
     override val cancellationWindowPassed = "Lhůta pro kredit uplynula (po 18:00 předchozího dne) — kredit nevznikne"
     override val cancellationNotPaid = "Rezervace nebyla zaplacena — žádný kredit nevznikne"
@@ -824,10 +807,8 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     // Waitlist
     override val registerAsSubstitute = "Přihlásit se jako náhradník"
     override val substituteFormHeading = "Přihlášení jako náhradník"
-    override val waitlistFullMessage = "Seznam náhradníků je plný"
     override val waitlistedStatus = "Náhradník"
     override val substituteInfoNote = "Budete zařazeni do pořadníku. Pokud se uvolní místo, dostanete e-mail s platebními informacemi."
-    override val joinedWaitlistToast = "Byli jste přidáni do pořadníku náhradníků."
     override val substitutesSectionTitle = "Náhradníci"
 
     override val optedOutSectionTitle = "Omluvení z lekce"
@@ -839,6 +820,5 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val revokeOptOutCreditNote = "Kredit, který za omluvenku dostal, se mu z peněženky strhne."
     override fun toastOptOutRevoked(name: String) = "$name se vrátil(a) do lekce."
     override val waitlistCapacityLabel = "Max. náhradníků"
-    override val substitutesCount = "Náhradníci"
     override fun waitlistPositionLabel(position: Int) = "Jste na $position. místě v pořadníku"
 }
