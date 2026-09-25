@@ -24,13 +24,13 @@ import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
  * takže přechod PENDING_PAYMENT → CONFIRMED je pro kapacitu neutrální.
  */
 internal fun JdbcTransaction.confirmFreeReservations(): Int {
-    val podminka = "total_price <= 0 AND status = 'PENDING_PAYMENT'"
+    val condition = "total_price <= 0 AND status = 'PENDING_PAYMENT'"
 
-    val affected = exec("SELECT count(*) FROM reservations WHERE $podminka") { rs ->
+    val affected = exec("SELECT count(*) FROM reservations WHERE $condition") { rs ->
         rs.next(); rs.getInt(1)
     } ?: 0
     if (affected == 0) return 0
 
-    exec("UPDATE reservations SET status = 'CONFIRMED', payment_type = 'FREE' WHERE $podminka")
+    exec("UPDATE reservations SET status = 'CONFIRMED', payment_type = 'FREE' WHERE $condition")
     return affected
 }

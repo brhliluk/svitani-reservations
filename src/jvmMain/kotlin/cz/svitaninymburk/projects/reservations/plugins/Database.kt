@@ -215,14 +215,14 @@ internal fun JdbcTransaction.migrateAttendanceToPerLessonKey() {
          WHERE r.reference_type = 'INSTANCE'
     """.trimIndent())
 
-    val prenesenych = exec("SELECT count(*) FROM reservation_attendance_new") { rs ->
+    val migratedRows = exec("SELECT count(*) FROM reservation_attendance_new") { rs ->
         rs.next(); rs.getInt(1)
     } ?: 0
-    val puvodnich = exec("SELECT count(*) FROM reservation_attendance") { rs ->
+    val originalRows = exec("SELECT count(*) FROM reservation_attendance") { rs ->
         rs.next(); rs.getInt(1)
     } ?: 0
-    if (puvodnich > prenesenych) {
-        println("⚠️ reservation_attendance: zahozeno ${puvodnich - prenesenych} nenamapovatelných řádků docházky")
+    if (originalRows > migratedRows) {
+        println("⚠️ reservation_attendance: zahozeno ${originalRows - migratedRows} nenamapovatelných řádků docházky")
     }
 
     exec("DROP TABLE reservation_attendance")
