@@ -841,6 +841,20 @@ open class ReservationService(
                 null -> Unit
             }
 
+            // Kredit i peněženku řešíme JEŠTĚ PŘED zápisem storna, stejně jako u omluvenky
+            // z lekce výš. Neexistující kód nebo cizí e-mail u peněženky je uživatelská
+            // chyba k opakování — kdyby se vyhodila až po uložení, byla by rezervace
+            // zrušená, místo uvolněné, e-maily odeslané a druhý pokus by spadl na
+            // AlreadyCancelled. Kredit by tak nevznikl nikdy.
+            // Bez odečtu toho, co už odešlo za lekce, by se po omluvence vracela
+            // tatáž lekce podruhé. Když není co vracet, nezakládá se ani peněženka.
+            val refundWallet: Wallet? = if (target != null) {
+                val refundable = refundService.refundableForWholeReservation(reservation)
+                if (refundable > 0.0 && !isPastRefundDeadline(target.startDateTime)) {
+                    resolveWalletFor(reservation, walletCode, force)
+                } else null
+            } else null
+
             val cancelledReservation = reservation.copy(status = Reservation.Status.CANCELLED)
             reservationRepository.save(cancelledReservation)
             logger.info("Reservation cancelled id=${reservation.id} ref=${reservation.reference} seats=${reservation.seatCount}")
@@ -942,13 +956,10 @@ open class ReservationService(
                     }
                 }
 
-                // Wallet credit for whole-reservation cancellation — only within the deadline (18:00 day before)
-                // Bez odečtu toho, co už odešlo za lekce, by se po omluvence vracela
-                // tatáž lekce podruhé. Když není co vracet, nezakládá se ani peněženka.
-                val refundable = refundService.refundableForWholeReservation(reservation)
-                if (refundable > 0.0 && !isPastRefundDeadline(target.startDateTime)) {
-                    val wallet = resolveWalletFor(reservation, walletCode, force)
-                    val outcome = refundService.refundWholeReservation(wallet, reservation)
+                // Wallet credit for whole-reservation cancellation — only within the deadline (18:00 day before).
+                // Peněženka je vyřešená už před uložením storna (refundWallet výš).
+                if (refundWallet != null) {
+                    val outcome = refundService.refundWholeReservation(refundWallet, reservation)
                     if (outcome != null) CancellationResult(walletCode = outcome.walletCode, walletCreditAmount = outcome.creditedAmount, cancellationEmailFailed = cancellationEmailFailed)
                     else CancellationResult(cancellationEmailFailed = cancellationEmailFailed)
                 } else {
