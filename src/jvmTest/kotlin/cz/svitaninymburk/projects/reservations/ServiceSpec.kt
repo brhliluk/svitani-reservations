@@ -791,6 +791,26 @@ class AdminEditDeleteSpec {
     }
 
     @Test
+    fun `setSeriesPublished publishes and hides the lessons of the course`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val series = makeSeries(def.id).copy(isPublished = false)
+        seriesRepo.create(series)
+        val lesson = makeInstance(def.id).copy(seriesId = series.id, isPublished = false, isDropIn = true)
+        instanceRepo.create(lesson)
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        service.setSeriesPublished(series.id, true)
+        assertEquals(true, instanceRepo.get(lesson.id)?.isPublished, "zveřejněný kurz zveřejní i lekce")
+
+        service.setSeriesPublished(series.id, false)
+        assertEquals(false, instanceRepo.get(lesson.id)?.isPublished, "skrytý kurz skryje i lekce")
+    }
+
+    @Test
     fun `addSeriesLesson prices the new lesson with the series lessonPrice`() = runBlocking {
         val defRepo = InMemoryEventDefinitionRepository()
         val seriesRepo = InMemoryEventSeriesRepository()

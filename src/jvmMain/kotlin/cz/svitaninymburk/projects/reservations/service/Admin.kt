@@ -981,6 +981,19 @@ class AdminDashboardService(
         val existing = ensureNotNull(eventSeriesRepository.get(id)) { AdminError.SeriesNotFoundForEdit(id) }
         eventSeriesRepository.update(existing.copy(isPublished = published))
 
+        // Lekce si stav zveřejnění kopírují při založení kurzu. Bez propsání měl kurz
+        // uložený jako koncept po zveřejnění lekce „Lze individuálně“ dál skryté
+        // (nešly rezervovat) a skrytý kurz je naopak nechal veřejné. Stejně jako
+        // u ostatních polí (propagateSeriesEditToLessons) se mění jen lekce, které
+        // měly původní stav kurzu.
+        if (existing.isPublished != published) {
+            eventInstanceRepository.findBySeries(id).forEach { lesson ->
+                if (lesson.isPublished == existing.isPublished) {
+                    eventInstanceRepository.update(lesson.copy(isPublished = published))
+                }
+            }
+        }
+
         audit.record(
             type = if (published) AuditEventType.SERIES_PUBLISHED else AuditEventType.SERIES_UNPUBLISHED,
             subjectLabel = existing.title,
