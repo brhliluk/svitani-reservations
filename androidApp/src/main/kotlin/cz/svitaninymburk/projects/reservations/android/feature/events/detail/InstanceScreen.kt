@@ -27,6 +27,7 @@ import cz.svitaninymburk.projects.reservations.event.EventInstance
 import kotlin.uuid.Uuid
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import kotlin.time.Clock
 
 @Composable
 fun InstanceDetailScreen(
@@ -108,14 +109,16 @@ private fun InstanceDetailBody(instance: EventInstance, onReserve: () -> Unit, m
         if (instance.description.isNotBlank()) {
             Text(instance.description, style = MaterialTheme.typography.bodyMedium)
         }
-        if (instance.isDeadlinePassed) {
+        // Uzávěrku spočítal server v provozní zóně (reservationClosesAt), klient jen porovná čas.
+        val isReservationClosed = instance.isReservationClosed(Clock.System.now())
+        if (isReservationClosed) {
             Text(
                 instance.reservationDeadlineMessage ?: stringResource(R.string.event_detail_deadline_passed),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error,
             )
         }
-        val canReserve = !instance.isCancelled && !instance.isFull && !instance.isDeadlinePassed
+        val canReserve = !instance.isCancelled && !instance.isFull && !isReservationClosed
         Button(
             onClick = onReserve,
             enabled = canReserve,

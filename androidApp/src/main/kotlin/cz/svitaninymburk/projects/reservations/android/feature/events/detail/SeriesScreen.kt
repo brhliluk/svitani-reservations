@@ -27,6 +27,7 @@ import cz.svitaninymburk.projects.reservations.api.SeriesDetailResponse
 import kotlin.uuid.Uuid
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import kotlin.time.Clock
 
 @Composable
 fun SeriesDetailScreen(
@@ -108,7 +109,9 @@ private fun SeriesDetailBody(detail: SeriesDetailResponse, onReserve: () -> Unit
         if (series.description.isNotBlank()) {
             Text(series.description, style = MaterialTheme.typography.bodyMedium)
         }
-        if (series.isDeadlinePassed) {
+        // Uzávěrku spočítal server v provozní zóně (reservationClosesAt), klient jen porovná čas.
+        val isReservationClosed = series.isReservationClosed(Clock.System.now())
+        if (isReservationClosed) {
             Text(
                 series.reservationDeadlineMessage ?: stringResource(R.string.event_detail_deadline_passed),
                 style = MaterialTheme.typography.bodyMedium,
@@ -135,7 +138,7 @@ private fun SeriesDetailBody(detail: SeriesDetailResponse, onReserve: () -> Unit
                 }
             }
         }
-        val canReserve = !series.isFull && !series.isDeadlinePassed
+        val canReserve = !series.isFull && !isReservationClosed
         Button(
             onClick = onReserve,
             enabled = canReserve,
