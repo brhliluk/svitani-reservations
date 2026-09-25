@@ -71,6 +71,8 @@ import kotlin.uuid.Uuid
     @Serializable @SerialName("cancel_lesson") sealed interface CancelLesson : AdminError {
         @Serializable @SerialName("instance_not_found") object InstanceNotFound : CancelLesson
         @Serializable @SerialName("failed") object Failed : CancelLesson
+        /** Lekce už začala — konala se, kredit za ni by dostali i ti, kdo na ní byli. */
+        @Serializable @SerialName("already_started") object AlreadyStarted : CancelLesson
     }
 
     @Serializable @SerialName("revoke_opt_out") sealed interface RevokeOptOut : AdminError {
@@ -135,6 +137,7 @@ fun AdminError.localizedMessage(strings: ErrorStrings): String = when (this) {
     is AdminError.RevokeOptOut.Failed -> strings.errorAdminRevokeOptOutFailed
     is AdminError.CancelLesson.InstanceNotFound -> strings.errorAdminCancelLessonInstanceNotFound
     is AdminError.CancelLesson.Failed -> strings.errorAdminCancelLessonFailed
+    is AdminError.CancelLesson.AlreadyStarted -> strings.errorAdminCancelLessonAlreadyStarted
     is AdminError.WalletOperationFailed -> strings.errorAdminWalletOperationFailed
     is AdminError.EventAlreadyPassed -> strings.errorAdminEventAlreadyPassed
     is AdminError.InstanceNotFoundForCancel -> strings.errorAdminEventNotFound

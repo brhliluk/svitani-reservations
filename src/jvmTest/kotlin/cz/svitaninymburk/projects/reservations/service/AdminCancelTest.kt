@@ -115,6 +115,27 @@ class AdminCancelTest {
         return repo.save(res)
     }
 
+    // --- cancelSeriesLesson ---
+
+    @Test
+    fun `cancelSeriesLesson refuses a lesson that already took place and credits nobody`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val walletRepo = InMemoryWalletRepository()
+        val series = eventSeries().copy(price = 500.0)
+        seriesRepo.create(series)
+        val lesson = pastInstance(seriesId = series.id)
+        instanceRepo.create(lesson)
+        val enrollment = saveReservation(reservationRepo, Reference.Series(series.id), paidAmount = 500.0)
+
+        val result = service(instanceRepo, seriesRepo, reservationRepo, walletRepo).cancelSeriesLesson(lesson.id)
+
+        assertEquals(AdminError.CancelLesson.AlreadyStarted, result.leftOrNull())
+        assertEquals(false, instanceRepo.get(lesson.id)!!.isCancelled)
+        assertEquals(0.0, WalletService(walletRepo).refundedForLessonOptOuts(enrollment.id))
+    }
+
     // --- cancelEventInstance ---
 
     @Test

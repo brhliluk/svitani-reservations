@@ -1140,8 +1140,9 @@ class AdminEditDeleteSpec {
         definitionId = Uuid.random(),
         title = "Lesson",
         description = "desc",
-        startDateTime = LocalDateTime(2026, 6, 10, 10, 0),
-        endDateTime = LocalDateTime(2026, 6, 10, 11, 0),
+        // Budoucí — proběhlou lekci cancelSeriesLesson odmítne.
+        startDateTime = LocalDateTime(2099, 6, 10, 10, 0),
+        endDateTime = LocalDateTime(2099, 6, 10, 11, 0),
         price = 100.0,
         capacity = 10,
         seriesId = seriesId,

@@ -9,6 +9,9 @@ import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.html.*
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 @Composable
@@ -21,6 +24,8 @@ fun IComponent.SeriesLessonsCard(
 ) {
     val router = Router.current
     val currentStrings by strings
+    // Jen nápověda, co tlačítko nabídnout — zrušení proběhlé lekce hlídá server.
+    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
 
     div(className = "card bg-base-100 shadow-sm") {
         div(className = "card-body") {
@@ -59,6 +64,7 @@ fun IComponent.SeriesLessonsCard(
                                 LessonRow(
                                     lesson = lesson,
                                     isTogglingDropIn = togglingDropInId == lesson.id,
+                                    hasStarted = lesson.startDateTime <= now,
                                     onToggleDropIn = { onToggleDropIn(lesson) },
                                     onOpenDetail = { router.navigate("/admin/events/instance/${lesson.id}") },
                                     onEdit = { router.navigate("/admin/events/instance/${lesson.id}/edit") },
@@ -77,6 +83,7 @@ fun IComponent.SeriesLessonsCard(
 private fun IComponent.LessonRow(
     lesson: EventInstance,
     isTogglingDropIn: Boolean,
+    hasStarted: Boolean,
     onToggleDropIn: () -> Unit,
     onOpenDetail: () -> Unit,
     onEdit: () -> Unit,
@@ -131,9 +138,11 @@ private fun IComponent.LessonRow(
                         span(className = "icon-[heroicons--pencil] size-4")
                         onClick { onEdit() }
                     }
-                    button(className = "btn btn-ghost btn-xs text-error") {
-                        span(className = "icon-[heroicons--x-circle] size-4")
-                        onClick { onCancel() }
+                    if (!hasStarted) {
+                        button(className = "btn btn-ghost btn-xs text-error") {
+                            span(className = "icon-[heroicons--x-circle] size-4")
+                            onClick { onCancel() }
+                        }
                     }
                 }
             }

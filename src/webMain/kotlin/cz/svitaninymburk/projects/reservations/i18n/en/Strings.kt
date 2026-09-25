@@ -803,6 +803,7 @@ object EnStrings : AppStrings {
     override val errorAdminGetInstancesFailed = "Failed to get lessons"
     override val errorAdminCancelLessonInstanceNotFound = "Lesson not found"
     override val errorAdminCancelLessonFailed = "Failed to cancel lesson"
+    override val errorAdminCancelLessonAlreadyStarted = "The lesson has already started and can't be cancelled."
     override val errorAdminEventAlreadyPassed = "Event has already passed and cannot be cancelled"
     override val errorAdminWalletOperationFailed = "Wallet operation failed"
 

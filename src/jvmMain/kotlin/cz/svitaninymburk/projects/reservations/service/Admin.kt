@@ -1534,6 +1534,9 @@ class AdminDashboardService(
         // Tlačítko v UI po zrušení mizí, ale dvojklik nad neaktuálním seznamem
         // i přímé volání API sem dojdou.
         if (instance.isCancelled) return@either
+        // Proběhlá lekce se konala — kredit by dostali i ti, kdo na ní byli.
+        // Stejná laťka jako u cancelEventInstance.
+        ensure(instance.startDateTime >= nowInAppTimeZone()) { AdminError.CancelLesson.AlreadyStarted }
 
         try {
             // Mark instance as cancelled

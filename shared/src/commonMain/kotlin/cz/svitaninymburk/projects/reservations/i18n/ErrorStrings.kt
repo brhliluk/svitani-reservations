@@ -71,6 +71,7 @@ interface ErrorStrings {
     val errorAdminGetInstancesFailed: String
     val errorAdminCancelLessonInstanceNotFound: String
     val errorAdminCancelLessonFailed: String
+    val errorAdminCancelLessonAlreadyStarted: String
     val errorAdminEventAlreadyPassed: String
     val errorAdminWalletOperationFailed: String
 
