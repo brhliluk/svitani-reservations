@@ -1025,6 +1025,16 @@ class AdminDashboardService(
                     eventInstanceRepository.update(lesson.copy(price = newLessonPrice))
                 }
             }
+        } else if (request.lessonPrice == null && request.price != existing.price) {
+            // Bez ceny za lekci se lekce prodávají za cenu kurzu — tak to říká nápověda
+            // u pole. Změna ceny kurzu se proto propíše do lekcí, které ji pořád měly;
+            // lekce s ručně upravenou cenou (updateEventInstance) si ji nechá, stejně
+            // jako ostatní pole v propagateSeriesEditToLessons.
+            eventInstanceRepository.findBySeries(id).forEach { lesson ->
+                if (lesson.price == existing.price) {
+                    eventInstanceRepository.update(lesson.copy(price = request.price))
+                }
+            }
         }
 
         audit.record(type = AuditEventType.SERIES_UPDATED, subjectLabel = updated.title, seriesId = id)
@@ -1038,7 +1048,7 @@ class AdminDashboardService(
      * Propisuje se jen pole, které se v kurzu opravdu změnilo, a jen do lekcí, které
      * v něm měly pořád původní hodnotu kurzu. Lekce upravená samostatně
      * (updateEventInstance) si svou hodnotu nechá — admin ji tam dal schválně.
-     * Cena má vlastní pravidlo níž v updateEventSeries (přepisuje všechny lekce).
+     * Cena má vlastní pravidlo v updateEventSeries.
      */
     private suspend fun propagateSeriesEditToLessons(before: EventSeries, after: EventSeries) {
         fun <T> inherit(old: T, new: T, current: T): T = if (old != new && current == old) new else current

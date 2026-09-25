@@ -761,6 +761,36 @@ class AdminEditDeleteSpec {
     }
 
     @Test
+    fun `updateEventSeries without lessonPrice propagates a new course price to lessons that still had it`() = runBlocking {
+        val defRepo = InMemoryEventDefinitionRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val def = makeDefinition()
+        defRepo.create(def)
+        val series = makeSeries(def.id) // price = 500.0, lessonPrice = null
+        seriesRepo.create(series)
+        val inherited = makeInstance(def.id).copy(seriesId = series.id, price = series.price)
+        val manual = makeInstance(def.id).copy(seriesId = series.id, price = 400.0) // ručně upravená lekce
+        instanceRepo.create(inherited)
+        instanceRepo.create(manual)
+        val service = makeService(defRepo = defRepo, seriesRepo = seriesRepo, instanceRepo = instanceRepo)
+
+        service.updateEventSeries(
+            series.id,
+            UpdateEventSeriesRequest(
+                title = series.title, description = series.description,
+                price = 600.0, capacity = series.capacity,
+                allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
+                customFields = emptyList(),
+                lessonPrice = null,
+            )
+        )
+
+        assertEquals(600.0, instanceRepo.get(inherited.id)?.price)
+        assertEquals(400.0, instanceRepo.get(manual.id)?.price)
+    }
+
+    @Test
     fun `addSeriesLesson prices the new lesson with the series lessonPrice`() = runBlocking {
         val defRepo = InMemoryEventDefinitionRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
