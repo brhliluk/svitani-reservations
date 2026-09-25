@@ -61,7 +61,7 @@ class SeriesAwareEventInstanceRepositoryTest {
     }
 
     @Test
-    fun `cteni pricte zatez kurzu k ulozene hodnote`() = runBlocking {
+    fun `read adds the series load to the stored value`() = runBlocking {
         inner.create(lesson)
         enrolTwo()
 
@@ -71,7 +71,7 @@ class SeriesAwareEventInstanceRepositoryTest {
     }
 
     @Test
-    fun `zapis odvozenou cast zase odecte`() = runBlocking {
+    fun `write subtracts the derived part again`() = runBlocking {
         inner.create(lesson)
         enrolTwo()
 
@@ -88,7 +88,7 @@ class SeriesAwareEventInstanceRepositoryTest {
     }
 
     @Test
-    fun `rezervace mezi ctenim a zapisem se neztrati`() = runBlocking {
+    fun `reservation made between read and write is not lost`() = runBlocking {
         inner.create(lesson)
         enrolTwo()
 
@@ -102,7 +102,7 @@ class SeriesAwareEventInstanceRepositoryTest {
     }
 
     @Test
-    fun `zmena zateze kurzu mezi ctenim a zapisem nerozhodi ulozeny sloupec`() = runBlocking {
+    fun `series load change between read and write does not corrupt the stored column`() = runBlocking {
         inner.create(lesson)
         enrolTwo()
 
@@ -129,7 +129,7 @@ class SeriesAwareEventInstanceRepositoryTest {
     }
 
     @Test
-    fun `isFull respektuje ucastniky kurzu`() = runBlocking {
+    fun `isFull accounts for series participants`() = runBlocking {
         inner.create(lesson.copy(capacity = 3, occupiedSpots = 1))
         enrolTwo()
 
@@ -137,7 +137,7 @@ class SeriesAwareEventInstanceRepositoryTest {
     }
 
     @Test
-    fun `davkove cteni obohati vsechny polozky`() = runBlocking {
+    fun `batch read enriches all items`() = runBlocking {
         inner.create(lesson)
         inner.create(
             lesson.copy(

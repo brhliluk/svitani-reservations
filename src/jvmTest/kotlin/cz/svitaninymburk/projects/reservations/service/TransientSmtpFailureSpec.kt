@@ -28,12 +28,12 @@ class TransientSmtpFailureSpec {
         EmailException("Sending the email to the following server failed : smtp.gmail.com:465", cause)
 
     @Test
-    fun `SMTP 4xx se opakuje`() {
+    fun `SMTP 4xx is retried`() {
         assertTrue(wrapped(gmail451()).isTransientSmtpFailure())
     }
 
     @Test
-    fun `SMTP 5xx se neopakuje`() {
+    fun `SMTP 5xx is not retried`() {
         val permanent = SMTPSendFailedException(
             "DATA", 550, "550-5.7.1 Message rejected", null, arrayOf(), arrayOf(), arrayOf(),
         )
@@ -41,7 +41,7 @@ class TransientSmtpFailureSpec {
     }
 
     @Test
-    fun `docasne odmitnuti konkretni adresy se opakuje`() {
+    fun `temporary rejection of a specific address is retried`() {
         val greylisted = SMTPAddressFailedException(
             InternetAddress("kdo@example.com"), "RCPT TO", 450, "450 4.2.0 Try again later",
         )
@@ -49,19 +49,19 @@ class TransientSmtpFailureSpec {
     }
 
     @Test
-    fun `chyby spojeni se opakuji`() {
+    fun `connection errors are retried`() {
         val refused = MailConnectException(SocketConnectException("Connection refused", ConnectException(), "smtp.gmail.com", 465, 30_000))
         assertTrue(wrapped(refused).isTransientSmtpFailure())
         assertTrue(wrapped(SocketTimeoutException("Read timed out")).isTransientSmtpFailure())
     }
 
     @Test
-    fun `spatna adresa se neopakuje`() {
+    fun `bad address is not retried`() {
         assertFalse(wrapped(AddressException("Illegal semicolon, not in group")).isTransientSmtpFailure())
     }
 
     @Test
-    fun `neznama chyba se neopakuje`() {
+    fun `unknown error is not retried`() {
         assertFalse(wrapped(IllegalStateException("něco jiného")).isTransientSmtpFailure())
     }
 }

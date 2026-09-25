@@ -137,7 +137,7 @@ class AdminManagementAuditSpec {
     // --- Založení ---
 
     @Test
-    fun `založení šablony a jednorázové akce se zapíše s aktérem`() = asAdmin {
+    fun `creating a template and a one-off event is recorded with the actor`() = asAdmin {
         service.createEventAndInstances(
             CreateEventAndInstancesRequest(
                 title = "Jarmark", description = "", defaultPrice = 0.0, defaultCapacity = 50,
@@ -156,7 +156,7 @@ class AdminManagementAuditSpec {
     }
 
     @Test
-    fun `založení kurzu i samotné šablony se zapíše`() = asAdmin {
+    fun `creating a course and a bare template is recorded`() = asAdmin {
         service.createEventDefinition(
             CreateEventDefinitionRequest(
                 title = "Prázdná šablona", description = "", defaultPrice = 0.0,
@@ -177,7 +177,7 @@ class AdminManagementAuditSpec {
     }
 
     @Test
-    fun `přidání lekce se zapíše ke kurzu i k lekci`() = asAdmin {
+    fun `adding a lesson is recorded against both the course and the lesson`() = asAdmin {
         seed()
         val lessonId = service.addSeriesLesson(
             AddSeriesLessonRequest(series.id, LocalDateTime(2099, 9, 8, 17, 0), LocalDateTime(2099, 9, 8, 18, 0))
@@ -190,7 +190,7 @@ class AdminManagementAuditSpec {
 
     /** Nový termín ze šablony jde přes AuthenticatedEventService, ne přes admin službu. */
     @Test
-    fun `nový termín ze šablony se zapíše`() = asAdmin {
+    fun `new event instance from a template is recorded`() = asAdmin {
         seed()
         val authService = AuthenticatedEventService(defRepo, instanceRepo, AuditService(probingAudit))
         authService.createEventInstance(
@@ -207,7 +207,7 @@ class AdminManagementAuditSpec {
     // --- Úpravy ---
 
     @Test
-    fun `úprava šablony, kurzu, lekce i akce se zapíše`() = asAdmin {
+    fun `editing a template, course, lesson and event is recorded`() = asAdmin {
         seed()
         service.updateEventDefinition(
             definition.id,
@@ -243,7 +243,7 @@ class AdminManagementAuditSpec {
     // --- Zveřejnění ---
 
     @Test
-    fun `zveřejnění a skrytí se rozliší podle stavu i druhu akce`() = asAdmin {
+    fun `publishing and unpublishing are distinguished by state and event kind`() = asAdmin {
         seed()
         service.setSeriesPublished(series.id, true)
         service.setSeriesPublished(series.id, false)
@@ -263,7 +263,7 @@ class AdminManagementAuditSpec {
     // --- Mazání ---
 
     @Test
-    fun `smazání akce se zapíše ještě před smazáním a nese její název`() = asAdmin {
+    fun `deleting an event is recorded before the deletion and carries its title`() = asAdmin {
         seed()
         service.deleteEventInstance(event.id)
 
@@ -276,7 +276,7 @@ class AdminManagementAuditSpec {
     }
 
     @Test
-    fun `smazání lekce se zapíše jako lekce kurzu`() = asAdmin {
+    fun `deleting a lesson is recorded as a course lesson`() = asAdmin {
         seed()
         service.deleteEventInstance(lesson.id)
 
@@ -287,7 +287,7 @@ class AdminManagementAuditSpec {
     }
 
     @Test
-    fun `smazání kurzu se zapíše ještě před smazáním a nese jeho název`() = asAdmin {
+    fun `deleting a course is recorded before the deletion and carries its title`() = asAdmin {
         seed()
         service.deleteEventSeries(series.id)
 
@@ -299,7 +299,7 @@ class AdminManagementAuditSpec {
     }
 
     @Test
-    fun `smazání šablony zapíše ji i všechno, co s ní zmizelo`() = asAdmin {
+    fun `deleting a template records it and everything that disappeared with it`() = asAdmin {
         seed()
         service.deleteEventDefinition(definition.id)
 

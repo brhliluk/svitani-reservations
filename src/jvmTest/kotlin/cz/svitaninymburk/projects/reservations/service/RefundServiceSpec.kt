@@ -145,7 +145,7 @@ class RefundServiceSpec {
     // --- Historie: vrácení kreditu se dřív nikam nezapisovalo ---
 
     @Test
-    fun `refundFixedAmount zapise do historie kod penezenky`() = runBlocking {
+    fun `refundFixedAmount writes the wallet code to history`() = runBlocking {
         val repo = walletRepo()
         val audit = InMemoryAuditRepository()
         val wallet = repo.create(NewWallet(code = "SVIT-BBBB-BBBB", ownerEmail = "jan@test.com"))
@@ -155,16 +155,16 @@ class RefundServiceSpec {
             wallet, res, 50.0, WalletTransactionReason.LESSON_OPT_OUT_REFUND,
         )
 
-        val zapis = audit.recordedEvents().single { it.type == AuditEventType.PAYMENT_REFUNDED }
-        assertEquals("SVIT-BBBB-BBBB", zapis.walletCode)
-        assertEquals(50.0, zapis.amount)
-        assertEquals(res.id, zapis.reservationId)
-        assertEquals("Jan Novak", zapis.subjectLabel)
+        val auditEntry = audit.recordedEvents().single { it.type == AuditEventType.PAYMENT_REFUNDED }
+        assertEquals("SVIT-BBBB-BBBB", auditEntry.walletCode)
+        assertEquals(50.0, auditEntry.amount)
+        assertEquals(res.id, auditEntry.reservationId)
+        assertEquals("Jan Novak", auditEntry.subjectLabel)
     }
 
     /** Storno s částečnou úhradou z kreditu dělá dvě transakce, ale je to jedno storno. */
     @Test
-    fun `cele storno da jeden zaznam i kdyz se kredituje dvakrat`() = runBlocking {
+    fun `whole cancellation gives one audit entry even when credited twice`() = runBlocking {
         val repo = walletRepo()
         val audit = InMemoryAuditRepository()
         val wallet = repo.create(NewWallet(code = "SVIT-CCCC-CCCC", ownerEmail = "jan@test.com"))
@@ -172,15 +172,15 @@ class RefundServiceSpec {
 
         refundService(repo, audit).refundWholeReservation(wallet, res)
 
-        val zapisy = audit.recordedEvents().filter { it.type == AuditEventType.PAYMENT_REFUNDED }
-        assertEquals(1, zapisy.size, "jedno storno = jeden řádek v historii")
-        assertEquals(500.0, zapisy.single().amount)
-        assertEquals("SVIT-CCCC-CCCC", zapisy.single().walletCode)
-        assertTrue(zapisy.single().detail!!.contains("200"), "rozpad patří do detailu")
+        val auditEntries = audit.recordedEvents().filter { it.type == AuditEventType.PAYMENT_REFUNDED }
+        assertEquals(1, auditEntries.size, "jedno storno = jeden řádek v historii")
+        assertEquals(500.0, auditEntries.single().amount)
+        assertEquals("SVIT-CCCC-CCCC", auditEntries.single().walletCode)
+        assertTrue(auditEntries.single().detail!!.contains("200"), "rozpad patří do detailu")
     }
 
     @Test
-    fun `nulovy refund se do historie nezapisuje`() = runBlocking {
+    fun `zero refund is not written to history`() = runBlocking {
         val repo = walletRepo()
         val audit = InMemoryAuditRepository()
         val wallet = repo.create(NewWallet(code = "SVIT-DDDD-DDDD", ownerEmail = "jan@test.com"))

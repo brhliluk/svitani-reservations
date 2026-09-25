@@ -122,7 +122,7 @@ class GuestSeriesLessonsTest {
     )
 
     @Test
-    fun `host dostane termíny kurzu i bez prihlaseni`() = runBlocking {
+    fun `guest gets course dates even without logging in`() = runBlocking {
         val series = makeSeries(lessonRefundAmount = 120.0)
         seriesRepo.create(series)
         listOf(1, 8, 15).forEach { instanceRepo.create(makeInstance(series.id, it)) }
@@ -143,7 +143,7 @@ class GuestSeriesLessonsTest {
     }
 
     @Test
-    fun `anonymni volajici nedostane registrovanou rezervaci`() = runBlocking {
+    fun `anonymous caller does not get a registered reservation`() = runBlocking {
         val series = makeSeries()
         seriesRepo.create(series)
         instanceRepo.create(makeInstance(series.id, 1))
@@ -158,7 +158,7 @@ class GuestSeriesLessonsTest {
     }
 
     @Test
-    fun `majitel svou registrovanou rezervaci vidi`() = runBlocking {
+    fun `owner sees their own registered reservation`() = runBlocking {
         val series = makeSeries()
         seriesRepo.create(series)
         instanceRepo.create(makeInstance(series.id, 1))
@@ -173,7 +173,7 @@ class GuestSeriesLessonsTest {
     }
 
     @Test
-    fun `uz odhlasene lekce jsou oznacene`() = runBlocking {
+    fun `already opted-out lessons are marked`() = runBlocking {
         val series = makeSeries(lessonRefundAmount = 100.0)
         seriesRepo.create(series)
         val first = makeInstance(series.id, 1)
@@ -206,7 +206,7 @@ class GuestSeriesLessonsTest {
     }
 
     @Test
-    fun `rezervace na jednorazovou akci zadne lekce nema`() = runBlocking {
+    fun `one-off event reservation has no lessons`() = runBlocking {
         val reservation = makeReservation(Reference.Instance(Uuid.random()), null)
         reservationRepo.save(reservation)
 
@@ -218,7 +218,7 @@ class GuestSeriesLessonsTest {
     }
 
     @Test
-    fun `neexistujici rezervace vrati NotFound`() = runBlocking {
+    fun `nonexistent reservation returns NotFound`() = runBlocking {
         val result = service(callerId = null).getSeriesLessons(Uuid.random())
 
         assertTrue(result.isLeft())

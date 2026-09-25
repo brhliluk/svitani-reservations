@@ -56,7 +56,7 @@ class PaymentEmailSeriesTitleSpec {
     )
 
     @Test
-    fun `rezervace na kurz zna nazev serie`() = runBlocking {
+    fun `course reservation knows the series title`() = runBlocking {
         val seriesId = Uuid.random()
         seriesRepo.create(
             EventSeries(
@@ -77,7 +77,7 @@ class PaymentEmailSeriesTitleSpec {
     }
 
     @Test
-    fun `rezervace na jednotlivou lekci zna nazev lekce`() = runBlocking {
+    fun `single lesson reservation knows the lesson title`() = runBlocking {
         val instanceId = Uuid.random()
         instanceRepo.create(
             EventInstance(

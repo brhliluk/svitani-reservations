@@ -103,7 +103,7 @@ class AdminLessonParticipantsSpec {
     )
 
     @Test
-    fun `detail lekce ukazuje i ucastniky kurzu`() = runBlocking {
+    fun `lesson detail also shows course participants`() = runBlocking {
         instanceRepo.create(lesson(lessonId, seriesId))
         reserve("00000000-0000-0000-0000-0000000000d1", Reference.Instance(lessonId), "Primy")
         reserve("00000000-0000-0000-0000-0000000000d2", Reference.Series(seriesId), "Kurzista")
@@ -116,14 +116,14 @@ class AdminLessonParticipantsSpec {
     }
 
     @Test
-    fun `omluveny z lekce v jejim seznamu neni`() = runBlocking {
+    fun `participant opted out of a lesson is not in its list`() = runBlocking {
         instanceRepo.create(lesson(lessonId, seriesId))
         reserve("00000000-0000-0000-0000-0000000000d1", Reference.Series(seriesId), "Prijde")
-        val omluveny = reserve("00000000-0000-0000-0000-0000000000d2", Reference.Series(seriesId), "Omluveny")
+        val optedOut = reserve("00000000-0000-0000-0000-0000000000d2", Reference.Series(seriesId), "Omluveny")
         optOutRepo.save(
             SeriesLessonOptOut(
                 id = Uuid.random(),
-                reservationId = omluveny.id,
+                reservationId = optedOut.id,
                 instanceId = lessonId,
                 optedOutAt = Clock.System.now(),
                 isLateCancellation = false,
@@ -136,7 +136,7 @@ class AdminLessonParticipantsSpec {
     }
 
     @Test
-    fun `cekatel na kurz misto na lekci nedrzi`() = runBlocking {
+    fun `course waitlisted participant does not hold a seat in the lesson`() = runBlocking {
         instanceRepo.create(lesson(lessonId, seriesId))
         reserve(
             "00000000-0000-0000-0000-0000000000d1",
@@ -158,7 +158,7 @@ class AdminLessonParticipantsSpec {
     }
 
     @Test
-    fun `vyber za kurz se do trzby lekce nepocita`() = runBlocking {
+    fun `money collected for the course does not count towards lesson revenue`() = runBlocking {
         instanceRepo.create(lesson(lessonId, seriesId))
         reserve("00000000-0000-0000-0000-0000000000d1", Reference.Instance(lessonId), "Primy", price = 100.0)
         reserve("00000000-0000-0000-0000-0000000000d2", Reference.Series(seriesId), "Kurzista", price = 900.0)
@@ -169,7 +169,7 @@ class AdminLessonParticipantsSpec {
     }
 
     @Test
-    fun `samostatna akce zustava beze zmeny`() = runBlocking {
+    fun `standalone event stays unchanged`() = runBlocking {
         instanceRepo.create(lesson(standaloneId, series = null))
         reserve("00000000-0000-0000-0000-0000000000d1", Reference.Instance(standaloneId), "Primy")
         reserve("00000000-0000-0000-0000-0000000000d2", Reference.Series(seriesId), "Kurzista")

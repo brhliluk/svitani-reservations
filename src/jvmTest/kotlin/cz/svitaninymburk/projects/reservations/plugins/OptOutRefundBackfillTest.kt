@@ -92,49 +92,49 @@ class OptOutRefundBackfillTest {
         SeriesLessonOptOutsTable.selectAll().single { it[SeriesLessonOptOutsTable.id] == id }[SeriesLessonOptOutsTable.refundedAmount]
 
     @Test
-    fun `castka se dohleda podle casu a kredit za zrusenou lekci se nepripise`() {
+    fun `amount is matched by time and a credit for a cancelled lesson is not attributed`() {
         val db = newDb()
         setUp(db)
-        val (proplacena, nezaplacena, pozdni) = transaction(db) {
-            val proplacena = optOut(t0)
+        val (refundedOptOut, unpaidOptOut, lateOptOut) = transaction(db) {
+            val refundedOptOut = optOut(t0)
             credit(t0 + 15.milliseconds, 150.0)
             // Omluvenka z doby, kdy kurz ještě nebyl zaplacený — žádná transakce.
-            val nezaplacena = optOut(t0 + 1.days)
+            val unpaidOptOut = optOut(t0 + 1.days)
             // Admin o dva dny později zrušil jinou lekci — tentýž důvod transakce.
             credit(t0 + 2.days, 150.0)
-            val pozdni = optOut(t0 + 3.days, isLate = true)
-            Triple(proplacena, nezaplacena, pozdni)
+            val lateOptOut = optOut(t0 + 3.days, isLate = true)
+            Triple(refundedOptOut, unpaidOptOut, lateOptOut)
         }
 
         transaction(db) { assertEquals(3, backfillOptOutRefundedAmounts()) }
 
         transaction(db) {
-            assertEquals(150.0, refunded(proplacena))
-            assertEquals(0.0, refunded(nezaplacena), "kredit za zrušenou lekci jí nepatří")
-            assertEquals(0.0, refunded(pozdni))
+            assertEquals(150.0, refunded(refundedOptOut))
+            assertEquals(0.0, refunded(unpaidOptOut), "kredit za zrušenou lekci jí nepatří")
+            assertEquals(0.0, refunded(lateOptOut))
         }
     }
 
     @Test
-    fun `dve omluvenky tesne po sobe si jednu transakci neprivlastni obe`() {
+    fun `two opt-outs in quick succession do not both claim one transaction`() {
         val db = newDb()
         setUp(db)
-        val (prvni, druha) = transaction(db) {
-            val prvni = optOut(t0)
-            val druha = optOut(t0 + 5.milliseconds)
+        val (firstOptOut, secondOptOut) = transaction(db) {
+            val firstOptOut = optOut(t0)
+            val secondOptOut = optOut(t0 + 5.milliseconds)
             credit(t0 + 10.milliseconds, 150.0)
-            prvni to druha
+            firstOptOut to secondOptOut
         }
 
         transaction(db) { backfillOptOutRefundedAmounts() }
 
         transaction(db) {
-            assertEquals(150.0, (refunded(prvni) ?: 0.0) + (refunded(druha) ?: 0.0))
+            assertEquals(150.0, (refunded(firstOptOut) ?: 0.0) + (refunded(secondOptOut) ?: 0.0))
         }
     }
 
     @Test
-    fun `druhy beh uz nic nedela`() {
+    fun `second run does nothing`() {
         val db = newDb()
         setUp(db)
         transaction(db) { optOut(t0) }

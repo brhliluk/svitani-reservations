@@ -43,7 +43,7 @@ class BackgroundEmailDispatcherSpec {
     private val admin = AuditService.Actor(AuditActorType.ADMIN, "brhlikluk@gmail.com")
 
     @Test
-    fun `aktera z requestu si odlozene odeslani nese s sebou`() = runBlocking {
+    fun `deferred sending carries the actor from the request`() = runBlocking {
         val f = Fixture()
 
         withContext(AuditService.ActorContextLocal.asContextElement(admin)) {
@@ -53,14 +53,14 @@ class BackgroundEmailDispatcherSpec {
         }
         f.awaitDispatched()
 
-        val zapsany = f.repository.recordedEvents().single()
-        assertEquals(AuditActorType.ADMIN, zapsany.actorType)
-        assertEquals("brhlikluk@gmail.com", zapsany.actorLabel)
+        val recorded = f.repository.recordedEvents().single()
+        assertEquals(AuditActorType.ADMIN, recorded.actorType)
+        assertEquals("brhlikluk@gmail.com", recorded.actorLabel)
     }
 
     /** Bez subjektu by řádek historie nešlo navěsit na akci a v detailu by chyběl. */
     @Test
-    fun `subjekt akce prezije skok mimo request`() = runBlocking {
+    fun `event subject survives the jump out of the request`() = runBlocking {
         val f = Fixture()
         val instanceId = Uuid.random()
         val seriesId = Uuid.random()
@@ -75,15 +75,15 @@ class BackgroundEmailDispatcherSpec {
         }
         f.awaitDispatched()
 
-        val zapsany = f.repository.recordedEvents().single()
-        assertEquals(seriesId, zapsany.seriesId)
-        assertEquals(instanceId, zapsany.instanceId)
-        assertEquals(reservationId, zapsany.reservationId)
+        val recorded = f.repository.recordedEvents().single()
+        assertEquals(seriesId, recorded.seriesId)
+        assertEquals(instanceId, recorded.instanceId)
+        assertEquals(reservationId, recorded.reservationId)
     }
 
     /** Mimo request žádný principal není a nic ho nenahrazuje — pak je to systém. */
     @Test
-    fun `bez aktera v kontextu zustava system`() = runBlocking {
+    fun `without an actor in the context it stays system`() = runBlocking {
         val f = Fixture()
 
         f.dispatcher.dispatch {
@@ -99,7 +99,7 @@ class BackgroundEmailDispatcherSpec {
      * shodil scope, zbylí účastníci by se o zrušení nedozvěděli.
      */
     @Test
-    fun `pad jednoho mailu neshodi ostatni`() = runBlocking {
+    fun `failure of one email does not bring down the others`() = runBlocking {
         val f = Fixture()
 
         f.dispatcher.dispatch { error("SMTP spadl na hubu") }

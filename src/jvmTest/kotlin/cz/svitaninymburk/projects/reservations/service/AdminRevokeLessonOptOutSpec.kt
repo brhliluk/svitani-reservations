@@ -151,7 +151,7 @@ class AdminRevokeLessonOptOutSpec {
         walletRepo.findAnonymousByEmail("omluveny@example.com")?.balance ?: 0.0
 
     @Test
-    fun `vraceni do lekce smaze omluvenku a strhne kredit`() = runBlocking {
+    fun `returning to the lesson deletes the opt-out and deducts the credit`() = runBlocking {
         prepare()
         val reservation = enrollee()
         optOut(reservation, isLate = false, refunded = 150.0)
@@ -172,7 +172,7 @@ class AdminRevokeLessonOptOutSpec {
     }
 
     @Test
-    fun `vice mist strhne sazbu za kazde z nich`() = runBlocking {
+    fun `multiple seats deduct the rate for each of them`() = runBlocking {
         prepare()
         val reservation = enrollee(seats = 2)
         optOut(reservation, isLate = false, refunded = 300.0)
@@ -183,7 +183,7 @@ class AdminRevokeLessonOptOutSpec {
     }
 
     @Test
-    fun `pozdni omluvenka zadny kredit nedostala, takze se nic nestrhava`() = runBlocking {
+    fun `late opt-out received no credit, so nothing is deducted`() = runBlocking {
         prepare()
         val reservation = enrollee()
         // Pozdní omluvenka kredit nedostala; v peněžence je z jiné, včasné omluvenky.
@@ -195,7 +195,7 @@ class AdminRevokeLessonOptOutSpec {
     }
 
     @Test
-    fun `strhne se nejvys to, co rezervace opravdu dostala`() = runBlocking {
+    fun `deducts at most what the reservation actually received`() = runBlocking {
         // Sazba kurzu se po omluvence zvedla — vrátit se smí jen vyplacených 100.
         prepare(lessonRefundAmount = 500.0)
         val reservation = enrollee()
@@ -212,7 +212,7 @@ class AdminRevokeLessonOptOutSpec {
     }
 
     @Test
-    fun `plna lekce vraceni odmitne`() = runBlocking {
+    fun `full lesson rejects the return`() = runBlocking {
         prepare(capacity = 3, occupiedSpots = 3)
         val reservation = enrollee()
         optOut(reservation, isLate = false, refunded = 150.0)
@@ -232,7 +232,7 @@ class AdminRevokeLessonOptOutSpec {
     }
 
     @Test
-    fun `bez omluvenky neni co vracet`() = runBlocking {
+    fun `without an opt-out there is nothing to revoke`() = runBlocking {
         prepare()
         val reservation = enrollee()
 
@@ -242,7 +242,7 @@ class AdminRevokeLessonOptOutSpec {
     }
 
     @Test
-    fun `omluveni jsou v detailu lekce videt`() = runBlocking {
+    fun `opted-out participants are visible in the lesson detail`() = runBlocking {
         prepare()
         val reservation = enrollee()
         optOut(reservation, isLate = false, refunded = 150.0)

@@ -44,20 +44,20 @@ class AuditingEmailServiceSpec {
     }
 
     @Test
-    fun `odeslany mail se zapise jako SUCCESS`() = runBlocking {
+    fun `sent email is recorded as SUCCESS`() = runBlocking {
         val repo = InMemoryAuditRepository()
         val service = AuditingEmailService(ConsoleEmailService(), ConsoleEmailService(), ConsoleEmailService(), AuditService(repo))
 
         service.sendCancellationNotice("kdo@example.com", "Cvičení rodičů s dětmi", Uuid.random(), "cs")
 
-        val zapis = repo.recordedEvents().single()
-        assertEquals(AuditEventType.EMAIL_CANCELLATION_NOTICE, zapis.type)
-        assertEquals(AuditOutcome.SUCCESS, zapis.outcome)
-        assertEquals("kdo@example.com", zapis.recipient)
+        val entry = repo.recordedEvents().single()
+        assertEquals(AuditEventType.EMAIL_CANCELLATION_NOTICE, entry.type)
+        assertEquals(AuditOutcome.SUCCESS, entry.outcome)
+        assertEquals("kdo@example.com", entry.recipient)
     }
 
     @Test
-    fun `neodeslany mail se zapise jako FAILURE i s textem chyby`() = runBlocking {
+    fun `unsent email is recorded as FAILURE including the error text`() = runBlocking {
         val repo = InMemoryAuditRepository()
         val console = ConsoleEmailService()
         val service = AuditingEmailService(FailingEmailService(), console, console, AuditService(repo))
@@ -65,14 +65,14 @@ class AuditingEmailServiceSpec {
         val result = service.sendCancellationNotice("kdo@example.com", "Kurz", Uuid.random(), "cs")
 
         assertTrue(result.isLeft())
-        val zapis = repo.recordedEvents().single()
-        assertEquals(AuditOutcome.FAILURE, zapis.outcome)
-        assertEquals("SMTP odmítl spojení", zapis.detail)
+        val entry = repo.recordedEvents().single()
+        assertEquals(AuditOutcome.FAILURE, entry.outcome)
+        assertEquals("SMTP odmítl spojení", entry.detail)
     }
 
     /** Log nesmí být důvod, proč zákazníkovi nepřijde e-mail. */
     @Test
-    fun `selhani auditu neshodi odeslani`() = runBlocking {
+    fun `audit failure does not break sending`() = runBlocking {
         val service = AuditingEmailService(
             ConsoleEmailService(), ConsoleEmailService(), ConsoleEmailService(),
             AuditService(BrokenAuditRepository()),
@@ -85,7 +85,7 @@ class AuditingEmailServiceSpec {
 
     /** Bez kódu by na řádek „připsán kredit" nešlo z historie kliknout. */
     @Test
-    fun `mail o penezence nese kod penezenky`() = runBlocking {
+    fun `wallet email carries the wallet code`() = runBlocking {
         val repo = InMemoryAuditRepository()
         val console = ConsoleEmailService()
         val service = AuditingEmailService(console, console, console, AuditService(repo))
@@ -104,7 +104,7 @@ class AuditingEmailServiceSpec {
     }
 
     @Test
-    fun `bezny mail kod penezenky nema`() = runBlocking {
+    fun `regular email has no wallet code`() = runBlocking {
         val repo = InMemoryAuditRepository()
         val console = ConsoleEmailService()
         val service = AuditingEmailService(console, console, console, AuditService(repo))
@@ -115,13 +115,13 @@ class AuditingEmailServiceSpec {
     }
 
     @Test
-    fun `mail prebira vazbu na akci z kontextu`() = runBlocking {
+    fun `email takes the event link from the context`() = runBlocking {
         val repo = InMemoryAuditRepository()
         val service = AuditingEmailService(ConsoleEmailService(), ConsoleEmailService(), ConsoleEmailService(), AuditService(repo))
-        val kurz = Uuid.random()
-        val lekce = Uuid.random()
+        val seriesId = Uuid.random()
+        val lessonId = Uuid.random()
 
-        withAuditSubject(AuditSubject(seriesId = kurz, instanceId = lekce, label = "Kurz")) {
+        withAuditSubject(AuditSubject(seriesId = seriesId, instanceId = lessonId, label = "Kurz")) {
             service.sendLessonCancelledNotification(
                 toEmail = "kdo@example.com",
                 contactName = "Jana Nováková",
@@ -131,21 +131,21 @@ class AuditingEmailServiceSpec {
             )
         }
 
-        val zapis = repo.recordedEvents().single()
-        assertEquals(kurz, zapis.seriesId)
-        assertEquals(lekce, zapis.instanceId)
+        val entry = repo.recordedEvents().single()
+        assertEquals(seriesId, entry.seriesId)
+        assertEquals(lessonId, entry.instanceId)
     }
 }
 
 class ShortenSmtpErrorSpec {
 
     @Test
-    fun `kratkou zpravu necha byt`() {
+    fun `leaves a short message as is`() {
         assertEquals("SMTP odmítl spojení", shortenSmtpError("SMTP odmítl spojení"))
     }
 
     @Test
-    fun `dlouhou zpravu orizne a slepi na jeden radek`() {
+    fun `truncates a long message and joins it into a single line`() {
         val gmail = "EmailException: Sending the email to the following server failed : smtp.gmail.com:465\n" +
             "→ AuthenticationFailedException: 535-5.7.8 Username and Password not accepted. " +
             "For more information, go to https://support.google.com/mail/?p=BadCredentials " +

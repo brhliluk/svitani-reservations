@@ -18,31 +18,31 @@ class SpaydMessageSpec {
     private val accountNumber = "2003487968/2010"
 
     @Test
-    fun `zprava ztrati diakritiku, ale zustane citelna`() {
+    fun `message loses diacritics but stays readable`() {
         assertEquals("Cviceni s miminky", SpaydGenerator.sanitizeMessage("Cvičení s miminky"))
     }
 
     @Test
-    fun `interpunkce se nahradi mezerou a mezery se nezdvoji`() {
+    fun `punctuation is replaced by a space and spaces are not doubled`() {
         assertEquals("Predporodni kurz podzim", SpaydGenerator.sanitizeMessage("Předporodní kurz – podzim!"))
     }
 
     /** `*` odděluje ve SPAYD pole — kdyby prošla, rozbila by celý řetězec. */
     @Test
-    fun `hvezdicka a procento ze zpravy zmizi a nerozbiji format`() {
+    fun `asterisk and percent sign are removed from the message and do not break the format`() {
         assertEquals("Joga pro maminky 100", SpaydGenerator.sanitizeMessage("Jóga*pro*maminky 100%"))
         val spayd = SpaydGenerator.generate("CZ00", 100.0, "2612300001", "Jóga*pro*maminky 100%")
         assertEquals(7, spayd.split("*").size) // SPD, 1.0, ACC, AM, CC, X-VS, MSG
     }
 
     @Test
-    fun `zprava se orezava az po odstraneni diakritiky`() {
+    fun `message is truncated only after diacritics are removed`() {
         val sanitized = SpaydGenerator.sanitizeMessage("Ě".repeat(70))
         assertEquals("E".repeat(SpaydGenerator.MAX_MESSAGE_LENGTH), sanitized)
     }
 
     @Test
-    fun `zprava, ze ktere nic nezbylo, se do SPAYD nedostane`() {
+    fun `message with nothing left is omitted from SPAYD`() {
         val spayd = SpaydGenerator.generate("CZ00", 100.0, "2612300001", "!!!")
         assertFalse(spayd.contains("MSG"), spayd)
     }
@@ -52,7 +52,7 @@ class SpaydMessageSpec {
      * každý kanál skládal SPAYD po svém a zprávu vyplňoval jinak (nebo vůbec).
      */
     @Test
-    fun `nazev akce jde do zpravy pro prijemce`() {
+    fun `event title goes into the message for the recipient`() {
         val service = QrCodeService()
         val target = instanceTarget("Cvičení s miminky")
         val reservation = reservation(totalPrice = 500.0)
@@ -65,7 +65,7 @@ class SpaydMessageSpec {
     }
 
     @Test
-    fun `QR pro prohlizec vychazi ze stejneho SPAYD jako ostatni kanaly`() {
+    fun `browser QR is built from the same SPAYD as the other channels`() {
         val service = QrCodeService()
         val target = instanceTarget("Cvičení s miminky")
         val reservation = reservation(totalPrice = 500.0)
@@ -75,13 +75,13 @@ class SpaydMessageSpec {
     }
 
     @Test
-    fun `bez dohledane akce se posle QR bez zpravy`() {
+    fun `without a resolved event the QR is sent without a message`() {
         val spayd = QrCodeService().reservationSpayd(reservation(totalPrice = 500.0), null, accountNumber)
         assertFalse(spayd.contains("MSG"), spayd)
     }
 
     @Test
-    fun `castka je nedoplatek, ne cela cena`() {
+    fun `amount is the outstanding balance, not the full price`() {
         val spayd = QrCodeService()
             .reservationSpayd(reservation(totalPrice = 500.0, paidAmount = 200.0), instanceTarget("Kurz"), accountNumber)
         assertTrue(spayd.contains("*AM:300.00"), spayd)

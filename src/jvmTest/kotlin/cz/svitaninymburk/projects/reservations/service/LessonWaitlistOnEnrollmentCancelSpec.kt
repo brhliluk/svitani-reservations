@@ -125,19 +125,19 @@ class LessonWaitlistOnEnrollmentCancelSpec {
         )
 
     @Test
-    fun `storno zapisu na kurz posune naradnika na lekci`() = runBlocking {
+    fun `cancelling a course enrollment promotes the lesson waitlisted person`() = runBlocking {
         setup(seriesCapacity = 10)
-        val zapis = reserve("00000000-0000-0000-0000-0000000000d1", Reference.Series(seriesId), Reservation.Status.CONFIRMED, 0)
+        val enrollment = reserve("00000000-0000-0000-0000-0000000000d1", Reference.Series(seriesId), Reservation.Status.CONFIRMED, 0)
         reserve("00000000-0000-0000-0000-0000000000d2", Reference.Instance(lessonId), Reservation.Status.CONFIRMED, 1)
-        val cekatel = reserve("00000000-0000-0000-0000-0000000000d3", Reference.Instance(lessonId), Reservation.Status.WAITLISTED, 2)
+        val waitlisted = reserve("00000000-0000-0000-0000-0000000000d3", Reference.Instance(lessonId), Reservation.Status.WAITLISTED, 2)
         assertTrue(instanceRepo.get(lessonId)!!.isFull, "předpoklad: lekce je plná")
 
-        val result = service.cancelReservation(zapis.id)
+        val result = service.cancelReservation(enrollment.id)
         assertTrue(result.isRight(), "storno musí projít, dostal: $result")
 
         assertEquals(
             Reservation.Status.PENDING_PAYMENT,
-            reservationRepo.findById(cekatel.id)?.status,
+            reservationRepo.findById(waitlisted.id)?.status,
             "zápis na kurz uvolnil místo na lekci, náhradník na ni se má posunout",
         )
         val lesson = instanceRepo.get(lessonId)!!
@@ -146,20 +146,20 @@ class LessonWaitlistOnEnrollmentCancelSpec {
     }
 
     @Test
-    fun `naradnik na cely kurz ma prednost pred naradnikem na lekci`() = runBlocking {
+    fun `whole-course waitlisted person takes precedence over lesson waitlisted person`() = runBlocking {
         setup(seriesCapacity = 1, seriesWaitlist = 1)
-        val zapis = reserve("00000000-0000-0000-0000-0000000000d1", Reference.Series(seriesId), Reservation.Status.CONFIRMED, 0)
+        val enrollment = reserve("00000000-0000-0000-0000-0000000000d1", Reference.Series(seriesId), Reservation.Status.CONFIRMED, 0)
         reserve("00000000-0000-0000-0000-0000000000d2", Reference.Instance(lessonId), Reservation.Status.CONFIRMED, 1)
-        val cekatelNaLekci = reserve("00000000-0000-0000-0000-0000000000d3", Reference.Instance(lessonId), Reservation.Status.WAITLISTED, 2)
-        val cekatelNaKurz = reserve("00000000-0000-0000-0000-0000000000d4", Reference.Series(seriesId), Reservation.Status.WAITLISTED, 3)
+        val lessonWaitlisted = reserve("00000000-0000-0000-0000-0000000000d3", Reference.Instance(lessonId), Reservation.Status.WAITLISTED, 2)
+        val courseWaitlisted = reserve("00000000-0000-0000-0000-0000000000d4", Reference.Series(seriesId), Reservation.Status.WAITLISTED, 3)
 
-        val result = service.cancelReservation(zapis.id)
+        val result = service.cancelReservation(enrollment.id)
         assertTrue(result.isRight(), "storno musí projít, dostal: $result")
 
-        assertEquals(Reservation.Status.PENDING_PAYMENT, reservationRepo.findById(cekatelNaKurz.id)?.status)
+        assertEquals(Reservation.Status.PENDING_PAYMENT, reservationRepo.findById(courseWaitlisted.id)?.status)
         assertEquals(
             Reservation.Status.WAITLISTED,
-            reservationRepo.findById(cekatelNaLekci.id)?.status,
+            reservationRepo.findById(lessonWaitlisted.id)?.status,
             "uvolněné místo na lekci zabral náhradník na kurz, pro lekci nic nezbylo",
         )
         assertEquals(2, instanceRepo.get(lessonId)!!.occupiedSpots, "lekce nesmí být přeplněná")

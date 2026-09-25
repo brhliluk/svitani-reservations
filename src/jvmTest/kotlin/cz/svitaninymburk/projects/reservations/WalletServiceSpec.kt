@@ -86,12 +86,12 @@ class WalletServiceSpec {
     }
 
     @Test
-    fun `resolveAnonymousWallet bez kodu pouzije hostovu existujici penezenku`() = runBlocking {
+    fun `resolveAnonymousWallet without a code reuses the guest's existing wallet`() = runBlocking {
         // Kdo kód z mailu nevyplní, nesmí po každém stornu dostat novou peněženku.
         val svc = service()
-        val prvni = svc.resolveAnonymousWallet(null, "anon@test.com", false).getOrNull()!!
-        val druha = svc.resolveAnonymousWallet(null, "ANON@test.com", false).getOrNull()!!
-        assertEquals(prvni.id, druha.id)
+        val firstWallet = svc.resolveAnonymousWallet(null, "anon@test.com", false).getOrNull()!!
+        val secondWallet = svc.resolveAnonymousWallet(null, "ANON@test.com", false).getOrNull()!!
+        assertEquals(firstWallet.id, secondWallet.id)
     }
 
     @Test

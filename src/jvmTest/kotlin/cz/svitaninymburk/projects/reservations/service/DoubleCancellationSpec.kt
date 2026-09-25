@@ -91,7 +91,7 @@ class DoubleCancellationSpec {
     }
 
     @Test
-    fun `druhe storne uz neprojde a nevrati penize podruhe`() = runBlocking {
+    fun `second cancellation does not go through and does not refund twice`() = runBlocking {
         val reservation = prepare()
 
         val first = service.cancelReservation(reservation.id)

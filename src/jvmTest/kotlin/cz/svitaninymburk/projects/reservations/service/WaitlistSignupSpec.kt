@@ -137,7 +137,7 @@ class WaitlistSignupSpec {
     // --- Historie: zápis do pořadníku se dřív nikam nezapisoval ---
 
     @Test
-    fun `zapis do poradniku se zaznamena do historie`() = runBlocking {
+    fun `waitlist signup is recorded in history`() = runBlocking {
         val instanceRepo = InMemoryEventInstanceRepository()
         val audit = InMemoryAuditRepository()
         val instance = fullInstance(waitlistCapacity = 3)
@@ -146,19 +146,19 @@ class WaitlistSignupSpec {
 
         val res = service.joinWaitlistInstance(request(instance.id), userId = null).getOrNull()!!
 
-        val zapis = audit.recordedEvents().single { it.type == AuditEventType.RESERVATION_WAITLIST_JOINED }
-        assertEquals("Jan Novak", zapis.subjectLabel)
-        assertEquals(instance.id, zapis.instanceId)
-        assertEquals(res.id, zapis.reservationId)
-        assertEquals(100.0, zapis.amount)
+        val auditEntry = audit.recordedEvents().single { it.type == AuditEventType.RESERVATION_WAITLIST_JOINED }
+        assertEquals("Jan Novak", auditEntry.subjectLabel)
+        assertEquals(instance.id, auditEntry.instanceId)
+        assertEquals(res.id, auditEntry.reservationId)
+        assertEquals(100.0, auditEntry.amount)
         // Host bez přihlášení není „systém" — zapsat se přišel zákazník.
-        assertEquals(AuditActorType.CUSTOMER, zapis.actorType)
-        assertEquals("jan@test.com", zapis.actorLabel)
+        assertEquals(AuditActorType.CUSTOMER, auditEntry.actorType)
+        assertEquals("jan@test.com", auditEntry.actorLabel)
     }
 
     /** Potvrzení o zápisu musí v historii dosednout na tu samou akci. */
     @Test
-    fun `mail o zapisu do poradniku ma vazbu na akci`() = runBlocking {
+    fun `waitlist signup email is linked to the event`() = runBlocking {
         val instanceRepo = InMemoryEventInstanceRepository()
         val audit = InMemoryAuditRepository()
         val instance = fullInstance(waitlistCapacity = 3)

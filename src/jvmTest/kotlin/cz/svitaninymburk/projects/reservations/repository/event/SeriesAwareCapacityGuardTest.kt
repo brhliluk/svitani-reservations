@@ -61,7 +61,7 @@ class SeriesAwareCapacityGuardTest {
     )
 
     @Test
-    fun `plny kurz nedovoli drop-in rezervaci`() = runBlocking {
+    fun `full series blocks drop-in reservation`() = runBlocking {
         inner.create(lesson)
         enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d1"), seats = 2)
 
@@ -69,13 +69,13 @@ class SeriesAwareCapacityGuardTest {
     }
 
     @Test
-    fun `omluva z lekce misto uvolni`() = runBlocking {
+    fun `lesson opt-out frees the seats`() = runBlocking {
         inner.create(lesson)
-        val rezervace = enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d1"), seats = 2)
+        val reservation = enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d1"), seats = 2)
         optOutRepo.save(
             SeriesLessonOptOut(
                 id = Uuid.random(),
-                reservationId = rezervace.id,
+                reservationId = reservation.id,
                 instanceId = lessonId,
                 optedOutAt = Clock.System.now(),
                 isLateCancellation = false,
@@ -87,7 +87,7 @@ class SeriesAwareCapacityGuardTest {
     }
 
     @Test
-    fun `castecne obsazeny kurz nechava zbytek kapacity`() = runBlocking {
+    fun `partially filled series leaves the remaining capacity`() = runBlocking {
         inner.create(lesson)
         enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d1"), seats = 1)
 
@@ -96,14 +96,14 @@ class SeriesAwareCapacityGuardTest {
     }
 
     @Test
-    fun `lekce bez serie funguje jako drive`() = runBlocking {
-        val samostatna = lesson.copy(
+    fun `lesson without a series works as before`() = runBlocking {
+        val standalone = lesson.copy(
             id = Uuid.parse("00000000-0000-0000-0000-0000000000c9"),
             seriesId = null,
         )
-        inner.create(samostatna)
+        inner.create(standalone)
 
-        assertTrue(repo.attemptToReserveSpots(samostatna.id, 2))
-        assertFalse(repo.attemptToReserveSpots(samostatna.id, 1))
+        assertTrue(repo.attemptToReserveSpots(standalone.id, 2))
+        assertFalse(repo.attemptToReserveSpots(standalone.id, 1))
     }
 }

@@ -38,7 +38,7 @@ class AuditLogCardSpec {
     )
 
     @Test
-    fun detailSpojujePrijemceCastkuAPopis() {
+    fun detailJoinsRecipientAmountAndDescription() {
         assertEquals(
             "kdo@example.com · 300 Kč · Spárováno z FIO",
             auditDetailText(event(recipient = "kdo@example.com", amount = 300.0, detail = "Spárováno z FIO"), CsStrings),
@@ -46,19 +46,19 @@ class AuditLogCardSpec {
     }
 
     @Test
-    fun prazdnaPoleSeVynechaji() {
+    fun emptyFieldsAreOmitted() {
         assertEquals("", auditDetailText(event(), CsStrings))
         assertEquals("Storno", auditDetailText(event(detail = "Storno"), CsStrings))
     }
 
     /** Nula je u storna zdarma běžná a "0 Kč" by čtenáře jen mátlo. */
     @Test
-    fun nuloveCastceSeNepiseMena() {
+    fun zeroAmountIsNotWrittenWithCurrency() {
         assertEquals("Storno", auditDetailText(event(amount = 0.0, detail = "Storno"), CsStrings))
     }
 
     @Test
-    fun filtrMaPopisekProKazdouKategorii() {
+    fun filterHasLabelForEveryCategory() {
         assertEquals(CsStrings.auditFilterAll, categoryLabel(null, CsStrings))
         assertEquals(CsStrings.auditCategoryEmail, categoryLabel(AuditCategory.EMAIL, CsStrings))
         assertEquals(CsStrings.auditCategoryPayment, categoryLabel(AuditCategory.PAYMENT, CsStrings))
@@ -68,14 +68,14 @@ class AuditLogCardSpec {
 
     /** Filtr býval vyjmenovaný ručně — nová kategorie by se v něm neobjevila a nešla by vybrat. */
     @Test
-    fun filtrNabiziVsechnyKategorie() {
+    fun filterOffersAllCategories() {
         assertEquals(null, AUDIT_FILTER_OPTIONS.first())
         assertEquals(AuditCategory.entries.toSet(), AUDIT_FILTER_OPTIONS.filterNotNull().toSet())
     }
 
     /** Správa akce má vlastní filtr, nesmí se míchat do rezervací. */
     @Test
-    fun zmenyAkceMajiVlastniKategoriiAPopisky() {
+    fun eventChangesHaveOwnCategoryAndLabels() {
         val management = listOf(
             AuditEventType.DEFINITION_CREATED, AuditEventType.DEFINITION_UPDATED, AuditEventType.DEFINITION_DELETED,
             AuditEventType.EVENT_CREATED, AuditEventType.EVENT_UPDATED, AuditEventType.EVENT_PUBLISHED,
@@ -99,7 +99,7 @@ class AuditLogCardSpec {
 
     /** Bez popisku by v tabulce svítil holý název enumu. */
     @Test
-    fun kazdyTypMaPopisekVObouJazycich() {
+    fun everyTypeHasLabelInBothLanguages() {
         AuditEventType.entries.forEach { type ->
             assertTrue(CsStrings.auditEventLabel(type).isNotBlank(), "chybí cs popisek pro $type")
             assertTrue(
@@ -113,58 +113,58 @@ class AuditLogCardSpec {
 
     /** Na detailu lekce by odkaz „otevřít lekci" vedl sám na sebe. */
     @Test
-    fun odkazNaVlastniLekciSeNenabizi() {
-        val lekce = Uuid.random()
-        assertEquals(null, auditLessonLink(event(instanceId = lekce), lekce.toString()))
+    fun linkToOwnLessonIsNotOffered() {
+        val lessonId = Uuid.random()
+        assertEquals(null, auditLessonLink(event(instanceId = lessonId), lessonId.toString()))
     }
 
     @Test
-    fun odkazNaJinouLekciSeNabizi() {
-        val jina = Uuid.random()
-        assertEquals(jina, auditLessonLink(event(instanceId = jina), Uuid.random().toString()))
+    fun linkToOtherLessonIsOffered() {
+        val otherLessonId = Uuid.random()
+        assertEquals(otherLessonId, auditLessonLink(event(instanceId = otherLessonId), Uuid.random().toString()))
     }
 
     @Test
-    fun zaznamBezLekceOdkazNema() {
+    fun entryWithoutLessonHasNoLink() {
         assertEquals(null, auditLessonLink(event(), Uuid.random().toString()))
     }
 
     @Test
-    fun kodPenezenkySeUkazeVDetailu() {
+    fun walletCodeIsShownInDetail() {
         val text = auditDetailText(event(walletCode = "SVIT-AB12-CD34", amount = 300.0, detail = "z toho 200 Kč zpět z kreditu"), CsStrings)
         assertEquals("SVIT-AB12-CD34 · 300 Kč · z toho 200 Kč zpět z kreditu", text)
     }
 
     @Test
-    fun neodeslanePotvrzeniJdePoslatZnovu() {
-        val zaznam = event(
+    fun unsentConfirmationCanBeResent() {
+        val entry = event(
             type = AuditEventType.EMAIL_RESERVATION_CONFIRMATION,
             recipient = "anezka@example.com",
             reservationId = Uuid.random(),
         )
-        assertTrue(zaznam.isResendable)
+        assertTrue(entry.isResendable)
     }
 
     /** Odkaz na reset hesla nese jednorázový token — poslat ho znovu by vydalo nový. */
     @Test
-    fun mailSJednorazovymTokenemSePreposlatNeda() {
-        val zaznam = event(
+    fun emailWithOneTimeTokenCannotBeResent() {
+        val entry = event(
             type = AuditEventType.EMAIL_PASSWORD_RESET,
             recipient = "kdo@example.com",
             reservationId = Uuid.random(),
         )
-        assertFalse(zaznam.isResendable)
+        assertFalse(entry.isResendable)
     }
 
     /** Bez rezervace není z čeho mail poskládat — kopie odeslané zprávy se neuchovává. */
     @Test
-    fun zaznamBezRezervaceSePreposlatNeda() {
-        val zaznam = event(type = AuditEventType.EMAIL_RESERVATION_CONFIRMATION, recipient = "kdo@example.com")
-        assertFalse(zaznam.isResendable)
+    fun entryWithoutReservationCannotBeResent() {
+        val entry = event(type = AuditEventType.EMAIL_RESERVATION_CONFIRMATION, recipient = "kdo@example.com")
+        assertFalse(entry.isResendable)
     }
 
     @Test
-    fun zaznamMimoKategoriiMailuTlacitkoNema() {
+    fun entryOutsideEmailCategoryHasNoButton() {
         assertFalse(event(type = AuditEventType.RESERVATION_CREATED, reservationId = Uuid.random()).isResendable)
     }
 }

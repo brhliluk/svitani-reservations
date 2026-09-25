@@ -43,7 +43,7 @@ class ProfileChangeAccessSpec {
     }
 
     @Test
-    fun `zmena e-mailu se tyka uctu volajiciho`() = runBlocking {
+    fun `email change applies to the account of the caller`() = runBlocking {
         givenUser(callerId, "volajici@test.cz")
         givenUser(victimId, "obet@test.cz")
 
@@ -56,7 +56,7 @@ class ProfileChangeAccessSpec {
     }
 
     @Test
-    fun `nepřihlaseny nezmeni nic`() = runBlocking {
+    fun `unauthenticated caller changes nothing`() = runBlocking {
         givenUser(victimId, "obet@test.cz")
 
         val result = TestService(caller = null).changeEmail("utocnik@test.cz")
@@ -67,7 +67,7 @@ class ProfileChangeAccessSpec {
     }
 
     @Test
-    fun `zmena jmena a prijmeni take jen sobe`() = runBlocking {
+    fun `name and surname change also applies only to the caller`() = runBlocking {
         givenUser(callerId, "volajici@test.cz")
         givenUser(victimId, "obet@test.cz")
 

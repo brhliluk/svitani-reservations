@@ -102,12 +102,12 @@ class WaitlistCancellationSpec {
     )
 
     @Test
-    fun `zruseni cekatele nesahne na obsazena mista`() = runBlocking {
+    fun `cancelling a waitlisted person does not touch occupied seats`() = runBlocking {
         createInstance(capacity = 2, occupiedSpots = 2, waitlistCapacity = 3, occupiedWaitlist = 2)
-        val cekatel = reserve("00000000-0000-0000-0000-0000000000d1", seats = 1, status = Reservation.Status.WAITLISTED)
-        val druhyCekatel = reserve("00000000-0000-0000-0000-0000000000d2", seats = 1, status = Reservation.Status.WAITLISTED)
+        val waitlisted = reserve("00000000-0000-0000-0000-0000000000d1", seats = 1, status = Reservation.Status.WAITLISTED)
+        val secondWaitlisted = reserve("00000000-0000-0000-0000-0000000000d2", seats = 1, status = Reservation.Status.WAITLISTED)
 
-        val result = service.cancelReservation(cekatel.id)
+        val result = service.cancelReservation(waitlisted.id)
         assertTrue(result.isRight(), "zrušení čekatele musí projít, dostal: $result")
 
         val after = instanceRepo.get(instanceId)!!
@@ -115,23 +115,23 @@ class WaitlistCancellationSpec {
         assertEquals(1, after.occupiedWaitlist, "z pořadníku ubyla jedna přihláška")
         assertEquals(
             Reservation.Status.WAITLISTED,
-            reservationRepo.findById(druhyCekatel.id)?.status,
+            reservationRepo.findById(secondWaitlisted.id)?.status,
             "žádné místo se neuvolnilo, takže se nikdo posouvat nemá",
         )
     }
 
     @Test
-    fun `posun z poradniku ubere jednu prihlasku, ne pocet mist`() = runBlocking {
+    fun `promotion from the waitlist removes one signup, not the seat count`() = runBlocking {
         createInstance(capacity = 5, occupiedSpots = 5, waitlistCapacity = 3, occupiedWaitlist = 1)
-        val potvrzena = reserve("00000000-0000-0000-0000-0000000000d1", seats = 2, status = Reservation.Status.CONFIRMED)
-        val cekatel = reserve("00000000-0000-0000-0000-0000000000d2", seats = 2, status = Reservation.Status.WAITLISTED)
+        val confirmed = reserve("00000000-0000-0000-0000-0000000000d1", seats = 2, status = Reservation.Status.CONFIRMED)
+        val waitlisted = reserve("00000000-0000-0000-0000-0000000000d2", seats = 2, status = Reservation.Status.WAITLISTED)
 
-        val result = service.cancelReservation(potvrzena.id)
+        val result = service.cancelReservation(confirmed.id)
         assertTrue(result.isRight(), "zrušení potvrzené rezervace musí projít, dostal: $result")
 
         assertEquals(
             Reservation.Status.PENDING_PAYMENT,
-            reservationRepo.findById(cekatel.id)?.status,
+            reservationRepo.findById(waitlisted.id)?.status,
             "uvolnila se dvě místa, čekatel se dvěma místy se má posunout",
         )
         assertEquals(
@@ -142,7 +142,7 @@ class WaitlistCancellationSpec {
     }
 
     @Test
-    fun `do poradniku jde jen jedno misto`() = runBlocking {
+    fun `waitlist signup accepts only a single seat`() = runBlocking {
         createInstance(capacity = 2, occupiedSpots = 2, waitlistCapacity = 3, occupiedWaitlist = 0)
         instanceRepo.update(instanceRepo.get(instanceId)!!.copy(allowMultipleSeats = true))
 

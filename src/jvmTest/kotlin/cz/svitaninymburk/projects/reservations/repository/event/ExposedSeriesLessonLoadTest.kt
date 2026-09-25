@@ -95,7 +95,7 @@ class ExposedSeriesLessonLoadTest {
     )
 
     @Test
-    fun `dva lekce jedne serie hlasi stejnou spravnou zatez`() = runBlocking {
+    fun `two lessons of one series report the same correct load`() = runBlocking {
         val seriesId = Uuid.random()
         val lessonA = lesson(Uuid.random(), seriesId)
         val lessonB = lesson(Uuid.random(), seriesId)
@@ -109,13 +109,13 @@ class ExposedSeriesLessonLoadTest {
     }
 
     @Test
-    fun `omluvenka odecte pocet mist sve rezervace jen na sve lekci`() = runBlocking {
+    fun `opt-out subtracts its reservation's seat count only on its own lesson`() = runBlocking {
         val seriesId = Uuid.random()
         val lessonA = lesson(Uuid.random(), seriesId)
         val lessonB = lesson(Uuid.random(), seriesId)
-        val rodina = enrol(seriesId, seats = 2)
+        val family = enrol(seriesId, seats = 2)
         enrol(seriesId, seats = 1)
-        optOut(rodina, lessonA.id)
+        optOut(family, lessonA.id)
 
         val result = load.forInstances(listOf(lessonA, lessonB))
 
@@ -124,13 +124,13 @@ class ExposedSeriesLessonLoadTest {
     }
 
     @Test
-    fun `zrusena rezervace s omluvenkou se neodecte dvakrat`() = runBlocking {
+    fun `cancelled reservation with an opt-out is not subtracted twice`() = runBlocking {
         val seriesId = Uuid.random()
         val lessonA = lesson(Uuid.random(), seriesId)
-        val zrusena = enrol(seriesId, seats = 2)
-        optOut(zrusena, lessonA.id)
+        val cancelled = enrol(seriesId, seats = 2)
+        optOut(cancelled, lessonA.id)
         enrol(seriesId, seats = 3)
-        reservationRepo.updateStatus(zrusena.id, Reservation.Status.CANCELLED)
+        reservationRepo.updateStatus(cancelled.id, Reservation.Status.CANCELLED)
 
         val result = load.forInstances(listOf(lessonA))
 
@@ -138,7 +138,7 @@ class ExposedSeriesLessonLoadTest {
     }
 
     @Test
-    fun `prihlaska na jinou serii lekci nezatezuje`() = runBlocking {
+    fun `enrolment in another series does not load the lesson`() = runBlocking {
         val seriesId = Uuid.random()
         val otherSeriesId = Uuid.random()
         val lessonA = lesson(Uuid.random(), seriesId)

@@ -153,7 +153,7 @@ class ClaimByEmailSpec {
     // --- počítání nabídky ---
 
     @Test
-    fun `pocet zahrnuje jen rezervace bez uctu na e-mail uctu`() = runBlocking {
+    fun `count includes only guest reservations for the account e-mail`() = runBlocking {
         givenUser(userId, "Host@Test.cz")
         val instance = givenInstance(day = 1)
         givenReservation(Reference.Instance(instance.id), email = "host@test.cz")
@@ -164,7 +164,7 @@ class ClaimByEmailSpec {
     }
 
     @Test
-    fun `mezery kolem adresy pocet neshodi`() = runBlocking {
+    fun `whitespace around the address does not break the count`() = runBlocking {
         givenUser(userId, "host@test.cz")
         val instance = givenInstance(day = 1)
         givenReservation(Reference.Instance(instance.id), email = "  Host@Test.cz ")
@@ -173,7 +173,7 @@ class ClaimByEmailSpec {
     }
 
     @Test
-    fun `dobehla akce zruseny kurz a nekative stavy se nepocitaji`() = runBlocking {
+    fun `finished event, cancelled course and inactive statuses are not counted`() = runBlocking {
         givenUser(userId, "host@test.cz")
         val past = givenInstance(day = 1, year = 2000)
         val cancelledSeries = givenSeries(LocalDate(2099, 1, 1), LocalDate(2099, 12, 31), cancelled = true)
@@ -188,7 +188,7 @@ class ClaimByEmailSpec {
     // --- vyžádání odkazu ---
 
     @Test
-    fun `vyzadani ulozi token a posle mail s odkazem`() = runBlocking {
+    fun `request stores the token and sends an email with the link`() = runBlocking {
         givenUser(userId, "host@test.cz")
         val instance = givenInstance(day = 1)
         givenReservation(Reference.Instance(instance.id))
@@ -208,7 +208,7 @@ class ClaimByEmailSpec {
     }
 
     @Test
-    fun `bez rezervaci se mail neposila`() = runBlocking {
+    fun `no email is sent without reservations`() = runBlocking {
         givenUser(userId, "host@test.cz")
 
         val result = service.requestClaim(userId, now)
@@ -219,7 +219,7 @@ class ClaimByEmailSpec {
     }
 
     @Test
-    fun `opakovane vyzadani do peti minut druhy mail neposle`() = runBlocking {
+    fun `repeated request within five minutes does not send a second email`() = runBlocking {
         givenUser(userId, "host@test.cz")
         val instance = givenInstance(day = 1)
         givenReservation(Reference.Instance(instance.id))
@@ -233,7 +233,7 @@ class ClaimByEmailSpec {
     }
 
     @Test
-    fun `vyzadani po skrceni zneplatni predchozi odkaz`() = runBlocking {
+    fun `request after the throttle window invalidates the previous link`() = runBlocking {
         givenUser(userId, "host@test.cz")
         val instance = givenInstance(day = 1)
         givenReservation(Reference.Instance(instance.id))
@@ -248,7 +248,7 @@ class ClaimByEmailSpec {
     }
 
     @Test
-    fun `selhani mailu token nezanecha`() = runBlocking {
+    fun `email failure leaves no token behind`() = runBlocking {
         givenUser(userId, "host@test.cz")
         val instance = givenInstance(day = 1)
         givenReservation(Reference.Instance(instance.id))
@@ -264,7 +264,7 @@ class ClaimByEmailSpec {
     // --- uplatnění odkazu ---
 
     @Test
-    fun `potvrzeni pripise vsechny rezervace a zapise audit`() = runBlocking {
+    fun `confirmation claims all reservations and records an audit entry`() = runBlocking {
         givenUser(userId, "host@test.cz")
         val first = givenInstance(day = 1)
         val second = givenInstance(day = 2)
@@ -284,7 +284,7 @@ class ClaimByEmailSpec {
     }
 
     @Test
-    fun `neznamy token je neplatny odkaz`() = runBlocking {
+    fun `unknown token is an invalid link`() = runBlocking {
         val result = service.confirmClaim("nic-takoveho", now)
 
         assertEquals(ReservationError.ClaimLinkInvalid, result.leftOrNull())
@@ -292,7 +292,7 @@ class ClaimByEmailSpec {
     }
 
     @Test
-    fun `expirovany odkaz nepripise nic`() = runBlocking {
+    fun `expired link claims nothing`() = runBlocking {
         givenUser(userId, "host@test.cz")
         val instance = givenInstance(day = 1)
         val reservation = givenReservation(Reference.Instance(instance.id))
@@ -306,7 +306,7 @@ class ClaimByEmailSpec {
     }
 
     @Test
-    fun `druhe otevreni odkazu vrati puvodni pocet a nic nepripise`() = runBlocking {
+    fun `opening the link again returns the original count and claims nothing`() = runBlocking {
         givenUser(userId, "host@test.cz")
         val instance = givenInstance(day = 1)
         givenReservation(Reference.Instance(instance.id))
@@ -321,7 +321,7 @@ class ClaimByEmailSpec {
     }
 
     @Test
-    fun `zmena e-mailu uctu odkaz zneplatni`() = runBlocking {
+    fun `changing the account e-mail invalidates the link`() = runBlocking {
         givenUser(userId, "host@test.cz")
         val instance = givenInstance(day = 1)
         val reservation = givenReservation(Reference.Instance(instance.id))
@@ -338,7 +338,7 @@ class ClaimByEmailSpec {
     }
 
     @Test
-    fun `rezervace zabrana mezitim se preskoci a zbytek projde`() = runBlocking {
+    fun `reservation taken in the meantime is skipped and the rest goes through`() = runBlocking {
         givenUser(userId, "host@test.cz")
         val first = givenInstance(day = 1)
         val second = givenInstance(day = 2)
@@ -358,7 +358,7 @@ class ClaimByEmailSpec {
     }
 
     @Test
-    fun `akce ktera mezitim dobehla se nepripise`() = runBlocking {
+    fun `event that finished in the meantime is not claimed`() = runBlocking {
         givenUser(userId, "host@test.cz")
         val instance = givenInstance(day = 1)
         val reservation = givenReservation(Reference.Instance(instance.id))
@@ -373,7 +373,7 @@ class ClaimByEmailSpec {
     }
 
     @Test
-    fun `pripsana rezervace se objevi v Moje rezervace`() = runBlocking {
+    fun `claimed reservation appears in My reservations`() = runBlocking {
         givenUser(userId, "host@test.cz")
         val instance = givenInstance(day = 1)
         val reservation = givenReservation(Reference.Instance(instance.id))

@@ -114,7 +114,7 @@ class ClaimReservationSpec {
     )
 
     @Test
-    fun `shoda e-mailu bez ohledu na velikost pismen projde`() = runBlocking {
+    fun `e-mail match ignoring letter case goes through`() = runBlocking {
         givenUser(callerId, "Host@Test.cz")
         val instance = givenInstance(day = 1)
         val reservation = givenReservation(Reference.Instance(instance.id), email = "  host@test.cz ")
@@ -127,7 +127,7 @@ class ClaimReservationSpec {
     }
 
     @Test
-    fun `po privlastneni je rezervace v Moje rezervace`() = runBlocking {
+    fun `after claiming the reservation is in My reservations`() = runBlocking {
         givenUser(callerId, "host@test.cz")
         val instance = givenInstance(day = 1)
         val reservation = givenReservation(Reference.Instance(instance.id))
@@ -140,7 +140,7 @@ class ClaimReservationSpec {
     }
 
     @Test
-    fun `jiny e-mail neprojde`() = runBlocking {
+    fun `different e-mail does not go through`() = runBlocking {
         givenUser(callerId, "nekdo.jiny@test.cz")
         val instance = givenInstance(day = 1)
         val reservation = givenReservation(Reference.Instance(instance.id))
@@ -153,7 +153,7 @@ class ClaimReservationSpec {
     }
 
     @Test
-    fun `uz privlastnena cizim uzivatelem neprojde`() = runBlocking {
+    fun `reservation already claimed by another user does not go through`() = runBlocking {
         givenUser(callerId, "host@test.cz")
         val instance = givenInstance(day = 1)
         val reservation = givenReservation(Reference.Instance(instance.id), registeredUserId = otherUserId)
@@ -166,7 +166,7 @@ class ClaimReservationSpec {
     }
 
     @Test
-    fun `opakovane privlastneni sobe samemu je v poradku`() = runBlocking {
+    fun `claiming again for oneself is fine`() = runBlocking {
         givenUser(callerId, "host@test.cz")
         val instance = givenInstance(day = 1)
         val reservation = givenReservation(Reference.Instance(instance.id), registeredUserId = callerId)
@@ -178,7 +178,7 @@ class ClaimReservationSpec {
     }
 
     @Test
-    fun `zrusena rezervace neprojde`() = runBlocking {
+    fun `cancelled reservation does not go through`() = runBlocking {
         givenUser(callerId, "host@test.cz")
         val instance = givenInstance(day = 1)
         val reservation = givenReservation(
@@ -193,7 +193,7 @@ class ClaimReservationSpec {
     }
 
     @Test
-    fun `cekatel v poradniku privlastnit jde`() = runBlocking {
+    fun `waitlisted reservation can be claimed`() = runBlocking {
         givenUser(callerId, "host@test.cz")
         val instance = givenInstance(day = 1)
         val reservation = givenReservation(
@@ -208,7 +208,7 @@ class ClaimReservationSpec {
     }
 
     @Test
-    fun `probehla akce neprojde`() = runBlocking {
+    fun `past event does not go through`() = runBlocking {
         givenUser(callerId, "host@test.cz")
         val instance = givenInstance(day = 1, year = 2020)
         val reservation = givenReservation(Reference.Instance(instance.id))
@@ -220,7 +220,7 @@ class ClaimReservationSpec {
     }
 
     @Test
-    fun `zrusena akce neprojde`() = runBlocking {
+    fun `cancelled event does not go through`() = runBlocking {
         givenUser(callerId, "host@test.cz")
         val instance = givenInstance(day = 1, cancelled = true)
         val reservation = givenReservation(Reference.Instance(instance.id))
@@ -233,7 +233,7 @@ class ClaimReservationSpec {
 
     /** Jádro zadání: kurz, kterému část lekcí už proběhla, pořád běží. */
     @Test
-    fun `kurz s casti lekci v minulosti privlastnit jde`() = runBlocking {
+    fun `course with some lessons in the past can be claimed`() = runBlocking {
         givenUser(callerId, "host@test.cz")
         val series = givenSeries(startDate = LocalDate(2020, 1, 1), endDate = LocalDate(2099, 12, 31))
         val reservation = givenReservation(Reference.Series(series.id))
@@ -245,7 +245,7 @@ class ClaimReservationSpec {
     }
 
     @Test
-    fun `dobehnuty kurz neprojde`() = runBlocking {
+    fun `finished course does not go through`() = runBlocking {
         givenUser(callerId, "host@test.cz")
         val series = givenSeries(startDate = LocalDate(2020, 1, 1), endDate = LocalDate(2020, 12, 31))
         val reservation = givenReservation(Reference.Series(series.id))
@@ -257,7 +257,7 @@ class ClaimReservationSpec {
     }
 
     @Test
-    fun `neprihlaseny volajici nedostane nic`() = runBlocking {
+    fun `anonymous caller gets nothing`() = runBlocking {
         givenUser(callerId, "host@test.cz")
         val instance = givenInstance(day = 1)
         val reservation = givenReservation(Reference.Instance(instance.id))
@@ -270,7 +270,7 @@ class ClaimReservationSpec {
     }
 
     @Test
-    fun `neexistujici rezervace vrati NotFound`() = runBlocking {
+    fun `nonexistent reservation returns NotFound`() = runBlocking {
         givenUser(callerId, "host@test.cz")
 
         val result = service().claimReservation(Uuid.random())

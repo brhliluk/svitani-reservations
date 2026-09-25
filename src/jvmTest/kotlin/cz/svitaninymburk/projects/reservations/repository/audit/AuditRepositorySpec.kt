@@ -29,25 +29,25 @@ class AuditRepositorySpec {
     )
 
     @Test
-    fun `detail lekce vidi zaznamy sve lekce`() = runBlocking {
+    fun `lesson detail shows records of its own lesson`() = runBlocking {
         val repo = InMemoryAuditRepository()
-        val lekce = Uuid.random()
-        repo.record(event(instanceId = lekce))
+        val lesson = Uuid.random()
+        repo.record(event(instanceId = lesson))
         repo.record(event(instanceId = Uuid.random()))
 
-        val found = repo.findForEvent(lekce, isSeries = false, category = null, page = 0, pageSize = 50)
+        val found = repo.findForEvent(lesson, isSeries = false, category = null, page = 0, pageSize = 50)
 
         assertEquals(1, found.size)
     }
 
     @Test
-    fun `detail kurzu vidi i deni ve svych lekcich`() = runBlocking {
+    fun `series detail also shows activity in its lessons`() = runBlocking {
         val repo = InMemoryAuditRepository()
-        val kurz = Uuid.random()
-        repo.record(event(seriesId = kurz))                              // zápis na kurz
-        repo.record(event(seriesId = kurz, instanceId = Uuid.random()))  // omluvenka z lekce
+        val series = Uuid.random()
+        repo.record(event(seriesId = series))                              // zápis na kurz
+        repo.record(event(seriesId = series, instanceId = Uuid.random()))  // omluvenka z lekce
 
-        val found = repo.findForEvent(kurz, isSeries = true, category = null, page = 0, pageSize = 50)
+        val found = repo.findForEvent(series, isSeries = true, category = null, page = 0, pageSize = 50)
 
         assertEquals(2, found.size)
     }
@@ -57,62 +57,62 @@ class AuditRepositorySpec {
      * by detail lekce o nich neukázal vůbec nic.
      */
     @Test
-    fun `detail lekce prebira i zaznamy vedene na kurzu`() = runBlocking {
+    fun `lesson detail also takes over records kept on the series`() = runBlocking {
         val repo = InMemoryAuditRepository()
-        val kurz = Uuid.random()
-        val lekce = Uuid.random()
-        repo.record(event(seriesId = kurz))                            // přihláška na kurz
-        repo.record(event(seriesId = kurz, instanceId = lekce))        // omluvenka z téhle lekce
-        repo.record(event(seriesId = kurz, instanceId = Uuid.random()))// omluvenka z jiné lekce
+        val series = Uuid.random()
+        val lesson = Uuid.random()
+        repo.record(event(seriesId = series))                            // přihláška na kurz
+        repo.record(event(seriesId = series, instanceId = lesson))        // omluvenka z téhle lekce
+        repo.record(event(seriesId = series, instanceId = Uuid.random()))// omluvenka z jiné lekce
 
         val found = repo.findForEvent(
-            lekce, isSeries = false, category = null, page = 0, pageSize = 50, parentSeriesId = kurz,
+            lesson, isSeries = false, category = null, page = 0, pageSize = 50, parentSeriesId = series,
         )
 
         assertEquals(2, found.size)
     }
 
     @Test
-    fun `filtr kategorie zabira`() = runBlocking {
+    fun `category filter applies`() = runBlocking {
         val repo = InMemoryAuditRepository()
-        val lekce = Uuid.random()
-        repo.record(event(type = AuditEventType.RESERVATION_CREATED, instanceId = lekce))
-        repo.record(event(type = AuditEventType.EMAIL_RESERVATION_CONFIRMATION, instanceId = lekce))
+        val lesson = Uuid.random()
+        repo.record(event(type = AuditEventType.RESERVATION_CREATED, instanceId = lesson))
+        repo.record(event(type = AuditEventType.EMAIL_RESERVATION_CONFIRMATION, instanceId = lesson))
 
-        val maily = repo.findForEvent(lekce, false, AuditCategory.EMAIL, 0, 50)
+        val emails = repo.findForEvent(lesson, false, AuditCategory.EMAIL, 0, 50)
 
-        assertEquals(1, maily.size)
-        assertEquals(AuditEventType.EMAIL_RESERVATION_CONFIRMATION, maily.single().type)
-        assertEquals(2, repo.countForEvent(lekce, false, null))
+        assertEquals(1, emails.size)
+        assertEquals(AuditEventType.EMAIL_RESERVATION_CONFIRMATION, emails.single().type)
+        assertEquals(2, repo.countForEvent(lesson, false, null))
     }
 
     @Test
-    fun `strankovani vraci od nejnovejsiho`() = runBlocking {
+    fun `paging returns newest first`() = runBlocking {
         val repo = InMemoryAuditRepository()
-        val lekce = Uuid.random()
-        repo.record(event(instanceId = lekce, daysAgo = 3))
-        repo.record(event(instanceId = lekce, daysAgo = 1))
-        repo.record(event(instanceId = lekce, daysAgo = 2))
+        val lesson = Uuid.random()
+        repo.record(event(instanceId = lesson, daysAgo = 3))
+        repo.record(event(instanceId = lesson, daysAgo = 1))
+        repo.record(event(instanceId = lesson, daysAgo = 2))
 
-        val prvni = repo.findForEvent(lekce, false, null, page = 0, pageSize = 2)
-        val druha = repo.findForEvent(lekce, false, null, page = 1, pageSize = 2)
+        val firstPage = repo.findForEvent(lesson, false, null, page = 0, pageSize = 2)
+        val secondPage = repo.findForEvent(lesson, false, null, page = 1, pageSize = 2)
 
-        assertEquals(2, prvni.size)
-        assertEquals(1, druha.size)
-        assertTrue(prvni[0].occurredAt > prvni[1].occurredAt)
-        assertTrue(prvni[1].occurredAt > druha[0].occurredAt)
+        assertEquals(2, firstPage.size)
+        assertEquals(1, secondPage.size)
+        assertTrue(firstPage[0].occurredAt > firstPage[1].occurredAt)
+        assertTrue(firstPage[1].occurredAt > secondPage[0].occurredAt)
     }
 
     @Test
-    fun `retence smaze starsi nez rok a novejsi nechá`() = runBlocking {
+    fun `retention deletes entries older than a year and keeps newer ones`() = runBlocking {
         val repo = InMemoryAuditRepository()
-        val lekce = Uuid.random()
-        repo.record(event(instanceId = lekce, daysAgo = 400))
-        repo.record(event(instanceId = lekce, daysAgo = 300))
+        val lesson = Uuid.random()
+        repo.record(event(instanceId = lesson, daysAgo = 400))
+        repo.record(event(instanceId = lesson, daysAgo = 300))
 
-        val smazano = repo.deleteOlderThan(Clock.System.now() - 365.days)
+        val deleted = repo.deleteOlderThan(Clock.System.now() - 365.days)
 
-        assertEquals(1, smazano)
+        assertEquals(1, deleted)
         assertEquals(1, repo.countAll())
     }
 }

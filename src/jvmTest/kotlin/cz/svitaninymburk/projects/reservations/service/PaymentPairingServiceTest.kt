@@ -212,7 +212,7 @@ class PaymentPairingServiceTest {
     }
 
     @Test
-    fun `platba z banky dorovna kredit za omluvenku z doby pred zaplacenim`() = runBlocking {
+    fun `bank payment settles credit for a lesson opt-out made before payment`() = runBlocking {
         val reservationRepo = InMemoryReservationRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val optOutRepo = InMemorySeriesLessonOptOutRepository()

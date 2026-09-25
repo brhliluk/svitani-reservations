@@ -167,7 +167,7 @@ class SeriesLessonOptOutServiceTest {
     )
 
     @Test
-    fun `opt out nesaha na ulozeny citac lekce`() = runBlocking {
+    fun `opt out does not touch the stored lesson counter`() = runBlocking {
         val instanceRepo = InMemoryEventInstanceRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val reservationRepo = InMemoryReservationRepository()
@@ -210,7 +210,7 @@ class SeriesLessonOptOutServiceTest {
     }
 
     @Test
-    fun `opt out posune cekatele z poradniku lekce`() = runBlocking {
+    fun `opt out promotes the waitlisted person from the lesson waitlist`() = runBlocking {
         val instanceRepo = InMemoryEventInstanceRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val reservationRepo = InMemoryReservationRepository()
@@ -226,7 +226,7 @@ class SeriesLessonOptOutServiceTest {
         reservationRepo.save(reservation)
 
         // Čekatel v pořadníku té konkrétní lekce.
-        val cekatel = reservationRepo.save(
+        val waitlisted = reservationRepo.save(
             makeInstanceReservation(instance.id).copy(status = Reservation.Status.WAITLISTED)
         )
 
@@ -242,7 +242,7 @@ class SeriesLessonOptOutServiceTest {
 
         assertEquals(
             Reservation.Status.PENDING_PAYMENT,
-            reservationRepo.findById(cekatel.id)?.status,
+            reservationRepo.findById(waitlisted.id)?.status,
             "uvolněné místo má dostat první čekatel v pořadníku lekce",
         )
     }
@@ -351,7 +351,7 @@ class SeriesLessonOptOutServiceTest {
     // --- Omluvenky hostů (rezervace bez účtu) ---
 
     @Test
-    fun `host bez uctu se muze odhlasit z lekce`() = runBlocking {
+    fun `guest without an account can opt out of a lesson`() = runBlocking {
         val instanceRepo = InMemoryEventInstanceRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val reservationRepo = InMemoryReservationRepository()
@@ -383,7 +383,7 @@ class SeriesLessonOptOutServiceTest {
     }
 
     @Test
-    fun `anonymni volajici se nedostane k registrovane rezervaci`() = runBlocking {
+    fun `anonymous caller cannot access a registered reservation`() = runBlocking {
         // Nejdůležitější pojistka celé změny: uvolnění brány pro hosty nesmí
         // registrovaným uživatelům zhoršit ochranu, kterou dnes mají.
         val instanceRepo = InMemoryEventInstanceRepository()
@@ -417,7 +417,7 @@ class SeriesLessonOptOutServiceTest {
     }
 
     @Test
-    fun `prihlaseny uzivatel se nemuze odhlasit z cizi rezervace`() = runBlocking {
+    fun `logged-in user cannot opt out of a reservation of another user`() = runBlocking {
         val instanceRepo = InMemoryEventInstanceRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val reservationRepo = InMemoryReservationRepository()
@@ -445,7 +445,7 @@ class SeriesLessonOptOutServiceTest {
     }
 
     @Test
-    fun `zrusena rezervace se nemuze omlouvat z lekci`() = runBlocking {
+    fun `cancelled reservation cannot opt out of lessons`() = runBlocking {
         // Storno už vrátilo celou zaplacenou částku; bez téhle kontroly by se z
         // lekcí dal inkasovat kredit ještě jednou.
         val instanceRepo = InMemoryEventInstanceRepository()
@@ -477,7 +477,7 @@ class SeriesLessonOptOutServiceTest {
     }
 
     @Test
-    fun `kredit za omluvenky nepresahne zaplacenou castku`() = runBlocking {
+    fun `credit for lesson opt-outs does not exceed the paid amount`() = runBlocking {
         // lessonRefundAmount je volná admin hodnota nezávislá na ceně kurzu —
         // 3 lekce po 200 Kč na rezervaci za 500 Kč se musí zastavit na 500.
         val instanceRepo = InMemoryEventInstanceRepository()
@@ -518,7 +518,7 @@ class SeriesLessonOptOutServiceTest {
     }
 
     @Test
-    fun `kredit se nasobi poctem mist`() = runBlocking {
+    fun `credit is multiplied by the seat count`() = runBlocking {
         // Omluvenka uvolní všechna místa rezervace, takže musí vrátit i kredit za všechna.
         val instanceRepo = InMemoryEventInstanceRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
@@ -547,7 +547,7 @@ class SeriesLessonOptOutServiceTest {
     }
 
     @Test
-    fun `opakovane omluvenky hosta jdou do jedne penezenky`() = runBlocking {
+    fun `repeated guest lesson opt-outs go into one wallet`() = runBlocking {
         // resolveAnonymousWallet bez kódu zakládá pokaždé novou peněženku — kredit
         // by se roztříštil do několika kódů, ke kterým se host prakticky nedostane.
         val instanceRepo = InMemoryEventInstanceRepository()
@@ -587,7 +587,7 @@ class SeriesLessonOptOutServiceTest {
     }
 
     @Test
-    fun `omluvenka hosta s cizim kodem penezenky nic nezapise`() = runBlocking {
+    fun `guest lesson opt-out with a foreign wallet code writes nothing`() = runBlocking {
         // Peněženku řešíme před zápisem omluvenky — neshoda e-mailu je chyba
         // k opakování, po ní musí jít zkusit to znovu se správným kódem.
         val instanceRepo = InMemoryEventInstanceRepository()
@@ -604,7 +604,7 @@ class SeriesLessonOptOutServiceTest {
         reservationRepo.save(reservation)
 
         val walletService = WalletService(walletRepo)
-        val cizi = walletService.resolveAnonymousWallet(null, "nekdo.jiny@test.com", force = false).getOrNull()!!
+        val foreignWallet = walletService.resolveAnonymousWallet(null, "nekdo.jiny@test.com", force = false).getOrNull()!!
 
         val service = makeService(
             instanceRepo = instanceRepo,
@@ -615,22 +615,22 @@ class SeriesLessonOptOutServiceTest {
             callerId = null,
         )
 
-        val odmitnuto = service.cancelReservation(reservation.id, instance.id, walletCode = cizi.code, force = false)
-        assertTrue(odmitnuto.isLeft(), "cizí peněženka bez force musí selhat, dostal: $odmitnuto")
-        odmitnuto.onLeft { assertEquals(ReservationError.WalletEmailMismatch, it) }
+        val rejected = service.cancelReservation(reservation.id, instance.id, walletCode = foreignWallet.code, force = false)
+        assertTrue(rejected.isLeft(), "cizí peněženka bez force musí selhat, dostal: $rejected")
+        rejected.onLeft { assertEquals(ReservationError.WalletEmailMismatch, it) }
         assertEquals(
             emptyList(), optOutRepo.findByReservation(reservation.id),
             "po neúspěchu nesmí zůstat omluvenka — jinak by druhý pokus spadl na AlreadyOptedOut",
         )
 
-        val potvrzeno = service.cancelReservation(reservation.id, instance.id, walletCode = cizi.code, force = true)
-        assertTrue(potvrzeno.isRight(), "s force musí projít, dostal: $potvrzeno")
-        assertEquals(cizi.code, potvrzeno.getOrNull()?.walletCode)
+        val confirmed = service.cancelReservation(reservation.id, instance.id, walletCode = foreignWallet.code, force = true)
+        assertTrue(confirmed.isRight(), "s force musí projít, dostal: $confirmed")
+        assertEquals(foreignWallet.code, confirmed.getOrNull()?.walletCode)
         Unit
     }
 
     @Test
-    fun `registrovana rezervace dal chodi pres uzivatelskou penezenku`() = runBlocking {
+    fun `registered reservation still goes through the user wallet`() = runBlocking {
         val instanceRepo = InMemoryEventInstanceRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val reservationRepo = InMemoryReservationRepository()
@@ -663,7 +663,7 @@ class SeriesLessonOptOutServiceTest {
     }
 
     @Test
-    fun `omluvenka pred zaplacenim neukrajuje ze stropu`() = runBlocking {
+    fun `lesson opt-out before payment does not eat into the cap`() = runBlocking {
         // Odhlášení proběhlo, dokud nebylo zaplaceno, takže žádný kredit nedostalo.
         // Strop se počítá ze skutečně vyplacených částek, ne z počtu omluvenek —
         // jinak by o ten kredit člověk po doplacení přišel.
@@ -692,16 +692,16 @@ class SeriesLessonOptOutServiceTest {
             callerId = null,
         )
 
-        val nezaplacena = service.cancelReservation(reservation.id, first.id)
-        assertTrue(nezaplacena.isRight(), "omluvenka musí projít i bez platby, dostala: $nezaplacena")
-        assertEquals(null, nezaplacena.getOrNull()?.walletCreditAmount, "nezaplaceno = žádný kredit")
+        val beforePayment = service.cancelReservation(reservation.id, first.id)
+        assertTrue(beforePayment.isRight(), "omluvenka musí projít i bez platby, dostala: $beforePayment")
+        assertEquals(null, beforePayment.getOrNull()?.walletCreditAmount, "nezaplaceno = žádný kredit")
 
         // Doplatí kurz a odhlásí se z další lekce.
         reservationRepo.save(reservation.copy(paidAmount = 300.0))
 
-        val poZaplaceni = service.cancelReservation(reservation.id, second.id)
+        val afterPayment = service.cancelReservation(reservation.id, second.id)
         assertEquals(
-            150.0, poZaplaceni.getOrNull()?.walletCreditAmount,
+            150.0, afterPayment.getOrNull()?.walletCreditAmount,
             "plný kredit — dřívější bezplatná omluvenka nesmí strop snižovat",
         )
         Unit

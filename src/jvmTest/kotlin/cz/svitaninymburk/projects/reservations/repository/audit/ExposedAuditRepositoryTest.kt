@@ -54,11 +54,11 @@ class ExposedAuditRepositoryTest {
     )
 
     @Test
-    fun `zapis a cteni jedne akce`() = runBlocking {
-        val lekce = Uuid.random()
-        repository.record(event(instanceId = lekce, outcome = AuditOutcome.FAILURE))
+    fun `write and read of a single event`() = runBlocking {
+        val lesson = Uuid.random()
+        repository.record(event(instanceId = lesson, outcome = AuditOutcome.FAILURE))
 
-        val found = repository.findForEvent(lekce, isSeries = false, category = null, page = 0, pageSize = 50)
+        val found = repository.findForEvent(lesson, isSeries = false, category = null, page = 0, pageSize = 50)
 
         assertEquals(1, found.size)
         assertEquals(AuditOutcome.FAILURE, found.single().outcome)
@@ -67,93 +67,93 @@ class ExposedAuditRepositoryTest {
 
     /** Správa akce má vlastní kategorii — musí se uložit a jít podle ní filtrovat. */
     @Test
-    fun `zmeny akce se ukladaji pod vlastni kategorii`() = runBlocking {
-        val kurz = Uuid.random()
-        repository.record(event(type = AuditEventType.SERIES_UNPUBLISHED, seriesId = kurz))
-        repository.record(event(seriesId = kurz))
+    fun `event changes are stored under their own category`() = runBlocking {
+        val series = Uuid.random()
+        repository.record(event(type = AuditEventType.SERIES_UNPUBLISHED, seriesId = series))
+        repository.record(event(seriesId = series))
 
-        val found = repository.findForEvent(kurz, isSeries = true, category = AuditCategory.MANAGEMENT, page = 0, pageSize = 50)
+        val found = repository.findForEvent(series, isSeries = true, category = AuditCategory.MANAGEMENT, page = 0, pageSize = 50)
 
         assertEquals(listOf(AuditEventType.SERIES_UNPUBLISHED), found.map { it.type })
         assertEquals(AuditCategory.MANAGEMENT, found.single().category)
     }
 
     @Test
-    fun `detail kurzu bere i deni ve svych lekcich`() = runBlocking {
-        val kurz = Uuid.random()
-        repository.record(event(seriesId = kurz))
-        repository.record(event(seriesId = kurz, instanceId = Uuid.random()))
+    fun `series detail also includes activity in its lessons`() = runBlocking {
+        val series = Uuid.random()
+        repository.record(event(seriesId = series))
+        repository.record(event(seriesId = series, instanceId = Uuid.random()))
 
-        assertEquals(2, repository.countForEvent(kurz, isSeries = true, category = null))
+        assertEquals(2, repository.countForEvent(series, isSeries = true, category = null))
     }
 
     /** Účastníci jsou zapsaní na kurz — bez tohohle by detail lekce zůstal prázdný. */
     @Test
-    fun `detail lekce prebira zaznamy vedene na kurzu`() = runBlocking {
-        val kurz = Uuid.random()
-        val lekce = Uuid.random()
-        repository.record(event(seriesId = kurz))                              // přihláška na kurz
-        repository.record(event(seriesId = kurz, instanceId = lekce))          // omluvenka z téhle lekce
-        repository.record(event(seriesId = kurz, instanceId = Uuid.random()))  // z jiné lekce
+    fun `lesson detail takes over records kept on the series`() = runBlocking {
+        val series = Uuid.random()
+        val lesson = Uuid.random()
+        repository.record(event(seriesId = series))                              // přihláška na kurz
+        repository.record(event(seriesId = series, instanceId = lesson))          // omluvenka z téhle lekce
+        repository.record(event(seriesId = series, instanceId = Uuid.random()))  // z jiné lekce
 
-        val bezRodice = repository.countForEvent(lekce, isSeries = false, category = null)
-        val sRodicem = repository.countForEvent(lekce, isSeries = false, category = null, parentSeriesId = kurz)
+        val withoutParent = repository.countForEvent(lesson, isSeries = false, category = null)
+        val withParent = repository.countForEvent(lesson, isSeries = false, category = null, parentSeriesId = series)
 
-        assertEquals(1, bezRodice)
-        assertEquals(2, sRodicem)
+        assertEquals(1, withoutParent)
+        assertEquals(2, withParent)
     }
 
     @Test
-    fun `filtr kategorie a razeni od nejnovejsiho`() = runBlocking {
-        val lekce = Uuid.random()
+    fun `category filter and newest-first ordering`() = runBlocking {
+        val lesson = Uuid.random()
         repository.recordAll(
             listOf(
-                event(instanceId = lekce, daysAgo = 3),
-                event(type = AuditEventType.EMAIL_RESERVATION_CONFIRMATION, instanceId = lekce, daysAgo = 1),
-                event(type = AuditEventType.PAYMENT_PAIRED_AUTO, instanceId = lekce, daysAgo = 2),
+                event(instanceId = lesson, daysAgo = 3),
+                event(type = AuditEventType.EMAIL_RESERVATION_CONFIRMATION, instanceId = lesson, daysAgo = 1),
+                event(type = AuditEventType.PAYMENT_PAIRED_AUTO, instanceId = lesson, daysAgo = 2),
             )
         )
 
-        val vse = repository.findForEvent(lekce, false, null, 0, 50)
-        val maily = repository.findForEvent(lekce, false, AuditCategory.EMAIL, 0, 50)
+        val all = repository.findForEvent(lesson, false, null, 0, 50)
+        val emails = repository.findForEvent(lesson, false, AuditCategory.EMAIL, 0, 50)
 
-        assertEquals(3, vse.size)
-        assertEquals(1, maily.size)
-        assertTrue(vse[0].occurredAt > vse[1].occurredAt, "má se řadit od nejnovějšího")
+        assertEquals(3, all.size)
+        assertEquals(1, emails.size)
+        assertTrue(all[0].occurredAt > all[1].occurredAt, "má se řadit od nejnovějšího")
     }
 
     @Test
-    fun `retence smaze jen starsi nez rok`() = runBlocking {
-        val lekce = Uuid.random()
-        repository.recordAll(listOf(event(instanceId = lekce, daysAgo = 400), event(instanceId = lekce, daysAgo = 10)))
+    fun `retention deletes only entries older than a year`() = runBlocking {
+        val lesson = Uuid.random()
+        repository.recordAll(listOf(event(instanceId = lesson, daysAgo = 400), event(instanceId = lesson, daysAgo = 10)))
 
         repository.deleteOlderThan(Clock.System.now() - 365.days)
 
-        assertEquals(1, repository.countForEvent(lekce, false, null))
+        assertEquals(1, repository.countForEvent(lesson, false, null))
     }
 
     @Test
-    fun `wallet code se ulozi a precte`() = runBlocking {
-        val lekce = Uuid.random()
+    fun `wallet code is stored and read back`() = runBlocking {
+        val lesson = Uuid.random()
         repository.record(
-            event(type = AuditEventType.PAYMENT_REFUNDED, instanceId = lekce)
+            event(type = AuditEventType.PAYMENT_REFUNDED, instanceId = lesson)
                 .copy(walletCode = "SVIT-AB12-CD34")
         )
 
-        val found = repository.findForEvent(lekce, isSeries = false, category = null, page = 0, pageSize = 50)
+        val found = repository.findForEvent(lesson, isSeries = false, category = null, page = 0, pageSize = 50)
 
         assertEquals("SVIT-AB12-CD34", found.single().walletCode)
     }
 
     @Test
-    fun `bez peněženky zustane null`() = runBlocking {
-        val lekce = Uuid.random()
-        repository.record(event(instanceId = lekce))
-        assertEquals(null, repository.findForEvent(lekce, false, null, 0, 50).single().walletCode)
+    fun `without a wallet it stays null`() = runBlocking {
+        val lesson = Uuid.random()
+        repository.record(event(instanceId = lesson))
+        assertEquals(null, repository.findForEvent(lesson, false, null, 0, 50).single().walletCode)
     }
 
     @Test
-    fun `recordAll s prazdnym seznamem nespadne`() = runBlocking {
+    fun `recordAll with an empty list does not fail`() = runBlocking {
         repository.recordAll(emptyList())
     }
 }

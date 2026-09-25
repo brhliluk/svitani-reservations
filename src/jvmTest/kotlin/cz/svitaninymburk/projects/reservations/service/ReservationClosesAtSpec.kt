@@ -77,7 +77,7 @@ class ReservationClosesAtSpec {
     )
 
     @Test
-    fun `akce dostane uzaverku spocitanou v prazskem case`() = runBlocking {
+    fun `event gets deadline computed in Prague time`() = runBlocking {
         instanceRepo.create(instance)
 
         assertEquals(Instant.parse("2099-12-01T07:00:00Z"), service.getInstance(instance.id).getOrNull()?.reservationClosesAt)
@@ -88,7 +88,7 @@ class ReservationClosesAtSpec {
     }
 
     @Test
-    fun `kurz dostane uzaverku od prvniho dne a casu lekce`() = runBlocking {
+    fun `course gets deadline from the first day and the lesson time`() = runBlocking {
         seriesRepo.create(series)
 
         val expected = Instant.parse("2099-07-01T14:00:00Z")
@@ -97,14 +97,14 @@ class ReservationClosesAtSpec {
     }
 
     @Test
-    fun `bez uzaverky zadny cas neprijde`() = runBlocking {
+    fun `without a deadline no time is sent`() = runBlocking {
         instanceRepo.create(instance.copy(reservationDeadline = null))
 
         assertNull(service.getInstance(instance.id).getOrNull()?.reservationClosesAt)
     }
 
     @Test
-    fun `klient jen porovna hotovy cas`() {
+    fun `client only compares the precomputed time`() {
         val closesAt = Instant.parse("2099-12-01T07:00:00Z")
         val withDeadline = instance.copy(reservationClosesAt = closesAt)
 
@@ -114,7 +114,7 @@ class ReservationClosesAtSpec {
     }
 
     @Test
-    fun `server rezervaci odmitne podle stejne uzaverky`() {
+    fun `server rejects reservation by the same deadline`() {
         val closesAt = Instant.parse("2099-12-01T07:00:00Z")
 
         assertFalse(instance.isReservationDeadlinePassed(closesAt - 1.minutes))

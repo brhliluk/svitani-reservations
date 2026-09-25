@@ -17,7 +17,7 @@ class ReservationDetailUseCasesSpec {
     private val afterDeadline = Instant.parse("2099-06-10T06:00:00Z")
 
     @Test
-    fun `nezaplacena rezervace kredit nedostane`() {
+    fun unpaidReservationGetsNoCredit() {
         assertEquals(
             CancellationPreview.NOT_PAID,
             cancellationPreview(paidAmount = 0.0, deadline = deadline, now = beforeDeadline),
@@ -25,7 +25,7 @@ class ReservationDetailUseCasesSpec {
     }
 
     @Test
-    fun `vcasne storno zaplacene rezervace kredit vrati`() {
+    fun timelyCancellationOfPaidReservationRefundsCredit() {
         assertEquals(
             CancellationPreview.REFUND_ELIGIBLE,
             cancellationPreview(paidAmount = 500.0, deadline = deadline, now = beforeDeadline),
@@ -33,7 +33,7 @@ class ReservationDetailUseCasesSpec {
     }
 
     @Test
-    fun `kdyz vse odeslo za lekce, storno uz nic nevrati`() {
+    fun cancellationRefundsNothingOnceEverythingWentToLessonCredits() {
         assertEquals(
             CancellationPreview.NOTHING_LEFT,
             cancellationPreview(paidAmount = 500.0, refundableAmount = 0.0, deadline = deadline, now = beforeDeadline),
@@ -41,7 +41,7 @@ class ReservationDetailUseCasesSpec {
     }
 
     @Test
-    fun `po uzaverce kredit nevznikne`() {
+    fun noCreditAfterDeadline() {
         assertEquals(
             CancellationPreview.WINDOW_PASSED,
             cancellationPreview(paidAmount = 500.0, deadline = deadline, now = afterDeadline),
@@ -49,7 +49,7 @@ class ReservationDetailUseCasesSpec {
     }
 
     @Test
-    fun `smazana akce se chova jako po uzaverce`() {
+    fun deletedEventBehavesLikeAfterDeadline() {
         // Bez uzávěrky (akce už v systému není) není z čeho nárok odvodit.
         assertEquals(
             CancellationPreview.WINDOW_PASSED,

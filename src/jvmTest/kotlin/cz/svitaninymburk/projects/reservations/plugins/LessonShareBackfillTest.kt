@@ -102,15 +102,15 @@ class LessonShareBackfillTest {
     }
 
     @Test
-    fun `doplni pomernou cast ceny k zapisum na kurz a nesahne na jednorazove akce`() {
-        val zapis = insertReservation(ReferenceDbDiscriminator.SERIES, seriesId, totalPrice = 2000.0)
-        val akce = insertReservation(ReferenceDbDiscriminator.INSTANCE, Uuid.random(), totalPrice = 500.0)
+    fun `fills in the proportional price share for course enrollments and leaves one-off events alone`() {
+        val courseEnrollment = insertReservation(ReferenceDbDiscriminator.SERIES, seriesId, totalPrice = 2000.0)
+        val oneOffReservation = insertReservation(ReferenceDbDiscriminator.INSTANCE, Uuid.random(), totalPrice = 500.0)
 
-        val doplneno = transaction { backfillLessonShares() }
+        val backfilledCount = transaction { backfillLessonShares() }
 
-        assertEquals(1, doplneno)
-        assertEquals(666.0, shareOf(zapis), "2000 Kč ÷ 3 lekce (i se zrušenou), dolů na koruny")
-        assertNull(shareOf(akce))
+        assertEquals(1, backfilledCount)
+        assertEquals(666.0, shareOf(courseEnrollment), "2000 Kč ÷ 3 lekce (i se zrušenou), dolů na koruny")
+        assertNull(shareOf(oneOffReservation))
         assertEquals(0, transaction { backfillLessonShares() }, "druhý běh už nic nenajde")
     }
 }

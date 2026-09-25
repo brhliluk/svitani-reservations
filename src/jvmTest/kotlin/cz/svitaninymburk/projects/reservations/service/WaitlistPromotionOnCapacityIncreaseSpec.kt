@@ -179,7 +179,7 @@ class WaitlistPromotionOnCapacityIncreaseSpec {
     )
 
     @Test
-    fun `zvednuta kapacita lekce posune nahradnika do rezervaci`() = runBlocking {
+    fun `increased lesson capacity promotes the waitlisted person into reservations`() = runBlocking {
         val instance = lesson()
         instanceRepo.create(instance)
         val substitute = waitlisted()
@@ -199,7 +199,7 @@ class WaitlistPromotionOnCapacityIncreaseSpec {
     }
 
     @Test
-    fun `nahradnik na akci zdarma se povysi rovnou jako potvrzeny`() = runBlocking {
+    fun `waitlisted person for a free event is promoted directly as confirmed`() = runBlocking {
         val instance = lesson()
         instanceRepo.create(instance)
         val substitute = waitlisted(totalPrice = 0.0)
@@ -213,7 +213,7 @@ class WaitlistPromotionOnCapacityIncreaseSpec {
     }
 
     @Test
-    fun `zvednuta kapacita kurzu posune nahradnika z poradniku kurzu`() = runBlocking {
+    fun `increased course capacity promotes the waitlisted person from the course waitlist`() = runBlocking {
         val existing = series()
         seriesRepo.create(existing)
         val substitute = waitlisted(reference = Reference.Series(seriesId), totalPrice = 1400.0)
@@ -232,7 +232,7 @@ class WaitlistPromotionOnCapacityIncreaseSpec {
     }
 
     @Test
-    fun `jedno volne misto povysi jen prvniho v poradniku`() = runBlocking {
+    fun `one free seat promotes only the first on the waitlist`() = runBlocking {
         val instance = lesson(occupiedWaitlist = 2)
         instanceRepo.create(instance)
         val now = Clock.System.now()
@@ -253,7 +253,7 @@ class WaitlistPromotionOnCapacityIncreaseSpec {
     }
 
     @Test
-    fun `nezmenena kapacita nikoho nepovysi`() = runBlocking {
+    fun `unchanged capacity promotes nobody`() = runBlocking {
         val instance = lesson()
         instanceRepo.create(instance)
         val substitute = waitlisted()
@@ -270,7 +270,7 @@ class WaitlistPromotionOnCapacityIncreaseSpec {
     }
 
     @Test
-    fun `snizena kapacita nikoho nepovysi`() = runBlocking {
+    fun `reduced capacity promotes nobody`() = runBlocking {
         val instance = lesson(capacity = 12, occupiedSpots = 10)
         instanceRepo.create(instance)
         val substitute = waitlisted()
@@ -283,7 +283,7 @@ class WaitlistPromotionOnCapacityIncreaseSpec {
     }
 
     @Test
-    fun `zrusena lekce nikoho nepovysi`() = runBlocking {
+    fun `cancelled lesson promotes nobody`() = runBlocking {
         val instance = lesson(isCancelled = true)
         instanceRepo.create(instance)
         val substitute = waitlisted()
@@ -296,7 +296,7 @@ class WaitlistPromotionOnCapacityIncreaseSpec {
     }
 
     @Test
-    fun `probehla lekce nikoho nepovysi`() = runBlocking {
+    fun `past lesson promotes nobody`() = runBlocking {
         val yesterday = (Clock.System.now() - 1.days).toLocalDateTime(TimeZone.of("Europe/Prague"))
         val instance = lesson(startDateTime = yesterday)
         instanceRepo.create(instance)
@@ -310,7 +310,7 @@ class WaitlistPromotionOnCapacityIncreaseSpec {
     }
 
     @Test
-    fun `nahradnik na vic mist nez je volno zustava v poradniku`() = runBlocking {
+    fun `waitlisted person for more seats than are free stays on the waitlist`() = runBlocking {
         val instance = lesson()
         instanceRepo.create(instance)
         val substitute = waitlisted(seatCount = 2)

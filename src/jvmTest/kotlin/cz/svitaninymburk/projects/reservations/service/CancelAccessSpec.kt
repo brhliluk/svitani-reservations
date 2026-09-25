@@ -102,7 +102,7 @@ class CancelAccessSpec {
         )
 
     @Test
-    fun `rezervaci bez uctu zrusi i neprihlaseny`() = runBlocking {
+    fun `guest reservation can be cancelled even by an anonymous caller`() = runBlocking {
         val reservation = givenReservation(registeredUserId = null)
 
         val result = TestService(caller = null).cancelReservation(reservation.id)
@@ -113,7 +113,7 @@ class CancelAccessSpec {
     }
 
     @Test
-    fun `registrovanou rezervaci zrusi jeji majitel`() = runBlocking {
+    fun `registered reservation is cancelled by its owner`() = runBlocking {
         val reservation = givenReservation(registeredUserId = ownerId)
 
         val result = TestService(caller = ownerId).cancelReservation(reservation.id)
@@ -124,7 +124,7 @@ class CancelAccessSpec {
     }
 
     @Test
-    fun `registrovanou rezervaci neprihlaseny nezrusi`() = runBlocking {
+    fun `anonymous caller cannot cancel a registered reservation`() = runBlocking {
         val reservation = givenReservation(registeredUserId = ownerId)
 
         val result = TestService(caller = null).cancelReservation(reservation.id)
@@ -139,7 +139,7 @@ class CancelAccessSpec {
      * (ui/admin/**/usecase volá ReservationServiceInterface.cancelReservation).
      */
     @Test
-    fun `admin zrusi i cizi registrovanou rezervaci`() = runBlocking {
+    fun `admin can cancel another user's registered reservation`() = runBlocking {
         val reservation = givenReservation(registeredUserId = ownerId)
 
         val result = TestService(caller = strangerId, admin = true).cancelReservation(reservation.id)
@@ -154,7 +154,7 @@ class CancelAccessSpec {
      * Zákazník má pořád zavřeno, kredit se dole stejně řídí uzávěrkou.
      */
     @Test
-    fun `admin zrusi rezervaci na uz zapocatou akci`() = runBlocking {
+    fun `admin can cancel a reservation for an already started event`() = runBlocking {
         val past = givenInstance(
             start = LocalDateTime(2020, 6, 1, 10, 0),
             end = LocalDateTime(2020, 6, 1, 11, 0),
@@ -169,7 +169,7 @@ class CancelAccessSpec {
     }
 
     @Test
-    fun `zakaznik rezervaci na uz zapocatou akci nezrusi`() = runBlocking {
+    fun `customer cannot cancel a reservation for an already started event`() = runBlocking {
         val past = givenInstance(
             start = LocalDateTime(2020, 6, 1, 10, 0),
             end = LocalDateTime(2020, 6, 1, 11, 0),
@@ -184,7 +184,7 @@ class CancelAccessSpec {
     }
 
     @Test
-    fun `registrovanou rezervaci cizi ucet nezrusi`() = runBlocking {
+    fun `another account cannot cancel a registered reservation`() = runBlocking {
         val reservation = givenReservation(registeredUserId = ownerId)
 
         val result = TestService(caller = strangerId).cancelReservation(reservation.id)

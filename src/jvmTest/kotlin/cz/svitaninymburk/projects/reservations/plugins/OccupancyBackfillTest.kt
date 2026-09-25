@@ -15,8 +15,8 @@ import kotlin.test.assertEquals
  */
 class OccupancyBackfillTest {
 
-    private val lekce = "00000000-0000-0000-0000-0000000000c1"
-    private val kurz = "00000000-0000-0000-0000-0000000000a1"
+    private val lessonId = "00000000-0000-0000-0000-0000000000c1"
+    private val courseId = "00000000-0000-0000-0000-0000000000a1"
 
     @BeforeTest
     fun setup() {
@@ -35,45 +35,45 @@ class OccupancyBackfillTest {
                 )
             """.trimIndent())
 
-            exec("INSERT INTO event_instances VALUES ('$lekce', -2, 7)")
-            exec("INSERT INTO event_series VALUES ('$kurz', 99, -3)")
-            exec("INSERT INTO reservations VALUES ('r1', '$lekce', 'INSTANCE', 2, 'CONFIRMED')")
-            exec("INSERT INTO reservations VALUES ('r2', '$lekce', 'INSTANCE', 1, 'CANCELLED')")
-            exec("INSERT INTO reservations VALUES ('r3', '$kurz', 'SERIES', 3, 'PENDING_PAYMENT')")
-            exec("INSERT INTO reservations VALUES ('r4', '$kurz', 'SERIES', 5, 'WAITLISTED')")
+            exec("INSERT INTO event_instances VALUES ('$lessonId', -2, 7)")
+            exec("INSERT INTO event_series VALUES ('$courseId', 99, -3)")
+            exec("INSERT INTO reservations VALUES ('r1', '$lessonId', 'INSTANCE', 2, 'CONFIRMED')")
+            exec("INSERT INTO reservations VALUES ('r2', '$lessonId', 'INSTANCE', 1, 'CANCELLED')")
+            exec("INSERT INTO reservations VALUES ('r3', '$courseId', 'SERIES', 3, 'PENDING_PAYMENT')")
+            exec("INSERT INTO reservations VALUES ('r4', '$courseId', 'SERIES', 5, 'WAITLISTED')")
             // Dva čekatelé na lekci, dohromady 4 místa — pořadník se ale počítá
             // po přihláškách, takže výsledek musí být 2, ne 4.
-            exec("INSERT INTO reservations VALUES ('r5', '$lekce', 'INSTANCE', 3, 'WAITLISTED')")
-            exec("INSERT INTO reservations VALUES ('r6', '$lekce', 'INSTANCE', 1, 'WAITLISTED')")
+            exec("INSERT INTO reservations VALUES ('r5', '$lessonId', 'INSTANCE', 3, 'WAITLISTED')")
+            exec("INSERT INTO reservations VALUES ('r6', '$lessonId', 'INSTANCE', 1, 'WAITLISTED')")
         }
     }
 
     private fun instanceSpots(): Int = transaction {
-        exec("SELECT occupied_spots FROM event_instances WHERE id = '$lekce'") { rs ->
+        exec("SELECT occupied_spots FROM event_instances WHERE id = '$lessonId'") { rs ->
             rs.next(); rs.getInt(1)
         } ?: -1
     }
 
     private fun seriesSpots(): Int = transaction {
-        exec("SELECT occupied_spots FROM event_series WHERE id = '$kurz'") { rs ->
+        exec("SELECT occupied_spots FROM event_series WHERE id = '$courseId'") { rs ->
             rs.next(); rs.getInt(1)
         } ?: -1
     }
 
     private fun instanceWaitlist(): Int = transaction {
-        exec("SELECT occupied_waitlist FROM event_instances WHERE id = '$lekce'") { rs ->
+        exec("SELECT occupied_waitlist FROM event_instances WHERE id = '$lessonId'") { rs ->
             rs.next(); rs.getInt(1)
         } ?: -1
     }
 
     private fun seriesWaitlist(): Int = transaction {
-        exec("SELECT occupied_waitlist FROM event_series WHERE id = '$kurz'") { rs ->
+        exec("SELECT occupied_waitlist FROM event_series WHERE id = '$courseId'") { rs ->
             rs.next(); rs.getInt(1)
         } ?: -1
     }
 
     @Test
-    fun `backfill prepocte i poradnik, po prihlaskach ne po mistech`() = runBlocking {
+    fun `backfill recomputes the waitlist too, by reservations not by seats`() = runBlocking {
         recomputeOccupiedSpots()
 
         assertEquals(2, instanceWaitlist(), "dva čekatelé (3 + 1 místo) jsou dvě přihlášky, ne čtyři")
@@ -81,7 +81,7 @@ class OccupancyBackfillTest {
     }
 
     @Test
-    fun `backfill prepocte citace z aktivnich rezervaci`() = runBlocking {
+    fun `backfill recomputes counters from active reservations`() = runBlocking {
         recomputeOccupiedSpots()
 
         assertEquals(2, instanceSpots(), "zrušená rezervace se nepočítá, záporná hodnota zmizí")
@@ -89,7 +89,7 @@ class OccupancyBackfillTest {
     }
 
     @Test
-    fun `backfill je idempotentni`() = runBlocking {
+    fun `backfill is idempotent`() = runBlocking {
         recomputeOccupiedSpots()
         recomputeOccupiedSpots()
 

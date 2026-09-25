@@ -67,7 +67,7 @@ class SeriesLessonLoadTest {
     )
 
     @Test
-    fun `aktivni prihlasky na kurz zatezuji kazdou lekci`() = runBlocking {
+    fun `active series enrolments load every lesson`() = runBlocking {
         val lessonA = lesson(Uuid.parse("00000000-0000-0000-0000-0000000000c1"))
         val lessonB = lesson(Uuid.parse("00000000-0000-0000-0000-0000000000c2"))
         enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d1"), seats = 2)
@@ -80,12 +80,12 @@ class SeriesLessonLoadTest {
     }
 
     @Test
-    fun `omluvenka odecte vsechna mista sve rezervace`() = runBlocking {
+    fun `opt-out subtracts all seats of its reservation`() = runBlocking {
         val lessonA = lesson(Uuid.parse("00000000-0000-0000-0000-0000000000c1"))
         val lessonB = lesson(Uuid.parse("00000000-0000-0000-0000-0000000000c2"))
-        val rodina = enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d1"), seats = 2)
+        val family = enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d1"), seats = 2)
         enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d2"), seats = 1)
-        optOut(rodina, lessonA.id)
+        optOut(family, lessonA.id)
 
         val result = load.forInstances(listOf(lessonA, lessonB))
 
@@ -94,16 +94,16 @@ class SeriesLessonLoadTest {
     }
 
     @Test
-    fun `zrusena rezervace s omluvenkou se neodecte dvakrat`() = runBlocking {
+    fun `cancelled reservation with an opt-out is not subtracted twice`() = runBlocking {
         val lessonA = lesson(Uuid.parse("00000000-0000-0000-0000-0000000000c1"))
-        val zrusena = enrol(
+        val cancelled = enrol(
             Uuid.parse("00000000-0000-0000-0000-0000000000d1"),
             seats = 2,
             status = Reservation.Status.CONFIRMED,
         )
-        optOut(zrusena, lessonA.id)
+        optOut(cancelled, lessonA.id)
         enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d2"), seats = 3)
-        reservationRepo.updateStatus(zrusena.id, Reservation.Status.CANCELLED)
+        reservationRepo.updateStatus(cancelled.id, Reservation.Status.CANCELLED)
 
         val result = load.forInstances(listOf(lessonA))
 
@@ -111,7 +111,7 @@ class SeriesLessonLoadTest {
     }
 
     @Test
-    fun `cekatel z poradniku misto nedrzi`() = runBlocking {
+    fun `waitlisted reservation does not hold a seat`() = runBlocking {
         val lessonA = lesson(Uuid.parse("00000000-0000-0000-0000-0000000000c1"))
         enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d1"), seats = 1)
         enrol(
@@ -126,7 +126,7 @@ class SeriesLessonLoadTest {
     }
 
     @Test
-    fun `prihlaska na jinou serii lekci nezatezuje`() = runBlocking {
+    fun `enrolment in another series does not load the lesson`() = runBlocking {
         val lessonA = lesson(Uuid.parse("00000000-0000-0000-0000-0000000000c1"))
         enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d1"), seats = 5, series = otherSeriesId)
 
@@ -136,12 +136,12 @@ class SeriesLessonLoadTest {
     }
 
     @Test
-    fun `lekce bez serie ma nulovou zatez`() = runBlocking {
-        val samostatna = lesson(Uuid.parse("00000000-0000-0000-0000-0000000000c9"), series = null)
+    fun `lesson without a series has zero load`() = runBlocking {
+        val standalone = lesson(Uuid.parse("00000000-0000-0000-0000-0000000000c9"), series = null)
         enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d1"), seats = 3)
 
-        val result = load.forInstances(listOf(samostatna))
+        val result = load.forInstances(listOf(standalone))
 
-        assertEquals(0, result[samostatna.id])
+        assertEquals(0, result[standalone.id])
     }
 }

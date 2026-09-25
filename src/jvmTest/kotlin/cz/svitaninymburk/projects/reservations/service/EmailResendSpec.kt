@@ -119,7 +119,7 @@ class EmailResendSpec {
     }
 
     @Test
-    fun `neodeslane potvrzeni jde poslat znovu`() = runBlocking {
+    fun `unsent confirmation can be resent`() = runBlocking {
         val f = Fixture()
         val instance = f.instance()
         val reservation = f.reservation(instance.id)
@@ -138,7 +138,7 @@ class EmailResendSpec {
      * překlep, opakované odeslání by jinak zase mířilo na mrtvou schránku.
      */
     @Test
-    fun `posila se na aktualni kontaktni email, ne na ten z historie`() = runBlocking {
+    fun `sends to the current contact email, not the one from history`() = runBlocking {
         val f = Fixture()
         val instance = f.instance()
         val reservation = f.reservation(instance.id, email = "spravna@example.com")
@@ -153,7 +153,7 @@ class EmailResendSpec {
     }
 
     @Test
-    fun `typ mimo seznam se preposlat neda`() = runBlocking {
+    fun `type outside the list cannot be resent`() = runBlocking {
         val f = Fixture()
         val instance = f.instance()
         val reservation = f.reservation(instance.id)
@@ -166,7 +166,7 @@ class EmailResendSpec {
     }
 
     @Test
-    fun `zaznam bez rezervace se preposlat neda`() = runBlocking<Unit> {
+    fun `entry without a reservation cannot be resent`() = runBlocking<Unit> {
         val f = Fixture()
         val instance = f.instance()
         val entryId = f.auditEntry(
@@ -177,7 +177,7 @@ class EmailResendSpec {
     }
 
     @Test
-    fun `smazana rezervace vrati ReservationNotFound`() = runBlocking<Unit> {
+    fun `deleted reservation returns ReservationNotFound`() = runBlocking<Unit> {
         val f = Fixture()
         val instance = f.instance()
         val entryId = f.auditEntry(
@@ -188,7 +188,7 @@ class EmailResendSpec {
     }
 
     @Test
-    fun `neznamy zaznam vrati AuditEventNotFound`() = runBlocking<Unit> {
+    fun `unknown entry returns AuditEventNotFound`() = runBlocking<Unit> {
         val f = Fixture()
 
         assertIs<AdminError.ResendEmail.AuditEventNotFound>(f.service.resend(Uuid.random()).leftOrNull())
@@ -196,7 +196,7 @@ class EmailResendSpec {
 
     /** Opakované selhání se musí dostat až k adminovi — jinak by čekal, že mail došel. */
     @Test
-    fun `selhani odeslani propadne jako SendFailed`() = runBlocking {
+    fun `send failure propagates as SendFailed`() = runBlocking {
         val f = Fixture()
         val instance = f.instance()
         val reservation = f.reservation(instance.id)

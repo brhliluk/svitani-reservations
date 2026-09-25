@@ -102,7 +102,7 @@ class SeriesEditPropagationSpec {
     )
 
     @Test
-    fun `dodatecne doplneny popis se propise do lekci`() = runBlocking {
+    fun `description added later propagates to lessons`() = runBlocking {
         seriesRepo.create(series)
         val lessons = listOf(lesson(7), lesson(14)).onEach { instanceRepo.create(it) }
 
@@ -112,50 +112,50 @@ class SeriesEditPropagationSpec {
     }
 
     @Test
-    fun `samostatne upravena lekce si svou hodnotu necha`() = runBlocking {
+    fun `individually edited lesson keeps its own value`() = runBlocking {
         seriesRepo.create(series)
-        val dedi = lesson(7).also { instanceRepo.create(it) }
-        val upravena = lesson(14).copy(description = "Tahle lekce je venku.").also { instanceRepo.create(it) }
+        val inheriting = lesson(7).also { instanceRepo.create(it) }
+        val customized = lesson(14).copy(description = "Tahle lekce je venku.").also { instanceRepo.create(it) }
 
         service.updateEventSeries(series.id, request(description = "Přineste si podložku."))
 
-        assertEquals("Přineste si podložku.", instanceRepo.get(dedi.id)?.description)
-        assertEquals("Tahle lekce je venku.", instanceRepo.get(upravena.id)?.description)
+        assertEquals("Přineste si podložku.", instanceRepo.get(inheriting.id)?.description)
+        assertEquals("Tahle lekce je venku.", instanceRepo.get(customized.id)?.description)
     }
 
     @Test
-    fun `propise se jen pole, ktere se v kurzu zmenilo`() = runBlocking {
+    fun `only the field changed in the course propagates`() = runBlocking {
         // Lekce má vlastní název; úprava popisu kurzu ho nesmí srovnat zpátky.
         seriesRepo.create(series)
-        val lekce = lesson(7).copy(title = "Lekce venku").also { instanceRepo.create(it) }
+        val lessonInstance = lesson(7).copy(title = "Lekce venku").also { instanceRepo.create(it) }
 
         service.updateEventSeries(series.id, request(description = "Nový popis"))
 
-        val ulozena = instanceRepo.get(lekce.id)!!
-        assertEquals("Lekce venku", ulozena.title)
-        assertEquals("Nový popis", ulozena.description)
+        val stored = instanceRepo.get(lessonInstance.id)!!
+        assertEquals("Lekce venku", stored.title)
+        assertEquals("Nový popis", stored.description)
     }
 
     @Test
-    fun `kapacita kurzu se propise do lekci`() = runBlocking {
+    fun `course capacity propagates to lessons`() = runBlocking {
         seriesRepo.create(series)
-        val lekce = lesson(7).also { instanceRepo.create(it) }
+        val lessonInstance = lesson(7).also { instanceRepo.create(it) }
 
         service.updateEventSeries(series.id, request(capacity = 12))
 
-        assertEquals(12, instanceRepo.get(lekce.id)?.capacity)
+        assertEquals(12, instanceRepo.get(lessonInstance.id)?.capacity)
     }
 
     @Test
-    fun `platebni metody se propisuji`() = runBlocking {
+    fun `payment methods propagate`() = runBlocking {
         seriesRepo.create(series)
-        val lekce = lesson(7).also { instanceRepo.create(it) }
+        val lessonInstance = lesson(7).also { instanceRepo.create(it) }
 
         service.updateEventSeries(
             series.id,
             request().copy(allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER)),
         )
 
-        assertEquals(listOf(PaymentType.BANK_TRANSFER), instanceRepo.get(lekce.id)?.allowedPaymentTypes)
+        assertEquals(listOf(PaymentType.BANK_TRANSFER), instanceRepo.get(lessonInstance.id)?.allowedPaymentTypes)
     }
 }

@@ -100,7 +100,7 @@ class AttendanceServiceSpec {
     }
 
     @Test
-    fun `prezencka lekce obsahuje ucastniky kurzu krome omluvenych`() = runBlocking {
+    fun `lesson attendance includes course enrollees except those who opted out`() = runBlocking {
         val lessonId = Uuid.parse("00000000-0000-0000-0000-0000000000c1")
         val instanceRepo = InMemoryEventInstanceRepository()
         val resRepo = InMemoryReservationRepository()
@@ -109,11 +109,11 @@ class AttendanceServiceSpec {
 
         resRepo.save(reservation(Reference.Instance(lessonId), "Dropin"))
         resRepo.save(reservation(Reference.Series(seriesId), "Kurzista"))
-        val omluveny = resRepo.save(reservation(Reference.Series(seriesId), "Omluveny"))
+        val optedOutEnrollment = resRepo.save(reservation(Reference.Series(seriesId), "Omluveny"))
         optOutRepo.save(
             SeriesLessonOptOut(
                 id = Uuid.random(),
-                reservationId = omluveny.id,
+                reservationId = optedOutEnrollment.id,
                 instanceId = lessonId,
                 optedOutAt = Clock.System.now(),
                 isLateCancellation = false,
@@ -138,19 +138,19 @@ class AttendanceServiceSpec {
     }
 
     @Test
-    fun `odskrtnuti ucastnika kurzu plati jen pro jednu lekci`() = runBlocking {
-        val lekceA = Uuid.parse("00000000-0000-0000-0000-0000000000c1")
-        val lekceB = Uuid.parse("00000000-0000-0000-0000-0000000000c2")
+    fun `checking in a course enrollee applies to one lesson only`() = runBlocking {
+        val lessonA = Uuid.parse("00000000-0000-0000-0000-0000000000c1")
+        val lessonB = Uuid.parse("00000000-0000-0000-0000-0000000000c2")
         val instanceRepo = InMemoryEventInstanceRepository()
         val resRepo = InMemoryReservationRepository()
-        instanceRepo.create(lesson(lekceA, series = seriesId))
-        instanceRepo.create(lesson(lekceB, series = seriesId))
-        val kurzista = resRepo.save(reservation(Reference.Series(seriesId), "Kurzista"))
+        instanceRepo.create(lesson(lessonA, series = seriesId))
+        instanceRepo.create(lesson(lessonB, series = seriesId))
+        val enrollment = resRepo.save(reservation(Reference.Series(seriesId), "Kurzista"))
 
         val svc = service(resRepo = resRepo, instanceRepo = instanceRepo)
-        svc.setAttendance(kurzista.id, lekceA, true)
+        svc.setAttendance(enrollment.id, lessonA, true)
 
-        assertEquals(true, svc.getAttendance(lekceA).getOrNull()!!.entries.single().checkedIn)
-        assertEquals(false, svc.getAttendance(lekceB).getOrNull()!!.entries.single().checkedIn)
+        assertEquals(true, svc.getAttendance(lessonA).getOrNull()!!.entries.single().checkedIn)
+        assertEquals(false, svc.getAttendance(lessonB).getOrNull()!!.entries.single().checkedIn)
     }
 }

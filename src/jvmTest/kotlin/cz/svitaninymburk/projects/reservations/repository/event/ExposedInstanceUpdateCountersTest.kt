@@ -44,7 +44,7 @@ class ExposedInstanceUpdateCountersTest {
     }
 
     @Test
-    fun `update neprepise citace hodnotou z drive nactene kopie`() = runBlocking {
+    fun `update does not overwrite counters with values from a previously loaded copy`() = runBlocking {
         val created = repo.create(
             EventInstance(
                 id = Uuid.random(), definitionId = defId, title = "Původní", description = "D",

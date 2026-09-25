@@ -150,7 +150,7 @@ class RunningCourseSpec {
     // --- storno celé rezervace ---
 
     @Test
-    fun `rezervaci na rozbehnuty kurz nezrusi ani admin`() = runBlocking {
+    fun `not even admin can cancel a reservation for a started course`() = runBlocking {
         seriesRepo.create(series)
         lesson((-7).days)
         lesson(7.days)
@@ -163,7 +163,7 @@ class RunningCourseSpec {
     }
 
     @Test
-    fun `admin zrusi rezervaci na kurz, ktery jeste nezacal`() = runBlocking {
+    fun `admin cancels a reservation for a course that has not started yet`() = runBlocking {
         seriesRepo.create(series.copy(startDate = LocalDate(2099, 1, 1)))
         lesson(7.days)
         val reservation = enroll()
@@ -173,7 +173,7 @@ class RunningCourseSpec {
     }
 
     @Test
-    fun `nahradnika jde z poradniku odebrat i u bezicho kurzu`() = runBlocking {
+    fun `waitlisted person can be removed from the waitlist even for a running course`() = runBlocking {
         seriesRepo.create(series.copy(occupiedWaitlist = 1))
         lesson((-7).days)
         lesson(7.days)
@@ -186,7 +186,7 @@ class RunningCourseSpec {
     // --- zrušení kurzu ---
 
     @Test
-    fun `zruseni bezicho kurzu zrusi jen lekce, ktere jeste nezacaly`() = runBlocking {
+    fun `cancelling a running course cancels only lessons that have not started yet`() = runBlocking {
         seriesRepo.create(series)
         val past = lesson((-7).days)
         val startedToday = lesson((-1).hours)
@@ -203,7 +203,7 @@ class RunningCourseSpec {
     }
 
     @Test
-    fun `zapsany si rezervaci necha a dostane kredit za zbyvajici lekce`() = runBlocking {
+    fun `enrolled person keeps the reservation and gets credit for the remaining lessons`() = runBlocking {
         seriesRepo.create(series)
         lesson((-7).days)
         lesson(7.days)
@@ -222,15 +222,15 @@ class RunningCourseSpec {
     }
 
     @Test
-    fun `za lekci, ze ktere se uz omluvil, podruhe nic nedostane`() = runBlocking {
+    fun `gets nothing a second time for a lesson already opted out of`() = runBlocking {
         seriesRepo.create(series)
         lesson((-7).days)
-        val omluvena = lesson(7.days)
+        val optedOutLesson = lesson(7.days)
         lesson(14.days)
         val reservation = enroll()
         optOutRepo.save(
             SeriesLessonOptOut(
-                id = Uuid.random(), reservationId = reservation.id, instanceId = omluvena.id,
+                id = Uuid.random(), reservationId = reservation.id, instanceId = optedOutLesson.id,
                 optedOutAt = Clock.System.now(), isLateCancellation = false, refundedAmount = 150.0,
             )
         )
@@ -241,7 +241,7 @@ class RunningCourseSpec {
     }
 
     @Test
-    fun `kredit za zbytek kurzu neprekroci zaplacenou castku`() = runBlocking {
+    fun `credit for the rest of the course does not exceed the paid amount`() = runBlocking {
         seriesRepo.create(series.copy(lessonRefundAmount = 400.0))
         lesson((-7).days)
         lesson(7.days)
@@ -254,7 +254,7 @@ class RunningCourseSpec {
     }
 
     @Test
-    fun `bez vraceni kreditu zapsany nic nedostane`() = runBlocking {
+    fun `without credit refund the enrolled person gets nothing`() = runBlocking {
         seriesRepo.create(series)
         lesson((-7).days)
         lesson(7.days)
@@ -267,7 +267,7 @@ class RunningCourseSpec {
     }
 
     @Test
-    fun `nahradnik v poradniku bezicho kurzu se pri zruseni kurzu odhlasi`() = runBlocking {
+    fun `waitlisted person of a running course is removed when the course is cancelled`() = runBlocking {
         seriesRepo.create(series)
         lesson((-7).days)
         lesson(7.days)
@@ -279,7 +279,7 @@ class RunningCourseSpec {
     }
 
     @Test
-    fun `nezaplaceny zapis se se zrusenim bezicho kurzu stornuje`() = runBlocking {
+    fun `unpaid enrollment is cancelled when a running course is cancelled`() = runBlocking {
         seriesRepo.create(series)
         lesson((-7).days)
         lesson(7.days)
@@ -289,12 +289,12 @@ class RunningCourseSpec {
 
         assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(unpaid.id)?.status)
         assertEquals(0.0, lessonCredit(unpaid))
-        val zaznam = auditRepo.recordedEvents().single { it.type == AuditEventType.RESERVATION_CANCELLED && it.reservationId == unpaid.id }
-        assertEquals("Nezaplacený zápis zrušen se zrušením kurzu", zaznam.detail)
+        val auditEntry = auditRepo.recordedEvents().single { it.type == AuditEventType.RESERVATION_CANCELLED && it.reservationId == unpaid.id }
+        assertEquals("Nezaplacený zápis zrušen se zrušením kurzu", auditEntry.detail)
     }
 
     @Test
-    fun `castecne zaplaceny zapis zustane a dostane kredit do vyse zaplaceneho`() = runBlocking {
+    fun `partially paid enrollment stays and gets credit up to the paid amount`() = runBlocking {
         seriesRepo.create(series)
         lesson((-7).days)
         lesson(7.days)
@@ -308,7 +308,7 @@ class RunningCourseSpec {
     }
 
     @Test
-    fun `zapis na kurz zdarma se se zrusenim bezicho kurzu nestornuje`() = runBlocking {
+    fun `free course enrollment is not cancelled when a running course is cancelled`() = runBlocking {
         seriesRepo.create(series.copy(price = 0.0))
         lesson((-7).days)
         lesson(7.days)
@@ -322,7 +322,7 @@ class RunningCourseSpec {
     }
 
     @Test
-    fun `zrusene lekce se zapisou do historie`() = runBlocking {
+    fun `cancelled lessons are written to history`() = runBlocking {
         seriesRepo.create(series)
         lesson((-7).days)
         val next = lesson(7.days)
@@ -335,7 +335,7 @@ class RunningCourseSpec {
     }
 
     @Test
-    fun `kurz pred zacatkem se rusi jako dosud i s plnou vratkou`() = runBlocking {
+    fun `course before start is cancelled as before with a full refund`() = runBlocking {
         seriesRepo.create(series.copy(startDate = LocalDate(2099, 1, 1)))
         lesson(7.days)
         val reservation = enroll()
@@ -350,7 +350,7 @@ class RunningCourseSpec {
     }
 
     @Test
-    fun `detail kurzu adminovi rekne, ze kurz uz bezi`() = runBlocking {
+    fun `course detail tells admin that the course is already running`() = runBlocking {
         seriesRepo.create(series)
         lesson((-7).days)
         lesson(7.days)

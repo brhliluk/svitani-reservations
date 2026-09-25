@@ -104,16 +104,16 @@ class AdminTodayParticipantsSpec {
     )
 
     @Test
-    fun `dnesni ucastnici zahrnuji kurz minus omluvene`() = runBlocking {
+    fun `today's participants include the course minus opted-out ones`() = runBlocking {
         instanceRepo.create(lesson(lessonId, seriesId))
 
         reserve("00000000-0000-0000-0000-0000000000d1", Reference.Instance(lessonId), seats = 1)
         reserve("00000000-0000-0000-0000-0000000000d2", Reference.Series(seriesId), seats = 2)
-        val omluveny = reserve("00000000-0000-0000-0000-0000000000d3", Reference.Series(seriesId), seats = 3)
+        val optedOut = reserve("00000000-0000-0000-0000-0000000000d3", Reference.Series(seriesId), seats = 3)
         optOutRepo.save(
             SeriesLessonOptOut(
                 id = Uuid.random(),
-                reservationId = omluveny.id,
+                reservationId = optedOut.id,
                 instanceId = lessonId,
                 optedOutAt = Clock.System.now(),
                 isLateCancellation = false,
@@ -126,7 +126,7 @@ class AdminTodayParticipantsSpec {
     }
 
     @Test
-    fun `odmitnuta rezervace se do dnesnich ucastniku nepocita`() = runBlocking {
+    fun `rejected reservation does not count towards today's participants`() = runBlocking {
         instanceRepo.create(lesson(lessonId, seriesId))
 
         reserve("00000000-0000-0000-0000-0000000000d1", Reference.Instance(lessonId), seats = 1)
@@ -149,7 +149,7 @@ class AdminTodayParticipantsSpec {
     }
 
     @Test
-    fun `zrusena lekce dnes zadne ucastniky nema`() = runBlocking {
+    fun `cancelled lesson has no participants today`() = runBlocking {
         instanceRepo.create(lesson(lessonId, seriesId, isCancelled = true))
 
         reserve("00000000-0000-0000-0000-0000000000d1", Reference.Instance(lessonId), seats = 1)
@@ -161,11 +161,11 @@ class AdminTodayParticipantsSpec {
     }
 
     @Test
-    fun `samostatna akce bez serie se pocita jako driv`() = runBlocking {
-        val samostatna = Uuid.parse("00000000-0000-0000-0000-0000000000c9")
-        instanceRepo.create(lesson(samostatna, series = null))
+    fun `standalone event without a series is counted as before`() = runBlocking {
+        val standaloneId = Uuid.parse("00000000-0000-0000-0000-0000000000c9")
+        instanceRepo.create(lesson(standaloneId, series = null))
 
-        reserve("00000000-0000-0000-0000-0000000000d1", Reference.Instance(samostatna), seats = 2)
+        reserve("00000000-0000-0000-0000-0000000000d1", Reference.Instance(standaloneId), seats = 2)
         reserve("00000000-0000-0000-0000-0000000000d2", Reference.Series(seriesId), seats = 5)
 
         val summary = service().getDashboardSummary().getOrNull()!!

@@ -87,28 +87,28 @@ class MyReservationsFilterSpec {
     private suspend fun listedIds() = service.getReservations(userId).getOrNull()!!.map { it.id }
 
     @Test
-    fun `budouci akce se vraci`() = runBlocking {
+    fun `future event is returned`() = runBlocking {
         val reservation = givenReservation(Reference.Instance(givenInstance(2099).id))
         assertEquals(listOf(reservation.id), listedIds())
         Unit
     }
 
     @Test
-    fun `probehla akce se nevraci`() = runBlocking {
+    fun `past event is not returned`() = runBlocking {
         givenReservation(Reference.Instance(givenInstance(2020).id))
         assertTrue(listedIds().isEmpty())
         Unit
     }
 
     @Test
-    fun `zrusena akce se nevraci`() = runBlocking {
+    fun `cancelled event is not returned`() = runBlocking {
         givenReservation(Reference.Instance(givenInstance(2099, cancelled = true).id))
         assertTrue(listedIds().isEmpty())
         Unit
     }
 
     @Test
-    fun `zrusena rezervace se nevraci`() = runBlocking {
+    fun `cancelled reservation is not returned`() = runBlocking {
         givenReservation(
             Reference.Instance(givenInstance(2099).id),
             status = Reservation.Status.CANCELLED,
@@ -119,14 +119,14 @@ class MyReservationsFilterSpec {
 
     /** Kurz, kterému část lekcí už proběhla, pořád běží — rozhoduje jeho konec. */
     @Test
-    fun `kurz s casti lekci v minulosti se vraci`() = runBlocking {
+    fun `course with some lessons in the past is returned`() = runBlocking {
         val reservation = givenReservation(Reference.Series(givenSeries(endYear = 2099).id))
         assertEquals(listOf(reservation.id), listedIds())
         Unit
     }
 
     @Test
-    fun `dobehnuty kurz se nevraci`() = runBlocking {
+    fun `finished course is not returned`() = runBlocking {
         givenReservation(Reference.Series(givenSeries(endYear = 2020).id))
         assertTrue(listedIds().isEmpty())
         Unit
@@ -137,14 +137,14 @@ class MyReservationsFilterSpec {
      * sjednocení pravidla s přivlastněním to zároveň spravilo.
      */
     @Test
-    fun `zruseny kurz se nevraci`() = runBlocking {
+    fun `cancelled course is not returned`() = runBlocking {
         givenReservation(Reference.Series(givenSeries(endYear = 2099, cancelled = true).id))
         assertTrue(listedIds().isEmpty())
         Unit
     }
 
     @Test
-    fun `cizi rezervace se nevraci`() = runBlocking {
+    fun `reservation of another user is not returned`() = runBlocking {
         reservationRepo.save(
             Reservation(
                 id = Uuid.random(),

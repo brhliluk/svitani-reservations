@@ -103,28 +103,28 @@ class ClaimableFlagSpec {
         TestService(caller).getDetail(reservation.id).getOrNull()!!.claimable
 
     @Test
-    fun `shodny e-mail prihlaseneho uzivatele tlacitko ukaze`() = runBlocking {
+    fun `matching e-mail of the logged-in user shows the button`() = runBlocking {
         givenUser("host@test.cz")
         assertTrue(claimableFor(callerId, givenReservation()))
         Unit
     }
 
     @Test
-    fun `nepriblaseny navstevnik tlacitko nevidi`() = runBlocking {
+    fun `anonymous visitor does not see the button`() = runBlocking {
         givenUser("host@test.cz")
         assertFalse(claimableFor(null, givenReservation()))
         Unit
     }
 
     @Test
-    fun `jiny e-mail tlacitko nevidi`() = runBlocking {
+    fun `different e-mail does not see the button`() = runBlocking {
         givenUser("nekdo.jiny@test.cz")
         assertFalse(claimableFor(callerId, givenReservation()))
         Unit
     }
 
     @Test
-    fun `uz privlastnena rezervace tlacitko neukazuje`() = runBlocking {
+    fun `already claimed reservation does not show the button`() = runBlocking {
         givenUser("host@test.cz")
         assertFalse(claimableFor(callerId, givenReservation(registeredUserId = callerId)))
         Unit

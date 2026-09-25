@@ -20,10 +20,10 @@ import kotlin.test.assertTrue
  */
 class AttendanceKeyMigrationTest {
 
-    private val rezervaceNaLekci = "00000000-0000-0000-0000-0000000000d1"
-    private val lekce = "00000000-0000-0000-0000-0000000000c1"
-    private val rezervaceNaKurz = "00000000-0000-0000-0000-0000000000d2"
-    private val kurz = "00000000-0000-0000-0000-0000000000a1"
+    private val lessonReservationId = "00000000-0000-0000-0000-0000000000d1"
+    private val lessonId = "00000000-0000-0000-0000-0000000000c1"
+    private val seriesReservationId = "00000000-0000-0000-0000-0000000000d2"
+    private val seriesId = "00000000-0000-0000-0000-0000000000a1"
 
     @BeforeTest
     fun setup() {
@@ -45,10 +45,10 @@ class AttendanceKeyMigrationTest {
                     checked_in_at TEXT NULL
                 )
             """.trimIndent())
-            exec("INSERT INTO reservations VALUES ('$rezervaceNaLekci', '$lekce', 'INSTANCE')")
-            exec("INSERT INTO reservations VALUES ('$rezervaceNaKurz', '$kurz', 'SERIES')")
-            exec("INSERT INTO reservation_attendance VALUES ('$rezervaceNaLekci', 1, NULL)")
-            exec("INSERT INTO reservation_attendance VALUES ('$rezervaceNaKurz', 1, NULL)")
+            exec("INSERT INTO reservations VALUES ('$lessonReservationId', '$lessonId', 'INSTANCE')")
+            exec("INSERT INTO reservations VALUES ('$seriesReservationId', '$seriesId', 'SERIES')")
+            exec("INSERT INTO reservation_attendance VALUES ('$lessonReservationId', 1, NULL)")
+            exec("INSERT INTO reservation_attendance VALUES ('$seriesReservationId', 1, NULL)")
         }
     }
 
@@ -75,27 +75,27 @@ class AttendanceKeyMigrationTest {
     }
 
     @Test
-    fun `migrace prestavi klic a prenese docházku`() = runBlocking {
+    fun `migration rebuilds the key and carries over attendance`() = runBlocking {
         assertTrue(!columnExists(), "výchozí stav testu: sloupec instance_id chybí")
 
         transaction { migrateAttendanceToPerLessonKey() }
 
         assertTrue(columnExists(), "migrace musí sloupec instance_id doplnit")
-        assertEquals(lekce, instanceIdOf(rezervaceNaLekci), "docházka se mapuje na instanci rezervace")
+        assertEquals(lessonId, instanceIdOf(lessonReservationId), "docházka se mapuje na instanci rezervace")
         assertEquals(1, rowCount(), "řádek u rezervace na sérii se nedá namapovat a zahazuje se")
     }
 
     @Test
-    fun `migrace je idempotentni`() = runBlocking {
+    fun `migration is idempotent`() = runBlocking {
         transaction { migrateAttendanceToPerLessonKey() }
         transaction { migrateAttendanceToPerLessonKey() }
 
         assertEquals(1, rowCount())
-        assertEquals(lekce, instanceIdOf(rezervaceNaLekci))
+        assertEquals(lessonId, instanceIdOf(lessonReservationId))
     }
 
     @Test
-    fun `na cerstve databazi bez tabulky je migrace no-op`() = runBlocking {
+    fun `migration is a no-op on a fresh database without the table`() = runBlocking {
         // Vlastní čerstvá DB bez jediné tabulky — nahrazuje stav před SchemaUtils.create,
         // kdy setup() z @BeforeTest ještě neproběhl.
         val freshDbFile = File.createTempFile("attendance-key-migration-fresh", ".db").also { it.deleteOnExit() }
@@ -108,7 +108,7 @@ class AttendanceKeyMigrationTest {
     }
 
     @Test
-    fun `zastarala reservation_attendance_new z predchoziho pokusu migraci nezablokuje`() = runBlocking {
+    fun `stale reservation_attendance_new from an earlier attempt does not block the migration`() = runBlocking {
         // Simuluje pozůstatek dřívějšího nedokončeného běhu migrace.
         transaction {
             exec("""
@@ -123,7 +123,7 @@ class AttendanceKeyMigrationTest {
         transaction { migrateAttendanceToPerLessonKey() }
 
         assertTrue(columnExists(), "migrace i přes zastaralou pomocnou tabulku doplní instance_id")
-        assertEquals(lekce, instanceIdOf(rezervaceNaLekci), "docházka se i tak namapuje na instanci rezervace")
+        assertEquals(lessonId, instanceIdOf(lessonReservationId), "docházka se i tak namapuje na instanci rezervace")
         assertEquals(1, rowCount(), "řádek u rezervace na sérii se stále zahazuje")
     }
 }

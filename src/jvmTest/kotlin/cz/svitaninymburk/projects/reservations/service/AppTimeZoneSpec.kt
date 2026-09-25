@@ -89,7 +89,7 @@ class AppTimeZoneSpec {
     }
 
     @Test
-    fun `akci, která v Praze teprve začne, jde zrušit i na JVM v Tokiu`() = runBlocking {
+    fun `an event that has not yet started in Prague can be cancelled even on a JVM in Tokyo`() = runBlocking {
         runInSystemZone("Asia/Tokyo")
         val instance = instanceStartingIn(1.hours)
 
@@ -99,7 +99,7 @@ class AppTimeZoneSpec {
     }
 
     @Test
-    fun `akci, která v Praze už začala, nejde zrušit ani na JVM v UTC`() = runBlocking {
+    fun `an event that has already started in Prague cannot be cancelled even on a JVM in UTC`() = runBlocking {
         runInSystemZone("UTC")
         val instance = instanceStartingIn((-30).minutes)
 
@@ -109,7 +109,7 @@ class AppTimeZoneSpec {
     }
 
     @Test
-    fun `rozvrh označí proběhlé podle pražského času`() = runBlocking {
+    fun `schedule marks past events by Prague time`() = runBlocking {
         runInSystemZone("Asia/Tokyo")
         val running = instanceStartingIn((-30).minutes)
         val finished = instanceStartingIn((-3).hours)

@@ -10,44 +10,44 @@ import kotlin.uuid.Uuid
 
 class InMemoryAttendanceRepositoryTest {
 
-    private val lekceA = Uuid.parse("00000000-0000-0000-0000-0000000000c1")
-    private val lekceB = Uuid.parse("00000000-0000-0000-0000-0000000000c2")
+    private val lessonA = Uuid.parse("00000000-0000-0000-0000-0000000000c1")
+    private val lessonB = Uuid.parse("00000000-0000-0000-0000-0000000000c2")
 
     @Test
     fun defaultsToNotCheckedIn() = runBlocking {
         val repo = InMemoryAttendanceRepository()
-        assertFalse(repo.isCheckedIn(Uuid.random(), lekceA))
+        assertFalse(repo.isCheckedIn(Uuid.random(), lessonA))
     }
 
     @Test
     fun setAndReadCheckedIn() = runBlocking {
         val repo = InMemoryAttendanceRepository()
         val rid = Uuid.random()
-        repo.setCheckedIn(rid, lekceA, true)
-        assertTrue(repo.isCheckedIn(rid, lekceA))
-        repo.setCheckedIn(rid, lekceA, false)
-        assertFalse(repo.isCheckedIn(rid, lekceA))
+        repo.setCheckedIn(rid, lessonA, true)
+        assertTrue(repo.isCheckedIn(rid, lessonA))
+        repo.setCheckedIn(rid, lessonA, false)
+        assertFalse(repo.isCheckedIn(rid, lessonA))
     }
 
     @Test
     fun checkedInSetContainsOnlyCheckedReservations() = runBlocking {
         val repo = InMemoryAttendanceRepository()
         val a = Uuid.random(); val b = Uuid.random()
-        repo.setCheckedIn(a, lekceA, true)
-        val flags = repo.checkedInFlags(lekceA, listOf(a, b))
+        repo.setCheckedIn(a, lessonA, true)
+        val flags = repo.checkedInFlags(lessonA, listOf(a, b))
         assertEquals(true, flags[a])
         assertEquals(false, flags[b])
     }
 
     @Test
-    fun `odskrtnuti na jedne lekci neoznaci druhou`() = runBlocking {
+    fun `check-in on one lesson does not mark the other`() = runBlocking {
         val repo = InMemoryAttendanceRepository()
-        val rezervace = Uuid.parse("00000000-0000-0000-0000-0000000000d1")
+        val reservation = Uuid.parse("00000000-0000-0000-0000-0000000000d1")
 
-        repo.setCheckedIn(rezervace, lekceA, true)
+        repo.setCheckedIn(reservation, lessonA, true)
 
-        assertTrue(repo.isCheckedIn(rezervace, lekceA))
-        assertFalse(repo.isCheckedIn(rezervace, lekceB), "účastník kurzu je odškrtnutý jen na lekci A")
-        assertEquals(mapOf(rezervace to false), repo.checkedInFlags(lekceB, listOf(rezervace)))
+        assertTrue(repo.isCheckedIn(reservation, lessonA))
+        assertFalse(repo.isCheckedIn(reservation, lessonB), "účastník kurzu je odškrtnutý jen na lekci A")
+        assertEquals(mapOf(reservation to false), repo.checkedInFlags(lessonB, listOf(reservation)))
     }
 }

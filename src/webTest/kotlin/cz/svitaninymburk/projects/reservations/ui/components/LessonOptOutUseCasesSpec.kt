@@ -63,7 +63,7 @@ class LessonOptOutUseCasesSpec {
     )
 
     @Test
-    fun `nezaplacena rezervace kredit nedostane`() {
+    fun unpaidReservationGetsNoCredit() {
         assertEquals(
             LessonRefundPreview.NOT_PAID,
             lessonRefundPreview(view(paidAmount = 0.0), lesson(), beforeDeadline),
@@ -71,7 +71,7 @@ class LessonOptOutUseCasesSpec {
     }
 
     @Test
-    fun `nezaplacena rezervace po uzaverce nic neslibuje`() {
+    fun unpaidReservationAfterDeadlinePromisesNothing() {
         // „Připíšeme po zaplacení“ by bylo nepravdivé — pozdní omluvenka nedostane nic ani pak.
         assertEquals(
             LessonRefundPreview.WINDOW_PASSED,
@@ -80,7 +80,7 @@ class LessonOptOutUseCasesSpec {
     }
 
     @Test
-    fun `nezaplaceny kurz bez kreditu za lekce nic neslibuje`() {
+    fun unpaidCourseWithoutLessonCreditPromisesNothing() {
         assertEquals(
             LessonRefundPreview.NO_REFUND_CONFIGURED,
             lessonRefundPreview(view(paidAmount = 0.0, lessonRefundAmount = null), lesson(), beforeDeadline),
@@ -88,12 +88,12 @@ class LessonOptOutUseCasesSpec {
     }
 
     @Test
-    fun `slib po zaplaceni ukazuje plnou sazbu i u nezaplaceneho`() {
+    fun promiseAfterPaymentShowsFullRateEvenWhenUnpaid() {
         assertEquals(200.0, lessonRefundRate(view(paidAmount = 0.0, seatCount = 2)))
     }
 
     @Test
-    fun `po uzaverce kredit nevznikne`() {
+    fun noCreditAfterDeadline() {
         assertEquals(
             LessonRefundPreview.WINDOW_PASSED,
             lessonRefundPreview(view(), lesson(), afterDeadline),
@@ -101,7 +101,7 @@ class LessonOptOutUseCasesSpec {
     }
 
     @Test
-    fun `kurz bez nastaveneho kreditu nic nevraci`() {
+    fun courseWithoutConfiguredCreditRefundsNothing() {
         assertEquals(
             LessonRefundPreview.NO_REFUND_CONFIGURED,
             lessonRefundPreview(view(lessonRefundAmount = null), lesson(), beforeDeadline),
@@ -109,29 +109,29 @@ class LessonOptOutUseCasesSpec {
     }
 
     @Test
-    fun `vycerpany strop uz dalsi kredit nedovoli`() {
+    fun exhaustedCapAllowsNoFurtherCredit() {
         // Zaplaceno 1000, vráceno 1000 — další omluvenka je možná, ale bez kreditu.
-        val vycerpano = view(paidAmount = 1000.0, alreadyRefunded = 1000.0)
-        assertEquals(0.0, lessonRefundAmount(vycerpano))
+        val exhausted = view(paidAmount = 1000.0, alreadyRefunded = 1000.0)
+        assertEquals(0.0, lessonRefundAmount(exhausted))
         assertEquals(
             LessonRefundPreview.NO_REFUND_CONFIGURED,
-            lessonRefundPreview(vycerpano, lesson(), beforeDeadline),
+            lessonRefundPreview(exhausted, lesson(), beforeDeadline),
         )
     }
 
     @Test
-    fun `kredit se strope zbytkem do zaplacene castky`() {
+    fun creditIsCappedByRemainderOfPaidAmount() {
         // 100 Kč za lekci, ale do stropu zbývá jen 40.
         assertEquals(40.0, lessonRefundAmount(view(paidAmount = 1000.0, alreadyRefunded = 960.0)))
     }
 
     @Test
-    fun `kredit se nasobi poctem mist`() {
+    fun creditIsMultipliedBySeatCount() {
         assertEquals(300.0, lessonRefundAmount(view(seatCount = 3)))
     }
 
     @Test
-    fun `vcasne odhlaseni ze zaplaceneho kurzu kredit vrati`() {
+    fun timelyOptOutFromPaidCourseRefundsCredit() {
         assertEquals(
             LessonRefundPreview.REFUND_ELIGIBLE,
             lessonRefundPreview(view(), lesson(), beforeDeadline),
@@ -139,7 +139,7 @@ class LessonOptOutUseCasesSpec {
     }
 
     @Test
-    fun `odhlasit lze jen budouci lekci, ktera neni zrusena ani odhlasena`() {
+    fun onlyFutureLessonNeitherCancelledNorOptedOutCanBeOptedOut() {
         assertTrue(canOptOut(lesson(), beforeDeadline), "běžná budoucí lekce")
         assertFalse(canOptOut(lesson(isCancelled = true), beforeDeadline), "zrušená lekce")
         assertFalse(canOptOut(lesson(isOptedOut = true), beforeDeadline), "už odhlášená lekce")
@@ -147,13 +147,13 @@ class LessonOptOutUseCasesSpec {
     }
 
     @Test
-    fun `bez casu ze serveru se odhlaseni neblokuje`() {
+    fun optOutIsNotBlockedWithoutServerTimes() {
         // Starší server by pole neposlal; UI kvůli tomu nesmí tlačítko schovat.
         assertTrue(canOptOut(lesson(startsAt = null), afterDeadline))
     }
 
     @Test
-    fun `pole na kod penezenky se ptame jen bez uctu a jen kdyz kredit vznikne`() {
+    fun walletCodeFieldIsAskedOnlyWithoutAccountAndOnlyWhenCreditArises() {
         assertTrue(needsWalletCodeInput(true, LessonRefundPreview.REFUND_ELIGIBLE))
         assertFalse(needsWalletCodeInput(false, LessonRefundPreview.REFUND_ELIGIBLE), "přihlášený má peněženku od účtu")
         assertFalse(needsWalletCodeInput(true, LessonRefundPreview.WINDOW_PASSED), "po uzávěrce není co připsat")

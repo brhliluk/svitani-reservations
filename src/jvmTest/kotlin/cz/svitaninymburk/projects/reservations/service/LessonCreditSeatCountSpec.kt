@@ -143,7 +143,7 @@ class LessonCreditSeatCountSpec {
     private suspend fun credited(reservation: Reservation) = walletService.refundedForLessonOptOuts(reservation.id)
 
     @Test
-    fun `rezervace si pri vzniku zafixuje pomernou cast ceny vcetne mist a vlastnich poli`() = runBlocking {
+    fun `reservation fixes the proportional share of the price at creation including seats and custom fields`() = runBlocking {
         setup(lessonRefundAmount = null)
 
         val result = reservations.reserveSeries(
@@ -165,74 +165,74 @@ class LessonCreditSeatCountSpec {
     }
 
     @Test
-    fun `omluvenka bez rucni sazby vrati pomernou cast ceny`() = runBlocking {
+    fun `lesson opt-out without a manual rate refunds the proportional share of the price`() = runBlocking {
         setup(lessonRefundAmount = null)
-        val zapis = enrolThreeSeats()
+        val enrollment = enrolThreeSeats()
 
-        val result = reservations.cancelReservation(zapis.id, instanceId = lessons[0].id)
+        val result = reservations.cancelReservation(enrollment.id, instanceId = lessons[0].id)
 
         assertTrue(result.isRight(), "omluvenka musí projít, dostal: $result")
-        assertEquals(800.0, credited(zapis))
+        assertEquals(800.0, credited(enrollment))
     }
 
     @Test
-    fun `omluvenka s rucni sazbou ji nasobi poctem mist`() = runBlocking {
+    fun `lesson opt-out with a manual rate multiplies it by the seat count`() = runBlocking {
         setup(lessonRefundAmount = 150.0)
-        val zapis = enrolThreeSeats()
+        val enrollment = enrolThreeSeats()
 
-        reservations.cancelReservation(zapis.id, instanceId = lessons[0].id)
+        reservations.cancelReservation(enrollment.id, instanceId = lessons[0].id)
 
-        assertEquals(450.0, credited(zapis))
+        assertEquals(450.0, credited(enrollment))
     }
 
     @Test
-    fun `zruseni lekce adminem vrati totez co omluvenka`() = runBlocking {
+    fun `lesson cancellation by admin refunds the same as a lesson opt-out`() = runBlocking {
         setup(lessonRefundAmount = 150.0)
-        val zapis = enrolThreeSeats()
+        val enrollment = enrolThreeSeats()
 
         admin.cancelSeriesLesson(lessons[0].id)
 
-        assertEquals(450.0, credited(zapis), "sazba 150 Kč × 3 místa, ne jen za jedno")
+        assertEquals(450.0, credited(enrollment), "sazba 150 Kč × 3 místa, ne jen za jedno")
     }
 
     @Test
-    fun `zruseni lekce adminem bez rucni sazby vrati pomernou cast ceny`() = runBlocking {
+    fun `lesson cancellation by admin without a manual rate refunds the proportional share of the price`() = runBlocking {
         setup(lessonRefundAmount = null)
-        val zapis = enrolThreeSeats()
+        val enrollment = enrolThreeSeats()
 
         admin.cancelSeriesLesson(lessons[0].id)
 
-        assertEquals(800.0, credited(zapis))
+        assertEquals(800.0, credited(enrollment))
     }
 
     @Test
-    fun `zruseni lekce adminem nevrati vic nez bylo zaplaceno`() = runBlocking {
+    fun `lesson cancellation by admin does not refund more than was paid`() = runBlocking {
         setup(lessonRefundAmount = 150.0)
-        val zapis = enrolThreeSeats(paidAmount = 500.0)
+        val enrollment = enrolThreeSeats(paidAmount = 500.0)
 
         admin.cancelSeriesLesson(lessons[0].id)
         admin.cancelSeriesLesson(lessons[1].id)
 
-        assertEquals(500.0, credited(zapis), "2 × 450 Kč by přerostlo zaplacených 500 Kč")
+        assertEquals(500.0, credited(enrollment), "2 × 450 Kč by přerostlo zaplacených 500 Kč")
     }
 
     @Test
-    fun `nulova sazba znamena nevracet`() = runBlocking {
+    fun `zero rate means no refund`() = runBlocking {
         setup(lessonRefundAmount = 0.0)
-        val zapis = enrolThreeSeats()
+        val enrollment = enrolThreeSeats()
 
-        reservations.cancelReservation(zapis.id, instanceId = lessons[0].id)
+        reservations.cancelReservation(enrollment.id, instanceId = lessons[0].id)
         admin.cancelSeriesLesson(lessons[1].id)
 
-        assertEquals(0.0, credited(zapis))
+        assertEquals(0.0, credited(enrollment))
     }
 
     @Test
-    fun `nahled v detailu rezervace ukaze kredit za vsechna mista`() = runBlocking {
+    fun `reservation detail preview shows credit for all seats`() = runBlocking {
         setup(lessonRefundAmount = null)
-        val zapis = enrolThreeSeats()
+        val enrollment = enrolThreeSeats()
 
-        val view = reservations.getSeriesLessons(zapis.id).getOrNull()
+        val view = reservations.getSeriesLessons(enrollment.id).getOrNull()
 
         assertEquals(800.0, view?.lessonCredit)
     }

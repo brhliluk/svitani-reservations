@@ -78,7 +78,7 @@ class AdminCreateSeriesSpec {
     )
 
     @Test
-    fun `createEventAndSeries bez rozpisu vygeneruje týdenní lekce podle dne a času`() = runBlocking {
+    fun `createEventAndSeries without a custom schedule generates weekly lessons by day and time`() = runBlocking {
         val result = service.createEventAndSeries(andSeriesRequest())
         assertTrue(result.isRight())
 
@@ -96,7 +96,7 @@ class AdminCreateSeriesSpec {
     }
 
     @Test
-    fun `createEventAndSeries uloží pořadník a kredit za omluvenku`() = runBlocking {
+    fun `createEventAndSeries stores the waitlist capacity and the lesson opt-out credit`() = runBlocking {
         service.createEventAndSeries(andSeriesRequest())
 
         val series = seriesRepo.getAll(null).single()
@@ -107,7 +107,7 @@ class AdminCreateSeriesSpec {
     }
 
     @Test
-    fun `obě cesty založí kurz se stejnými lekcemi`() = runBlocking {
+    fun `both paths create a course with the same lessons`() = runBlocking {
         service.createEventAndSeries(andSeriesRequest())
         val viaAndSeries = seriesRepo.getAll(null).single()
 
@@ -141,7 +141,7 @@ class AdminCreateSeriesSpec {
     }
 
     @Test
-    fun `rozpis z formuláře má přednost před dnem a časem`() = runBlocking {
+    fun `custom schedule from the form takes precedence over day and time`() = runBlocking {
         service.createEventAndSeries(
             andSeriesRequest(
                 customLessons = listOf(

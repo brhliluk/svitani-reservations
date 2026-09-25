@@ -108,67 +108,67 @@ class ExposedSeriesAwareCapacityGuardTest {
     )
 
     @Test
-    fun `plny kurz nedovoli drop-in rezervaci`() = runBlocking {
+    fun `full series blocks drop-in reservation`() = runBlocking {
         val seriesId = Uuid.random()
-        val lekce = lesson(seriesId)
+        val lessonInstance = lesson(seriesId)
         enrol(seriesId, seats = 2)
 
-        assertFalse(guard.attemptToReserveSpots(lekce.id, seriesId, 1), "kapacita 2, kurz drží 2 místa")
-        assertEquals(0, instanceRepo.get(lekce.id)?.occupiedSpots, "odmítnutý pokus nesmí nic zapsat")
+        assertFalse(guard.attemptToReserveSpots(lessonInstance.id, seriesId, 1), "kapacita 2, kurz drží 2 místa")
+        assertEquals(0, instanceRepo.get(lessonInstance.id)?.occupiedSpots, "odmítnutý pokus nesmí nic zapsat")
     }
 
     @Test
-    fun `omluva z lekce misto uvolni`() = runBlocking {
+    fun `lesson opt-out frees the seats`() = runBlocking {
         val seriesId = Uuid.random()
-        val lekce = lesson(seriesId)
-        val rezervace = enrol(seriesId, seats = 2)
-        optOut(rezervace, lekce.id)
+        val lessonInstance = lesson(seriesId)
+        val reservation = enrol(seriesId, seats = 2)
+        optOut(reservation, lessonInstance.id)
 
-        assertTrue(guard.attemptToReserveSpots(lekce.id, seriesId, 2), "obě místa se omluvou uvolnila")
-        assertFalse(guard.attemptToReserveSpots(lekce.id, seriesId, 1), "a víc už se jich tam nevejde")
-        assertEquals(2, instanceRepo.get(lekce.id)?.occupiedSpots)
+        assertTrue(guard.attemptToReserveSpots(lessonInstance.id, seriesId, 2), "obě místa se omluvou uvolnila")
+        assertFalse(guard.attemptToReserveSpots(lessonInstance.id, seriesId, 1), "a víc už se jich tam nevejde")
+        assertEquals(2, instanceRepo.get(lessonInstance.id)?.occupiedSpots)
     }
 
     @Test
-    fun `castecne obsazeny kurz nechava zbytek kapacity`() = runBlocking {
+    fun `partially filled series leaves the remaining capacity`() = runBlocking {
         val seriesId = Uuid.random()
-        val lekce = lesson(seriesId)
+        val lessonInstance = lesson(seriesId)
         enrol(seriesId, seats = 1)
 
-        assertTrue(guard.attemptToReserveSpots(lekce.id, seriesId, 1), "kapacita 2, kurz drží 1")
-        assertFalse(guard.attemptToReserveSpots(lekce.id, seriesId, 1), "teď už je plno")
+        assertTrue(guard.attemptToReserveSpots(lessonInstance.id, seriesId, 1), "kapacita 2, kurz drží 1")
+        assertFalse(guard.attemptToReserveSpots(lessonInstance.id, seriesId, 1), "teď už je plno")
     }
 
     @Test
-    fun `zrusena prihlaska misto nedrzi`() = runBlocking {
+    fun `cancelled enrolment does not hold seats`() = runBlocking {
         val seriesId = Uuid.random()
-        val lekce = lesson(seriesId)
+        val lessonInstance = lesson(seriesId)
         enrol(seriesId, seats = 2, status = Reservation.Status.CANCELLED)
 
-        assertTrue(guard.attemptToReserveSpots(lekce.id, seriesId, 2), "zrušená přihláška se do kapacity nepočítá")
+        assertTrue(guard.attemptToReserveSpots(lessonInstance.id, seriesId, 2), "zrušená přihláška se do kapacity nepočítá")
     }
 
     @Test
-    fun `zaporna zatez z rozbitych dat kapacitu nerozsiri`() = runBlocking {
+    fun `negative load from broken data does not expand capacity`() = runBlocking {
         val seriesId = Uuid.random()
-        val lekce = lesson(seriesId)
+        val lessonInstance = lesson(seriesId)
         // Rozbitý stav: omluvenka na lekci téhle série, ale od přihlášky na sérii jinou.
         // Přes službu nevznikne (kontroluje shodu sérií), přímým zápisem ano — a bez ořezu
         // na nulu by záporná zátěž kapacitu naopak rozšířila.
-        val cizi = enrol(Uuid.random(), seats = 2)
-        optOut(cizi, lekce.id)
+        val otherSeriesReservation = enrol(Uuid.random(), seats = 2)
+        optOut(otherSeriesReservation, lessonInstance.id)
 
-        assertFalse(guard.attemptToReserveSpots(lekce.id, seriesId, 3), "kapacita je 2, ne 4")
-        assertTrue(guard.attemptToReserveSpots(lekce.id, seriesId, 2), "celá kapacita 2 zůstává k dispozici")
-        assertEquals(2, instanceRepo.get(lekce.id)?.occupiedSpots)
+        assertFalse(guard.attemptToReserveSpots(lessonInstance.id, seriesId, 3), "kapacita je 2, ne 4")
+        assertTrue(guard.attemptToReserveSpots(lessonInstance.id, seriesId, 2), "celá kapacita 2 zůstává k dispozici")
+        assertEquals(2, instanceRepo.get(lessonInstance.id)?.occupiedSpots)
     }
 
     @Test
-    fun `prihlaska na jinou serii kapacitu neukrajuje`() = runBlocking {
+    fun `enrolment in another series does not reduce capacity`() = runBlocking {
         val seriesId = Uuid.random()
-        val lekce = lesson(seriesId)
+        val lessonInstance = lesson(seriesId)
         enrol(Uuid.random(), seats = 5)
 
-        assertTrue(guard.attemptToReserveSpots(lekce.id, seriesId, 2))
+        assertTrue(guard.attemptToReserveSpots(lessonInstance.id, seriesId, 2))
     }
 }

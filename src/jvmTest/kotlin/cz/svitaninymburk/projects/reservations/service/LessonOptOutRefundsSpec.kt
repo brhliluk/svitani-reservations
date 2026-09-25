@@ -135,7 +135,7 @@ class LessonOptOutRefundsSpec {
         optOutRepo.findByReservationAndInstance(reservation.id, lesson.id)?.refundedAmount
 
     @Test
-    fun `omluvenka pred zaplacenim dostane kredit, jakmile admin oznaci platbu`() = runBlocking {
+    fun `lesson opt-out before payment gets credit once admin marks the payment`() = runBlocking {
         val reservation = enroll(paidAmount = 0.0)
 
         val optOut = reservationService.cancelReservation(reservation.id, lessons[0].id)
@@ -150,7 +150,7 @@ class LessonOptOutRefundsSpec {
     }
 
     @Test
-    fun `dorovnani je idempotentni`() = runBlocking {
+    fun `settling credit after payment is idempotent`() = runBlocking {
         val reservation = enroll(paidAmount = 0.0)
         reservationService.cancelReservation(reservation.id, lessons[0].id)
         val paid = reservationRepo.save(reservation.copy(paidAmount = 1000.0))
@@ -161,7 +161,7 @@ class LessonOptOutRefundsSpec {
     }
 
     @Test
-    fun `nedoplatek dorovna jen do vyse toho, co prislo`() = runBlocking {
+    fun `underpayment settles credit only up to the amount that arrived`() = runBlocking {
         val reservation = enroll(paidAmount = 0.0)
         reservationService.cancelReservation(reservation.id, lessons[0].id)
 
@@ -172,7 +172,7 @@ class LessonOptOutRefundsSpec {
     }
 
     @Test
-    fun `pozdni omluvenka se nedoplaci ani po zaplaceni`() = runBlocking {
+    fun `late lesson opt-out is not credited even after payment`() = runBlocking {
         val reservation = enroll(paidAmount = 0.0)
         optOutRepo.save(
             SeriesLessonOptOut(
@@ -185,7 +185,7 @@ class LessonOptOutRefundsSpec {
     }
 
     @Test
-    fun `omluvenka s neznamou castkou se nedoplaci`() = runBlocking {
+    fun `lesson opt-out with an unknown amount is not credited later`() = runBlocking {
         // Historický řádek, u kterého backfill nedohledal, kolik dostal — mohl dostat všechno.
         val reservation = enroll(paidAmount = 1000.0)
         optOutRepo.save(
@@ -199,7 +199,7 @@ class LessonOptOutRefundsSpec {
     }
 
     @Test
-    fun `storno cele rezervace nevraci podruhe to, co uz odeslo za omluvenku`() = runBlocking {
+    fun `cancelling the whole reservation does not refund again what already went out for a lesson opt-out`() = runBlocking {
         val reservation = enroll(paidAmount = 1000.0)
         reservationService.cancelReservation(reservation.id, lessons[0].id)
         assertEquals(150.0, balance())
@@ -212,7 +212,7 @@ class LessonOptOutRefundsSpec {
     }
 
     @Test
-    fun `detail rezervace slibuje jen to, co storno opravdu vrati`() = runBlocking {
+    fun `reservation detail promises only what cancellation actually refunds`() = runBlocking {
         val reservation = enroll(paidAmount = 1000.0)
         reservationService.cancelReservation(reservation.id, lessons[0].id)
 
@@ -220,7 +220,7 @@ class LessonOptOutRefundsSpec {
     }
 
     @Test
-    fun `vzeti zpet neproplacene omluvenky nestrhne kredit za jinou`() = runBlocking {
+    fun `withdrawing an uncredited lesson opt-out does not deduct credit for another one`() = runBlocking {
         // První omluvenka ještě z nezaplaceného kurzu; platba pak přišla dřív,
         // než existovalo dorovnání, takže za ni nic neodešlo.
         val reservation = enroll(paidAmount = 0.0)
@@ -242,7 +242,7 @@ class LessonOptOutRefundsSpec {
     }
 
     @Test
-    fun `vzeti zpet proplacene omluvenky strhne presne jeji castku`() = runBlocking {
+    fun `withdrawing a credited lesson opt-out deducts exactly its amount`() = runBlocking {
         val reservation = enroll(paidAmount = 1000.0)
         reservationService.cancelReservation(reservation.id, lessons[0].id)
         reservationService.cancelReservation(reservation.id, lessons[1].id)

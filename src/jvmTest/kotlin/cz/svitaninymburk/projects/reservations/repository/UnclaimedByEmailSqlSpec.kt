@@ -85,7 +85,7 @@ class UnclaimedByEmailSqlSpec {
     }
 
     @Test
-    fun `najde adresu s mezerami i velkymi pismeny`() = runBlocking {
+    fun `finds an address with spaces and upper-case letters`() = runBlocking {
         val id = insertReservation("  Mezery@Test.cz ")
 
         val found = repository.findUnclaimedByEmail("mezery@test.cz")
@@ -95,7 +95,7 @@ class UnclaimedByEmailSqlSpec {
     }
 
     @Test
-    fun `vynecha rezervaci uz navazanou na ucet`() = runBlocking {
+    fun `skips a reservation already linked to an account`() = runBlocking {
         insertReservation("navazana@test.cz", userId = Uuid.random())
 
         assertEquals(emptyList(), repository.findUnclaimedByEmail("navazana@test.cz").map { it.id })
@@ -103,7 +103,7 @@ class UnclaimedByEmailSqlSpec {
     }
 
     @Test
-    fun `vynecha zrusenou rezervaci`() = runBlocking {
+    fun `skips a cancelled reservation`() = runBlocking {
         insertReservation("zrusena@test.cz", status = Reservation.Status.CANCELLED)
 
         assertEquals(emptyList(), repository.findUnclaimedByEmail("zrusena@test.cz").map { it.id })
@@ -111,7 +111,7 @@ class UnclaimedByEmailSqlSpec {
     }
 
     @Test
-    fun `cizi adresu nevrati`() = runBlocking {
+    fun `does not return a different address`() = runBlocking {
         insertReservation("moje@test.cz")
 
         assertEquals(emptyList(), repository.findUnclaimedByEmail("cizi@test.cz").map { it.id })
