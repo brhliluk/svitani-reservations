@@ -672,6 +672,7 @@ interface AppStrings : ErrorStrings {
     val walletUseHint: String
     val walletBalance: String
     val walletEmailMismatchWarning: String
+    val walletNotForWaitlist: String
     val walletEmailMismatchConfirm: String
     val walletCreditApplied: String
     val remainingToPay: String

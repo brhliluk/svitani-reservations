@@ -76,7 +76,8 @@ class ReservationFormModel(
             customValues = customValues,
         )
 
-    val deduction: Double get() = walletDeduction(walletInfo?.balance, total)
+    /** Náhradník nic neplatí hned a peněženka se u něj neuplatňuje (sekce je skrytá). */
+    val deduction: Double get() = if (asWaitlist) 0.0 else walletDeduction(walletInfo?.balance, total)
     val remaining: Double get() = remainingToPay(total, deduction)
     val showsPaymentPicker: Boolean get() = showsPaymentTypePicker(total, deduction)
 
@@ -148,7 +149,7 @@ class ReservationFormModel(
         paymentType = effectivePaymentType(total, deduction, paymentType),
         customValues = customValues,
         locale = locale,
-        walletCode = walletCode.ifBlank { null },
+        walletCode = walletCode.ifBlank { null }.takeUnless { asWaitlist },
         asWaitlist = asWaitlist,
     )
 }

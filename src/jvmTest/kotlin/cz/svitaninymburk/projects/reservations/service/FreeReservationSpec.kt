@@ -164,4 +164,72 @@ class FreeReservationSpec {
         assertEquals(Reservation.Status.CONFIRMED, promoted.status)
         assertEquals(PaymentType.FREE, promoted.paymentType)
     }
+
+    @Test
+    fun `waitlist sign-up for a paid event never stores FREE and gets payment details after promotion`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val full = instance(price = 150.0, capacity = 1, occupiedSpots = 0, waitlistCapacity = 2)
+            .copy(allowedPaymentTypes = listOf(PaymentType.ON_SITE))
+        instanceRepo.create(full)
+        val service = makeService(instanceRepo, reservationRepo)
+        val holder = service.reserveInstance(request(full.id).copy(paymentType = PaymentType.ON_SITE), userId = null).getOrNull()!!
+
+        // Formulář náhradníka s kódem peněženky dřív posílal FREE.
+        val waitlisted = service.joinWaitlistInstance(
+            request(full.id).copy(paymentType = PaymentType.FREE, contactEmail = "petr@test.com"),
+            userId = null,
+        )
+            .getOrNull()!!
+        assertEquals(PaymentType.ON_SITE, waitlisted.paymentType)
+
+        service.cancelReservation(holder.id, instanceId = null)
+
+        val promoted = reservationRepo.findById(waitlisted.id)!!
+        assertEquals(Reservation.Status.PENDING_PAYMENT, promoted.status)
+        assertEquals(PaymentType.ON_SITE, promoted.paymentType)
+    }
+
+    @Test
+    fun `promotion of an old paid waitlist entry stored as FREE falls back to an allowed payment type`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val paid = instance(price = 150.0, capacity = 1, occupiedSpots = 1, waitlistCapacity = 2, occupiedWaitlist = 1)
+        instanceRepo.create(paid)
+        val holder = reservationRepo.save(
+            Reservation(
+                id = Uuid.random(), reference = Reference.Instance(paid.id), contactName = "Jana", contactEmail = "jana@test.com",
+                seatCount = 1, totalPrice = 150.0, status = Reservation.Status.PENDING_PAYMENT, createdAt = Clock.System.now(),
+                customValues = emptyMap(), paymentType = PaymentType.BANK_TRANSFER,
+            )
+        )
+        val legacy = reservationRepo.save(
+            Reservation(
+                id = Uuid.random(), reference = Reference.Instance(paid.id), contactName = "Petr", contactEmail = "petr@test.com",
+                seatCount = 1, totalPrice = 150.0, status = Reservation.Status.WAITLISTED, createdAt = Clock.System.now(),
+                customValues = emptyMap(), paymentType = PaymentType.FREE,
+            )
+        )
+
+        makeService(instanceRepo, reservationRepo).cancelReservation(holder.id, instanceId = null)
+
+        val promoted = reservationRepo.findById(legacy.id)!!
+        assertEquals(Reservation.Status.PENDING_PAYMENT, promoted.status)
+        assertEquals(PaymentType.BANK_TRANSFER, promoted.paymentType)
+    }
+
+    @Test
+    fun `FREE with an unusable wallet on a paid event falls back to an allowed payment type`() = runBlocking {
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val paid = instance(price = 150.0)
+        instanceRepo.create(paid)
+
+        val reservation = makeService(instanceRepo, reservationRepo)
+            .reserveInstance(request(paid.id).copy(paymentType = PaymentType.FREE, walletCode = "SVIT-NONE-XXXX"), userId = null)
+            .getOrNull()!!
+
+        assertEquals(Reservation.Status.PENDING_PAYMENT, reservation.status)
+        assertEquals(PaymentType.BANK_TRANSFER, reservation.paymentType)
+    }
 }

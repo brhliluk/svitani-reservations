@@ -669,6 +669,7 @@ object EnStrings : AppStrings {
     override val walletUseHint = "Enter this code in the reservation form — the credit will be automatically deducted from the price."
     override val walletBalance = "Wallet balance"
     override val walletEmailMismatchWarning = "This wallet belongs to a different email. Use it anyway?"
+    override val walletNotForWaitlist = "Wallet credit can't be used for a waitlist sign-up. If a spot opens up, you'll pay using the details in the email."
     override val walletEmailMismatchConfirm = "Yes, use this wallet"
     override val walletCreditApplied = "Wallet credit"
     override val remainingToPay = "Remaining to pay"

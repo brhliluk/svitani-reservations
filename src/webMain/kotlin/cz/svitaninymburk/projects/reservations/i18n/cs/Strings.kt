@@ -682,6 +682,7 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val walletUseHint = "Zadejte tento kód do rezervačního formuláře — kredit se automaticky odečte od ceny."
     override val walletBalance = "Zůstatek peněženky"
     override val walletEmailMismatchWarning = "Tato peněženka je přiřazena k jinému emailu. Chcete ji přesto použít?"
+    override val walletNotForWaitlist = "Kredit z peněženky se u přihlášky náhradníka neuplatňuje. Když se místo uvolní, zaplatíte podle platebních údajů z e-mailu."
     override val walletEmailMismatchConfirm = "Ano, použít tuto peněženku"
     override val walletCreditApplied = "Kredit z peněženky"
     override val remainingToPay = "Zbývá zaplatit"

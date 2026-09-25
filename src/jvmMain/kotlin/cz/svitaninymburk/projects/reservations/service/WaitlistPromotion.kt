@@ -93,20 +93,23 @@ class WaitlistPromoter(
                 is Reference.Series -> eventSeriesRepository.decrementOccupiedWaitlist(reference.id, 1)
             }
 
-            val variableSymbol = reservationRepository.generateUniqueVariableSymbol()
-            // Povýšení z pořadníku u akce zdarma nesmí skončit ve "čeká na platbu" —
-            // viz stejné rozhodnutí v createReservationFlow.
-            val promoted = candidate.copy(
-                status = if (candidate.isFree) Reservation.Status.CONFIRMED else Reservation.Status.PENDING_PAYMENT,
-                paymentType = if (candidate.isFree) PaymentType.FREE else candidate.paymentType,
-                variableSymbol = variableSymbol,
-            )
-            reservationRepository.save(promoted)
-
             val target: ReservationTarget? = when (reference) {
                 is Reference.Instance -> eventInstanceRepository.get(reference.id)?.let { ReservationTarget.Instance(it) }
                 is Reference.Series -> eventSeriesRepository.get(reference.id)?.let { ReservationTarget.Series(it.copy(lessonCount = eventInstanceRepository.countActiveBySeries(it.id).toInt())) }
             }
+
+            val variableSymbol = reservationRepository.generateUniqueVariableSymbol()
+            // Povýšení z pořadníku u akce zdarma nesmí skončit ve "čeká na platbu" —
+            // viz stejné rozhodnutí v createReservationFlow. Placená přihláška s FREE
+            // (dřív ji tak uložil formulář náhradníka s kódem peněženky) by jinak
+            // dostala e-mail bez platebních údajů.
+            val promoted = candidate.copy(
+                status = if (candidate.isFree) Reservation.Status.CONFIRMED else Reservation.Status.PENDING_PAYMENT,
+                paymentType = if (candidate.isFree) PaymentType.FREE
+                else payablePaymentType(candidate.paymentType, target?.allowedPaymentTypes.orEmpty()),
+                variableSymbol = variableSymbol,
+            )
+            reservationRepository.save(promoted)
 
             if (target != null) {
                 val subject = auditSubjectFor(target, promoted.id)

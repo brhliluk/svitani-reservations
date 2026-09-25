@@ -459,7 +459,7 @@ open class ReservationService(
             contactName = requestData.contactName,
             contactEmail = requestData.contactEmail,
             contactPhone = PhoneNumber.normalize(requestData.contactPhone) ?: requestData.contactPhone,
-            paymentType = requestData.paymentType,
+            paymentType = if (totalPrice <= 0.0) PaymentType.FREE else payablePaymentType(requestData.paymentType, target.allowedPaymentTypes),
             customValues = requestData.customValues,
             totalPrice = totalPrice,
             lessonShare = lessonShareFor(target, totalPrice),
@@ -530,7 +530,7 @@ open class ReservationService(
             contactName = requestData.contactName,
             contactEmail = requestData.contactEmail,
             contactPhone = PhoneNumber.normalize(requestData.contactPhone) ?: requestData.contactPhone,
-            paymentType = if (isFree) PaymentType.FREE else requestData.paymentType,
+            paymentType = if (isFree) PaymentType.FREE else payablePaymentType(requestData.paymentType, target.allowedPaymentTypes),
             customValues = requestData.customValues,
             totalPrice = totalPrice,
             lessonShare = lessonShareFor(target, totalPrice),
@@ -1195,3 +1195,14 @@ private fun Reservation.toListItem(title: String, startDateTime: LocalDateTime, 
         variableSymbol = variableSymbol,
         isSeries = isSeries,
     )
+
+/**
+ * Způsob platby pro rezervaci, která zdarma není. FREE si klient posílá, když má
+ * cenu pokrýt peněženka — jenže peněženka se u náhradníka neuplatňuje a u běžné
+ * rezervace mohla být mezitím vyčerpaná. S FREE by pak rezervace čekala na platbu
+ * bez platebních údajů (e-mail bez QR i bez poznámky o hotovosti), takže se sáhne
+ * po prvním způsobu, který akce povoluje.
+ */
+internal fun payablePaymentType(requested: PaymentType, allowed: List<PaymentType>): PaymentType =
+    if (requested != PaymentType.FREE) requested
+    else allowed.firstOrNull { it != PaymentType.FREE } ?: PaymentType.BANK_TRANSFER

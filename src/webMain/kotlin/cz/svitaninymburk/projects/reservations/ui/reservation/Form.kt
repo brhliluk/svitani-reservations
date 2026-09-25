@@ -235,35 +235,42 @@ fun IComponent.ReservationModal(
                         }
                     }
 
-                    // Slevový kód peněženky
-                    label(className = "flex items-center gap-2 cursor-pointer w-fit") {
-                        checkBox(value = model.walletExpanded, className = "checkbox checkbox-sm") {
-                            onChange { model.setWalletExpanded(value) }
+                    // Slevový kód peněženky — náhradník nic neplatí hned a server u něj
+                    // peněženku neuplatňuje, takže by sekce slibovala odečet, který nenastane.
+                    if (asWaitlist) {
+                        if (model.walletCode.isNotBlank()) {
+                            p(className = "text-sm text-base-content/60") { +currentStrings.walletNotForWaitlist }
                         }
-                        span(className = "label-text") { +currentStrings.walletHasCode }
-                    }
-                    if (model.walletExpanded) {
-                        label(className = "form-control w-full") {
-                            div(className = "label") {
-                                span(className = "label-text") { +currentStrings.walletCode }
+                    } else {
+                        label(className = "flex items-center gap-2 cursor-pointer w-fit") {
+                            checkBox(value = model.walletExpanded, className = "checkbox checkbox-sm") {
+                                onChange { model.setWalletExpanded(value) }
                             }
-                            text(value = model.walletCode, className = "input input-bordered input-lg sm:input-md w-full") {
-                                placeholder(currentStrings.walletCodePlaceholder)
-                                onInput { model.setWalletCode(value ?: "") }
-                            }
-                            div(className = "label") {
-                                span(className = "label-text-alt text-base-content/50") { +currentStrings.walletCodeHint }
-                            }
-                            model.walletInfo?.let { info ->
-                                div(className = "label pt-0") {
-                                    span(className = "label-text-alt text-success font-medium") {
-                                        +"${currentStrings.walletBalance}: ${formatAmount(info.balance, currentStrings)}"
-                                    }
+                            span(className = "label-text") { +currentStrings.walletHasCode }
+                        }
+                        if (model.walletExpanded) {
+                            label(className = "form-control w-full") {
+                                div(className = "label") {
+                                    span(className = "label-text") { +currentStrings.walletCode }
                                 }
-                                if (!info.emailMatches) {
-                                    div(className = "alert alert-warning py-2 text-sm mt-1") {
-                                        span(className = "icon-[heroicons--exclamation-triangle] size-4")
-                                        span { +currentStrings.walletEmailMismatchWarning }
+                                text(value = model.walletCode, className = "input input-bordered input-lg sm:input-md w-full") {
+                                    placeholder(currentStrings.walletCodePlaceholder)
+                                    onInput { model.setWalletCode(value ?: "") }
+                                }
+                                div(className = "label") {
+                                    span(className = "label-text-alt text-base-content/50") { +currentStrings.walletCodeHint }
+                                }
+                                model.walletInfo?.let { info ->
+                                    div(className = "label pt-0") {
+                                        span(className = "label-text-alt text-success font-medium") {
+                                            +"${currentStrings.walletBalance}: ${formatAmount(info.balance, currentStrings)}"
+                                        }
+                                    }
+                                    if (!info.emailMatches) {
+                                        div(className = "alert alert-warning py-2 text-sm mt-1") {
+                                            span(className = "icon-[heroicons--exclamation-triangle] size-4")
+                                            span { +currentStrings.walletEmailMismatchWarning }
+                                        }
                                     }
                                 }
                             }
