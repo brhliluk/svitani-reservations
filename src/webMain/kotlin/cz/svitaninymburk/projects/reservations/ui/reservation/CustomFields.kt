@@ -17,7 +17,6 @@ import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isCustomFieldValid
 import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
-import dev.kilua.form.NumberFormControl
 import dev.kilua.form.check.checkBox
 import dev.kilua.form.number.imaskNumeric
 import dev.kilua.form.text.text
@@ -26,18 +25,10 @@ import dev.kilua.html.Time
 import dev.kilua.html.div
 import dev.kilua.html.label
 import dev.kilua.html.span
-import js.decorators.DecoratorContextKind
-import js.json.isRawJSON
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
-import kotlin.time.Instant
 
 @Composable
 fun IComponent.renderCustomField(
@@ -164,13 +155,7 @@ fun IComponent.renderCustomField(
 
             val minTime = target?.startDateTime?.time
             val maxTime = target?.endDateTime?.time
-            val hasInteracted = stateMap[field.key] != null
-            val isRangeValid = if (hasInteracted) {
-                val range = stateMap[field.key] as? TimeRangeValue
-                range != null && range.from < range.to
-                        && (minTime == null || range.from in minTime..(maxTime ?: range.from))
-                        && (maxTime == null || range.to in (minTime ?: range.to)..maxTime)
-            } else true
+            val showError = touched && invalid
 
             div(className = "form-control w-full") {
                 div(className = "label") {
@@ -188,7 +173,7 @@ fun IComponent.renderCustomField(
                 }
                 div(className = "flex gap-2 items-center") {
                     // OD
-                    text(value = currentPair.first?.toString(), type = InputType.Time, className = "input input-bordered w-1/2${if (hasInteracted && !isRangeValid) " input-error" else ""}") {
+                    text(value = currentPair.first?.toString(), type = InputType.Time, className = "input input-bordered w-1/2${if (showError) " input-error" else ""}") {
                         required(field.isRequired)
                         minTime?.let { attribute("min", it.toString()) }
                         maxTime?.let { attribute("max", it.toString()) }
@@ -201,7 +186,7 @@ fun IComponent.renderCustomField(
                     }
                     span { +"-" }
                     // DO
-                    text(value = currentPair.second?.toString(), type = InputType.Time, className = "input input-bordered w-1/2${if (hasInteracted && !isRangeValid) " input-error" else ""}") {
+                    text(value = currentPair.second?.toString(), type = InputType.Time, className = "input input-bordered w-1/2${if (showError) " input-error" else ""}") {
                         required(field.isRequired)
                         minTime?.let { attribute("min", it.toString()) }
                         maxTime?.let { attribute("max", it.toString()) }
@@ -213,7 +198,7 @@ fun IComponent.renderCustomField(
                         }
                     }
                 }
-                if (hasInteracted && !isRangeValid) {
+                if (showError) {
                     div(className = "label pt-0") {
                         span(className = "label-text-alt text-error") {
                             +currentStrings.timeRangeError
