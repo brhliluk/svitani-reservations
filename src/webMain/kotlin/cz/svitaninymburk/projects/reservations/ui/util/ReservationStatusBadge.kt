@@ -1,10 +1,16 @@
 package cz.svitaninymburk.projects.reservations.ui.util
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.isFreePrice
+import dev.kilua.core.IComponent
+import dev.kilua.html.div
+import dev.kilua.html.span
 
-/** Stav rezervace, jak ho ukazují přehledy. Popisek si každý pohled volí sám. */
+/** Stav rezervace, jak ho ukazují přehledy; vykresluje ho [StatusBadge]. */
 enum class ReservationStatusBadge { CANCELLED, WAITLISTED, FREE, PAID, ON_SITE, WAITING }
 
 /**
@@ -40,3 +46,24 @@ fun reservationStatusBadge(
  */
 fun canBeMarkedAsPaid(badge: ReservationStatusBadge): Boolean =
     badge == ReservationStatusBadge.WAITING || badge == ReservationStatusBadge.ON_SITE
+
+/** Badge stavu rezervace — stejný v Mých rezervacích, v detailu akce i v seznamu rezervací. */
+@Composable
+fun IComponent.StatusBadge(badge: ReservationStatusBadge) {
+    val currentStrings by strings
+    // Celé názvy tříd, ne složené — Tailwind je hledá ve zdrojácích doslova.
+    val (className, icon, label) = when (badge) {
+        ReservationStatusBadge.CANCELLED -> Triple("badge-error", "icon-[heroicons--x-mark]", currentStrings.cancelled)
+        // Pořadník má vlastní jméno: "Čeká" se u něj čte jako "čeká na platbu",
+        // i když se čeká na uvolněné místo.
+        ReservationStatusBadge.WAITLISTED -> Triple("badge-secondary badge-outline", "icon-[heroicons--queue-list]", currentStrings.waitlistedStatus)
+        ReservationStatusBadge.FREE -> Triple("badge-success badge-outline", "icon-[heroicons--gift]", currentStrings.free)
+        ReservationStatusBadge.PAID -> Triple("badge-success", "icon-[heroicons--check]", currentStrings.paid)
+        ReservationStatusBadge.ON_SITE -> Triple("badge-info badge-outline", "icon-[heroicons--banknotes]", currentStrings.statusOnSiteBadge)
+        ReservationStatusBadge.WAITING -> Triple("badge-warning", "icon-[heroicons--clock]", currentStrings.statusWaiting)
+    }
+    div(className = "badge $className gap-1 whitespace-nowrap") {
+        span(className = "$icon size-3")
+        +label
+    }
+}

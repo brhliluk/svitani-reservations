@@ -13,7 +13,7 @@ import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.MyReservatio
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.cardOpensOnTitleOnly
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.myReservationPaymentMethod
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
-import cz.svitaninymburk.projects.reservations.ui.util.ReservationStatusBadge
+import cz.svitaninymburk.projects.reservations.ui.util.StatusBadge
 import cz.svitaninymburk.projects.reservations.ui.util.reservationStatusBadge
 import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
 import cz.svitaninymburk.projects.reservations.util.humanReadable
@@ -117,35 +117,7 @@ private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick:
                         }
                     }
                     div(className = "flex flex-col items-start sm:items-end gap-1 shrink-0") {
-                        when (badge) {
-                            ReservationStatusBadge.PAID -> div(className = "badge badge-success gap-1") {
-                                span(className = "icon-[heroicons--check] size-3")
-                                +currentStrings.paid
-                            }
-                            ReservationStatusBadge.FREE -> div(className = "badge badge-success badge-outline gap-1") {
-                                span(className = "icon-[heroicons--gift] size-3")
-                                +currentStrings.free
-                            }
-                            ReservationStatusBadge.ON_SITE -> div(className = "badge badge-info badge-outline gap-1") {
-                                span(className = "icon-[heroicons--banknotes] size-3")
-                                +currentStrings.statusOnSiteBadge
-                            }
-                            // Pořadník má vlastní jméno: "Čeká" se u něj čte jako
-                            // "čeká na platbu", i když se čeká na uvolněné místo.
-                            ReservationStatusBadge.WAITLISTED -> div(className = "badge badge-secondary badge-outline gap-1 whitespace-nowrap") {
-                                span(className = "icon-[heroicons--queue-list] size-3")
-                                +currentStrings.waitlistedStatus
-                            }
-                            ReservationStatusBadge.WAITING -> div(className = "badge badge-warning gap-1") {
-                                span(className = "icon-[heroicons--clock] size-3")
-                                +currentStrings.statusWaiting
-                            }
-                            // Zrušené rezervace se do přehledu nedostanou (getReservations je filtruje).
-                            ReservationStatusBadge.CANCELLED -> div(className = "badge badge-error gap-1") {
-                                span(className = "icon-[heroicons--x-mark] size-3")
-                                +currentStrings.cancelled
-                            }
-                        }
+                        StatusBadge(badge)
                     }
                 }
             }

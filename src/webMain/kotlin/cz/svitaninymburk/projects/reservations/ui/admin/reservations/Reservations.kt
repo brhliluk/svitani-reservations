@@ -11,6 +11,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.reservations.usecase.Res
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.usecase.reservationPaymentMethod
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.ReservationStatusBadge
+import cz.svitaninymburk.projects.reservations.ui.util.StatusBadge
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.ui.util.canBeMarkedAsPaid
@@ -155,32 +156,7 @@ fun IComponent.AdminReservationsScreen() {
                                                 }
                                                 td {
                                                     div(className = "flex flex-col gap-1 items-start") {
-                                                        when (badge) {
-                                                            ReservationStatusBadge.CANCELLED -> div(className = "badge badge-error gap-1") {
-                                                                span(className = "icon-[heroicons--x-mark] size-3")
-                                                                +currentStrings.cancelled
-                                                            }
-                                                            ReservationStatusBadge.WAITLISTED -> div(className = "badge badge-secondary badge-outline gap-1 whitespace-nowrap") {
-                                                                span(className = "icon-[heroicons--queue-list] size-3")
-                                                                +currentStrings.waitlistedStatus
-                                                            }
-                                                            ReservationStatusBadge.FREE -> div(className = "badge badge-success badge-outline gap-1") {
-                                                                span(className = "icon-[heroicons--gift] size-3")
-                                                                +currentStrings.free
-                                                            }
-                                                            ReservationStatusBadge.PAID -> div(className = "badge badge-success gap-1") {
-                                                                span(className = "icon-[heroicons--check] size-3")
-                                                                +currentStrings.paid
-                                                            }
-                                                            ReservationStatusBadge.ON_SITE -> div(className = "badge badge-info badge-outline gap-1 whitespace-nowrap") {
-                                                                span(className = "icon-[heroicons--banknotes] size-3")
-                                                                +currentStrings.statusOnSiteBadge
-                                                            }
-                                                            ReservationStatusBadge.WAITING -> div(className = "badge badge-warning gap-1") {
-                                                                span(className = "icon-[heroicons--clock] size-3")
-                                                                +currentStrings.statusWaiting
-                                                            }
-                                                        }
+                                                        StatusBadge(badge)
                                                         val method = reservationPaymentMethod(res.totalPrice, res.walletDeductedAmount, isCash)
                                                         if (method != null) {
                                                             span(className = "text-xs text-base-content/60 font-medium") {
