@@ -44,6 +44,7 @@ import dev.kilua.html.div
 import dev.kilua.html.footer
 import dev.kilua.html.main
 import dev.kilua.html.p
+import dev.kilua.routing.RoutingBuilder
 import dev.kilua.routing.browserRouter
 import kotlin.uuid.Uuid
 
@@ -250,92 +251,10 @@ fun IComponent.MainLayout() {
                     }
                 }
             }
-            route("/reservation") {
-                string { reservationId ->
-                    view {
-                        val reservationUuid =
-                            try { Uuid.parse(reservationId.value) }
-                            catch (_: IllegalArgumentException) { null }
-                        val router = Router.current
-                        UserRoute(session) {
-                            if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/") }
-                            else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/") })
-                        }
-                    }
-                }
-            }
-            route("/my-reservations") {
-                view {
-                    val router = Router.current
-                    UserRoute(session) {
-                        MyReservationsScreen(userId = session.currentUser!!.id, onBackClick = { router.navigate("/") })
-                    }
-                }
-            }
-            route("/wallet") {
-                string { code ->
-                    view {
-                        UserRoute(session) {
-                            WalletScreen(initialCode = code.value, initialEmail = session.currentUser?.email ?: "")
-                        }
-                    }
-                }
-                view {
-                    UserRoute(session) {
-                        WalletScreen()
-                    }
-                }
-            }
-            route("/reset-password") {
-                string { token ->
-                    view {
-                        val router = Router.current
-                        UserRoute(session) {
-                            ResetPasswordScreen(token = token.value, onSuccess = { router.navigate("/") })
-                        }
-                    }
-                }
-            }
-            route("/claim-reservations") {
-                string { token ->
-                    view {
-                        val router = Router.current
-                        UserRoute(session) {
-                            ClaimReservationsScreen(
-                                token = token.value,
-                                onOpenMyReservations = { router.navigate("/my-reservations") },
-                            )
-                        }
-                    }
-                }
-            }
-            route("/privacy") {
-                view {
-                    UserRoute(session) {
-                        PrivacyScreen()
-                    }
-                }
-            }
-            route("/") { context ->
-                view {
-                    UserRoute(session) {
-                        DashboardScreen(
-                            user = session.currentUser,
-                            walletCode = session.walletCode,
-                            initialFilterId = context.parameters?.map?.get("filter")?.firstOrNull(),
-                            initialSeriesId = context.parameters?.map?.get("series")?.firstOrNull(),
-                        )
-                    }
-                }
-            }
-            view {
-                val router = Router.current
-                LaunchedEffect(Unit) { router.navigate("/") }
-            }
+            publicRoutes(session)
         }
 
-    } else div(className = "min-h-screen flex flex-col bg-base-100 text-base-content") {
-
+    } else {
         Toast(
             message = session.toast?.message,
             type = session.toast?.type ?: ToastType.Success,
@@ -351,95 +270,103 @@ fun IComponent.MainLayout() {
                     LaunchedEffect(Unit) { router.navigate("/") }
                 }
             }
-            route("/") { context ->
-                view {
-                    UserRoute(session) {
-                        DashboardScreen(
-                            user = session.currentUser,
-                            walletCode = session.walletCode,
-                            initialFilterId = context.parameters?.map?.get("filter")?.firstOrNull(),
-                            initialSeriesId = context.parameters?.map?.get("series")?.firstOrNull(),
-                        )
-                    }
-                }
-            }
+            publicRoutes(session)
+        }
+    }
+}
 
-            route("/reservation") {
-                string { reservationId ->
-                    view {
-                        val reservationUuid =
-                            try { Uuid.parse(reservationId.value) }
-                            catch (_: IllegalArgumentException) { null }
-                        val router = Router.current
-                        UserRoute(session) {
-                            if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/") }
-                            else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/") })
-                        }
-                    }
-                }
-            }
-
-            route("/my-reservations") {
-                view {
-                    val router = Router.current
-                    val user = session.currentUser
-                    UserRoute(session) {
-                        if (user == null) LaunchedEffect(Unit) { router.navigate("/") }
-                        else MyReservationsScreen(userId = user.id, onBackClick = { router.navigate("/") })
-                    }
-                }
-            }
-
-            route("/wallet") {
-                string { code ->
-                    view {
-                        UserRoute(session) {
-                            WalletScreen(initialCode = code.value, initialEmail = session.currentUser?.email ?: "")
-                        }
-                    }
-                }
-                view {
-                    UserRoute(session) {
-                        WalletScreen()
-                    }
-                }
-            }
-
-            route("/reset-password") {
-                string { token ->
-                    view {
-                        val router = Router.current
-                        UserRoute(session) {
-                            ResetPasswordScreen(token = token.value, onSuccess = { router.navigate("/") })
-                        }
-                    }
-                }
-            }
-            route("/claim-reservations") {
-                string { token ->
-                    view {
-                        val router = Router.current
-                        UserRoute(session) {
-                            ClaimReservationsScreen(
-                                token = token.value,
-                                onOpenMyReservations = { router.navigate("/my-reservations") },
-                            )
-                        }
-                    }
-                }
-            }
-            route("/privacy") {
-                view {
-                    UserRoute(session) {
-                        PrivacyScreen()
-                    }
-                }
-            }
-            view {
-                val router = Router.current
-                LaunchedEffect(Unit) { router.navigate("/") }
+/**
+ * Veřejné stránky — stejné pro admina i ostatní, liší se jen tím, co je před
+ * nimi v routeru. Poslední `view` přesměruje neznámou adresu na přehled.
+ */
+private fun RoutingBuilder.publicRoutes(session: SessionModel) {
+    route("/") { context ->
+        view {
+            UserRoute(session) {
+                DashboardScreen(
+                    user = session.currentUser,
+                    walletCode = session.walletCode,
+                    initialFilterId = context.parameters?.map?.get("filter")?.firstOrNull(),
+                    initialSeriesId = context.parameters?.map?.get("series")?.firstOrNull(),
+                )
             }
         }
+    }
+
+    route("/reservation") {
+        string { reservationId ->
+            view {
+                val reservationUuid =
+                    try { Uuid.parse(reservationId.value) }
+                    catch (_: IllegalArgumentException) { null }
+                val router = Router.current
+                UserRoute(session) {
+                    if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/") }
+                    else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/") })
+                }
+            }
+        }
+    }
+
+    route("/my-reservations") {
+        view {
+            val router = Router.current
+            val user = session.currentUser
+            UserRoute(session) {
+                if (user == null) LaunchedEffect(Unit) { router.navigate("/") }
+                else MyReservationsScreen(userId = user.id, onBackClick = { router.navigate("/") })
+            }
+        }
+    }
+
+    route("/wallet") {
+        string { code ->
+            view {
+                UserRoute(session) {
+                    WalletScreen(initialCode = code.value, initialEmail = session.currentUser?.email ?: "")
+                }
+            }
+        }
+        view {
+            UserRoute(session) {
+                WalletScreen()
+            }
+        }
+    }
+
+    route("/reset-password") {
+        string { token ->
+            view {
+                val router = Router.current
+                UserRoute(session) {
+                    ResetPasswordScreen(token = token.value, onSuccess = { router.navigate("/") })
+                }
+            }
+        }
+    }
+    route("/claim-reservations") {
+        string { token ->
+            view {
+                val router = Router.current
+                UserRoute(session) {
+                    ClaimReservationsScreen(
+                        token = token.value,
+                        onOpenMyReservations = { router.navigate("/my-reservations") },
+                    )
+                }
+            }
+        }
+    }
+    route("/privacy") {
+        view {
+            UserRoute(session) {
+                PrivacyScreen()
+            }
+        }
+    }
+    view {
+        val router = Router.current
+        LaunchedEffect(Unit) { router.navigate("/") }
     }
 }
 
@@ -487,23 +414,27 @@ private fun IComponent.UserShell(
     content: @Composable IComponent.() -> Unit,
 ) {
     val currentStrings by strings
-    AppHeader(
-        user = user,
-        walletCode = walletCode,
-        onShowMessage = onShowMessage,
-        onLogin = onLogin,
-        onLogout = onLogout,
-        onOpenMyReservations = onOpenMyReservations,
-        onOpenMyWallet = onOpenMyWallet,
-        onNavigateToDashboard = onNavigateToDashboard,
-        onNavigateToAdmin = onNavigateToAdmin,
-    )
-    main(className = "flex-grow") { content() }
-    footer(className = "footer footer-center p-8 text-base-content/50") {
-        aside {
-            a(href = "#", className = "link link-hover") { +currentStrings.contact }
-            a(href = "/privacy", className = "link link-hover") { +currentStrings.privacyPolicyLink }
-            p { +currentStrings.copyright }
+    // Obal patří k shellu, ne k větvi routeru: bez flex sloupce nemá main co
+    // roztáhnout a patička by u krátké stránky visela uprostřed.
+    div(className = "min-h-screen flex flex-col bg-base-100 text-base-content") {
+        AppHeader(
+            user = user,
+            walletCode = walletCode,
+            onShowMessage = onShowMessage,
+            onLogin = onLogin,
+            onLogout = onLogout,
+            onOpenMyReservations = onOpenMyReservations,
+            onOpenMyWallet = onOpenMyWallet,
+            onNavigateToDashboard = onNavigateToDashboard,
+            onNavigateToAdmin = onNavigateToAdmin,
+        )
+        main(className = "flex-grow") { content() }
+        footer(className = "footer footer-center p-8 text-base-content/50") {
+            aside {
+                a(href = "#", className = "link link-hover") { +currentStrings.contact }
+                a(href = "/privacy", className = "link link-hover") { +currentStrings.privacyPolicyLink }
+                p { +currentStrings.copyright }
+            }
         }
     }
 }
