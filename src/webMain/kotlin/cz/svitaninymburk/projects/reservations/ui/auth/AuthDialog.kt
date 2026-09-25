@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.auth
 
+import cz.svitaninymburk.projects.reservations.ui.util.ModalBackdrop
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import cz.svitaninymburk.projects.reservations.i18n.strings
@@ -38,12 +39,7 @@ fun IComponent.AuthDialog(
 
             content()
         }
-        div(className = "modal-backdrop") {
-            button {
-                attribute("aria-label", currentStrings.close)
-                onClick { onClose() }
-            }
-        }
+        ModalBackdrop(onDismiss = onClose)
     }
 }
 

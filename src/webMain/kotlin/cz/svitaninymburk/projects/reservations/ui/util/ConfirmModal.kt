@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import dev.kilua.core.IComponent
-import dev.kilua.form.form
 import dev.kilua.html.button
 import dev.kilua.html.div
 import dev.kilua.html.h3
@@ -42,11 +41,23 @@ fun IComponent.ConfirmModal(
                 }
             }
         }
-        form(className = "modal-backdrop") {
-            button {
-                onClick { onDismiss() }
-                +currentStrings.close
-            }
+        ModalBackdrop(enabled = !isLoading, onDismiss = onDismiss)
+    }
+}
+
+/**
+ * Klik vedle modalu ho zavře. Obyčejný div, ne form jako v ukázkách daisyUI —
+ * s Kilua form se klik k handleru nedostal a modal zůstával otevřený.
+ * [enabled] = false zavírání zamkne (typicky během odesílání).
+ */
+@Composable
+fun IComponent.ModalBackdrop(enabled: Boolean = true, onDismiss: () -> Unit) {
+    val currentStrings by strings
+    div(className = "modal-backdrop") {
+        onClick { if (enabled) onDismiss() }
+        button {
+            attribute("aria-label", currentStrings.close)
+            disabled(!enabled)
         }
     }
 }

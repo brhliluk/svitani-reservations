@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.reservation
 
+import cz.svitaninymburk.projects.reservations.ui.util.ModalBackdrop
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -312,12 +313,6 @@ fun IComponent.ReservationModal(
         // Backdrop musí být během odesílání zamčený stejně jako Zrušit/Zavřít —
         // jinak klik mimo modal odmountuje spinner, request běží dál neviditelně
         // a uživatel si myslí, že se nic nestalo.
-        div(className = "modal-backdrop") {
-            onClick { if (!isSubmitting) onClose() }
-            button {
-                disabled(isSubmitting)
-                +currentStrings.close
-            }
-        }
+        ModalBackdrop(enabled = !isSubmitting, onDismiss = onClose)
     }
 }

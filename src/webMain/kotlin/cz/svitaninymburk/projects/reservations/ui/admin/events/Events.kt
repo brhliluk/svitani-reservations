@@ -14,6 +14,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.usecase.definitio
 import cz.svitaninymburk.projects.reservations.ui.util.pageCount
 import cz.svitaninymburk.projects.reservations.ui.util.pageSlice
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
+import cz.svitaninymburk.projects.reservations.ui.util.ConfirmModal
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import cz.svitaninymburk.projects.reservations.ui.util.Pagination
@@ -262,70 +263,51 @@ fun IComponent.AdminEventsScreen() {
                 if (defToDelete != null) {
                     val children = childrenByDef[defToDelete.id] ?: emptyList()
                     val totalReservations = children.sumOf { it.occupiedSpots }
-                    div(className = "modal modal-open") {
-                        div(className = "modal-box") {
-                            h3(className = "font-bold text-lg text-error") { +currentStrings.confirmDeleteTitle }
-                            p(className = "py-4") { +currentStrings.deleteDefinitionImpact(children.size, totalReservations) }
-                            div(className = "modal-action") {
-                                button(className = "btn") { onClick { model.dismissDeleteDefinition() }; +currentStrings.modalBack }
-                                button(className = "btn btn-error") {
-                                    onClick { model.confirmDeleteDefinition() }
-                                    +currentStrings.deleteTemplate
-                                }
-                            }
-                        }
-                        form(className = "modal-backdrop") {
-                            button { onClick { model.dismissDeleteDefinition() }; +currentStrings.close }
-                        }
-                    }
+                    ConfirmModal(
+                        title = currentStrings.confirmDeleteTitle,
+                        confirmLabel = currentStrings.deleteTemplate,
+                        dismissLabel = currentStrings.modalBack,
+                        isLoading = false,
+                        onConfirm = { model.confirmDeleteDefinition() },
+                        onDismiss = { model.dismissDeleteDefinition() },
+                        titleClassName = "text-error",
+                    ) { p(className = "py-4") { +currentStrings.deleteDefinitionImpact(children.size, totalReservations) } }
                 }
 
                 // Hide confirmation modal (published event with reservations)
                 val itemToHide = model.hideItemPending
                 if (itemToHide != null) {
-                    div(className = "modal modal-open") {
-                        div(className = "modal-box") {
-                            h3(className = "font-bold text-lg") { +currentStrings.hideButton }
-                            p(className = "py-4") { +currentStrings.hideWithReservationsConfirm }
-                            div(className = "modal-action") {
-                                button(className = "btn") { onClick { model.dismissHide() }; +currentStrings.modalBack }
-                                button(className = "btn btn-warning") {
-                                    onClick { model.confirmHide() }
-                                    +currentStrings.hideButton
-                                }
-                            }
-                        }
-                        form(className = "modal-backdrop") {
-                            button { onClick { model.dismissHide() }; +currentStrings.close }
-                        }
-                    }
+                    ConfirmModal(
+                        title = currentStrings.hideButton,
+                        confirmLabel = currentStrings.hideButton,
+                        dismissLabel = currentStrings.modalBack,
+                        isLoading = false,
+                        onConfirm = { model.confirmHide() },
+                        onDismiss = { model.dismissHide() },
+                        confirmClassName = "btn-warning",
+                    ) { p(className = "py-4") { +currentStrings.hideWithReservationsConfirm } }
                 }
 
                 // Instance/Series delete modal
                 val itemToDelete = model.deleteItemPending
                 if (itemToDelete != null) {
-                    div(className = "modal modal-open") {
-                        div(className = "modal-box") {
-                            h3(className = "font-bold text-lg text-error") { +currentStrings.confirmDeleteTitle }
-                            p(className = "py-4") { +currentStrings.deleteEventImpact(itemToDelete.occupiedSpots) }
-                            div(className = "form-control mt-2") {
-                                label(className = "label cursor-pointer justify-start gap-3") {
-                                    checkBox(value = model.refundMoney, className = "toggle toggle-error") {
-                                        onChange { model.refundMoney = value }
-                                    }
-                                    span(className = "label-text") { +currentStrings.refundOnCancelLabel }
+                    ConfirmModal(
+                        title = currentStrings.confirmDeleteTitle,
+                        confirmLabel = if (itemToDelete.isSeries) currentStrings.deleteSeriesLabel else currentStrings.deleteEventLabel,
+                        dismissLabel = currentStrings.modalBack,
+                        isLoading = false,
+                        onConfirm = { model.confirmDeleteItem() },
+                        onDismiss = { model.dismissDeleteItem() },
+                        titleClassName = "text-error",
+                    ) {
+                        p(className = "py-4") { +currentStrings.deleteEventImpact(itemToDelete.occupiedSpots) }
+                        div(className = "form-control mt-2") {
+                            label(className = "label cursor-pointer justify-start gap-3") {
+                                checkBox(value = model.refundMoney, className = "toggle toggle-error") {
+                                    onChange { model.refundMoney = value }
                                 }
+                                span(className = "label-text") { +currentStrings.refundOnCancelLabel }
                             }
-                            div(className = "modal-action") {
-                                button(className = "btn") { onClick { model.dismissDeleteItem() }; +currentStrings.modalBack }
-                                button(className = "btn btn-error") {
-                                    onClick { model.confirmDeleteItem() }
-                                    if (itemToDelete.isSeries) +currentStrings.deleteSeriesLabel else +currentStrings.deleteEventLabel
-                                }
-                            }
-                        }
-                        form(className = "modal-backdrop") {
-                            button { onClick { model.dismissDeleteItem() }; +currentStrings.close }
                         }
                     }
                 }

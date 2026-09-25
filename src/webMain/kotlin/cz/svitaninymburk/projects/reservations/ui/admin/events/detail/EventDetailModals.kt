@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.detail
 
+import cz.svitaninymburk.projects.reservations.ui.util.ModalBackdrop
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -202,9 +203,7 @@ fun IComponent.AddLessonModal(
                 }
             }
         }
-        form(className = "modal-backdrop") {
-            button { onClick { if (!isSubmitting) onDismiss() }; +currentStrings.close }
-        }
+        ModalBackdrop(enabled = !isSubmitting, onDismiss = onDismiss)
     }
 }
 
