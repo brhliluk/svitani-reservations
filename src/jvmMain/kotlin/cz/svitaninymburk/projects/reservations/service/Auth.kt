@@ -162,7 +162,11 @@ class AuthService(
             passwordResetTokenExpiresAt = Clock.System.now().plus(1.hours).toLocalDateTime(APP_TIMEZONE)
         )
         userRepository.update(user.id, updatedUser)
+        // Výsledek se dřív zahodil (poslední výraz bloku s návratem Unit), takže
+        // selhání SMTP hlásilo „e-mail odeslán“.
         emailService.sendPasswordResetEmail(user.email, token)
+            .mapLeft { AuthError.PasswordResetEmailNotSent }
+            .bind()
     }
 
     override suspend fun resetPassword(token: String, newPassword: String): Either<AuthError.ResetPassword, Unit> = either {

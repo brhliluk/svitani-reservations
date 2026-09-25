@@ -7,6 +7,7 @@ interface ErrorStrings {
     val errorInvalidGoogleToken: String
     val errorInvalidToken: String
     val errorTokenExpired: String
+    val errorPasswordResetEmailNotSent: String
     val errorUserNotFound: String
     val errorProcessingRequest: String
     val errorNotLoggedIn: String

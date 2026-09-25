@@ -743,6 +743,7 @@ object EnStrings : AppStrings {
     override val errorInvalidGoogleToken = "Invalid Google token"
     override val errorInvalidToken = "Invalid token"
     override val errorTokenExpired = "Token expired"
+    override val errorPasswordResetEmailNotSent = "We couldn't send the password reset email. Please try again in a moment."
     override val errorUserNotFound = "User not found"
     override val errorProcessingRequest = "Error processing request"
     override val errorNotLoggedIn = "User not logged in"

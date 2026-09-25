@@ -26,6 +26,8 @@ import kotlin.reflect.KClass
     @Serializable data object ApplicationCallLost: GetCurrentUser
     @Serializable data object NoJwtPrincipal: GetCurrentUser
     @Serializable data object NoIdInPrincipal: GetCurrentUser
+    /** Odkaz se vygeneroval, ale e-mail s ním neodešel — uživatel ho nikdy nedostane. */
+    @Serializable data object PasswordResetEmailNotSent : RequestPasswordReset
 }
 
 fun AuthError.localizedMessage(strings: ErrorStrings): String = when (this) {
@@ -38,4 +40,5 @@ fun AuthError.localizedMessage(strings: ErrorStrings): String = when (this) {
     is AuthError.UserNotFound -> strings.errorUserNotFound
     is AuthError.ApplicationCallLost -> strings.errorProcessingRequest
     is AuthError.NoJwtPrincipal, is AuthError.NoIdInPrincipal -> strings.errorNotLoggedIn
+    is AuthError.PasswordResetEmailNotSent -> strings.errorPasswordResetEmailNotSent
 }

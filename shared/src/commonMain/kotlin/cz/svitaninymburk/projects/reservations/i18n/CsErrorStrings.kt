@@ -6,6 +6,7 @@ object CsErrorStrings : ErrorStrings {
     override val errorInvalidGoogleToken = "Neplatný Google Token"
     override val errorInvalidToken = "Neplatný token"
     override val errorTokenExpired = "Token vypršel"
+    override val errorPasswordResetEmailNotSent = "E-mail s odkazem pro obnovení hesla se nepodařilo odeslat. Zkuste to prosím za chvíli znovu."
     override val errorUserNotFound = "Uživatel nenalezen"
     override val errorProcessingRequest = "Chyba při zpracování požadavku"
     override val errorNotLoggedIn = "Uživatel není přihlášen"
