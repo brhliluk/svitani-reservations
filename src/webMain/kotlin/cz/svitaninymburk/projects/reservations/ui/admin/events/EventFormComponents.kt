@@ -178,56 +178,43 @@ fun IComponent.AllowedPaymentsField(
 }
 
 @Composable
-fun IComponent.ReservationDeadlineSection(
-    enabled: Boolean,
-    typeIsHours: Boolean,
-    hours: Int,
-    daysBefore: Int,
-    timeStr: String,
-    message: String,
-    onEnabledChange: (Boolean) -> Unit,
-    onTypeChange: (Boolean) -> Unit,
-    onHoursChange: (Int) -> Unit,
-    onDaysBeforeChange: (Int) -> Unit,
-    onTimeStrChange: (String) -> Unit,
-    onMessageChange: (String) -> Unit,
-) {
+fun IComponent.ReservationDeadlineSection(state: ReservationDeadlineState) {
     val currentStrings by strings
     div(className = "card bg-base-100 shadow-sm") {
         div(className = "card-body") {
             h2(className = "card-title text-lg mb-2") { +currentStrings.reservationDeadlineSection }
             label(className = "cursor-pointer label justify-start gap-3") {
-                checkBox(value = enabled, className = "checkbox checkbox-primary") {
-                    onChange { onEnabledChange(value) }
+                checkBox(value = state.enabled, className = "checkbox checkbox-primary") {
+                    onChange { state.enabled = value }
                 }
                 span(className = "label-text") { +currentStrings.reservationDeadlineActive }
             }
-            if (enabled) {
+            if (state.enabled) {
                 div(className = "form-control w-full mt-2") {
                     label(className = "label") {
                         span(className = "label-text font-medium") { +currentStrings.reservationDeadlineTypeLabel }
                     }
                     select(className = "select select-bordered w-full") {
                         option(value = "hours", label = currentStrings.reservationDeadlineTypeHours) {
-                            if (typeIsHours) selected(true)
+                            if (state.typeIsHours) selected(true)
                         }
                         option(value = "time", label = currentStrings.reservationDeadlineTypeTime) {
-                            if (!typeIsHours) selected(true)
+                            if (!state.typeIsHours) selected(true)
                         }
                         onChange { event ->
-                            onTypeChange((event.target as? HTMLSelectElement)?.value == "hours")
+                            state.typeIsHours = (event.target as? HTMLSelectElement)?.value == "hours"
                         }
                     }
                 }
-                if (typeIsHours) {
+                if (state.typeIsHours) {
                     div(className = "form-control w-full mt-2") {
                         label(className = "label") {
                             span(className = "label-text font-medium") { +currentStrings.reservationDeadlineHoursLabel }
                         }
-                        numeric(value = hours, min = 0, decimals = 0, className = "input input-bordered w-full") {
+                        numeric(value = state.hours, min = 0, decimals = 0, className = "input input-bordered w-full") {
                             attribute("step", "1")
-                            onInput { onHoursChange(value?.toInt() ?: 0) }
-                            onChange { onHoursChange(value?.toInt() ?: 0) }
+                            onInput { state.hours = value?.toInt() ?: 0 }
+                            onChange { state.hours = value?.toInt() ?: 0 }
                         }
                     }
                 } else {
@@ -236,18 +223,18 @@ fun IComponent.ReservationDeadlineSection(
                             label(className = "label") {
                                 span(className = "label-text font-medium") { +currentStrings.reservationDeadlineDaysBeforeLabel }
                             }
-                            numeric(value = daysBefore, min = 0, decimals = 0, className = "input input-bordered w-full") {
+                            numeric(value = state.daysBefore, min = 0, decimals = 0, className = "input input-bordered w-full") {
                                 attribute("step", "1")
-                                onInput { onDaysBeforeChange(value?.toInt() ?: 0) }
-                                onChange { onDaysBeforeChange(value?.toInt() ?: 0) }
+                                onInput { state.daysBefore = value?.toInt() ?: 0 }
+                                onChange { state.daysBefore = value?.toInt() ?: 0 }
                             }
                         }
                         div(className = "form-control w-full") {
                             label(className = "label") {
                                 span(className = "label-text font-medium") { +currentStrings.reservationDeadlineTimeOfDayLabel }
                             }
-                            text(value = timeStr, type = InputType.Time, className = "input input-bordered w-full") {
-                                onInput { onTimeStrChange(value ?: "18:00") }
+                            text(value = state.timeStr, type = InputType.Time, className = "input input-bordered w-full") {
+                                onInput { state.timeStr = value ?: "18:00" }
                             }
                         }
                     }
@@ -256,9 +243,9 @@ fun IComponent.ReservationDeadlineSection(
                     label(className = "label") {
                         span(className = "label-text font-medium") { +currentStrings.reservationDeadlineMessageLabel }
                     }
-                    text(value = message, className = "input input-bordered w-full") {
+                    text(value = state.message, className = "input input-bordered w-full") {
                         placeholder(currentStrings.reservationDeadlineMessagePlaceholder)
-                        onInput { onMessageChange(value ?: "") }
+                        onInput { state.message = value ?: "" }
                     }
                 }
             }

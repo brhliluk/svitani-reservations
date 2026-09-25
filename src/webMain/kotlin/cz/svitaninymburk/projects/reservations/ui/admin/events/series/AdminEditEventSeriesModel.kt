@@ -10,14 +10,14 @@ import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.admin.events.EditGuard
+import cz.svitaninymburk.projects.reservations.ui.admin.events.ReservationDeadlineState
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.EventSeriesEditFormData
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.EventSeriesEditMutations
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.EventSeriesEditQueries
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.SeriesFormValidationError
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.buildUpdateEventSeriesRequest
-import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.resolveReservationDeadline
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.validateSeriesForm
-import cz.svitaninymburk.projects.reservations.ui.admin.events.EditGuard
 import cz.svitaninymburk.projects.reservations.ui.util.ScreenModel
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import dev.kilua.core.IComponent
@@ -25,8 +25,10 @@ import dev.kilua.rpc.getService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.uuid.Uuid
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import web.history.history
+import kotlin.uuid.Uuid
 
 sealed interface EditSeriesUiState {
     data object Loading : EditSeriesUiState
@@ -60,12 +62,7 @@ class AdminEditEventSeriesModel(
     var lessonCount by mutableIntStateOf(0); private set
     var customFields by mutableStateOf(listOf<CustomFieldDefinition>())
 
-    var deadlineEnabled by mutableStateOf(false)
-    var deadlineTypeIsHours by mutableStateOf(true)
-    var deadlineHours by mutableIntStateOf(2)
-    var deadlineDaysBefore by mutableIntStateOf(1)
-    var deadlineTimeStr by mutableStateOf("18:00")
-    var deadlineMessage by mutableStateOf("")
+    val deadline = ReservationDeadlineState()
 
     var isSubmitting by mutableStateOf(false); private set
     val guard = EditGuard(
@@ -96,13 +93,7 @@ class AdminEditEventSeriesModel(
                     lessonPriceInput = s.lessonPrice
                     lessonRefundAmountInput = s.lessonRefundAmount
                     lessonCount = s.lessonCount
-                    val seriesDeadline = s.reservationDeadline
-                    if (seriesDeadline != null) {
-                        deadlineEnabled = true
-                        deadlineHours = seriesDeadline.inWholeHours.toInt()
-                        deadlineTypeIsHours = true
-                    }
-                    deadlineMessage = s.reservationDeadlineMessage ?: ""
+                    deadline.restore(s.reservationDeadline, s.reservationDeadlineMessage)
                     customFields = s.customFields
                     uiState = EditSeriesUiState.Loaded(s)
                 }
@@ -121,12 +112,8 @@ class AdminEditEventSeriesModel(
 
     private fun performSave() {
         val loaded = uiState as? EditSeriesUiState.Loaded ?: return
-        val deadline = resolveReservationDeadline(
-            loaded.series.startDate,
-            loaded.series.lessonStartTime,
-            deadlineEnabled, deadlineTypeIsHours, deadlineHours, deadlineDaysBefore, deadlineTimeStr,
-        )
-        val request = buildUpdateEventSeriesRequest(formData(), deadline)
+        val firstLesson = LocalDateTime(loaded.series.startDate, loaded.series.lessonStartTime ?: LocalTime(0, 0))
+        val request = buildUpdateEventSeriesRequest(formData(), deadline.resolve(firstLesson))
         run(
             loading = { isSubmitting = it },
             errorMessage = { currentStrings.errorToast(it.localizedMessage(currentStrings)) },
@@ -166,7 +153,7 @@ class AdminEditEventSeriesModel(
         allowMultipleSeats = allowMultipleSeats,
         lessonRefundAmount = lessonRefundAmountInput?.toDouble(),
         customFields = customFields,
-        deadlineMessage = deadlineMessage,
+        deadlineMessage = deadline.message,
     )
 
     private fun validationErrorMessage(error: SeriesFormValidationError): String = when (error) {

@@ -14,13 +14,13 @@ import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AuthenticatedEventServiceInterface
 import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.admin.events.ReservationDeadlineState
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.EventInstanceCreateFormData
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.EventInstanceCreateMutations
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.EventInstanceCreateQueries
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.buildCreateEventInstanceRequest
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.instanceRecurrencePreviewDates
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.parseInstanceStartDateTime
-import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.resolveReservationDeadline
 import cz.svitaninymburk.projects.reservations.ui.util.ScreenModel
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import dev.kilua.core.IComponent
@@ -65,12 +65,7 @@ class AdminCreateEventInstanceModel(
     var showAttendeeCount by mutableStateOf(true)
     var allowMultipleSeats by mutableStateOf(true)
 
-    var deadlineEnabled by mutableStateOf(false)
-    var deadlineTypeIsHours by mutableStateOf(true)
-    var deadlineHours by mutableIntStateOf(2)
-    var deadlineDaysBefore by mutableIntStateOf(1)
-    var deadlineTimeStr by mutableStateOf("18:00")
-    var deadlineMessage by mutableStateOf("")
+    val deadline = ReservationDeadlineState()
 
     var customFields by mutableStateOf(listOf<CustomFieldDefinition>())
     var recurrenceType by mutableStateOf(RecurrenceType.NONE)
@@ -146,14 +141,11 @@ class AdminCreateEventInstanceModel(
             showToast(currentStrings.validationDateTimeFormat, ToastType.Error)
             return
         }
-        val deadline = resolveReservationDeadline(
-            parsedDateTime, deadlineEnabled, deadlineTypeIsHours, deadlineHours, deadlineDaysBefore, deadlineTimeStr,
-        )
         val baseRequest = buildCreateEventInstanceRequest(
             form = formData(),
             definitionId = Uuid.parse(definitionId),
             startDateTime = parsedDateTime,
-            reservationDeadline = deadline,
+            reservationDeadline = deadline.resolve(parsedDateTime),
             isPublished = isPublished,
         )
         val preview = previewDates
@@ -200,7 +192,7 @@ class AdminCreateEventInstanceModel(
         showAttendeeCount = showAttendeeCount,
         allowMultipleSeats = allowMultipleSeats,
         customFields = customFields,
-        deadlineMessage = deadlineMessage,
+        deadlineMessage = deadline.message,
     )
 }
 

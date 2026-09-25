@@ -5,15 +5,7 @@ import cz.svitaninymburk.projects.reservations.event.UpdateEventSeriesRequest
 import cz.svitaninymburk.projects.reservations.event.parseOwnerEmails
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.LocalTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.minus
-import kotlinx.datetime.toInstant
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
 import kotlin.uuid.Uuid
 
 // --- Pure helpery (testovatelné bez RPC) ---
@@ -44,31 +36,6 @@ fun validateSeriesForm(title: String, ownerEmails: List<String>): SeriesFormVali
     if (title.isBlank()) return SeriesFormValidationError.MissingTitle
     if (parseOwnerEmails(ownerEmails).isEmpty()) return SeriesFormValidationError.MissingOwnerEmail
     return null
-}
-
-fun resolveReservationDeadline(
-    startDate: LocalDate,
-    lessonStartTime: LocalTime?,
-    enabled: Boolean,
-    typeIsHours: Boolean,
-    hours: Int,
-    daysBefore: Int,
-    timeStr: String,
-): Duration? {
-    if (!enabled) return null
-    if (typeIsHours) return hours.hours
-    // Zóna prohlížeče, ne Europe/Prague: bundle nemá databázi časových pásem a TimeZone.of
-    // tu spadne — výjimka by skončila v catch a uzávěrka by se tiše neuložila. Admin
-    // formulář vyplňuje v Praze, takže odstup sedí i přes přechod na letní čas.
-    return try {
-        val tz = TimeZone.currentSystemDefault()
-        val effectiveStart = LocalDateTime(startDate, lessonStartTime ?: LocalTime(0, 0))
-        val deadlineDate = startDate.minus(daysBefore, DateTimeUnit.DAY)
-        val deadlineDateTime = LocalDateTime(deadlineDate, LocalTime.parse(timeStr))
-        effectiveStart.toInstant(tz) - deadlineDateTime.toInstant(tz)
-    } catch (_: Exception) {
-        null
-    }
 }
 
 fun buildUpdateEventSeriesRequest(

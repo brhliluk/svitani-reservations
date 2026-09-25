@@ -4,10 +4,9 @@ import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.EventSeriesEditFormData
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.SeriesFormValidationError
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.buildUpdateEventSeriesRequest
-import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.resolveReservationDeadline
+import cz.svitaninymburk.projects.reservations.ui.admin.events.resolveReservationDeadline
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.validateSeriesForm
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
+import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -51,8 +50,7 @@ class EventSeriesEditFormUseCasesSpec {
     fun resolveReservationDeadlineReturnsNullWhenDisabled() {
         assertNull(
             resolveReservationDeadline(
-                startDate = LocalDate(2026, 1, 10),
-                lessonStartTime = LocalTime(18, 0),
+                startDt = LocalDateTime(2026, 1, 10, 18, 0),
                 enabled = false,
                 typeIsHours = true,
                 hours = 2,
@@ -67,8 +65,7 @@ class EventSeriesEditFormUseCasesSpec {
         assertEquals(
             2.hours,
             resolveReservationDeadline(
-                startDate = LocalDate(2026, 1, 10),
-                lessonStartTime = LocalTime(18, 0),
+                startDt = LocalDateTime(2026, 1, 10, 18, 0),
                 enabled = true,
                 typeIsHours = true,
                 hours = 2,
@@ -83,8 +80,7 @@ class EventSeriesEditFormUseCasesSpec {
         assertEquals(
             24.hours,
             resolveReservationDeadline(
-                startDate = LocalDate(2026, 1, 10),
-                lessonStartTime = LocalTime(18, 0),
+                startDt = LocalDateTime(2026, 1, 10, 18, 0),
                 enabled = true,
                 typeIsHours = false,
                 hours = 2,
@@ -98,8 +94,7 @@ class EventSeriesEditFormUseCasesSpec {
     fun resolveReservationDeadlineReturnsNullForUnparsableTime() {
         assertNull(
             resolveReservationDeadline(
-                startDate = LocalDate(2026, 1, 10),
-                lessonStartTime = LocalTime(18, 0),
+                startDt = LocalDateTime(2026, 1, 10, 18, 0),
                 enabled = true,
                 typeIsHours = false,
                 hours = 2,

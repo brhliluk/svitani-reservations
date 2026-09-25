@@ -10,15 +10,15 @@ import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.admin.events.EditGuard
+import cz.svitaninymburk.projects.reservations.ui.admin.events.ReservationDeadlineState
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.EventInstanceEditFormData
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.EventInstanceEditMutations
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.EventInstanceEditQueries
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.InstanceFormValidationError
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.buildUpdateEventInstanceRequest
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.parseInstanceStartDateTime
-import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.resolveReservationDeadline
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.validateInstanceForm
-import cz.svitaninymburk.projects.reservations.ui.admin.events.EditGuard
 import cz.svitaninymburk.projects.reservations.ui.util.ScreenModel
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
 import dev.kilua.core.IComponent
@@ -29,10 +29,10 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import web.history.history
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.Uuid
-import web.history.history
 
 sealed interface EditInstanceUiState {
     data object Loading : EditInstanceUiState
@@ -67,12 +67,7 @@ class AdminEditEventInstanceModel(
     var allowMultipleSeats by mutableStateOf(true)
     var customFields by mutableStateOf(listOf<CustomFieldDefinition>())
 
-    var deadlineEnabled by mutableStateOf(false)
-    var deadlineTypeIsHours by mutableStateOf(true)
-    var deadlineHours by mutableIntStateOf(2)
-    var deadlineDaysBefore by mutableIntStateOf(1)
-    var deadlineTimeStr by mutableStateOf("18:00")
-    var deadlineMessage by mutableStateOf("")
+    val deadline = ReservationDeadlineState()
 
     var isSubmitting by mutableStateOf(false); private set
     val guard = EditGuard(
@@ -106,13 +101,7 @@ class AdminEditEventInstanceModel(
                     ownerEmails = inst.ownerEmails.ifEmpty { listOf("") }
                     showAttendeeCount = inst.showAttendeeCount
                     allowMultipleSeats = inst.allowMultipleSeats
-                    val instDeadline = inst.reservationDeadline
-                    if (instDeadline != null) {
-                        deadlineEnabled = true
-                        deadlineHours = instDeadline.inWholeHours.toInt()
-                        deadlineTypeIsHours = true
-                    }
-                    deadlineMessage = inst.reservationDeadlineMessage ?: ""
+                    deadline.restore(inst.reservationDeadline, inst.reservationDeadlineMessage)
                     customFields = inst.customFields
                     uiState = EditInstanceUiState.Loaded(inst)
                 }
@@ -137,8 +126,7 @@ class AdminEditEventInstanceModel(
         }
         val tz = TimeZone.currentSystemDefault()
         val endDt = (startDt.toInstant(tz) + durationHours.hours + durationMinutes.minutes).toLocalDateTime(tz)
-        val deadline = resolveReservationDeadline(startDt, deadlineEnabled, deadlineTypeIsHours, deadlineHours, deadlineDaysBefore, deadlineTimeStr)
-        val request = buildUpdateEventInstanceRequest(formData(), startDt, endDt, deadline)
+        val request = buildUpdateEventInstanceRequest(formData(), startDt, endDt, deadline.resolve(startDt))
         run(
             loading = { isSubmitting = it },
             errorMessage = { currentStrings.errorToast(it.localizedMessage(currentStrings)) },
@@ -177,7 +165,7 @@ class AdminEditEventInstanceModel(
         showAttendeeCount = showAttendeeCount,
         allowMultipleSeats = allowMultipleSeats,
         customFields = customFields,
-        deadlineMessage = deadlineMessage,
+        deadlineMessage = deadline.message,
     )
 
     private fun validationErrorMessage(error: InstanceFormValidationError): String = when (error) {

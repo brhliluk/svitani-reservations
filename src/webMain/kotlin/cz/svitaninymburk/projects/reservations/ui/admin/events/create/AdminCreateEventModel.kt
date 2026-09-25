@@ -10,6 +10,7 @@ import cz.svitaninymburk.projects.reservations.error.localizedMessage
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.RecurrenceType
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.admin.events.ReservationDeadlineState
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.CourseStartDate
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.EventCreateFormData
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.EventCreateMutations
@@ -23,7 +24,6 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.pa
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.parseSingleEventDateTime
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.validateEventCreateCommon
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.instanceRecurrencePreviewDates
-import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.resolveReservationDeadline
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.buildSeriesLessonConfigs
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.computeLessonEndTime
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.computeSeriesDates
@@ -96,12 +96,7 @@ class AdminCreateEventModel(
     var excludedLessonIndices by mutableStateOf(setOf<Int>()); private set
 
     // Uzávěrka rezervací
-    var deadlineEnabled by mutableStateOf(false)
-    var deadlineTypeIsHours by mutableStateOf(true)
-    var deadlineHours by mutableIntStateOf(2)
-    var deadlineDaysBefore by mutableIntStateOf(1)
-    var deadlineTimeStr by mutableStateOf("18:00")
-    var deadlineMessage by mutableStateOf("")
+    val deadline = ReservationDeadlineState()
 
     var isSubmitting by mutableStateOf(false); private set
 
@@ -201,7 +196,7 @@ class AdminCreateEventModel(
         val request = buildCreateEventAndInstancesRequest(
             form = formData(),
             dateTimes = dateTimes,
-            reservationDeadline = deadlineFor(dateTimes.first()),
+            reservationDeadline = deadline.resolve(dateTimes.first()),
             isPublished = isPublished,
         )
         run(
@@ -245,7 +240,7 @@ class AdminCreateEventModel(
             ),
             lessonPrice = courseLessonPrice?.toDouble(),
             lessonRefundAmount = courseLessonRefundAmount?.toDouble(),
-            reservationDeadline = deadlineFor(LocalDateTime(firstLessonDate, lessonStartTime ?: LocalTime(0, 0))),
+            reservationDeadline = deadline.resolve(LocalDateTime(firstLessonDate, lessonStartTime ?: LocalTime(0, 0))),
             isPublished = isPublished,
         )
         run(
@@ -255,15 +250,6 @@ class AdminCreateEventModel(
             onSuccess = { navigateToEvents(currentStrings.toastCourseCreated) },
         )
     }
-
-    private fun deadlineFor(startDateTime: LocalDateTime) = resolveReservationDeadline(
-        startDt = startDateTime,
-        enabled = deadlineEnabled,
-        typeIsHours = deadlineTypeIsHours,
-        hours = deadlineHours,
-        daysBefore = deadlineDaysBefore,
-        timeStr = deadlineTimeStr,
-    )
 
     private fun navigateToEvents(message: String) {
         showToast(message)
@@ -284,7 +270,7 @@ class AdminCreateEventModel(
         showAttendeeCount = showAttendeeCount,
         allowMultipleSeats = allowMultipleSeats,
         customFields = customFields,
-        deadlineMessage = deadlineMessage,
+        deadlineMessage = deadline.message,
     )
 
     private fun showValidationError(error: EventCreateValidationError) {

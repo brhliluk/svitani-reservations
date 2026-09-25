@@ -90,20 +90,7 @@ fun IComponent.AdminEditEventSeriesScreen(id: String) {
                 }
                 CustomFieldsBuilderSection(model.customFields) { model.customFields = it }
 
-                ReservationDeadlineSection(
-                    enabled = model.deadlineEnabled,
-                    typeIsHours = model.deadlineTypeIsHours,
-                    hours = model.deadlineHours,
-                    daysBefore = model.deadlineDaysBefore,
-                    timeStr = model.deadlineTimeStr,
-                    message = model.deadlineMessage,
-                    onEnabledChange = { model.deadlineEnabled = it },
-                    onTypeChange = { model.deadlineTypeIsHours = it },
-                    onHoursChange = { model.deadlineHours = it },
-                    onDaysBeforeChange = { model.deadlineDaysBefore = it },
-                    onTimeStrChange = { model.deadlineTimeStr = it },
-                    onMessageChange = { model.deadlineMessage = it },
-                )
+                ReservationDeadlineSection(model.deadline)
                 div(className = "flex justify-end gap-2 mt-4") {
                     button(className = "btn") { onClick { history.back() }; +currentStrings.cancel }
                     button(className = "btn btn-primary") {

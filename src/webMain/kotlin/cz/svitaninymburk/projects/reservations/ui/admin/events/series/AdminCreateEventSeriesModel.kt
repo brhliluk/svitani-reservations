@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.admin.events.ReservationDeadlineState
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.EventSeriesCreateFormData
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.EventSeriesCreateMutations
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.EventSeriesCreateQueries
@@ -24,7 +25,6 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.co
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.effectiveSeriesDates
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.keptLessonIndices
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.parseTimeOrNull
-import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.resolveReservationDeadline
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.validateSeriesCreateForm
 import cz.svitaninymburk.projects.reservations.ui.util.ScreenModel
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
@@ -35,6 +35,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -77,12 +79,7 @@ class AdminCreateEventSeriesModel(
     var showAttendeeCount by mutableStateOf(true)
     var allowMultipleSeats by mutableStateOf(true)
 
-    var deadlineEnabled by mutableStateOf(false)
-    var deadlineTypeIsHours by mutableStateOf(true)
-    var deadlineHours by mutableIntStateOf(2)
-    var deadlineDaysBefore by mutableIntStateOf(1)
-    var deadlineTimeStr by mutableStateOf("18:00")
-    var deadlineMessage by mutableStateOf("")
+    val deadline = ReservationDeadlineState()
 
     var customFields by mutableStateOf(listOf<CustomFieldDefinition>())
 
@@ -202,9 +199,7 @@ class AdminCreateEventSeriesModel(
         val endT = if (startT != null && durationMinutes != null) computeLessonEndTime(startT, durationMinutes) else null
         val customLessons = buildSeriesLessonConfigs(generated, lessonDateOverrides, startT, durationMinutes, lessonDropIn, excludedLessonIndices)
         val firstLessonDate = effectiveDates.firstOrNull() ?: valid.startDate
-        val deadline = resolveReservationDeadline(
-            firstLessonDate, startT, deadlineEnabled, deadlineTypeIsHours, deadlineHours, deadlineDaysBefore, deadlineTimeStr,
-        )
+        val reservationDeadline = deadline.resolve(LocalDateTime(firstLessonDate, startT ?: LocalTime(0, 0)))
         val request = buildCreateEventSeriesRequest(
             form = formData(),
             definitionId = Uuid.parse(definitionId),
@@ -215,7 +210,7 @@ class AdminCreateEventSeriesModel(
             lessonStartTime = startT,
             lessonEndTime = endT,
             customLessons = customLessons,
-            reservationDeadline = deadline,
+            reservationDeadline = reservationDeadline,
             isPublished = isPublished,
         )
         run(
@@ -243,7 +238,7 @@ class AdminCreateEventSeriesModel(
         showAttendeeCount = showAttendeeCount,
         allowMultipleSeats = allowMultipleSeats,
         customFields = customFields,
-        deadlineMessage = deadlineMessage,
+        deadlineMessage = deadline.message,
     )
 
     private fun validationErrorMessage(error: SeriesCreateValidationError): String = when (error) {
