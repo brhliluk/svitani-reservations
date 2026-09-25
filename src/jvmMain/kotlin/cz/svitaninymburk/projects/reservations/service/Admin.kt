@@ -1196,6 +1196,14 @@ class AdminDashboardService(
             seriesId = instance.seriesId, instanceId = id, historyDetail = null,
         )
 
+        // Smazaná budoucí lekce je pro zapsané na kurz totéž co zrušená. U proběhlé
+        // lekce se nic neposílá ani nevrací — konala se.
+        val seriesId = instance.seriesId
+        if (seriesId != null && !instance.isCancelled && instance.startDateTime > nowInAppTimeZone()) {
+            val series = eventSeriesRepository.get(seriesId)
+            notifyAndCreditEnrollees(instance, seriesId, series, series?.title ?: instance.title, refund)
+        }
+
         eventInstanceRepository.delete(id)
         instance.seriesId?.let { seriesScheduleRefresher.refresh(it) }
     }
@@ -1290,12 +1298,20 @@ class AdminDashboardService(
         eventInstanceRepository.setCancelled(id)
 
         audit.record(
-            type = AuditEventType.EVENT_CANCELLED,
+            type = if (instance.seriesId != null) AuditEventType.LESSON_CANCELLED else AuditEventType.EVENT_CANCELLED,
             subjectLabel = instance.title,
             seriesId = instance.seriesId,
             instanceId = id,
             detail = if (refund) "Akce zrušena, kredit vracen" else "Akce zrušena bez vracení kreditu",
         )
+
+        // Lekce kurzu zrušená z jejího detailu — zapsaní na kurz na ni mají nárok
+        // stejně jako samostatné rezervace.
+        instance.seriesId?.let { seriesId ->
+            seriesScheduleRefresher.refresh(seriesId)
+            val series = eventSeriesRepository.get(seriesId)
+            notifyAndCreditEnrollees(instance, seriesId, series, series?.title ?: instance.title, refund)
+        }
 
         cancelAllReservations(
             Reference.Instance(id), instance.title, refund,
@@ -1463,6 +1479,54 @@ class AdminDashboardService(
         }
     }
 
+    /**
+     * Zapsaní na kurz o lekci přicházejí stejně, ať ji admin zruší z karty lekcí
+     * ([cancelSeriesLesson]), z detailu lekce ([cancelEventInstance]) nebo ji smaže
+     * ([deleteEventInstance]): dostanou e-mail a při [refund] kredit za lekci jako
+     * za omluvenku. Dřív to dělala jen karta lekcí — z detailu lekce se rušily jen
+     * samostatné rezervace a zapsaní se o ničem nedozvěděli.
+     */
+    private suspend fun notifyAndCreditEnrollees(
+        instance: EventInstance,
+        seriesId: Uuid,
+        series: EventSeries?,
+        seriesTitle: String,
+        refund: Boolean,
+    ) {
+        val instanceId = instance.id
+        reservationRepository.findByReference(Reference.Series(seriesId))
+            .filter { it.status != Reservation.Status.CANCELLED }
+            .forEach { res ->
+                withAuditSubject(
+                    AuditSubject(seriesId = seriesId, instanceId = instanceId, reservationId = res.id, label = res.contactName)
+                ) {
+                    emailDispatcher.dispatch {
+                        emailService.sendLessonCancelledNotification(
+                            toEmail = res.contactEmail,
+                            contactName = res.contactName,
+                            seriesTitle = seriesTitle,
+                            lessonDateTime = instance.startDateTime,
+                            locale = res.locale,
+                        ).onLeft { captureEmailError(logger, "Failed to send lesson-cancelled email for ${res.id}: $it") }
+                    }
+                }
+
+                if (!refund) return@forEach
+                val alreadyOptedOut = seriesLessonOptOutRepository
+                    .findByReservationAndInstance(res.id, instanceId) != null
+                // Stejný kredit jako za omluvenku.
+                val refundAmount = if (alreadyOptedOut) 0.0 else refundService.cappedLessonCredit(res, series)
+                if (refundAmount > 0.0) {
+                    refundSafely(res, AuditSubject(seriesId, instanceId, res.id, res.contactName)) { wallet ->
+                        refundService.refundFixedAmount(
+                            wallet, res, refundAmount,
+                            WalletTransactionReason.LESSON_OPT_OUT_REFUND,
+                        )
+                    }
+                }
+            }
+    }
+
     override suspend fun cancelSeriesLesson(instanceId: Uuid): Either<AdminError.CancelLesson, Unit> = either {
         val instance = ensureNotNull(eventInstanceRepository.get(instanceId)) { AdminError.CancelLesson.InstanceNotFound }
         val seriesId = instance.seriesId ?: raise(AdminError.CancelLesson.InstanceNotFound)
@@ -1488,36 +1552,7 @@ class AdminDashboardService(
                 detail = "Lekce ${instance.startDateTime} zrušena",
             )
 
-            reservationRepository.findByReference(Reference.Series(seriesId))
-                .filter { it.status != Reservation.Status.CANCELLED }
-                .forEach { res ->
-                    withAuditSubject(
-                        AuditSubject(seriesId = seriesId, instanceId = instanceId, reservationId = res.id, label = res.contactName)
-                    ) {
-                        emailDispatcher.dispatch {
-                            emailService.sendLessonCancelledNotification(
-                                toEmail = res.contactEmail,
-                                contactName = res.contactName,
-                                seriesTitle = seriesTitle,
-                                lessonDateTime = instance.startDateTime,
-                                locale = res.locale,
-                            ).onLeft { captureEmailError(logger, "Failed to send lesson-cancelled email for ${res.id}: $it") }
-                        }
-                    }
-
-                    val alreadyOptedOut = seriesLessonOptOutRepository
-                        .findByReservationAndInstance(res.id, instanceId) != null
-                    // Stejný kredit jako za omluvenku.
-                    val refundAmount = if (alreadyOptedOut) 0.0 else refundService.cappedLessonCredit(res, series)
-                    if (refundAmount > 0.0) {
-                        refundSafely(res, AuditSubject(seriesId, instanceId, res.id, res.contactName)) { wallet ->
-                            refundService.refundFixedAmount(
-                                wallet, res, refundAmount,
-                                WalletTransactionReason.LESSON_OPT_OUT_REFUND,
-                            )
-                        }
-                    }
-                }
+            notifyAndCreditEnrollees(instance, seriesId, series, seriesTitle, refund = true)
 
             // Stejný postup jako cancelEventInstance — viz cancelDropInReservations.
             cancelDropInReservations(instance, instance.title, refund = true, detail = "Zrušeno se zrušením lekce")

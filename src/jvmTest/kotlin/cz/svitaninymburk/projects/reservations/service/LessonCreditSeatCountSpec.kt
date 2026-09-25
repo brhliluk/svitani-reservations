@@ -196,6 +196,37 @@ class LessonCreditSeatCountSpec {
     }
 
     @Test
+    fun `cancelling a lesson from its own detail credits course enrollees like the lesson list`() = runBlocking {
+        setup(lessonRefundAmount = 150.0)
+        val enrollment = enrolThreeSeats()
+
+        val result = admin.cancelEventInstance(lessons[0].id, refund = true)
+
+        assertTrue(result.isRight(), "zrušení lekce musí projít, dostal: $result")
+        assertEquals(450.0, credited(enrollment), "zapsaný na kurz dostane kredit i při zrušení z detailu lekce")
+    }
+
+    @Test
+    fun `cancelling a lesson from its detail without refund credits nothing`() = runBlocking {
+        setup(lessonRefundAmount = 150.0)
+        val enrollment = enrolThreeSeats()
+
+        admin.cancelEventInstance(lessons[0].id, refund = false)
+
+        assertEquals(0.0, credited(enrollment))
+    }
+
+    @Test
+    fun `deleting a future lesson credits course enrollees`() = runBlocking {
+        setup(lessonRefundAmount = 150.0)
+        val enrollment = enrolThreeSeats()
+
+        admin.deleteEventInstance(lessons[0].id, refund = true)
+
+        assertEquals(450.0, credited(enrollment))
+    }
+
+    @Test
     fun `lesson cancellation by admin without a manual rate refunds the proportional share of the price`() = runBlocking {
         setup(lessonRefundAmount = null)
         val enrollment = enrolThreeSeats()
