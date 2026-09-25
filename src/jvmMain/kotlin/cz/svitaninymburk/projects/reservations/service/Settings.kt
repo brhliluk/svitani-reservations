@@ -74,6 +74,11 @@ class AppSettingsService(
         if (smtpError != null) raise(SettingsError.EmailTestFailed(smtpError.chainedMessage()))
     }
 
+    /**
+     * Test smí jen číst. Dřív volal `set-last-date`, který ve Fio posune zarážku
+     * posledního stažení — automatické párování (`/last/`) pak dnešní ještě nestažené
+     * platby už nedostalo. `periods` za dnešek zarážky nijak nemění.
+     */
     override suspend fun testFioSettings(fioToken: String?): Either<SettingsError, Unit> = either {
         val token = fioToken ?: provider.current.fioToken
         val today = LocalDate.now()
@@ -81,7 +86,7 @@ class AppSettingsService(
             httpClient.get(url {
                 protocol = URLProtocol.HTTPS
                 host = "fioapi.fio.cz"
-                path("v1/rest/set-last-date/$token/$today/")
+                path("v1/rest/periods/$token/$today/$today/transactions.json")
             })
         } catch (e: Exception) {
             raise(SettingsError.FioTestFailed(e.message ?: "Connection failed"))
