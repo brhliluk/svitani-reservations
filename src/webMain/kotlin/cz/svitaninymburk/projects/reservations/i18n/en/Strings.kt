@@ -753,6 +753,7 @@ object EnStrings : AppStrings {
     override val errorCapacityExceeded = "Event capacity exceeded"
     override val errorMultipleSeatsNotAllowed = "Only one seat can be reserved for this event."
     override val errorInvalidSeatCount = "The number of seats must be at least 1."
+    override val errorPaymentTypeNotAllowed = "This payment method isn't available for this event. Please choose another one."
     override val errorEventAlreadyFinished = "Event has already ended"
     override val errorEventAlreadyStarted = "Event has already started"
     override val errorSeriesAlreadyStarted = "The course is already running, so the whole reservation can't be cancelled. Individual lessons can still be cancelled."

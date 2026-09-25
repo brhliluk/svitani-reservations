@@ -15,6 +15,7 @@ import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.WALLET_COD
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.areCustomFieldsValid
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.effectivePaymentType
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.formatPriceHours
+import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.initialPaymentType
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isCompleteWalletCode
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isContactValid
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.showsPaymentTypePicker
@@ -219,5 +220,13 @@ class ReservationFormPriceBreakdownSpec {
         val t = target(listOf(multiplying))
         assertNull(timeMultiplierHours(t, emptyMap()))
         assertNull(timeMultiplierHours(t, mapOf("cas" to range(LocalTime(10, 0), LocalTime(10, 0)))))
+    }
+
+    @Test
+    fun initialPaymentTypeIsFirstAllowedOption() {
+        assertEquals(PaymentType.ON_SITE, initialPaymentType(listOf(PaymentType.ON_SITE)))
+        assertEquals(PaymentType.ON_SITE, initialPaymentType(listOf(PaymentType.ON_SITE, PaymentType.BANK_TRANSFER)))
+        assertEquals(PaymentType.BANK_TRANSFER, initialPaymentType(listOf(PaymentType.FREE, PaymentType.BANK_TRANSFER)))
+        assertEquals(PaymentType.BANK_TRANSFER, initialPaymentType(emptyList()))
     }
 }

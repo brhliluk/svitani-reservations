@@ -297,6 +297,7 @@ open class ReservationService(
 
         ensure(request.seatCount >= 1) { ReservationError.InvalidSeatCount }
         ensure(instance.allowMultipleSeats || request.seatCount == 1) { ReservationError.MultipleSeatsNotAllowed }
+        ensurePaymentTypeAllowed(request.paymentType, instance.allowedPaymentTypes)
 
         // Musí být před zabráním kapacity — attemptToReserveSpots ukousne místo hned
         // a odmítnutý pokus by ho už nevrátil.
@@ -328,6 +329,7 @@ open class ReservationService(
 
         ensure(request.seatCount >= 1) { ReservationError.InvalidSeatCount }
         ensure(series.allowMultipleSeats || request.seatCount == 1) { ReservationError.MultipleSeatsNotAllowed }
+        ensurePaymentTypeAllowed(request.paymentType, series.allowedPaymentTypes)
 
         ensureNoDuplicate(request.acknowledgedDuplicate) { duplicateDetector.forSeries(series.id, request.contactEmail) }
 
@@ -359,6 +361,7 @@ open class ReservationService(
         // z API by se při posunu propsala do kapacity: záporná by čítač míst stáhla
         // a akci přeplnila, větší než kapacita by pořadník navždy zablokovala.
         ensure(request.seatCount == 1) { ReservationError.InvalidSeatCount }
+        ensurePaymentTypeAllowed(request.paymentType, instance.allowedPaymentTypes)
 
         ensureNoDuplicate(request.acknowledgedDuplicate) { duplicateDetector.forInstance(instance, request.contactEmail) }
 
@@ -387,6 +390,7 @@ open class ReservationService(
         // z API by se při posunu propsala do kapacity: záporná by čítač míst stáhla
         // a akci přeplnila, větší než kapacita by pořadník navždy zablokovala.
         ensure(request.seatCount == 1) { ReservationError.InvalidSeatCount }
+        ensurePaymentTypeAllowed(request.paymentType, series.allowedPaymentTypes)
 
         ensureNoDuplicate(request.acknowledgedDuplicate) { duplicateDetector.forSeries(series.id, request.contactEmail) }
 
@@ -400,6 +404,19 @@ open class ReservationService(
             pricePerSeat = series.price,
             target = ReservationTarget.Series(series),
         )
+    }
+
+    /**
+     * Rodiči s akcí jen na hotovost jinak odešel e-mail s QR kódem k převodu.
+     * FREE si klient posílá, když má platbu pokrýt peněženka nebo je akce zdarma —
+     * o tom, jestli opravdu zdarma bude, rozhoduje až createReservationFlow.
+     */
+    private fun Raise<ReservationError.CreateReservation>.ensurePaymentTypeAllowed(
+        requested: PaymentType,
+        allowed: List<PaymentType>,
+    ) {
+        if (requested == PaymentType.FREE) return
+        ensure(requested in allowed) { ReservationError.PaymentTypeNotAllowed }
     }
 
     /**

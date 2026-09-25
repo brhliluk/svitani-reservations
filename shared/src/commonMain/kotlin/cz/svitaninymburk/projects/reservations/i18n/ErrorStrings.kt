@@ -19,6 +19,7 @@ interface ErrorStrings {
     val errorCapacityExceeded: String
     val errorMultipleSeatsNotAllowed: String
     val errorInvalidSeatCount: String
+    val errorPaymentTypeNotAllowed: String
     val errorEventAlreadyFinished: String
     val errorEventAlreadyStarted: String
     val errorSeriesAlreadyStarted: String

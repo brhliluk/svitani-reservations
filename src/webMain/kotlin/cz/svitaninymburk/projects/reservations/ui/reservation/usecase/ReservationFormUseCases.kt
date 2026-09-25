@@ -43,6 +43,10 @@ fun effectivePaymentType(
     chosen: PaymentType,
 ): PaymentType = if (deduction == total) PaymentType.FREE else chosen
 
+/** Výchozí způsob platby ve formuláři: první, který akce povoluje (FREE se nevybírá). */
+fun initialPaymentType(allowed: List<PaymentType>): PaymentType =
+    allowed.firstOrNull { it != PaymentType.FREE } ?: PaymentType.BANK_TRANSFER
+
 fun showsPaymentTypePicker(total: Double, deduction: Double): Boolean =
     remainingToPay(total, deduction) > 0.0
 

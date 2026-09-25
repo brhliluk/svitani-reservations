@@ -219,7 +219,9 @@ fun IComponent.ReservationModal(
                                 }
                                 select(className = "select select-bordered select-lg sm:select-md w-full") {
                                     for (paymentOption in target.allowedPaymentTypes) {
-                                        option(paymentOption.name, label = paymentOption.label)
+                                        option(paymentOption.name, label = paymentOption.label) {
+                                            if (paymentOption == model.paymentType) selected(true)
+                                        }
                                     }
 
                                     onChange { event ->

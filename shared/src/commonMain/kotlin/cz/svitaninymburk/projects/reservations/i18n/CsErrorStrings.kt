@@ -17,6 +17,7 @@ object CsErrorStrings : ErrorStrings {
     override val errorCapacityExceeded = "Kapacita události překročena"
     override val errorMultipleSeatsNotAllowed = "U této akce lze rezervovat pouze jedno místo."
     override val errorInvalidSeatCount = "Počet míst musí být alespoň 1."
+    override val errorPaymentTypeNotAllowed = "Tento způsob platby u této akce nejde použít. Vyberte prosím jiný."
     override val errorEventAlreadyFinished = "Událost již skončila"
     override val errorEventAlreadyStarted = "Událost již začala"
     override val errorSeriesAlreadyStarted = "Kurz už běží, celou rezervaci zrušit nejde. Zrušit se dají jednotlivé lekce."

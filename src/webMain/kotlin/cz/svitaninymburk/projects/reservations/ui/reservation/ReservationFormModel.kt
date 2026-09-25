@@ -13,6 +13,7 @@ import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.WalletLookup
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.effectivePaymentType
+import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.initialPaymentType
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isCompleteWalletCode
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isReservationFormValid
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.remainingToPay
@@ -50,7 +51,12 @@ class ReservationFormModel(
 
     var seats by mutableIntStateOf(1); private set
     var seatsExceeded by mutableStateOf(false); private set
-    var paymentType by mutableStateOf(PaymentType.BANK_TRANSFER); private set
+    /**
+     * Musí začínat na první povolené možnosti — tu select ukáže jako vybranou.
+     * S pevným BANK_TRANSFER odešel u akce jen na hotovost převod, i když rodič
+     * nic jiného než „Hotově na místě“ neviděl.
+     */
+    var paymentType by mutableStateOf(initialPaymentType(target.allowedPaymentTypes)); private set
 
     val customValues = mutableStateMapOf<String, CustomFieldValue>()
 
