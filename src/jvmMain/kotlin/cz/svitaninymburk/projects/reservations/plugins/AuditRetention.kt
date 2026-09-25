@@ -29,9 +29,9 @@ fun Application.startAuditRetentionJob() {
         while (isActive) {
             runCatching {
                 val cutoff = Clock.System.now() - AUDIT_RETENTION
-                val smazano = auditRepository.deleteOlderThan(cutoff)
-                if (smazano > 0) {
-                    println("ℹ️ audit log: smazáno $smazano záznamů starších než rok")
+                val deleted = auditRepository.deleteOlderThan(cutoff)
+                if (deleted > 0) {
+                    println("ℹ️ audit log: smazáno $deleted záznamů starších než rok")
                 }
             }.onFailure { e ->
                 println("⚠️ AuditRetention job error: ${e.message}")

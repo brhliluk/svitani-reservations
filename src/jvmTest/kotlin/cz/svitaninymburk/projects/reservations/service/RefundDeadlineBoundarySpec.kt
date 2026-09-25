@@ -15,13 +15,13 @@ class RefundDeadlineBoundarySpec {
     private val deadline = refundDeadlineFor(start)
 
     @Test
-    fun `presne v uzaverce se jeste vraci`() {
+    fun `refund is still granted exactly at the deadline`() {
         assertFalse(isPastRefundDeadline(start, now = deadline))
         assertFalse(isPastRefundDeadline(start, now = deadline - 1.milliseconds))
     }
 
     @Test
-    fun `po uzaverce uz ne`() {
+    fun `no refund after the deadline`() {
         assertTrue(isPastRefundDeadline(start, now = deadline + 1.milliseconds))
     }
 }

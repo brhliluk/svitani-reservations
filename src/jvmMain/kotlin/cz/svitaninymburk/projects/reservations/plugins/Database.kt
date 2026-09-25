@@ -77,9 +77,9 @@ fun Application.configureDatabases() {
         // (reservation_id, instance_id) a na datech s duplicitou by DDL selhalo
         // a shodilo start aplikace.
         nonFatal("series_lesson_opt_outs deduplication") {
-            val smazano = deduplicateSeriesLessonOptOuts()
-            if (smazano > 0) {
-                println("ℹ️ omluvenky z lekcí: $smazano duplicitních záznamů odstraněno")
+            val removed = deduplicateSeriesLessonOptOuts()
+            if (removed > 0) {
+                println("ℹ️ omluvenky z lekcí: $removed duplicitních záznamů odstraněno")
             }
         }
 
@@ -97,17 +97,17 @@ fun Application.configureDatabases() {
 
         // Až po MigrationUtils — ty sloupec refunded_amount teprve zakládají.
         nonFatal("series_lesson_opt_outs refunded_amount backfill") {
-            val doplneno = backfillOptOutRefundedAmounts()
-            if (doplneno > 0) {
-                println("ℹ️ omluvenky z lekcí: u $doplneno historických záznamů dohledána vyplacená částka")
+            val filled = backfillOptOutRefundedAmounts()
+            if (filled > 0) {
+                println("ℹ️ omluvenky z lekcí: u $filled historických záznamů dohledána vyplacená částka")
             }
         }
 
         // Až po MigrationUtils — ty sloupec lesson_share teprve zakládají.
         nonFatal("reservations lesson_share backfill") {
-            val doplneno = backfillLessonShares()
-            if (doplneno > 0) {
-                println("ℹ️ zápisy na kurz: u $doplneno historických rezervací doplněna poměrná část ceny za lekci")
+            val filled = backfillLessonShares()
+            if (filled > 0) {
+                println("ℹ️ zápisy na kurz: u $filled historických rezervací doplněna poměrná část ceny za lekci")
             }
         }
 
@@ -116,9 +116,9 @@ fun Application.configureDatabases() {
         }
 
         nonFatal("free reservations backfill") {
-            val potvrzenych = confirmFreeReservations()
-            if (potvrzenych > 0) {
-                println("ℹ️ rezervace zdarma: $potvrzenych historických rezervací přepsáno na CONFIRMED/FREE")
+            val confirmed = confirmFreeReservations()
+            if (confirmed > 0) {
+                println("ℹ️ rezervace zdarma: $confirmed historických rezervací přepsáno na CONFIRMED/FREE")
             }
         }
 

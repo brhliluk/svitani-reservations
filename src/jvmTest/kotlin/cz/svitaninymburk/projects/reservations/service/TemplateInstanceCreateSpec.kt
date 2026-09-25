@@ -38,7 +38,7 @@ class TemplateInstanceCreateSpec {
     }
 
     @Test
-    fun `hodnoty z formulare se ulozi`() {
+    fun `form values are persisted`() {
         val instance = create(
             CreateEventInstanceRequest(
                 definitionId = definition.id,
@@ -55,7 +55,7 @@ class TemplateInstanceCreateSpec {
     }
 
     @Test
-    fun `bez zvolene platby plati ta ze sablony`() {
+    fun `falls back to template payment types when none selected`() {
         val instance = create(
             CreateEventInstanceRequest(
                 definitionId = definition.id,

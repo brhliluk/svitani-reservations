@@ -71,7 +71,7 @@ class RepositoryParitySpec {
     )
 
     @Test
-    fun `aktivni prihlasky se najdou i s mezerou kolem e-mailu`() = runBlocking {
+    fun `active signups are found despite whitespace around email`() = runBlocking {
         for (repo in reservationRepos()) {
             val eventId = Uuid.random()
             repo.save(reservation(eventId, email = " Jana@Test.cz "))
@@ -83,7 +83,7 @@ class RepositoryParitySpec {
     }
 
     @Test
-    fun `mista drzi jen aktivni rezervace`() = runBlocking {
+    fun `only active reservations hold seats`() = runBlocking {
         for (repo in reservationRepos()) {
             val eventId = Uuid.random()
             repo.save(reservation(eventId, seats = 2))
@@ -96,7 +96,7 @@ class RepositoryParitySpec {
     }
 
     @Test
-    fun `uprava kurzu nezrusi ani neobnovi zruseni`() = runBlocking {
+    fun `series update keeps cancellation flag`() = runBlocking {
         sqlite()
         val definition = ExposedEventDefinitionRepository().create(
             EventDefinition(

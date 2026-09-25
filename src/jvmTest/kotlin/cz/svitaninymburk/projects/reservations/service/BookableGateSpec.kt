@@ -96,7 +96,7 @@ class BookableGateSpec {
     )
 
     @Test
-    fun `na poradnik probehle akce se zapsat nejde`() = runBlocking {
+    fun `cannot join waitlist of a finished event`() = runBlocking {
         val past = fullInstance(start = LocalDateTime(2020, 1, 1, 10, 0))
         instanceRepo.create(past)
 
@@ -107,7 +107,7 @@ class BookableGateSpec {
     }
 
     @Test
-    fun `na poradnik akce po uzaverce se zapsat nejde`() = runBlocking {
+    fun `cannot join event waitlist after reservation deadline`() = runBlocking {
         val closed = fullInstance().copy(reservationDeadline = 36500.days)
         instanceRepo.create(closed)
 
@@ -118,7 +118,7 @@ class BookableGateSpec {
     }
 
     @Test
-    fun `na zruseny kurz se nejde rezervovat ani zapsat na poradnik`() = runBlocking {
+    fun `cannot reserve or join waitlist of a cancelled course`() = runBlocking {
         val cancelled = fullSeries().copy(isCancelled = true)
         seriesRepo.create(cancelled)
 
@@ -133,7 +133,7 @@ class BookableGateSpec {
     }
 
     @Test
-    fun `na poradnik kurzu po uzaverce se zapsat nejde`() = runBlocking {
+    fun `cannot join course waitlist after reservation deadline`() = runBlocking {
         val closed = fullSeries().copy(reservationDeadline = 36500.days)
         seriesRepo.create(closed)
 
