@@ -1074,6 +1074,10 @@ open class AuthenticatedReservationService(
     }
 
     override suspend fun getReservations(userId: Uuid): Either<ReservationError.GetAll, List<MyReservationListItem>> = either {
+        // userId posílá klient — bez téhle kontroly si přihlášený vypsal rezervace
+        // (kontakty, platby) libovolného účtu, jehož UUID znal. Parametr zůstává
+        // kvůli kompatibilitě RPC, směrodatný je ale jen volající z JWT.
+        ensure(currentCallerUserId() == userId) { ReservationError.FailedToGetAllReservations }
         val reservations = reservationRepository.getAll(userId)
             .filter { it.status != Reservation.Status.CANCELLED }
         if (reservations.isEmpty()) return@either emptyList()

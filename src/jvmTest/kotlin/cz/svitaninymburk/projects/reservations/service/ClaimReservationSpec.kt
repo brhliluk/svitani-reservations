@@ -278,4 +278,13 @@ class ClaimReservationSpec {
         assertEquals(ReservationError.ReservationNotFound, result.leftOrNull())
         Unit
     }
+
+    @Test
+    fun `listing reservations of another account is refused`() = runBlocking {
+        val otherUser = Uuid.random()
+
+        val result = service(caller = callerId).getReservations(otherUser)
+
+        assertEquals(ReservationError.FailedToGetAllReservations, result.leftOrNull())
+    }
 }

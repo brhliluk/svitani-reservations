@@ -381,8 +381,9 @@ class ClaimByEmailSpec {
 
         service.confirmClaim(token, now)
 
-        val mine = AuthenticatedReservationService(instanceRepo, seriesRepo, reservationRepo, userRepo)
-            .getReservations(userId).getOrNull()!!
+        val mine = object : AuthenticatedReservationService(instanceRepo, seriesRepo, reservationRepo, userRepo) {
+            override suspend fun currentCallerUserId(): Uuid? = userId
+        }.getReservations(userId).getOrNull()!!
         assertEquals(listOf(reservation.id), mine.map { it.id })
         assertFalse(mine.isEmpty())
         Unit

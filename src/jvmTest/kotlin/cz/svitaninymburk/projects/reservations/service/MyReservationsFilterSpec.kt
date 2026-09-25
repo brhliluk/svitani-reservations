@@ -30,7 +30,9 @@ class MyReservationsFilterSpec {
     private val seriesRepo = InMemoryEventSeriesRepository()
     private val reservationRepo = InMemoryReservationRepository()
 
-    private val service = AuthenticatedReservationService(instanceRepo, seriesRepo, reservationRepo)
+    private val service = object : AuthenticatedReservationService(instanceRepo, seriesRepo, reservationRepo) {
+        override suspend fun currentCallerUserId(): Uuid? = userId
+    }
 
     private suspend fun givenInstance(year: Int, cancelled: Boolean = false): EventInstance =
         instanceRepo.create(
