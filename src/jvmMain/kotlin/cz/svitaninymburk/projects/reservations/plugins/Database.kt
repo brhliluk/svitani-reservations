@@ -23,6 +23,7 @@ import cz.svitaninymburk.projects.reservations.repository.wallet.WalletsTable
 import io.ktor.server.application.*
 import java.nio.ByteBuffer
 import kotlin.uuid.Uuid
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
@@ -65,10 +66,8 @@ fun Application.configureDatabases() {
 
     transaction {
         // Data migration runs first (before MigrationUtils can drop old columns)
-        try {
+        nonFatal("lector_email migration (data may need manual migration)") {
             migrateLectorEmailsToOwnerEmails()
-        } catch (e: Exception) {
-            println("⚠️ lector_email migration failed (non-fatal, data may need manual migration): ${e.message}")
         }
 
         val instancesPublishMissing = !columnExists("event_instances", "is_published")
@@ -77,97 +76,50 @@ fun Application.configureDatabases() {
         // Musí doběhnout PŘED MigrationUtils — ty nově zakládají unique index na
         // (reservation_id, instance_id) a na datech s duplicitou by DDL selhalo
         // a shodilo start aplikace.
-        try {
+        nonFatal("series_lesson_opt_outs deduplication") {
             val smazano = deduplicateSeriesLessonOptOuts()
             if (smazano > 0) {
                 println("ℹ️ omluvenky z lekcí: $smazano duplicitních záznamů odstraněno")
             }
-        } catch (e: Exception) {
-            println("⚠️ series_lesson_opt_outs deduplication failed (non-fatal): ${e.message}")
         }
 
-        SchemaUtils.create(
-            UsersTable,
-            RefreshTokensTable,
-            EventDefinitionsTable,
-            EventSeriesTable,
-            EventInstancesTable,
-            EventOwnerEmailsTable,
-            ReservationsTable,
-            AppSettingsTable,
-            PaymentEventsTable,
-            SeriesLessonOptOutsTable,
-            WalletsTable,
-            WalletTransactionsTable,
-            ReservationAttendanceTable,
-            AuditEventsTable,
-            ReservationClaimTokensTable,
-        )
-        MigrationUtils.statementsRequiredForDatabaseMigration(
-            UsersTable,
-            RefreshTokensTable,
-            EventDefinitionsTable,
-            EventSeriesTable,
-            EventInstancesTable,
-            EventOwnerEmailsTable,
-            ReservationsTable,
-            AppSettingsTable,
-            PaymentEventsTable,
-            SeriesLessonOptOutsTable,
-            WalletsTable,
-            WalletTransactionsTable,
-            ReservationAttendanceTable,
-            AuditEventsTable,
-            ReservationClaimTokensTable,
-            withLogs = false,
-        ).forEach { exec(it) }
+        SchemaUtils.create(*ALL_TABLES)
+        MigrationUtils.statementsRequiredForDatabaseMigration(*ALL_TABLES, withLogs = false).forEach { exec(it) }
 
-        try {
+        nonFatal("is_published backfill") {
             backfillPublishedIfFirstRun("event_instances", instancesPublishMissing)
             backfillPublishedIfFirstRun("event_series", seriesPublishMissing)
-        } catch (e: Exception) {
-            println("⚠️ is_published backfill failed (non-fatal): ${e.message}")
         }
 
-        try {
+        nonFatal("custom_fields backfill") {
             backfillCustomFieldsFromTemplates()
-        } catch (e: Exception) {
-            println("⚠️ custom_fields backfill failed (non-fatal): ${e.message}")
         }
 
         // Až po MigrationUtils — ty sloupec refunded_amount teprve zakládají.
-        try {
+        nonFatal("series_lesson_opt_outs refunded_amount backfill") {
             val doplneno = backfillOptOutRefundedAmounts()
             if (doplneno > 0) {
                 println("ℹ️ omluvenky z lekcí: u $doplneno historických záznamů dohledána vyplacená částka")
             }
-        } catch (e: Exception) {
-            println("⚠️ series_lesson_opt_outs refunded_amount backfill failed (non-fatal): ${e.message}")
         }
 
         // Až po MigrationUtils — ty sloupec lesson_share teprve zakládají.
-        try {
+        nonFatal("reservations lesson_share backfill") {
             val doplneno = backfillLessonShares()
             if (doplneno > 0) {
                 println("ℹ️ zápisy na kurz: u $doplneno historických rezervací doplněna poměrná část ceny za lekci")
             }
-        } catch (e: Exception) {
-            println("⚠️ reservations lesson_share backfill failed (non-fatal): ${e.message}")
         }
 
-        try {
+        nonFatal("custom_fields key deduplication") {
             deduplicateCustomFieldKeys()
-        } catch (e: Exception) {
-            println("⚠️ custom_fields key deduplication failed (non-fatal): ${e.message}")
         }
 
-        try {
+        nonFatal("free reservations backfill") {
             val potvrzenych = confirmFreeReservations()
             if (potvrzenych > 0) {
                 println("ℹ️ rezervace zdarma: $potvrzenych historických rezervací přepsáno na CONFIRMED/FREE")
             }
-        } catch (e: Exception) {
-            println("⚠️ free reservations backfill failed (non-fatal): ${e.message}")
         }
 
         // Musí doběhnout synchronně tady, ne asynchronně po startu — jinak by mohl
@@ -175,11 +127,37 @@ fun Application.configureDatabases() {
         // s první příchozí rezervací (viz komentář u recomputeOccupiedSpotsInTransaction
         // v OccupancyBackfill.kt). Dvě UPDATE na málo řádků, na latenci startu to nic
         // nepřidá.
-        try {
+        nonFatal("occupancy backfill") {
             recomputeOccupiedSpotsInTransaction()
-        } catch (e: Exception) {
-            println("⚠️ occupancy backfill failed (non-fatal): ${e.message}")
         }
+    }
+}
+
+/** Obě volání (create i migrace) musí znát stejné tabulky — chybějící by se tiše přeskočila. */
+private val ALL_TABLES = arrayOf<Table>(
+    UsersTable,
+    RefreshTokensTable,
+    EventDefinitionsTable,
+    EventSeriesTable,
+    EventInstancesTable,
+    EventOwnerEmailsTable,
+    ReservationsTable,
+    AppSettingsTable,
+    PaymentEventsTable,
+    SeriesLessonOptOutsTable,
+    WalletsTable,
+    WalletTransactionsTable,
+    ReservationAttendanceTable,
+    AuditEventsTable,
+    ReservationClaimTokensTable,
+)
+
+/** Krok, který nesmí shodit start: chyba se zaloguje a start pokračuje. */
+private inline fun nonFatal(step: String, block: () -> Unit) {
+    try {
+        block()
+    } catch (e: Exception) {
+        println("⚠️ $step failed (non-fatal): ${e.message}")
     }
 }
 
@@ -271,10 +249,7 @@ internal fun JdbcTransaction.migrateLectorEmailsToOwnerEmails() {
             "event_series" to "series",
             "event_instances" to "instance",
         ).forEach { (tableName, entityType) ->
-            val hasLectorEmailColumn = exec(
-                "SELECT count(*) FROM pragma_table_info('$tableName') WHERE name = 'lector_email'"
-            ) { rs -> rs.next() && rs.getInt(1) > 0 } ?: false
-            if (!hasLectorEmailColumn) return@forEach
+            if (!columnExists(tableName, "lector_email")) return@forEach
 
             val ownerEmails = mutableListOf<Pair<Uuid, String>>()
             exec("SELECT id, lector_email FROM $tableName WHERE lector_email IS NOT NULL AND lector_email != ''") { rs ->
@@ -354,10 +329,7 @@ internal fun JdbcTransaction.backfillCustomFieldsFromTemplates() {
  */
 internal fun JdbcTransaction.deduplicateSeriesLessonOptOuts(): Int {
     // Tabulka nemusí ještě existovat (první spuštění) — pak není co dedupovat.
-    val exists = exec(
-        "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='series_lesson_opt_outs'"
-    ) { rs -> rs.next() && rs.getInt(1) > 0 } ?: false
-    if (!exists) return 0
+    if (!tableExists("series_lesson_opt_outs")) return 0
 
     val keepOldest = """
         SELECT MIN(rowid) FROM series_lesson_opt_outs
