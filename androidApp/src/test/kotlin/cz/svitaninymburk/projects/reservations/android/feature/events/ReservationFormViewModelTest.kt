@@ -405,6 +405,23 @@ class ReservationFormViewModelTest {
     }
 
     @Test
+    fun `form starts fresh after the created reservation was shown`() = runTest {
+        val vm = validVm()
+        advanceUntilIdle()
+        vm.submit()
+        advanceUntilIdle()
+        assertNotNull(vm.uiState.value.createdReservation)
+
+        vm.onCreatedReservationShown()
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertNull(state.createdReservation, "druhé otevření formuláře nesmí rovnou skončit na staré rezervaci")
+        assertEquals("", state.contactPhone)
+        assertNotNull(state.target)
+    }
+
+    @Test
     fun `submit targets series endpoint for series target`() = runTest {
         val reservations = FakeReservationsRepository(
             Either.Right(mockReservation().copy(reference = Reference.Series(seriesId)))

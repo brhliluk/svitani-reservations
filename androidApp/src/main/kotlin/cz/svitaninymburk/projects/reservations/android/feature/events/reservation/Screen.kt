@@ -68,7 +68,10 @@ fun ReservationFormScreen(
     val state by vm.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(state.createdReservation) {
-        state.createdReservation?.let(onSuccess)
+        state.createdReservation?.let { created ->
+            vm.onCreatedReservationShown()
+            onSuccess(created)
+        }
     }
 
     ReservationFormContent(

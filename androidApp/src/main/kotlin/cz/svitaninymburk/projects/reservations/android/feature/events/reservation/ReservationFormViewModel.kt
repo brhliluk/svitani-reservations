@@ -147,6 +147,17 @@ class ReservationFormViewModel(
         }
     }
 
+    /**
+     * Volá obrazovka, jakmile po úspěchu odnaviguje na detail. ViewModel žije
+     * s Activity, takže bez vynulování by příští otevření formuláře pro stejnou akci
+     * (druhé dítě) hned znovu „úspěšně“ skončilo na detailu staré rezervace.
+     * Čerstvé načtení vrátí i aktuální obsazenost a zůstatek peněženky.
+     */
+    fun onCreatedReservationShown() {
+        uiState.value = ReservationFormUiState()
+        load()
+    }
+
     fun setContactName(value: String) = uiState.update { it.copy(contactName = value) }
     fun setContactEmail(value: String) = uiState.update { it.copy(contactEmail = value) }
     fun setContactPhone(value: String) = uiState.update { it.copy(contactPhone = value) }
