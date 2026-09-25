@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.wallet
 
+import cz.svitaninymburk.projects.reservations.ui.util.signedAmount
+import cz.svitaninymburk.projects.reservations.ui.util.formatAmount
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -88,7 +90,7 @@ fun IComponent.AdminWalletsScreen(preselectCode: String? = null) {
                                                 td {
                                                     val balanceClass = if (wallet.balance > 0) "text-success font-bold" else "text-base-content/60"
                                                     div(className = balanceClass) {
-                                                        +"${wallet.balance.toInt()} ${currentStrings.currency}"
+                                                        +formatAmount(wallet.balance, currentStrings)
                                                     }
                                                 }
                                                 td {
@@ -152,7 +154,7 @@ private fun IComponent.AdminWalletDetailPanel(wallet: Wallet, onBack: () -> Unit
                 div(className = "flex items-center gap-3 mt-1 flex-wrap") {
                     span(className = "text-base-content/50") { +model.wallet.ownerEmail }
                     span(className = "font-bold text-success") {
-                        +"${model.wallet.balance.toInt()} ${currentStrings.currency}"
+                        +formatAmount(model.wallet.balance, currentStrings)
                     }
                     model.resetDateLabel?.let { date ->
                         span(className = "text-xs text-base-content/50 flex items-center gap-1") {
@@ -264,7 +266,7 @@ private fun IComponent.AdminWalletDetailPanel(wallet: Wallet, onBack: () -> Unit
                                                 td {
                                                     val amtClass = if (tx.amount >= 0) "text-success font-bold" else "text-error font-bold"
                                                     div(className = amtClass) {
-                                                        +"${if (tx.amount >= 0) "+" else ""}${tx.amount.toInt()} ${currentStrings.currency}"
+                                                        +signedAmount(tx.amount, currentStrings)
                                                     }
                                                 }
                                                 td {

@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.events
 
+import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
 import androidx.compose.runtime.Composable
 import kotlin.time.Clock
 import androidx.compose.runtime.getValue
@@ -90,7 +91,7 @@ fun IComponent.SeriesCard(series: EventSeries, onSignUpClick: () -> Unit) {
                     div(className = "flex flex-col") {
                         span(className = "text-xs text-base-content/60 font-medium uppercase tracking-wider") { +currentStrings.priceLabel }
                         span(className = "text-xl font-bold text-primary") {
-                            +"${series.price} ${currentStrings.currency}"
+                            +totalPriceLabel(series.price, currentStrings)
                         }
                     }
 

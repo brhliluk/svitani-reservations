@@ -41,20 +41,20 @@ class AuditLogCardSpec {
     fun detailSpojujePrijemceCastkuAPopis() {
         assertEquals(
             "kdo@example.com · 300 Kč · Spárováno z FIO",
-            auditDetailText(event(recipient = "kdo@example.com", amount = 300.0, detail = "Spárováno z FIO")),
+            auditDetailText(event(recipient = "kdo@example.com", amount = 300.0, detail = "Spárováno z FIO"), CsStrings),
         )
     }
 
     @Test
     fun prazdnaPoleSeVynechaji() {
-        assertEquals("", auditDetailText(event()))
-        assertEquals("Storno", auditDetailText(event(detail = "Storno")))
+        assertEquals("", auditDetailText(event(), CsStrings))
+        assertEquals("Storno", auditDetailText(event(detail = "Storno"), CsStrings))
     }
 
     /** Nula je u storna zdarma běžná a "0 Kč" by čtenáře jen mátlo. */
     @Test
     fun nuloveCastceSeNepiseMena() {
-        assertEquals("Storno", auditDetailText(event(amount = 0.0, detail = "Storno")))
+        assertEquals("Storno", auditDetailText(event(amount = 0.0, detail = "Storno"), CsStrings))
     }
 
     @Test
@@ -131,7 +131,7 @@ class AuditLogCardSpec {
 
     @Test
     fun kodPenezenkySeUkazeVDetailu() {
-        val text = auditDetailText(event(walletCode = "SVIT-AB12-CD34", amount = 300.0, detail = "z toho 200 Kč zpět z kreditu"))
+        val text = auditDetailText(event(walletCode = "SVIT-AB12-CD34", amount = 300.0, detail = "z toho 200 Kč zpět z kreditu"), CsStrings)
         assertEquals("SVIT-AB12-CD34 · 300 Kč · z toho 200 Kč zpět z kreditu", text)
     }
 

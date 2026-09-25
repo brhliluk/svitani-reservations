@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.payments
 
+import cz.svitaninymburk.projects.reservations.ui.util.formatAmountNumber
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -78,7 +79,7 @@ fun IComponent.AdminPaymentsScreen() {
                                                     +event.contactName
                                                 }
                                                 td {
-                                                    +"${event.amount.toInt()} ${event.currency}"
+                                                    +"${formatAmountNumber(event.amount)} ${event.currency}"
                                                 }
                                                 td {
                                                     when (event.type) {

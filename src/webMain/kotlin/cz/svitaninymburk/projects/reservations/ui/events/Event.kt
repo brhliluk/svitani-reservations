@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.events
 
+import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
 import androidx.compose.runtime.Composable
 import kotlin.time.Clock
 import androidx.compose.runtime.getValue
@@ -72,8 +73,7 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit, onWaitlistClick:
             div(className = "card-actions items-center justify-between mt-3 pt-3 border-t border-base-200") {
                 // Left: price + capacity
                 div(className = "flex flex-col gap-1") {
-                    val priceText = if (event.price == 0.0) currentStrings.free
-                        else "${event.price} ${currentStrings.currency}"
+                    val priceText = totalPriceLabel(event.price, currentStrings)
                     span(className = "text-lg font-bold text-primary") { +priceText }
                     if (event.isFull) {
                         // Always show Full badge regardless of showAttendeeCount

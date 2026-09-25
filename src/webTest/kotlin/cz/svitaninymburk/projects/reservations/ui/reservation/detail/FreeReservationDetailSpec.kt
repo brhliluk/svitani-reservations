@@ -122,11 +122,7 @@ class FreeReservationDetailSpec {
 
     @Test
     fun nonZeroPriceKeepsTheAmountWithCurrency() {
-        // Formát čísla se mezi JS a JVM liší ("150" vs "150.0"), takže se tu
-        // ověřuje jen to, co je stejné: částka a za ní měna.
-        val label = totalPriceLabel(150.0, CsStrings)
-        assertTrue(label.startsWith("150"), "Čekal jsem částku, dostal '$label'")
-        assertTrue(label.endsWith(CsStrings.currency), "Čekal jsem měnu, dostal '$label'")
+        assertEquals("150 Kč", totalPriceLabel(150.0, CsStrings))
     }
 
     @Test

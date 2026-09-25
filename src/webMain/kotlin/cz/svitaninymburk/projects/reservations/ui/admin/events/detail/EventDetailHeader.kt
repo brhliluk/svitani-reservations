@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.detail
 
+import cz.svitaninymburk.projects.reservations.ui.util.formatAmount
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import app.softwork.routingcompose.Router
@@ -91,7 +92,7 @@ fun IComponent.EventDetailStats(data: AdminEventDetailData) {
         }
         div(className = "stat") {
             div(className = "stat-title") { +currentStrings.revenueStatTitle }
-            div(className = "stat-value text-success") { +"${data.totalCollected} ${currentStrings.currency}" }
+            div(className = "stat-value text-success") { +formatAmount(data.totalCollected, currentStrings) }
             div(className = "stat-desc") { +currentStrings.revenueStatDesc }
         }
     }

@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.wallet
 
+import cz.svitaninymburk.projects.reservations.ui.util.formatAmount
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -84,7 +85,7 @@ fun IComponent.WalletScreen(initialCode: String = "", initialEmail: String = "")
                             div(className = "stat p-4") {
                                 div(className = "stat-title text-xs") { +currentStrings.walletBalance }
                                 div(className = "stat-value text-success text-2xl") {
-                                    +"${info.balance.toInt()} ${currentStrings.currency}"
+                                    +formatAmount(info.balance, currentStrings)
                                 }
                                 div(className = "stat-desc") {
                                     +"${currentStrings.walletExpiresOn}: ${walletResetDateLabel(info.seasonResetDay, info.seasonResetMonth)}"

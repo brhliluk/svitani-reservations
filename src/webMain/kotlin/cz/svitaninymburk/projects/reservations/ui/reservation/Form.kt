@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.reservation
 
+import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
+import cz.svitaninymburk.projects.reservations.ui.util.formatAmount
 import cz.svitaninymburk.projects.reservations.ui.util.ModalBackdrop
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -74,8 +76,7 @@ fun IComponent.ReservationModal(
                         div(className = "stat py-2") {
                             div(className = "stat-title") { +currentStrings.formTotalPrice }
                             div(className = "stat-value text-primary text-xl sm:text-2xl") {
-                                if (model.total == 0.0) +currentStrings.free
-                                else +"${model.total} ${currentStrings.currency}"
+                                +totalPriceLabel(model.total, currentStrings)
                             }
                             div(className = "stat-desc") {
                                 // Bez volby počtu míst je "× 1 osob" jen šum — rozpad ceny ho vynechá.
@@ -83,9 +84,9 @@ fun IComponent.ReservationModal(
                                     if (target.allowMultipleSeats && !asWaitlist) " × ${model.seats} ${currentStrings.persons}" else ""
                                 val hours = timeMultiplierHours(target, model.customValues)
                                 if (hours != null) {
-                                    +"${target.price} ${currentStrings.currency}$seatsPart × ${formatPriceHours(hours)} ${currentStrings.hours}"
+                                    +"${formatAmount(target.price, currentStrings)}$seatsPart × ${formatPriceHours(hours)} ${currentStrings.hours}"
                                 } else {
-                                    +"${target.price} ${currentStrings.currency}$seatsPart"
+                                    +"${formatAmount(target.price, currentStrings)}$seatsPart"
                                 }
                             }
                         }
@@ -95,13 +96,12 @@ fun IComponent.ReservationModal(
                         div(className = "mt-2 bg-success/10 border border-success/30 rounded-xl px-4 py-3 flex flex-col gap-1 text-sm") {
                             div(className = "flex justify-between") {
                                 span(className = "text-base-content/60") { +currentStrings.walletCreditApplied }
-                                span(className = "font-medium text-success") { +"− ${model.deduction.toInt()} ${currentStrings.currency}" }
+                                span(className = "font-medium text-success") { +"− ${formatAmount(model.deduction, currentStrings)}" }
                             }
                             div(className = "flex justify-between font-semibold") {
                                 span { +currentStrings.remainingToPay }
                                 span(className = "text-primary") {
-                                    if (model.remaining == 0.0) +currentStrings.free
-                                    else +"${model.remaining.toInt()} ${currentStrings.currency}"
+                                    +totalPriceLabel(model.remaining, currentStrings)
                                 }
                             }
                         }
@@ -255,7 +255,7 @@ fun IComponent.ReservationModal(
                             model.walletInfo?.let { info ->
                                 div(className = "label pt-0") {
                                     span(className = "label-text-alt text-success font-medium") {
-                                        +"${currentStrings.walletBalance}: ${info.balance.toInt()} ${currentStrings.currency}"
+                                        +"${currentStrings.walletBalance}: ${formatAmount(info.balance, currentStrings)}"
                                     }
                                 }
                                 if (!info.emailMatches) {
@@ -286,8 +286,7 @@ fun IComponent.ReservationModal(
                         if (model.deduction > 0.0) +currentStrings.remainingToPay else +currentStrings.formTotalPrice
                     }
                     div(className = "font-semibold text-primary") {
-                        if (model.remaining == 0.0) +currentStrings.free
-                        else +"${model.remaining.toInt()} ${currentStrings.currency}"
+                        +totalPriceLabel(model.remaining, currentStrings)
                     }
                 }
                 button(className = "btn btn-ghost min-h-10 h-10") {

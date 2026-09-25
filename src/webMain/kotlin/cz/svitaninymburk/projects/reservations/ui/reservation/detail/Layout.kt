@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.reservation.detail
 
+import cz.svitaninymburk.projects.reservations.ui.util.formatAmount
 import dev.kilua.form.InputType
 import dev.kilua.form.text.text
 import androidx.compose.runtime.*
@@ -92,8 +93,8 @@ fun IComponent.ReservationDetailLayout(
                             DetailRow(currentStrings.seatCountLabel, "${reservation.seatCount}")
                             DetailRow(currentStrings.totalPrice, totalPriceLabel(reservation.totalPrice, currentStrings))
                             if (reservation.walletDeductedAmount > 0.0) {
-                                DetailRow(currentStrings.walletCreditApplied, "− ${reservation.walletDeductedAmount.toInt()} Kč")
-                                DetailRow(currentStrings.remainingToPay, "${reservation.unpaidAmount.toInt()} Kč")
+                                DetailRow(currentStrings.walletCreditApplied, "− ${formatAmount(reservation.walletDeductedAmount, currentStrings)}")
+                                DetailRow(currentStrings.remainingToPay, formatAmount(reservation.unpaidAmount, currentStrings))
                             }
                         }
 

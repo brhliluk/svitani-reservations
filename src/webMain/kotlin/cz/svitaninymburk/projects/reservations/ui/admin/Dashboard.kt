@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin
 
+import cz.svitaninymburk.projects.reservations.ui.util.formatAmount
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,7 +51,7 @@ fun IComponent.AdminDashboardScreen() {
                     div(className = "stat") {
                         div(className = "stat-figure text-warning") { span(className = "icon-[heroicons--banknotes] size-8") }
                         div(className = "stat-title") { +currentStrings.dashboardPendingPayment }
-                        div(className = "stat-value text-warning") { +"${data.pendingPaymentsTotal} ${currentStrings.currency}" }
+                        div(className = "stat-value text-warning") { +formatAmount(data.pendingPaymentsTotal, currentStrings) }
                         div(className = "stat-desc") { +currentStrings.dashboardPendingPaymentsDesc(data.pendingPaymentsCount) }
                     }
                     div(className = "stat") {
@@ -100,7 +101,7 @@ fun IComponent.AdminDashboardScreen() {
                                         AdminPendingReservationRow(
                                             name = res.contactName,
                                             eventName = res.eventName,
-                                            price = "${res.totalPrice} ${currentStrings.currency}",
+                                            price = formatAmount(res.totalPrice, currentStrings),
                                             vs = "${currentStrings.variableSymbol}: ${res.variableSymbol}",
                                             onMarkAsPaid = { model.markAsPaid(res.id, res.contactName) },
                                         )

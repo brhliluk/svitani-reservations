@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.detail
 
+import cz.svitaninymburk.projects.reservations.ui.util.formatAmount
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import cz.svitaninymburk.projects.reservations.admin.AuditLogPage
@@ -45,10 +46,10 @@ fun auditLessonLink(event: AuditEvent, currentEventId: String): Uuid? =
  * Sloučí do jedné buňky to, co u záznamu dává smysl číst pohromadě:
  * u mailu adresáta, u platby částku, k tomu volný popis.
  */
-fun auditDetailText(event: AuditEvent): String = listOfNotNull(
+fun auditDetailText(event: AuditEvent, strings: AppStrings): String = listOfNotNull(
     event.recipient,
     event.walletCode,
-    event.amount?.takeIf { it != 0.0 }?.let { "${it.toInt()} Kč" },
+    event.amount?.takeIf { it != 0.0 }?.let { formatAmount(it, strings) },
     event.detail,
 ).joinToString(" · ")
 
@@ -143,7 +144,7 @@ fun IComponent.AuditLogCard(
                                             div { +event.subjectLabel }
                                             div(className = "text-xs text-base-content/50") { +event.actorLabel }
                                         }
-                                        td(className = "text-sm text-base-content/60 max-w-md") { +auditDetailText(event) }
+                                        td(className = "text-sm text-base-content/60 max-w-md") { +auditDetailText(event, currentStrings) }
                                         td(className = "whitespace-nowrap text-right") {
                                             if (event.isResendable) {
                                                 AuditLinkButton(
