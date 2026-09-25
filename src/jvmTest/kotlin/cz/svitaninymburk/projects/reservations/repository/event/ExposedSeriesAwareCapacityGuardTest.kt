@@ -140,7 +140,7 @@ class ExposedSeriesAwareCapacityGuardTest {
     }
 
     @Test
-    fun `cancelled enrolment does not hold seats`() = runBlocking {
+    fun `cancelled enrollment does not hold seats`() = runBlocking {
         val seriesId = Uuid.random()
         val lessonInstance = lesson(seriesId)
         enrol(seriesId, seats = 2, status = Reservation.Status.CANCELLED)
@@ -164,7 +164,7 @@ class ExposedSeriesAwareCapacityGuardTest {
     }
 
     @Test
-    fun `enrolment in another series does not reduce capacity`() = runBlocking {
+    fun `enrollment in another series does not reduce capacity`() = runBlocking {
         val seriesId = Uuid.random()
         val lessonInstance = lesson(seriesId)
         enrol(Uuid.random(), seats = 5)

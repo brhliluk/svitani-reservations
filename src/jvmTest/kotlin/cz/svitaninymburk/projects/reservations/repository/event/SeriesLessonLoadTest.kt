@@ -67,7 +67,7 @@ class SeriesLessonLoadTest {
     )
 
     @Test
-    fun `active series enrolments load every lesson`() = runBlocking {
+    fun `active series enrollments load every lesson`() = runBlocking {
         val lessonA = lesson(Uuid.parse("00000000-0000-0000-0000-0000000000c1"))
         val lessonB = lesson(Uuid.parse("00000000-0000-0000-0000-0000000000c2"))
         enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d1"), seats = 2)
@@ -126,7 +126,7 @@ class SeriesLessonLoadTest {
     }
 
     @Test
-    fun `enrolment in another series does not load the lesson`() = runBlocking {
+    fun `enrollment in another series does not load the lesson`() = runBlocking {
         val lessonA = lesson(Uuid.parse("00000000-0000-0000-0000-0000000000c1"))
         enrol(Uuid.parse("00000000-0000-0000-0000-0000000000d1"), seats = 5, series = otherSeriesId)
 

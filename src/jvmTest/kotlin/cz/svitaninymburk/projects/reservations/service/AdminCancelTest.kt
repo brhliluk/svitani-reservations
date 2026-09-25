@@ -325,7 +325,7 @@ class AdminCancelTest {
 
     /** Drop-in rezervace na lekci storno do historie zapisovaly, zápisy na kurz ne. */
     @Test
-    fun `cancelEventSeries records cancellation of series enrolments in history`() = runBlocking {
+    fun `cancelEventSeries records cancellation of series enrollments in history`() = runBlocking {
         val instanceRepo = InMemoryEventInstanceRepository()
         val seriesRepo = InMemoryEventSeriesRepository()
         val reservationRepo = InMemoryReservationRepository()
@@ -333,17 +333,17 @@ class AdminCancelTest {
         val series = eventSeries()
         seriesRepo.create(series)
         instanceRepo.create(futureInstance(seriesId = series.id))
-        val enrolment = saveReservation(reservationRepo, Reference.Series(series.id), paidAmount = 1000.0)
+        val enrollment = saveReservation(reservationRepo, Reference.Series(series.id), paidAmount = 1000.0)
 
         service(instanceRepo, seriesRepo, reservationRepo, auditRepo = auditRepo).cancelEventSeries(series.id)
 
         val cancelled = auditRepo.recordedEvents().filter { it.type == AuditEventType.RESERVATION_CANCELLED }
         assertEquals(1, cancelled.size)
         with(cancelled.single()) {
-            assertEquals(enrolment.id, reservationId)
+            assertEquals(enrollment.id, reservationId)
             assertEquals(series.id, seriesId)
             assertEquals(null, instanceId)
-            assertEquals(enrolment.contactName, subjectLabel)
+            assertEquals(enrollment.contactName, subjectLabel)
             assertEquals(1000.0, amount)
             assertEquals("Zrušeno se zrušením kurzu", detail)
         }

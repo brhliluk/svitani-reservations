@@ -138,7 +138,7 @@ class ExposedSeriesLessonLoadTest {
     }
 
     @Test
-    fun `enrolment in another series does not load the lesson`() = runBlocking {
+    fun `enrollment in another series does not load the lesson`() = runBlocking {
         val seriesId = Uuid.random()
         val otherSeriesId = Uuid.random()
         val lessonA = lesson(Uuid.random(), seriesId)
