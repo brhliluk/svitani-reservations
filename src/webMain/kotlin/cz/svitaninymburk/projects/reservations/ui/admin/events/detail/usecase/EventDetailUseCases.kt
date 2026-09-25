@@ -17,7 +17,13 @@ import kotlin.uuid.Uuid
 
 // --- Pure helpery (testovatelné bez RPC) ---
 
-/** Vytvoří update request z lekce s obrácenou hodnotou isDropIn (ostatní pole beze změny). */
+/**
+ * Vytvoří update request z lekce s obrácenou hodnotou isDropIn (ostatní pole beze změny).
+ *
+ * Request má u části polí výchozí hodnoty, takže každé pole lekce se musí předat
+ * výslovně — vynechané pole by server uložil jako výchozí (smazané e-maily lektorů,
+ * pořadník 10, zmizelá uzávěrka).
+ */
 fun toggleDropInRequest(lesson: EventInstance): UpdateEventInstanceRequest =
     UpdateEventInstanceRequest(
         title = lesson.title,
@@ -26,9 +32,15 @@ fun toggleDropInRequest(lesson: EventInstance): UpdateEventInstanceRequest =
         endDateTime = lesson.endDateTime,
         price = lesson.price,
         capacity = lesson.capacity,
+        waitlistCapacity = lesson.waitlistCapacity,
         allowedPaymentTypes = lesson.allowedPaymentTypes,
         customFields = lesson.customFields,
+        ownerEmails = lesson.ownerEmails,
         isDropIn = !lesson.isDropIn,
+        showAttendeeCount = lesson.showAttendeeCount,
+        allowMultipleSeats = lesson.allowMultipleSeats,
+        reservationDeadline = lesson.reservationDeadline,
+        reservationDeadlineMessage = lesson.reservationDeadlineMessage,
     )
 
 // --- UseCase třídy (tenké, vrací Either) ---
