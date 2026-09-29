@@ -43,6 +43,7 @@ class AdminReservationsModel(
 
     var expandedId: Uuid? by mutableStateOf(null); private set
     var pendingAction: PendingAction? by mutableStateOf(null); private set
+    var startedCourseCancel: StartedCourseCancelDraft? by mutableStateOf(null); private set
     var isModalLoading by mutableStateOf(false); private set
 
     fun load() {
@@ -89,11 +90,40 @@ class AdminReservationsModel(
         pendingAction = PendingAction(AdminActionType.CONFIRM_PAYMENT, item.id, item.contactName)
     }
 
+    /** U rozběhnutého kurzu se místo prostého potvrzení ptá na vratku. */
     fun cancelReservation(item: AdminReservationListItem) {
-        pendingAction = PendingAction(AdminActionType.CANCEL_RESERVATION, item.id, item.contactName)
+        run(
+            errorMessage = { currentStrings.errorToast(it.localizedMessage(currentStrings)) },
+            block = { mutations.startedCourseCancellation(item.id) },
+            onSuccess = { preview ->
+                if (preview != null) startedCourseCancel = StartedCourseCancelDraft(item.id, item.contactName, preview)
+                else pendingAction = PendingAction(AdminActionType.CANCEL_RESERVATION, item.id, item.contactName)
+            },
+        )
     }
 
     fun dismissPendingAction() { pendingAction = null }
+
+    fun updateStartedCourseRefund(value: Number?) {
+        startedCourseCancel = startedCourseCancel?.copy(refundInput = value)
+    }
+
+    fun dismissStartedCourseCancel() { startedCourseCancel = null }
+
+    fun confirmStartedCourseCancel() {
+        val draft = startedCourseCancel ?: return
+        val amount = refundAmountOrNull(draft.refundInput) ?: return
+        run(
+            loading = { isModalLoading = it },
+            errorMessage = { currentStrings.errorToast(it.localizedMessage(currentStrings)) },
+            block = { mutations.cancel(draft.reservationId, refundAmount = amount) },
+            onSuccess = {
+                showToast(currentStrings.toastReservationCancelled(draft.participantName))
+                expandedId = null
+                load()
+            },
+        ).invokeOnCompletion { startedCourseCancel = null }
+    }
 
     fun confirmPendingAction(action: PendingAction) {
         when (action.type) {

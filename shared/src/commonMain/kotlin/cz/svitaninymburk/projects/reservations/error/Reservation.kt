@@ -39,8 +39,12 @@ enum class DuplicateScope {
     @Serializable data object EventSeriesNotFound : GetDetail
     @Serializable data object EventAlreadyFinished : CreateReservation, CancelReservation
     @Serializable data object EventAlreadyStarted : CreateReservation, CancelReservation
-    /** Rozběhnutý kurz se celý zrušit nedá — ani adminem; zbývá omluvenka z jednotlivých lekcí. */
+    /** Rozběhnutý kurz zákazník celý zrušit nemůže; zbývá omluvenka z jednotlivých lekcí. */
     @Serializable data object SeriesAlreadyStarted : CancelReservation
+    /** Admin ruší rozběhnutý kurz — musí říct, kolik se vrátí do peněženky. */
+    @Serializable data object RefundAmountRequired : CancelReservation
+    /** Vratka při storně rozběhnutého kurzu je záporná nebo není číslo. */
+    @Serializable data object InvalidRefundAmount : CancelReservation
     @Serializable data object EventCancelled : CreateReservation
     @Serializable data object CapacityExceeded : CreateReservation
     @Serializable data object MultipleSeatsNotAllowed : CreateReservation
@@ -98,6 +102,8 @@ fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (thi
     is ReservationError.EventAlreadyFinished -> strings.errorEventAlreadyFinished
     is ReservationError.EventAlreadyStarted -> strings.errorEventAlreadyStarted
     is ReservationError.SeriesAlreadyStarted -> strings.errorSeriesAlreadyStarted
+    is ReservationError.RefundAmountRequired -> strings.errorRefundAmountRequired
+    is ReservationError.InvalidRefundAmount -> strings.errorInvalidRefundAmount
     is ReservationError.EventCancelled -> strings.errorEventCancelled
     is ReservationError.FailedToGetAllReservations -> strings.errorFailedToGetReservations
     is ReservationError.SystemError -> message

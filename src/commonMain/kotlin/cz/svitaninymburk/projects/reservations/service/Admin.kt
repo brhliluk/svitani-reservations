@@ -27,6 +27,7 @@ import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.user.User
+import cz.svitaninymburk.projects.reservations.reservation.StartedCourseCancellation
 import cz.svitaninymburk.projects.reservations.admin.AuditLogPage
 import cz.svitaninymburk.projects.reservations.audit.AuditCategory
 import dev.kilua.rpc.annotations.RpcService
@@ -63,6 +64,13 @@ interface AdminServiceInterface {
     suspend fun cancelEventSeries(id: Uuid, refund: Boolean = true): Either<AdminError.CancelSeries, Unit>
     suspend fun getSeriesInstances(seriesId: Uuid, page: Int = 0, pageSize: Int = 10): Either<AdminError.GetInstances, SeriesInstancesPage>
     suspend fun cancelSeriesLesson(instanceId: Uuid): Either<AdminError.CancelLesson, Unit>
+
+    /**
+     * Náhled vratky pro storno rezervace na rozběhnutý kurz. `null`, když rezervace
+     * není aktivní přihláška na kurz, který už běží — pak se ruší obyčejně, bez dialogu
+     * s částkou.
+     */
+    suspend fun getStartedCourseCancellation(reservationId: Uuid): Either<AdminError.GetStartedCourseCancellation, StartedCourseCancellation?>
 
     /**
      * Vezme zpět omluvenku z lekce: účastník se vrátí do lekce a kredit, který za

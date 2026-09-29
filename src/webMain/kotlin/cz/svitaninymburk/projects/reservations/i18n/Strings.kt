@@ -547,6 +547,17 @@ interface AppStrings : ErrorStrings {
     val modalConfirmCancelAction: String
     val toastPaymentConfirmed: (String) -> String
     val toastReservationCancelled: (String) -> String
+
+    // Storno rezervace na rozběhnutý kurz (admin zadává vratku)
+    val modalCancelStartedCourseTitle: String
+    val modalCancelStartedCourseMsgPre: String
+    val modalCancelStartedCourseMsgPost: String
+    val startedCoursePaidLabel: String
+    val startedCourseAlreadyRefundedLabel: String
+    val startedCourseAttendedLabel: (lessons: Int, lessonCredit: String) -> String
+    val startedCourseSuggestedLabel: String
+    val refundAmountLabel: String
+    val refundAmountHint: String
     val invalidEventId: String
 
     // On-site payment detail

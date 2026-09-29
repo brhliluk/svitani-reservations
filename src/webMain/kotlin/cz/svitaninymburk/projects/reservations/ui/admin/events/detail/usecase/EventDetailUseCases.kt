@@ -101,5 +101,8 @@ class AdminReservationUseCase(
 
     suspend fun confirmPayment(reservationId: Uuid) = admin.markReservationAsPaid(reservationId)
 
-    suspend fun cancel(reservationId: Uuid) = reservation.cancelReservation(reservationId)
+    suspend fun startedCourseCancellation(reservationId: Uuid) = admin.getStartedCourseCancellation(reservationId)
+
+    suspend fun cancel(reservationId: Uuid, refundAmount: Double? = null) =
+        reservation.cancelReservation(reservationId, refundAmount = refundAmount)
 }

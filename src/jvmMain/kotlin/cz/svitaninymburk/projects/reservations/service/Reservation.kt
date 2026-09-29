@@ -30,6 +30,7 @@ import cz.svitaninymburk.projects.reservations.reservation.CreateSeriesReservati
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.StartedCourseCancellation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationDetail
 import cz.svitaninymburk.projects.reservations.reservation.ReservationRequestData
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonItem
@@ -679,6 +680,7 @@ open class ReservationService(
         instanceId: Uuid?,
         walletCode: String?,
         force: Boolean,
+        refundAmount: Double?,
     ): Either<ReservationError.CancelReservation, CancellationResult> = either {
         val reservation = ensureNotNull(reservationRepository.findById(reservationId)) { ReservationError.ReservationNotFound }
 
@@ -715,9 +717,9 @@ open class ReservationService(
             // zápisu, byl by člověk odhlášený, čekatel posunutý a druhý pokus by spadl
             // na AlreadyOptedOut.
             val series = eventSeriesRepository.get(seriesId)
-            val refundAmount = if (isLate) 0.0 else refundService.cappedLessonCredit(reservation, series)
+            val optOutRefund = if (isLate) 0.0 else refundService.cappedLessonCredit(reservation, series)
             val wallet: Wallet? =
-                if (refundAmount > 0.0) resolveWalletFor(reservation, walletCode, force) else null
+                if (optOutRefund > 0.0) resolveWalletFor(reservation, walletCode, force) else null
 
             // saveIfAbsent, ne save — kontrola výš běží v jiné transakci, takže
             // dvojklik by jinak uložil dvě omluvenky a místo by se odečetlo dvakrát.
@@ -746,7 +748,7 @@ open class ReservationService(
                 seriesId = seriesId,
                 instanceId = instanceId,
                 reservationId = reservationId,
-                amount = refundAmount,
+                amount = optOutRefund,
                 detail = if (isLate) "pozdní omluvenka, bez vrácení kreditu" else "omluvenka z lekce",
             )
 
@@ -782,9 +784,14 @@ open class ReservationService(
             }
 
             if (wallet != null) {
-                val outcome = refundService.refundFixedAmount(
-                    wallet, reservation, refundAmount, WalletTransactionReason.LESSON_OPT_OUT_REFUND
-                )
+                // Vratka patří do historie kurzu i té lekce, ze které se omlouvá.
+                val outcome = withAuditSubject(
+                    AuditSubject(seriesId = seriesId, instanceId = instanceId, reservationId = reservationId, label = reservation.contactName)
+                ) {
+                    refundService.refundFixedAmount(
+                        wallet, reservation, optOutRefund, WalletTransactionReason.LESSON_OPT_OUT_REFUND
+                    )
+                }
                 outcome?.let { seriesLessonOptOutRepository.updateRefundedAmount(optOut.id, it.creditedAmount) }
                 if (outcome != null) CancellationResult(walletCode = outcome.walletCode, walletCreditAmount = outcome.creditedAmount)
                 else CancellationResult()
@@ -819,26 +826,39 @@ open class ReservationService(
                 is Reference.Series -> eventSeriesRepository.get(reservation.reference.id)?.let { ReservationTarget.Series(it) }
             }
 
-            // Rozběhnutý kurz se celý neruší — ani adminem. Kdo odpadne v půlce,
-            // omlouvá se z jednotlivých lekcí; storno celé rezervace by ho vyřadilo
-            // i z lekcí, na které už chodil, a počítalo vratku z celého kurzu.
-            // Zákazníkovi navíc zavře storno už první den kurzu (00:00), jako dřív.
+            // Rozběhnutý kurz zákazník celý nezruší — kdo odpadne v půlce, omlouvá se
+            // z jednotlivých lekcí; storno celé rezervace by ho vyřadilo i z lekcí, na
+            // které už chodil, a počítalo vratku z celého kurzu. Zákazníkovi navíc zavře
+            // storno už první den kurzu (00:00), jako dřív.
+            // Admin rozběhnutý kurz zrušit smí, ale musí říct, kolik se vrátí
+            // ([refundAmount], návrh z [RefundService.startedCourseCancellation]).
+            // Rozhodnuto záměrně — neměnit zpět na „ani adminem“.
             // U jednorázové akce zavře storno zákazníkovi její začátek; admin tuhle
             // zeď nemá, kredit se dole stejně řídí uzávěrkou (18:00 den předem).
             val now = nowInAppTimeZone()
-            when (target) {
+            val startedCourseRefund: StartedCourseRefund? = when (target) {
                 is ReservationTarget.Series -> {
                     ensure(isAdminCaller() || now < target.startDateTime) { ReservationError.SeriesAlreadyStarted }
                     // Náhradník v pořadníku na lekce nechodí a nic nezaplatil —
                     // z pořadníku ho jde odebrat i u běžícího kurzu.
                     val isWaitlisted = reservation.status == Reservation.Status.WAITLISTED
-                    ensure(isWaitlisted || !eventInstanceRepository.findBySeries(target.series.id).courseHasStarted(now)) {
-                        ReservationError.SeriesAlreadyStarted
-                    }
+                    val lessons = eventInstanceRepository.findBySeries(target.series.id)
+                    if (!isWaitlisted && lessons.courseHasStarted(now)) {
+                        ensure(isAdminCaller()) { ReservationError.SeriesAlreadyStarted }
+                        val amount = ensureNotNull(refundAmount) { ReservationError.RefundAmountRequired }
+                        ensure(amount.isFinite() && amount >= 0.0) { ReservationError.InvalidRefundAmount }
+                        val optedOut = seriesLessonOptOutRepository.findByReservation(reservation.id).map { it.instanceId }.toSet()
+                        StartedCourseRefund(
+                            amount = amount,
+                            preview = refundService.startedCourseCancellation(reservation, target.series, lessons, optedOut, now),
+                        )
+                    } else null
                 }
-                is ReservationTarget.Instance ->
+                is ReservationTarget.Instance -> {
                     if (!isAdminCaller()) ensure(now < target.startDateTime) { ReservationError.EventAlreadyStarted }
-                null -> Unit
+                    null
+                }
+                null -> null
             }
 
             // Kredit i peněženku řešíme JEŠTĚ PŘED zápisem storna, stejně jako u omluvenky
@@ -848,7 +868,10 @@ open class ReservationService(
             // AlreadyCancelled. Kredit by tak nevznikl nikdy.
             // Bez odečtu toho, co už odešlo za lekce, by se po omluvence vracela
             // tatáž lekce podruhé. Když není co vracet, nezakládá se ani peněženka.
-            val refundWallet: Wallet? = if (target != null) {
+            // U rozběhnutého kurzu částku určil admin, takže uzávěrka 18:00 neplatí.
+            val refundWallet: Wallet? = if (startedCourseRefund != null) {
+                if (startedCourseRefund.amount > 0.0) resolveWalletFor(reservation, walletCode, force) else null
+            } else if (target != null) {
                 val refundable = refundService.refundableForWholeReservation(reservation)
                 if (refundable > 0.0 && !isPastRefundDeadline(target.startDateTime)) {
                     resolveWalletFor(reservation, walletCode, force)
@@ -919,7 +942,11 @@ open class ReservationService(
                     instanceId = cancelSubject.instanceId,
                     reservationId = cancelledReservation.id,
                     amount = cancelledReservation.paidAmount,
-                    detail = if (wasWaitlisted) "storno přihlášky z pořadníku" else "storno celé rezervace",
+                    detail = when {
+                        wasWaitlisted -> "storno přihlášky z pořadníku"
+                        startedCourseRefund != null -> "storno rozběhnutého kurzu adminem"
+                        else -> "storno celé rezervace"
+                    },
                 )
 
                 // Mail zákazníkovi jde synchronně jen proto, aby se dalo říct, jestli
@@ -958,8 +985,20 @@ open class ReservationService(
 
                 // Wallet credit for whole-reservation cancellation — only within the deadline (18:00 day before).
                 // Peněženka je vyřešená už před uložením storna (refundWallet výš).
-                if (refundWallet != null) {
-                    val outcome = refundService.refundWholeReservation(refundWallet, reservation)
+                if (startedCourseRefund != null) {
+                    val outcome = refundWallet?.let { wallet ->
+                        withAuditSubject(cancelSubject) {
+                            refundService.refundFixedAmount(
+                                wallet, reservation, startedCourseRefund.amount,
+                                WalletTransactionReason.CANCELLATION_REFUND,
+                                detail = startedCourseRefund.auditDetail(),
+                                note = "Storno rozběhnutého kurzu ${target.title}",
+                            )
+                        }
+                    }
+                    CancellationResult(walletCode = outcome?.walletCode, walletCreditAmount = outcome?.creditedAmount, cancellationEmailFailed = cancellationEmailFailed)
+                } else if (refundWallet != null) {
+                    val outcome = withAuditSubject(cancelSubject) { refundService.refundWholeReservation(refundWallet, reservation) }
                     if (outcome != null) CancellationResult(walletCode = outcome.walletCode, walletCreditAmount = outcome.creditedAmount, cancellationEmailFailed = cancellationEmailFailed)
                     else CancellationResult(cancellationEmailFailed = cancellationEmailFailed)
                 } else {
@@ -1210,3 +1249,15 @@ private fun Reservation.toListItem(title: String, startDateTime: LocalDateTime, 
 internal fun payablePaymentType(requested: PaymentType, allowed: List<PaymentType>): PaymentType =
     if (requested != PaymentType.FREE) requested
     else allowed.firstOrNull { it != PaymentType.FREE } ?: PaymentType.BANK_TRANSFER
+
+/** Admin ruší rozběhnutý kurz: zadaná vratka a návrh, ze kterého vycházel. */
+private class StartedCourseRefund(val amount: Double, val preview: StartedCourseCancellation) {
+    fun auditDetail(): String = listOfNotNull(
+        "storno rozběhnutého kurzu",
+        "absolvováno lekcí: ${preview.attendedLessons}",
+        preview.suggestedRefund.takeIf { it != amount }?.let { "navrženo ${formatCzk(it)}" },
+    ).joinToString(", ")
+}
+
+private fun formatCzk(amount: Double): String =
+    if (amount % 1.0 == 0.0) "${amount.toLong()} Kč" else "${"%.2f".format(amount)} Kč"

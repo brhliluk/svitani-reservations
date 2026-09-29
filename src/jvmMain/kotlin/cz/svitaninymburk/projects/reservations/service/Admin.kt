@@ -49,6 +49,7 @@ import cz.svitaninymburk.projects.reservations.wallet.WalletTransactionReason
 import cz.svitaninymburk.projects.reservations.wallet.WalletsPage
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.StartedCourseCancellation
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
 import cz.svitaninymburk.projects.reservations.reservation.isFreePrice
 import cz.svitaninymburk.projects.reservations.user.User
@@ -1586,6 +1587,24 @@ class AdminDashboardService(
             e.printStackTrace()
             raise(AdminError.CancelLesson.Failed)
         }
+    }
+
+    override suspend fun getStartedCourseCancellation(
+        reservationId: Uuid,
+    ): Either<AdminError.GetStartedCourseCancellation, StartedCourseCancellation?> = either {
+        val reservation = ensureNotNull(reservationRepository.findById(reservationId)) {
+            AdminError.ReservationNotFound(reservationId)
+        }
+        val ref = reservation.reference
+        if (ref !is Reference.Series) return@either null
+        if (reservation.status == Reservation.Status.CANCELLED || reservation.status == Reservation.Status.WAITLISTED) return@either null
+
+        val now = nowInAppTimeZone()
+        val lessons = eventInstanceRepository.findBySeries(ref.id)
+        if (!lessons.courseHasStarted(now)) return@either null
+
+        val optedOut = seriesLessonOptOutRepository.findByReservation(reservation.id).map { it.instanceId }.toSet()
+        refundService.startedCourseCancellation(reservation, eventSeriesRepository.get(ref.id), lessons, optedOut, now)
     }
 
     override suspend fun revokeLessonOptOut(

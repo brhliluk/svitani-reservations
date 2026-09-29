@@ -25,6 +25,8 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.Ev
 import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.SeriesLessonsUseCase
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.AdminActionType
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.PendingAction
+import cz.svitaninymburk.projects.reservations.ui.admin.reservations.StartedCourseCancelDraft
+import cz.svitaninymburk.projects.reservations.ui.admin.reservations.refundAmountOrNull
 import cz.svitaninymburk.projects.reservations.ui.reservation.DuplicateReservationPrompt
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormData
 import cz.svitaninymburk.projects.reservations.ui.util.ScreenModel
@@ -67,6 +69,7 @@ class AdminEventDetailModel(
 
     // participant actions
     var pendingAction: PendingAction? by mutableStateOf(null); private set
+    var startedCourseCancel: StartedCourseCancelDraft? by mutableStateOf(null); private set
     var isModalLoading by mutableStateOf(false); private set
 
     // lessons
@@ -265,11 +268,36 @@ class AdminEventDetailModel(
         pendingAction = PendingAction(AdminActionType.CONFIRM_PAYMENT, row.reservationId, row.contactName)
     }
 
+    /** U rozběhnutého kurzu se místo prostého potvrzení ptá na vratku. */
     fun cancelReservation(row: AdminParticipantRow) {
-        pendingAction = PendingAction(AdminActionType.CANCEL_RESERVATION, row.reservationId, row.contactName)
+        run(
+            errorMessage = { it.localizedMessage(currentStrings) },
+            block = { reservations.startedCourseCancellation(row.reservationId) },
+            onSuccess = { preview ->
+                if (preview != null) startedCourseCancel = StartedCourseCancelDraft(row.reservationId, row.contactName, preview)
+                else pendingAction = PendingAction(AdminActionType.CANCEL_RESERVATION, row.reservationId, row.contactName)
+            },
+        )
     }
 
     fun dismissPendingAction() { pendingAction = null }
+
+    fun updateStartedCourseRefund(value: Number?) {
+        startedCourseCancel = startedCourseCancel?.copy(refundInput = value)
+    }
+
+    fun dismissStartedCourseCancel() { startedCourseCancel = null }
+
+    fun confirmStartedCourseCancel() {
+        val draft = startedCourseCancel ?: return
+        val amount = refundAmountOrNull(draft.refundInput) ?: return
+        run(
+            loading = { isModalLoading = it },
+            errorMessage = { it.localizedMessage(currentStrings) },
+            block = { reservations.cancel(draft.reservationId, refundAmount = amount) },
+            onSuccess = { showToast(currentStrings.toastReservationCancelled(draft.participantName)); refresh() },
+        ).invokeOnCompletion { startedCourseCancel = null }
+    }
 
     /**
      * Vrátí omluveného do lekce. Kredit za omluvenku mu server strhne, proto se to

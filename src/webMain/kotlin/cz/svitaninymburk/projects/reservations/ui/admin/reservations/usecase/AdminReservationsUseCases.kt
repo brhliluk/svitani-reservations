@@ -45,5 +45,6 @@ class AdminReservationsMutations(
     private val reservations: ReservationServiceInterface,
 ) {
     suspend fun markAsPaid(id: Uuid) = admin.markReservationAsPaid(id)
-    suspend fun cancel(id: Uuid) = reservations.cancelReservation(id)
+    suspend fun startedCourseCancellation(id: Uuid) = admin.getStartedCourseCancellation(id)
+    suspend fun cancel(id: Uuid, refundAmount: Double? = null) = reservations.cancelReservation(id, refundAmount = refundAmount)
 }

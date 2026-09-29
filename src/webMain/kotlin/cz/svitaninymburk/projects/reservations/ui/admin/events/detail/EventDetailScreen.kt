@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.i18n.strings
+import cz.svitaninymburk.projects.reservations.ui.admin.reservations.CancelStartedCourseModal
 import cz.svitaninymburk.projects.reservations.ui.admin.reservations.ReservationActionModal
 import cz.svitaninymburk.projects.reservations.ui.reservation.DuplicateReservationModal
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationModal
@@ -96,6 +97,15 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             action = action, isLoading = model.isModalLoading,
             onConfirm = { model.confirmPendingAction(action) },
             onDismiss = { model.dismissPendingAction() },
+        )
+    }
+    model.startedCourseCancel?.let { draft ->
+        CancelStartedCourseModal(
+            draft = draft,
+            isLoading = model.isModalLoading,
+            onRefundChange = { model.updateStartedCourseRefund(it) },
+            onConfirm = { model.confirmStartedCourseCancel() },
+            onDismiss = { model.dismissStartedCourseCancel() },
         )
     }
     if (model.showDeleteConfirm) {

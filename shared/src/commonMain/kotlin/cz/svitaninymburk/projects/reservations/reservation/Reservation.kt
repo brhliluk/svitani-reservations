@@ -267,3 +267,20 @@ data class CancellationResult(
     /** Storno proběhlo, jen potvrzovací mail zákazníkovi neodešel — UI to řekne jako poznámku, ne chybu. */
     val cancellationEmailFailed: Boolean = false,
 )
+
+/**
+ * Podklad pro dialog, ve kterém admin ruší rezervaci na už rozběhnutý kurz.
+ * [suggestedRefund] = zaplaceno − už vrácené za omluvenky − absolvované lekce × kredit
+ * za lekci, nejméně 0. Admin ho může přepsat na libovolnou nezápornou částku.
+ */
+@Serializable
+data class StartedCourseCancellation(
+    val paidAmount: Double,
+    /** Kolik už odešlo za omluvenky a adminem zrušené lekce. */
+    val alreadyRefunded: Double,
+    /** Lekce, které už začaly a ze kterých se účastník neomluvil. */
+    val attendedLessons: Int,
+    /** Kredit za jednu lekci pro celou rezervaci (sazba × místa, jinak poměrná část). */
+    val lessonCredit: Double,
+    val suggestedRefund: Double,
+)

@@ -588,6 +588,16 @@ object EnStrings : AppStrings {
     override val modalConfirmCancelAction = "Yes, cancel"
     override val toastPaymentConfirmed: (String) -> String = { "Payment from $it confirmed!" }
     override val toastReservationCancelled: (String) -> String = { "Reservation from $it was cancelled!" }
+
+    override val modalCancelStartedCourseTitle = "Cancel reservation for a running course"
+    override val modalCancelStartedCourseMsgPre = "The course is already running. The reservation of "
+    override val modalCancelStartedCourseMsgPost = " will be cancelled in full and the amount below refunded to their wallet."
+    override val startedCoursePaidLabel = "Paid"
+    override val startedCourseAlreadyRefundedLabel = "Already refunded for excused lessons"
+    override val startedCourseAttendedLabel: (Int, String) -> String = { lessons, credit -> "Attended lessons ($lessons × $credit)" }
+    override val startedCourseSuggestedLabel = "Suggested refund"
+    override val refundAmountLabel = "Refund to wallet"
+    override val refundAmountHint = "You can override the suggested amount. 0 = refund nothing."
     override val invalidEventId = "Invalid event ID."
 
     // On-site payment detail
@@ -759,6 +769,8 @@ object EnStrings : AppStrings {
     override val errorEventAlreadyFinished = "Event has already ended"
     override val errorEventAlreadyStarted = "Event has already started"
     override val errorSeriesAlreadyStarted = "The course is already running, so the whole reservation can't be cancelled. Individual lessons can still be cancelled."
+    override val errorRefundAmountRequired = "The course is already running. Enter how much to refund to the wallet."
+    override val errorInvalidRefundAmount = "The refund amount can't be negative."
     override val errorEventCancelled = "Event was cancelled"
     override val errorFailedToGetReservations = "Failed to get reservations"
     override val errorNotASeriesReservation = "This reservation is not a course enrollment."

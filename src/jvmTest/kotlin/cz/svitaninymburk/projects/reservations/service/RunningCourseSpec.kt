@@ -37,10 +37,11 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.uuid.Uuid
 
 /**
- * Kurz, jehož první lekce už začala, se celý neruší. Rezervaci na něj nezruší
- * ani admin (zbývá omluvenka z jednotlivých lekcí) a zrušení kurzu zruší jen
- * lekce, které ještě nezačaly — zapsaní si rezervaci nechají a dostanou kredit
- * za zbývající lekce stejně, jako kdyby admin rušil lekci po lekci.
+ * Kurz, jehož první lekce už začala, se celý neruší. Rezervaci na něj zákazník
+ * nezruší (zbývá omluvenka z jednotlivých lekcí); admin ano, ale s ručně zadanou
+ * vratkou. Zrušení kurzu zruší jen lekce, které ještě nezačaly — zapsaní si
+ * rezervaci nechají a dostanou kredit za zbývající lekce stejně, jako kdyby admin
+ * rušil lekci po lekci.
  */
 class RunningCourseSpec {
 
@@ -55,7 +56,7 @@ class RunningCourseSpec {
         bankAccountNumber = "", fioToken = "", senderEmail = "",
         gmailAppPassword = "", senderDisplayName = "",
     ))
-    private val refundService = RefundService(walletService, ConsoleEmailService(), settings)
+    private val refundService = RefundService(walletService, ConsoleEmailService(), settings, audit = AuditService(auditRepo))
 
     private val admin = AdminDashboardService(
         eventDefinitionRepository = InMemoryEventDefinitionRepository(),
@@ -74,7 +75,7 @@ class RunningCourseSpec {
         auditRepository = auditRepo,
     )
 
-    private inner class AsAdmin : ReservationService(
+    private inner class Caller(private val admin: Boolean) : ReservationService(
         eventInstanceRepository = instanceRepo,
         eventSeriesRepository = seriesRepo,
         eventDefinitionRepository = InMemoryEventDefinitionRepository(),
@@ -89,9 +90,13 @@ class RunningCourseSpec {
         walletEmailService = ConsoleEmailService(),
         appSettingsProvider = settings,
         refundService = refundService,
+        audit = AuditService(auditRepo),
     ) {
-        override suspend fun isAdminCaller(): Boolean = true
+        override suspend fun isAdminCaller(): Boolean = admin
     }
+
+    private fun asAdmin() = Caller(admin = true)
+    private fun asCustomer() = Caller(admin = false)
 
     /** Čas vůči teď v pražském čase — lekce „před hodinou“ musí být opravdu minulá. */
     private fun at(offset: Duration): LocalDateTime = (Clock.System.now() + offset).toLocalDateTime(APP_TIMEZONE)
@@ -150,16 +155,173 @@ class RunningCourseSpec {
     // --- storno celé rezervace ---
 
     @Test
-    fun `not even admin can cancel a reservation for a started course`() = runBlocking {
+    fun `customer cannot cancel a reservation for a started course`() = runBlocking {
         seriesRepo.create(series)
         lesson((-7).days)
         lesson(7.days)
         val reservation = enroll()
 
-        val result = AsAdmin().cancelReservation(reservation.id)
+        val result = asCustomer().cancelReservation(reservation.id, refundAmount = 500.0)
 
         assertEquals(ReservationError.SeriesAlreadyStarted, result.leftOrNull())
         assertEquals(Reservation.Status.CONFIRMED, reservationRepo.findById(reservation.id)?.status)
+    }
+
+    @Test
+    fun `admin must state the refund when cancelling a started course`() = runBlocking {
+        seriesRepo.create(series)
+        lesson((-7).days)
+        lesson(7.days)
+        val reservation = enroll()
+
+        val result = asAdmin().cancelReservation(reservation.id)
+
+        assertEquals(ReservationError.RefundAmountRequired, result.leftOrNull())
+        assertEquals(Reservation.Status.CONFIRMED, reservationRepo.findById(reservation.id)?.status)
+    }
+
+    @Test
+    fun `negative refund is rejected`() = runBlocking {
+        seriesRepo.create(series)
+        lesson((-7).days)
+        lesson(7.days)
+        val reservation = enroll()
+
+        val result = asAdmin().cancelReservation(reservation.id, refundAmount = -1.0)
+
+        assertEquals(ReservationError.InvalidRefundAmount, result.leftOrNull())
+        assertEquals(Reservation.Status.CONFIRMED, reservationRepo.findById(reservation.id)?.status)
+    }
+
+    @Test
+    fun `admin cancels a started course and exactly the entered amount goes to the wallet`() = runBlocking {
+        seriesRepo.create(series)
+        lesson((-7).days)
+        lesson(7.days)
+        val reservation = enroll()
+
+        // Kurz začal v roce 2000, takže uzávěrka 18:00 den předem je dávno pryč —
+        // u téhle cesty ale vratku neblokuje.
+        val result = asAdmin().cancelReservation(reservation.id, refundAmount = 620.0).getOrNull()
+
+        assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(reservation.id)?.status)
+        assertEquals(620.0, result?.walletCreditAmount)
+        assertEquals(
+            620.0,
+            walletRepo.sumCreditedForReservation(reservation.id, WalletTransactionReason.CANCELLATION_REFUND),
+        )
+        val wallet = walletRepo.findByCode(result?.walletCode!!)!!
+        val tx = walletRepo.getTransactions(wallet.id).single()
+        assertEquals("Storno rozběhnutého kurzu Kurz", tx.note)
+    }
+
+    @Test
+    fun `admin may refund more than was paid`() = runBlocking {
+        seriesRepo.create(series)
+        lesson((-7).days)
+        lesson(7.days)
+        val reservation = enroll(paidAmount = 1000.0)
+
+        asAdmin().cancelReservation(reservation.id, refundAmount = 1500.0)
+
+        assertEquals(
+            1500.0,
+            walletRepo.sumCreditedForReservation(reservation.id, WalletTransactionReason.CANCELLATION_REFUND),
+        )
+    }
+
+    @Test
+    fun `zero refund cancels without creating a wallet or credit`() = runBlocking {
+        seriesRepo.create(series)
+        lesson((-7).days)
+        lesson(7.days)
+        val reservation = enroll()
+
+        val result = asAdmin().cancelReservation(reservation.id, refundAmount = 0.0).getOrNull()
+
+        assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(reservation.id)?.status)
+        assertEquals(null, result?.walletCode)
+        assertEquals(null, walletRepo.findByEmail(reservation.contactEmail))
+    }
+
+    @Test
+    fun `refund of a started course is in the course history with the suggestion it overrode`() = runBlocking {
+        seriesRepo.create(series)
+        lesson((-7).days)
+        lesson(7.days)
+        val reservation = enroll()
+
+        asAdmin().cancelReservation(reservation.id, refundAmount = 500.0)
+
+        val refund = auditRepo.recordedEvents().single { it.type == AuditEventType.PAYMENT_REFUNDED }
+        assertEquals(series.id, refund.seriesId)
+        assertEquals(500.0, refund.amount)
+        assertEquals("storno rozběhnutého kurzu, absolvováno lekcí: 1, navrženo 850 Kč", refund.detail)
+        val cancelled = auditRepo.recordedEvents().single { it.type == AuditEventType.RESERVATION_CANCELLED }
+        assertEquals("storno rozběhnutého kurzu adminem", cancelled.detail)
+    }
+
+    // --- návrh vratky ---
+
+    @Test
+    fun `suggested refund subtracts attended lessons and what was already refunded for excuses`() = runBlocking {
+        seriesRepo.create(series)
+        lesson((-14).days)
+        val excused = lesson((-7).days)
+        lesson((-1).hours)
+        lesson(7.days)
+        val reservation = enroll()
+        optOutRepo.save(
+            SeriesLessonOptOut(
+                id = Uuid.random(), reservationId = reservation.id, instanceId = excused.id,
+                optedOutAt = Clock.System.now(), isLateCancellation = false, refundedAmount = 150.0,
+            )
+        )
+        walletService.credit(
+            walletService.walletForRefund(reservation).id, 150.0,
+            WalletTransactionReason.LESSON_OPT_OUT_REFUND, reservation.id,
+        )
+
+        val preview = admin.getStartedCourseCancellation(reservation.id).getOrNull()!!
+
+        assertEquals(2, preview.attendedLessons, "omluvená lekce se nepočítá, dnešní už začala")
+        assertEquals(150.0, preview.alreadyRefunded)
+        assertEquals(1000.0 - 150.0 - 2 * 150.0, preview.suggestedRefund)
+    }
+
+    @Test
+    fun `suggested refund counts every seat of the reservation`() = runBlocking {
+        seriesRepo.create(series)
+        lesson((-7).days)
+        lesson(7.days)
+        val reservation = reservationRepo.save(enroll().copy(seatCount = 2))
+
+        val preview = admin.getStartedCourseCancellation(reservation.id).getOrNull()!!
+
+        assertEquals(300.0, preview.lessonCredit)
+        assertEquals(700.0, preview.suggestedRefund)
+    }
+
+    @Test
+    fun `unpaid reservation gets a zero suggestion`() = runBlocking {
+        seriesRepo.create(series)
+        lesson((-7).days)
+        lesson(7.days)
+        val reservation = enroll(paidAmount = 0.0, status = Reservation.Status.PENDING_PAYMENT)
+
+        assertEquals(0.0, admin.getStartedCourseCancellation(reservation.id).getOrNull()?.suggestedRefund)
+    }
+
+    @Test
+    fun `no refund dialog for a course that has not started or for a waitlisted person`() = runBlocking {
+        seriesRepo.create(series.copy(occupiedWaitlist = 1))
+        lesson(7.days)
+        val beforeStart = enroll()
+        assertEquals(null, admin.getStartedCourseCancellation(beforeStart.id).getOrNull())
+
+        lesson((-7).days)
+        val waitlisted = enroll(paidAmount = 0.0, status = Reservation.Status.WAITLISTED)
+        assertEquals(null, admin.getStartedCourseCancellation(waitlisted.id).getOrNull())
     }
 
     @Test
@@ -168,7 +330,7 @@ class RunningCourseSpec {
         lesson(7.days)
         val reservation = enroll()
 
-        assertTrue(AsAdmin().cancelReservation(reservation.id).isRight())
+        assertTrue(asAdmin().cancelReservation(reservation.id).isRight())
         assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(reservation.id)?.status)
     }
 
@@ -179,7 +341,7 @@ class RunningCourseSpec {
         lesson(7.days)
         val waitlisted = enroll(paidAmount = 0.0, status = Reservation.Status.WAITLISTED)
 
-        assertTrue(AsAdmin().cancelReservation(waitlisted.id).isRight())
+        assertTrue(asAdmin().cancelReservation(waitlisted.id).isRight())
         assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(waitlisted.id)?.status)
     }
 

@@ -1,8 +1,13 @@
 package cz.svitaninymburk.projects.reservations.service
 
 import cz.svitaninymburk.projects.reservations.audit.AuditEventType
+import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
+import cz.svitaninymburk.projects.reservations.reservation.StartedCourseCancellation
+import kotlinx.datetime.LocalDateTime
+import kotlin.uuid.Uuid
 import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
+import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.util.captureEmailError
@@ -55,6 +60,32 @@ class RefundService(
     }
 
     /**
+     * Náhled vratky pro storno rozběhnutého kurzu adminem. Absolvovaná lekce je ta,
+     * která už začala a ze které se účastník neomluvil ([optedOutLessonIds]); docházka
+     * se nečte. Navržená částka = co ještě nebylo vráceno − absolvované × kredit za
+     * lekci, nejméně 0. Omluvené lekce už jsou v [refundableForWholeReservation]
+     * odečtené, takže se za ně nevrací podruhé.
+     */
+    suspend fun startedCourseCancellation(
+        reservation: Reservation,
+        series: EventSeries?,
+        lessons: List<EventInstance>,
+        optedOutLessonIds: Set<Uuid>,
+        now: LocalDateTime,
+    ): StartedCourseCancellation {
+        val attended = lessons.lessonsAlreadyStarted(now).count { it.id !in optedOutLessonIds }
+        val lessonCredit = lessonCreditFor(reservation, series)
+        val refundable = refundableForWholeReservation(reservation)
+        return StartedCourseCancellation(
+            paidAmount = reservation.paidAmount,
+            alreadyRefunded = (reservation.paidAmount - refundable).coerceAtLeast(0.0),
+            attendedLessons = attended,
+            lessonCredit = lessonCredit,
+            suggestedRefund = (refundable - attended * lessonCredit).coerceAtLeast(0.0),
+        )
+    }
+
+    /**
      * Vrátí z rezervace to, co z ní ještě nebylo vráceno ([refundableForWholeReservation]):
      * nejdřív zpět odpočet z peněženky (RESERVATION_DEBIT_REVERSAL), zbytek jako
      * CANCELLATION_REFUND. Bez odečtu kreditu za lekce by omluvenka a následné
@@ -86,6 +117,8 @@ class RefundService(
         audit.record(
             type = AuditEventType.PAYMENT_REFUNDED,
             subjectLabel = reservation.contactName,
+            seriesId = reservation.auditSeriesId(),
+            instanceId = reservation.auditInstanceId(),
             reservationId = reservation.id,
             walletCode = updatedWallet.code,
             amount = refundable,
@@ -107,13 +140,17 @@ class RefundService(
         amount: Double,
         reason: WalletTransactionReason,
         detail: String = reason.name,
+        /** Poznámka k transakci v peněžence — admin ji uvidí v jejím detailu. */
+        note: String? = null,
     ): RefundOutcome? {
         if (amount <= 0.0) return null
-        val updatedWallet = walletService.credit(wallet.id, amount, reason, reservation.id)
+        val updatedWallet = walletService.credit(wallet.id, amount, reason, reservation.id, note)
 
         audit.record(
             type = AuditEventType.PAYMENT_REFUNDED,
             subjectLabel = reservation.contactName,
+            seriesId = reservation.auditSeriesId(),
+            instanceId = reservation.auditInstanceId(),
             reservationId = reservation.id,
             walletCode = updatedWallet.code,
             amount = amount,
@@ -139,3 +176,12 @@ class RefundService(
         }
     }
 }
+
+/**
+ * Pojistka pro volání mimo kontext s [AuditSubject] (třeba dodatečná vratka po
+ * spárování platby): bez akce nebo kurzu by vratka v jejich historii chyběla.
+ * Kontext volajícího má přednost jen tam, kde tu zůstane null — lekce u zápisu
+ * na kurz, kurz u rezervace na jeho lekci.
+ */
+private fun Reservation.auditSeriesId(): Uuid? = (reference as? Reference.Series)?.id
+private fun Reservation.auditInstanceId(): Uuid? = (reference as? Reference.Instance)?.id

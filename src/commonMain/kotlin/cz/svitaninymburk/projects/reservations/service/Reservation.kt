@@ -34,6 +34,11 @@ interface ReservationServiceInterface {
         instanceId: Uuid? = null,
         walletCode: String? = null,
         force: Boolean = false,
+        /**
+         * Jen pro admina a jen u rozběhnutého kurzu: kolik se vrátí do peněženky.
+         * Tam je povinná (jinak RefundAmountRequired), jinde se ignoruje.
+         */
+        refundAmount: Double? = null,
     ): Either<ReservationError.CancelReservation, CancellationResult>
     suspend fun getWalletInfo(code: String, email: String): Either<ReservationError.GetWalletInfo, WalletInfo>
 

@@ -1,6 +1,8 @@
 package cz.svitaninymburk.projects.reservations.ui.util
 
 import cz.svitaninymburk.projects.reservations.i18n.AppStrings
+import dev.kilua.i18n.Locale
+import dev.kilua.i18n.SimpleLocale
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
@@ -20,6 +22,13 @@ fun formatAmountNumber(amount: Double): String {
         else -> "$sign$whole.${rest.toString().padStart(2, '0')}"
     }
 }
+
+/**
+ * Formát pole na částku v Kč (`numeric(locale = …)`): „1 100“ s mezerou mezi tisíci
+ * a desetinnou čárkou. Bez něj bere Kilua jazyk prohlížeče a v anglickém ukáže
+ * „1,100.00“. Mezeru (NBSP) Kilua při čtení hodnoty zase odstraní.
+ */
+val AMOUNT_INPUT_LOCALE: Locale = SimpleLocale("cs-CZ")
 
 fun formatAmount(amount: Double, strings: AppStrings): String =
     "${formatAmountNumber(amount)} ${strings.currency}"

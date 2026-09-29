@@ -237,6 +237,15 @@ fun IComponent.AdminReservationsScreen() {
             onDismiss = { model.dismissPendingAction() },
         )
     }
+    model.startedCourseCancel?.let { draft ->
+        CancelStartedCourseModal(
+            draft = draft,
+            isLoading = model.isModalLoading,
+            onRefundChange = { model.updateStartedCourseRefund(it) },
+            onConfirm = { model.confirmStartedCourseCancel() },
+            onDismiss = { model.dismissStartedCourseCancel() },
+        )
+    }
 
     Toast(
         message = model.toast?.message,

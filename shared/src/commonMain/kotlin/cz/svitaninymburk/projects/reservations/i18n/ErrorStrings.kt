@@ -24,6 +24,8 @@ interface ErrorStrings {
     val errorEventAlreadyFinished: String
     val errorEventAlreadyStarted: String
     val errorSeriesAlreadyStarted: String
+    val errorRefundAmountRequired: String
+    val errorInvalidRefundAmount: String
     val errorEventCancelled: String
     val errorFailedToGetReservations: String
     val errorNotASeriesReservation: String

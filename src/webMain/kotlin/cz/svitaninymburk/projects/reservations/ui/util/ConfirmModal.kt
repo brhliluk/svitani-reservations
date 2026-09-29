@@ -19,6 +19,7 @@ fun IComponent.ConfirmModal(
     onDismiss: () -> Unit,
     titleClassName: String? = null,
     confirmClassName: String = "btn-error",
+    confirmEnabled: Boolean = true,
     content: @Composable IComponent.() -> Unit = {},
 ) {
     val currentStrings by strings
@@ -34,7 +35,7 @@ fun IComponent.ConfirmModal(
                     +dismissLabel
                 }
                 button(className = "btn $confirmClassName") {
-                    disabled(isLoading)
+                    disabled(isLoading || !confirmEnabled)
                     if (isLoading) span(className = "loading loading-spinner loading-sm")
                     onClick { onConfirm() }
                     +confirmLabel

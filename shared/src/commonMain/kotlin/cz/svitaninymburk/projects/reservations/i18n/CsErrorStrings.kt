@@ -22,6 +22,8 @@ object CsErrorStrings : ErrorStrings {
     override val errorEventAlreadyFinished = "Událost již skončila"
     override val errorEventAlreadyStarted = "Událost již začala"
     override val errorSeriesAlreadyStarted = "Kurz už běží, celou rezervaci zrušit nejde. Zrušit se dají jednotlivé lekce."
+    override val errorRefundAmountRequired = "Kurz už běží. Zadej, kolik se má vrátit do peněženky."
+    override val errorInvalidRefundAmount = "Vrácená částka nesmí být záporná."
     override val errorEventCancelled = "Událost byla zrušena"
     override val errorFailedToGetReservations = "Nelze získat seznam rezervací"
     override val errorNotASeriesReservation = "Rezervace není přihlášení na kroužek"

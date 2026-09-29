@@ -31,6 +31,7 @@ import kotlin.uuid.Uuid
     @Serializable @SerialName("cancel_event") sealed interface CancelEvent : AdminError
     @Serializable @SerialName("cancel_series") sealed interface CancelSeries : AdminError
     @Serializable @SerialName("add_lesson") sealed interface AddLesson : AdminError
+    @Serializable @SerialName("started_course_cancellation") sealed interface GetStartedCourseCancellation : AdminError
 
     @Serializable data class FailedToGetSummary(val message: String) : GetSummary
     @Serializable data class FailedToMarkReservationPaid(val message: String) : MarkReservationPaid
@@ -39,7 +40,7 @@ import kotlin.uuid.Uuid
     @Serializable data class FailedToGetSchedule(val message: String) : GetSchedule
     @Serializable data class FailedToCreateEvent(val message: String) : CreateEvent
     @Serializable data class FailedToCreateSeries(val message: String) : CreateSeries
-    @Serializable data class ReservationNotFound(val id: Uuid): MarkReservationPaid
+    @Serializable data class ReservationNotFound(val id: Uuid): MarkReservationPaid, GetStartedCourseCancellation
     @Serializable data class WrongReservationState(val state: Reservation.Status): MarkReservationPaid
     @Serializable data class EventInstanceNotFound(val id: Uuid): GetEventDetail
     @Serializable data class EventSeriesNotFound(val id: Uuid): GetEventDetail

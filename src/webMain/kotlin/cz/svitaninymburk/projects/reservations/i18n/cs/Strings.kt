@@ -597,6 +597,16 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val modalConfirmCancelAction = "Ano, zrušit"
     override val toastPaymentConfirmed: (String) -> String = { "Platba od $it potvrzena!" }
     override val toastReservationCancelled: (String) -> String = { "Rezervace od $it byla zrušena!" }
+
+    override val modalCancelStartedCourseTitle = "Zrušit rezervaci na běžící kurz"
+    override val modalCancelStartedCourseMsgPre = "Kurz už běží. Rezervace účastníka "
+    override val modalCancelStartedCourseMsgPost = " se zruší celá a do peněženky se mu vrátí částka níže."
+    override val startedCoursePaidLabel = "Zaplaceno"
+    override val startedCourseAlreadyRefundedLabel = "Už vráceno za omluvenky"
+    override val startedCourseAttendedLabel: (Int, String) -> String = { lessons, credit -> "Absolvované lekce ($lessons × $credit)" }
+    override val startedCourseSuggestedLabel = "Navrženo k vrácení"
+    override val refundAmountLabel = "Vrátit do peněženky"
+    override val refundAmountHint = "Navrženou částku můžete přepsat. 0 = nevracet nic."
     override val invalidEventId = "Neplatné ID události."
 
     // On-site payment detail
