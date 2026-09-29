@@ -92,6 +92,13 @@ class WalletService(private val repo: WalletRepository) {
         else repo.findAnonymousByEmail(reservation.contactEmail)
     }
 
+    /**
+     * Peněženka, kterou má admin u rezervace vidět: ta, ze které se platilo, jinak ta,
+     * kam by šly vratky. Nic nezakládá.
+     */
+    suspend fun findLinkedToReservation(reservation: Reservation): Wallet? =
+        reservation.walletId?.let { repo.findById(it) } ?: findForReservation(reservation)
+
     /** Kolik kreditu už rezervace dostala za omluvenky z lekcí. */
     suspend fun refundedForLessonOptOuts(reservationId: Uuid): Double =
         repo.sumCreditedForReservation(reservationId, WalletTransactionReason.LESSON_OPT_OUT_REFUND)

@@ -342,7 +342,7 @@ class AdminDashboardService(
             .filter { it.status == Reservation.Status.CONFIRMED }
             .sumOf { it.totalPrice }
 
-        fun toRow(res: cz.svitaninymburk.projects.reservations.reservation.Reservation) = AdminParticipantRow(
+        suspend fun toRow(res: cz.svitaninymburk.projects.reservations.reservation.Reservation) = AdminParticipantRow(
             reservationId = res.id,
             contactName = res.contactName,
             contactEmail = res.contactEmail,
@@ -353,6 +353,7 @@ class AdminDashboardService(
             paymentType = res.paymentType,
             createdAt = res.createdAt,
             customValues = res.customValues,
+            walletCode = walletService.findLinkedToReservation(res)?.code,
         )
 
         val directParticipants = eventReservations

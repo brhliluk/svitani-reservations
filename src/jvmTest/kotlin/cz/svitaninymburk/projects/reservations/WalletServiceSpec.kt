@@ -1,6 +1,9 @@
 package cz.svitaninymburk.projects.reservations
 
 import cz.svitaninymburk.projects.reservations.error.WalletError
+import cz.svitaninymburk.projects.reservations.reservation.PaymentType
+import cz.svitaninymburk.projects.reservations.reservation.Reference
+import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
 import cz.svitaninymburk.projects.reservations.service.WalletService
 import cz.svitaninymburk.projects.reservations.wallet.WalletTransactionReason
@@ -10,6 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 class WalletServiceSpec {
@@ -135,5 +139,54 @@ class WalletServiceSpec {
         val resetTx = txs.find { it.reason == WalletTransactionReason.SEASON_RESET }
         assertNotNull(resetTx)
         assertEquals(-150.0, resetTx.amount)
+    }
+
+    private fun reservation(
+        email: String,
+        registeredUserId: Uuid? = null,
+        walletId: Uuid? = null,
+    ) = Reservation(
+        id = Uuid.random(),
+        reference = Reference.Instance(Uuid.random()),
+        registeredUserId = registeredUserId,
+        contactName = "Jan Novak",
+        contactEmail = email,
+        totalPrice = 100.0,
+        status = Reservation.Status.CONFIRMED,
+        createdAt = Clock.System.now(),
+        customValues = emptyMap(),
+        paymentType = PaymentType.BANK_TRANSFER,
+        walletId = walletId,
+    )
+
+    @Test
+    fun `findLinkedToReservation prefers the wallet the reservation paid from`() = runBlocking {
+        val svc = service()
+        val userId = Uuid.random()
+        svc.findOrCreateForRegisteredUser(userId, "user@test.com")
+        val paidFrom = svc.resolveAnonymousWallet(null, "other@test.com", force = true).getOrNull()!!
+
+        val linked = svc.findLinkedToReservation(reservation("user@test.com", userId, walletId = paidFrom.id))
+
+        assertEquals(paidFrom.code, linked?.code)
+    }
+
+    @Test
+    fun `findLinkedToReservation falls back to the account wallet`() = runBlocking {
+        val svc = service()
+        val userId = Uuid.random()
+        val own = svc.findOrCreateForRegisteredUser(userId, "user@test.com")
+
+        assertEquals(own.code, svc.findLinkedToReservation(reservation("user@test.com", userId))?.code)
+    }
+
+    @Test
+    fun `findLinkedToReservation finds guest wallet by email and creates nothing`() = runBlocking {
+        val svc = service()
+        assertNull(svc.findLinkedToReservation(reservation("guest@test.com")))
+        assertEquals(0L, svc.getAll(1, 10).totalCount)
+
+        val guest = svc.resolveAnonymousWallet(null, "guest@test.com", force = true).getOrNull()!!
+        assertEquals(guest.code, svc.findLinkedToReservation(reservation("guest@test.com"))?.code)
     }
 }

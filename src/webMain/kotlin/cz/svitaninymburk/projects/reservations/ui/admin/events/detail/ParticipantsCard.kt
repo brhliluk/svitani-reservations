@@ -168,6 +168,7 @@ private fun IComponent.ParticipantRow(
             div(className = "text-xs text-base-content/50") {
                 +"${participant.contactEmail} • ${participant.contactPhone?.let { PhoneNumber.format(it) } ?: ""}"
             }
+            WalletLink(participant.walletCode)
         }
         td { +"${participant.seatCount}" }
         td(className = if (!isPaid && isCash) "font-bold text-info" else "") {
@@ -269,6 +270,7 @@ fun IComponent.WaitlistCard(
                                     td {
                                         div(className = "font-medium") { +participant.contactName }
                                         div(className = "text-xs text-base-content/60") { +participant.contactEmail }
+                                        WalletLink(participant.walletCode)
                                     }
                                     td { +"${participant.seatCount}" }
                                     td(className = "text-right") {
@@ -326,6 +328,7 @@ fun IComponent.OptedOutCard(
                                 td {
                                     div(className = "font-medium") { +participant.contactName }
                                     div(className = "text-xs text-base-content/60") { +participant.contactEmail }
+                                    WalletLink(participant.walletCode)
                                 }
                                 td { +"${participant.seatCount}" }
                                 td(className = "text-right") {
@@ -347,5 +350,20 @@ fun IComponent.OptedOutCard(
                 }
             }
         }
+    }
+}
+
+/** Proklik na detail peněženky, ke které rezervace patří; bez peněženky nic. */
+@Composable
+private fun IComponent.WalletLink(walletCode: String?) {
+    if (walletCode == null) return
+    val currentStrings by strings
+    val router = Router.current
+
+    button(className = "btn btn-ghost btn-xs gap-1 px-1 mt-1 font-mono text-primary tooltip tooltip-right") {
+        attribute("data-tip", currentStrings.tooltipViewWallet)
+        onClick { router.navigate("/admin/wallets/$walletCode") }
+        span(className = "icon-[heroicons--wallet] size-4")
+        +walletCode
     }
 }

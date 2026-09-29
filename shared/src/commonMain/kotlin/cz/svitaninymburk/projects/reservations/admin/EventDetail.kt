@@ -54,4 +54,9 @@ data class AdminParticipantRow(
      * Rezervace patří sérii, ne lekci — akce nad ní se dělají na detailu kurzu.
      */
     val fromSeries: Boolean = false,
+    /**
+     * Kód peněženky, ke které rezervace patří (platila z ní, nebo do ní jdou vratky).
+     * null = žádná zatím neexistuje.
+     */
+    val walletCode: String? = null,
 )
