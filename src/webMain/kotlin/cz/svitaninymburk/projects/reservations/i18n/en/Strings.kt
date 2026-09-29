@@ -36,6 +36,8 @@ object EnStrings : AppStrings {
     override val filterIsActive: (String) -> String = { "Filter: $it" }
     override val copyEventLink = "Copy link to event"
     override val copySeriesLink = "Copy link to course"
+    override val copyLessonLink = "Copy link to this lesson"
+    override val copyInstanceLink = "Copy link to this date"
 
     // Cards
     override val course = "Course"

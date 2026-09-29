@@ -288,6 +288,7 @@ private fun RoutingBuilder.publicRoutes(session: SessionModel) {
                     walletCode = session.walletCode,
                     initialFilterId = context.parameters?.map?.get("filter")?.firstOrNull(),
                     initialSeriesId = context.parameters?.map?.get("series")?.firstOrNull(),
+                    initialInstanceId = context.parameters?.map?.get("event")?.firstOrNull(),
                 )
             }
         }

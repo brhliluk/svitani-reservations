@@ -37,6 +37,8 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val filterIsActive: (String) -> String = { "Filtr: $it" }
     override val copyEventLink = "Kopírovat odkaz na událost"
     override val copySeriesLink = "Kopírovat odkaz na kurz"
+    override val copyLessonLink = "Kopírovat odkaz na tuto lekci"
+    override val copyInstanceLink = "Kopírovat odkaz na tento termín"
 
     // Cards
     override val course = "Kroužek"

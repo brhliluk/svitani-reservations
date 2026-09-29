@@ -49,7 +49,12 @@ fun rememberCopyFlash(): CopyFlash {
  * [label] je popisek pro čtečku i bublinu, po zkopírování ho vystřídá "Zkopírováno".
  */
 @Composable
-fun IComponent.CopyLinkButton(url: String, label: String, className: String? = null) {
+fun IComponent.CopyLinkButton(
+    url: String,
+    label: String,
+    className: String? = null,
+    icon: String = "icon-[heroicons--link]",
+) {
     val currentStrings by strings
     val copyFlash = rememberCopyFlash()
     val stateClass = if (copyFlash.isCopied) "text-success" else "text-base-content/40 hover:text-base-content"
@@ -58,6 +63,6 @@ fun IComponent.CopyLinkButton(url: String, label: String, className: String? = n
         attribute("aria-label", label)
         attribute("data-tip", if (copyFlash.isCopied) currentStrings.copied else label)
         onClick { copyFlash.copy(url) }
-        span(className = if (copyFlash.isCopied) "icon-[heroicons--check] size-4" else "icon-[heroicons--link] size-4")
+        span(className = if (copyFlash.isCopied) "icon-[heroicons--check] size-4" else "$icon size-4")
     }
 }

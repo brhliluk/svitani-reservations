@@ -7,6 +7,7 @@ import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.activeFilter
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.filterDashboardEvents
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.filterDashboardSeries
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.parseUuidOrNull
+import cz.svitaninymburk.projects.reservations.util.humanReadable
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
@@ -90,6 +91,27 @@ class DashboardUseCasesSpec {
         assertEquals("Jarní jóga", activeFilterName(allSeries, definitions, springCourseId, yogaId))
         assertEquals("Jóga", activeFilterName(allSeries, definitions, null, yogaId))
         assertNull(activeFilterName(allSeries, definitions, null, null))
+    }
+
+    @Test
+    fun instanceFilterKeepsOnlyThatEventAndHidesCourses() {
+        // Odkaz na lekci vyhrává i nad kurzem a šablonou, které by jinak ukázaly víc.
+        assertEquals(listOf(yogaLesson), filterDashboardEvents(events, springCourseId, yogaId, yogaLesson.id))
+        assertEquals(emptyList(), filterDashboardSeries(allSeries, springCourseId, yogaId, yogaLesson.id))
+    }
+
+    @Test
+    fun instanceFilterNameShowsTitleAndStart() {
+        assertEquals(
+            "Jóga – lekce • ${yogaLesson.startDateTime.humanReadable}",
+            activeFilterName(allSeries, definitions, null, null, events, yogaLesson.id),
+        )
+    }
+
+    /** Termín, který už ve výpisu není (proběhl, zrušili ho), nemá čím filtr popsat. */
+    @Test
+    fun instanceFilterNameIsNullForUnknownInstance() {
+        assertNull(activeFilterName(allSeries, definitions, null, null, events, Uuid.random()))
     }
 
     @Test

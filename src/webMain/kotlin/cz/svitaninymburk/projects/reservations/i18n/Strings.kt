@@ -54,6 +54,10 @@ interface AppStrings : ErrorStrings {
     val filterIsActive: (String) -> String
     val copyEventLink: String
     val copySeriesLink: String
+    /** Odkaz na jednu konkrétní lekci kurzu (`/?event=…`). */
+    val copyLessonLink: String
+    /** Odkaz na jeden konkrétní termín jednorázové akce (`/?event=…`). */
+    val copyInstanceLink: String
 
     // Card Labels (Series/Event)
     val course: String

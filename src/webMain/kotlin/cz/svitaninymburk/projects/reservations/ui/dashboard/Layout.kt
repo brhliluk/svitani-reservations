@@ -28,13 +28,18 @@ fun IComponent.DashboardLayout(
     definitions: List<EventDefinition>,
     initialFilterId: String? = null,
     initialSeriesId: String? = null,
+    initialInstanceId: String? = null,
     isSubmitting: Boolean = false,
     onSubmitReservation: (ReservationTarget, ReservationFormData) -> Unit,
     onFilterChange: (Uuid?) -> Unit = {},
     onSeriesFilterChange: (Uuid?) -> Unit = {},
+    onInstanceFilterChange: (Uuid?) -> Unit = {},
 ) {
     val model = remember {
-        DashboardLayoutModel(initialFilterId, initialSeriesId, onFilterChange, onSeriesFilterChange)
+        DashboardLayoutModel(
+            initialFilterId, initialSeriesId, initialInstanceId,
+            onFilterChange, onSeriesFilterChange, onInstanceFilterChange,
+        )
     }
 
     div(className = "min-h-screen bg-base-200 flex flex-col font-sans") {
@@ -45,7 +50,7 @@ fun IComponent.DashboardLayout(
             if (model.activeTab == DashboardTab.CATALOG) {
                 CatalogGrid(definitions) { model.filterByDefinition(it.id) }
             } else {
-                ScheduleToolbar(model, model.filterName(series, definitions))
+                ScheduleToolbar(model, model.filterName(events, series, definitions))
                 if (model.viewMode == ViewMode.LIST) {
                     ScheduleList(model.events(events), model.series(series), model)
                 } else {

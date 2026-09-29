@@ -23,6 +23,7 @@ fun IComponent.DashboardScreen(
     walletCode: String? = null,
     initialFilterId: String? = null,
     initialSeriesId: String? = null,
+    initialInstanceId: String? = null,
 ) {
     val currentStrings by strings
     val router = Router.current
@@ -41,10 +42,12 @@ fun IComponent.DashboardScreen(
             definitions = state.definitions,
             initialFilterId = initialFilterId,
             initialSeriesId = initialSeriesId,
+            initialInstanceId = initialInstanceId,
             isSubmitting = model.isSubmitting,
             onSubmitReservation = { target, formData -> model.submitReservation(target, formData, user?.id) },
             onFilterChange = { id -> router.navigate(if (id == null) "/" else "/?filter=$id") },
             onSeriesFilterChange = { id -> router.navigate(if (id == null) "/" else "/?series=$id") },
+            onInstanceFilterChange = { id -> router.navigate(if (id == null) "/" else "/?event=$id") },
         )
 
         is DashboardUiState.Error -> {

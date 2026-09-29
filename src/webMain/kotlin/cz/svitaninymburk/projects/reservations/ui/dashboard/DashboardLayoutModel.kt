@@ -26,22 +26,27 @@ enum class ViewMode { LIST, CALENDAR }
 class DashboardLayoutModel(
     initialFilterId: String?,
     initialSeriesId: String?,
+    initialInstanceId: String?,
     private val onFilterChange: (Uuid?) -> Unit,
     private val onSeriesFilterChange: (Uuid?) -> Unit,
+    private val onInstanceFilterChange: (Uuid?) -> Unit,
 ) {
     var activeTab by mutableStateOf(DashboardTab.SCHEDULE); private set
     var viewMode by mutableStateOf(ViewMode.LIST); private set
     var selectedDefinitionId by mutableStateOf(parseUuidOrNull(initialFilterId)); private set
     var selectedSeriesId by mutableStateOf(parseUuidOrNull(initialSeriesId)); private set
+    var selectedInstanceId by mutableStateOf(parseUuidOrNull(initialInstanceId)); private set
     var reservationTarget by mutableStateOf<ReservationTarget?>(null); private set
     var isWaitlistSignup by mutableStateOf(false); private set
 
-    fun events(all: List<EventInstance>) = filterDashboardEvents(all, selectedSeriesId, selectedDefinitionId)
+    fun events(all: List<EventInstance>) =
+        filterDashboardEvents(all, selectedSeriesId, selectedDefinitionId, selectedInstanceId)
 
-    fun series(all: List<EventSeries>) = filterDashboardSeries(all, selectedSeriesId, selectedDefinitionId)
+    fun series(all: List<EventSeries>) =
+        filterDashboardSeries(all, selectedSeriesId, selectedDefinitionId, selectedInstanceId)
 
-    fun filterName(series: List<EventSeries>, definitions: List<EventDefinition>) =
-        activeFilterName(series, definitions, selectedSeriesId, selectedDefinitionId)
+    fun filterName(events: List<EventInstance>, series: List<EventSeries>, definitions: List<EventDefinition>) =
+        activeFilterName(series, definitions, selectedSeriesId, selectedDefinitionId, events, selectedInstanceId)
 
     fun showSchedule() { activeTab = DashboardTab.SCHEDULE }
 
@@ -55,17 +60,21 @@ class DashboardLayoutModel(
 
     fun filterByDefinition(definitionId: Uuid) {
         selectedSeriesId = null
+        selectedInstanceId = null
         selectedDefinitionId = definitionId
         activeTab = DashboardTab.SCHEDULE
         onSeriesFilterChange(null)
+        onInstanceFilterChange(null)
         onFilterChange(definitionId)
     }
 
     fun clearFilters() {
         selectedDefinitionId = null
         selectedSeriesId = null
+        selectedInstanceId = null
         onFilterChange(null)
         onSeriesFilterChange(null)
+        onInstanceFilterChange(null)
     }
 
     fun openReservation(target: ReservationTarget, asWaitlist: Boolean = false) {

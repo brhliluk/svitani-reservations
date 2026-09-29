@@ -36,6 +36,12 @@ fun IComponent.Event(event: EventInstance, onClick: () -> Unit, onWaitlistClick:
                             url = "${window.location.origin}/?filter=${event.definitionId}",
                             label = currentStrings.copyEventLink,
                         )
+                        // Odkaz na tenhle jeden termín — vedle odkazu na všechny termíny šablony.
+                        CopyLinkButton(
+                            url = "${window.location.origin}/?event=${event.id}",
+                            label = if (event.seriesId != null) currentStrings.copyLessonLink else currentStrings.copyInstanceLink,
+                            icon = "icon-[heroicons--calendar]",
+                        )
                         if (event.isCancelled) {
                             div(className = "badge badge-error badge-sm") { +currentStrings.cancelled }
                         }
