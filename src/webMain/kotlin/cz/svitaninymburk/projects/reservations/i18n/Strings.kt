@@ -703,6 +703,11 @@ interface AppStrings : ErrorStrings {
     val walletExpiresOn: String
     val adminWalletTransactions: String
     val adminWalletNoTransactions: String
+    /** Badge v seznamu peněženek — peněženka je navázaná na registrovaný účet. */
+    val adminWalletLinkedToAccount: String
+    /** Badge v seznamu peněženek — peněženka bez účtu, jen na e-mail. */
+    val adminWalletStandalone: String
+    val tableHeaderWalletType: String
     val tableHeaderReason: String
     val tableHeaderNote: String
 

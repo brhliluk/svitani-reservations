@@ -73,6 +73,7 @@ fun IComponent.AdminWalletsScreen(preselectCode: String? = null) {
                                         tr {
                                             th { +currentStrings.walletCode }
                                             th { +currentStrings.emailLabel }
+                                            th { +currentStrings.tableHeaderWalletType }
                                             th { +currentStrings.walletBalance }
                                             th { +currentStrings.createdAt }
                                             th(className = "text-right") { +currentStrings.tableHeaderActions }
@@ -86,6 +87,19 @@ fun IComponent.AdminWalletsScreen(preselectCode: String? = null) {
                                                 }
                                                 td {
                                                     div(className = "text-sm") { +wallet.ownerEmail }
+                                                }
+                                                td {
+                                                    if (wallet.registeredUserId != null) {
+                                                        div(className = "badge badge-primary gap-1") {
+                                                            span(className = "icon-[heroicons--user] size-3")
+                                                            +currentStrings.adminWalletLinkedToAccount
+                                                        }
+                                                    } else {
+                                                        div(className = "badge badge-ghost gap-1") {
+                                                            span(className = "icon-[heroicons--envelope] size-3")
+                                                            +currentStrings.adminWalletStandalone
+                                                        }
+                                                    }
                                                 }
                                                 td {
                                                     val balanceClass = if (wallet.balance > 0) "text-success font-bold" else "text-base-content/60"
