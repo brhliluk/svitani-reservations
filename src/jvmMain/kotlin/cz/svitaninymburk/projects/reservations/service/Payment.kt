@@ -103,7 +103,13 @@ class PaymentPairingService(
 
         ensure(response.status.isSuccess()) { PaymentPairingError.Failed(response.status.toString())  }
 
-        val transactions = parseFioTransactions(response.body<FioResponse>())
+        // FIO občas vrátí 200 s tělem bez `accountStatement` — výjimka z deserializace
+        // by jinak vylétla ven ze smyčky v `startPaymentCheck` a párování by tiše umřelo.
+        val transactions = try {
+            parseFioTransactions(response.body<FioResponse>())
+        } catch (e: Exception) {
+            raise(PaymentPairingError.Upstream(e, e.message ?: "Unparseable FIO response"))
+        }
 
         logger.info("📥 Staženo ${transactions.size} nových transakcí.")
 

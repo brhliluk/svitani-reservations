@@ -6,6 +6,8 @@ import cz.svitaninymburk.projects.reservations.service.PaymentPairingService
 import cz.svitaninymburk.projects.reservations.service.PaymentTrigger
 import io.ktor.server.application.Application
 import io.ktor.util.logging.KtorSimpleLogger
+import io.sentry.Sentry
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -33,14 +35,26 @@ fun Application.startPaymentCheck() {
 
         while (isActive) {
             if (lastCheckTime.elapsedNow() > minInterval) {
-                paymentPairingService.checkAndPairPayments()
-                    .also { lastCheckTime = TimeSource.Monotonic.markNow() }
-                    .onLeft { error ->
-                        when (error) {
-                            is PaymentPairingError.Upstream -> logger.error("Payment check failed", error.exception)
-                            is PaymentPairingError.Failed -> logger.error("Payment check failed: ${error.message}")
+                // Cokoli, co tu vylétne, by ukončilo celou smyčku a platby by se až do restartu
+                // nepárovaly (stalo se 3. 10. 2026 — týden bez párování, nikdo nevěděl).
+                try {
+                    paymentPairingService.checkAndPairPayments()
+                        .onLeft { error ->
+                            when (error) {
+                                is PaymentPairingError.Upstream -> {
+                                    logger.error("Payment check failed", error.exception)
+                                    Sentry.captureException(error.exception)
+                                }
+                                is PaymentPairingError.Failed -> logger.error("Payment check failed: ${error.message}")
+                            }
                         }
-                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    logger.error("Payment check crashed", e)
+                    Sentry.captureException(e)
+                }
+                lastCheckTime = TimeSource.Monotonic.markNow()
             }
 
             val hasPending = reservationRepository.hasPendingReservations()
