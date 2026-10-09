@@ -22,6 +22,7 @@ private fun event(
     title: String,
     at: LocalDateTime,
     seriesId: Uuid? = null,
+    isCancelled: Boolean = false,
 ) = EventInstance(
     id = Uuid.random(),
     definitionId = Uuid.random(),
@@ -33,6 +34,7 @@ private fun event(
     price = 0.0,
     capacity = 10,
     occupiedSpots = 0,
+    isCancelled = isCancelled,
 )
 
 class CalendarGridSpec {
@@ -131,6 +133,17 @@ class CalendarEventsSpec {
         val agenda = daysWithEvents(events, LocalDate(2026, 9, 1))
         assertEquals(listOf(LocalDate(2026, 9, 10), LocalDate(2026, 9, 20)), agenda.map { it.first })
         assertEquals(2, agenda.first().second.size)
+    }
+
+    @Test
+    fun cancelledEventsAreLeftOut() {
+        val events = listOf(
+            event("koná se", LocalDateTime(2026, 9, 10, 9, 0)),
+            event("zrušená", LocalDateTime(2026, 9, 10, 11, 0), isCancelled = true),
+            event("zrušená jinde", LocalDateTime(2026, 9, 20, 9, 0), isCancelled = true),
+        )
+        assertEquals(listOf("koná se"), eventsOn(events, day).map { it.title })
+        assertEquals(listOf(day), daysWithEvents(events, LocalDate(2026, 9, 1)).map { it.first })
     }
 
     @Test

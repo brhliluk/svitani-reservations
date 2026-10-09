@@ -39,8 +39,13 @@ fun calendarGrid(month: LocalDate): CalendarGrid {
     )
 }
 
+/**
+ * Zrušené akce se v kalendáři nezobrazují vůbec — na rozdíl od seznamu, kde
+ * mají štítek "Zrušeno". Z kalendáře by se na ně dalo kliknout a otevřít
+ * formulář rezervace, kterou server stejně odmítne.
+ */
 fun eventsOn(events: List<EventInstance>, date: LocalDate): List<EventInstance> =
-    events.filter { it.startDateTime.date == date }.sortedBy { it.startDateTime }
+    events.filter { !it.isCancelled && it.startDateTime.date == date }.sortedBy { it.startDateTime }
 
 /**
  * Dny měsíce, které mají aspoň jednu akci — mobilní agenda prázdné dny
