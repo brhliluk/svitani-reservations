@@ -27,6 +27,8 @@ import cz.svitaninymburk.projects.reservations.repository.reservation.InMemorySe
 import cz.svitaninymburk.projects.reservations.repository.user.InMemoryUserRepository
 import cz.svitaninymburk.projects.reservations.repository.wallet.InMemoryWalletRepository
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
+import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.settings.AppSettings
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.testWaitlistPromoter
@@ -39,6 +41,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.uuid.Uuid
 
@@ -309,5 +312,44 @@ class AdminManagementAuditSpec {
         assertEquals(series.id, recorded(AuditEventType.SERIES_DELETED).single().seriesId)
         assertEquals(event.id, recorded(AuditEventType.EVENT_DELETED).single().instanceId)
         assertEquals(lesson.id, recorded(AuditEventType.LESSON_DELETED).single().instanceId)
+    }
+
+    // --- Čtení historie ---
+
+    @Test
+    fun `history rows carry the phone of the reservation they belong to`() = asAdmin {
+        seed()
+        fun reservation(phone: String?) = Reservation(
+            id = Uuid.random(),
+            reference = Reference.Instance(event.id),
+            seatCount = 1,
+            contactName = "Anežka Brhlíková",
+            contactEmail = "anezka@example.com",
+            contactPhone = phone,
+            paymentType = PaymentType.BANK_TRANSFER,
+            customValues = emptyMap(),
+            totalPrice = 100.0,
+            status = Reservation.Status.CONFIRMED,
+            createdAt = Clock.System.now(),
+            variableSymbol = "2626487517",
+        )
+        val withPhone = reservationRepo.save(reservation("+420777123456"))
+        val withoutPhone = reservationRepo.save(reservation(null))
+        val deletedId = Uuid.random()
+        listOf(withPhone.id, withoutPhone.id, deletedId).forEach { id ->
+            auditLog.record(
+                NewAuditEvent(
+                    type = AuditEventType.RESERVATION_CREATED, actorType = AuditActorType.CUSTOMER,
+                    actorLabel = "anezka@example.com", subjectLabel = "Anežka Brhlíková",
+                    instanceId = event.id, reservationId = id,
+                )
+            )
+        }
+
+        val items = service.getEventAuditLog(event.id, isSeries = false).getOrNull()!!.items
+        val phoneOf = items.associate { it.reservationId to it.contactPhone }
+        assertEquals("+420777123456", phoneOf[withPhone.id])
+        assertNull(phoneOf[withoutPhone.id])
+        assertNull(phoneOf[deletedId])
     }
 }

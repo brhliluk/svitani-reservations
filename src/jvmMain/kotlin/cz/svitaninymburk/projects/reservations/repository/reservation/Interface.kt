@@ -19,6 +19,9 @@ val ACTIVE_SIGNUP_STATUSES: List<Reservation.Status> = listOf(
 interface ReservationRepository {
     suspend fun save(reservation: Reservation): Reservation
     suspend fun findById(id: Uuid): Reservation?
+
+    /** Víc rezervací naráz; chybějící id se tiše vynechají. */
+    suspend fun findByIds(ids: Collection<Uuid>): List<Reservation> = ids.mapNotNull { findById(it) }
     suspend fun findByReference(reference: Reference): List<Reservation>
 
     /**

@@ -13,6 +13,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.AU
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.Pagination
 import cz.svitaninymburk.projects.reservations.ui.util.pageCount
+import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import app.softwork.routingcompose.Router
@@ -142,6 +143,11 @@ fun IComponent.AuditLogCard(
                                         }
                                         td {
                                             div { +event.subjectLabel }
+                                            event.contactPhone?.let { phone ->
+                                                a(href = "tel:$phone", className = "text-xs link link-hover block") {
+                                                    +PhoneNumber.format(phone)
+                                                }
+                                            }
                                             div(className = "text-xs text-base-content/50") { +event.actorLabel }
                                         }
                                         td(className = "text-sm text-base-content/60 max-w-md") { +auditDetailText(event, currentStrings) }

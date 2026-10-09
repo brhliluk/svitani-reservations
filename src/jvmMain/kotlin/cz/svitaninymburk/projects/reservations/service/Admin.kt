@@ -1705,7 +1705,15 @@ class AdminDashboardService(
             { auditRepository.countForEvent(eventId, isSeries, category, parentSeriesId) },
         ) { i, c -> i to c }
 
-        AuditLogPage(items = items, page = page, pageSize = pageSize, totalCount = total)
+        val phonesByReservation = reservationRepository
+            .findByIds(items.mapNotNull { it.reservationId }.toSet())
+            .mapNotNull { res -> res.contactPhone?.takeIf { it.isNotBlank() }?.let { res.id to it } }
+            .toMap()
+        val withPhones = items.map { event ->
+            event.reservationId?.let(phonesByReservation::get)?.let { event.copy(contactPhone = it) } ?: event
+        }
+
+        AuditLogPage(items = withPhones, page = page, pageSize = pageSize, totalCount = total)
     }
 
     override suspend fun resendEmail(auditEventId: Uuid): Either<AdminError.ResendEmail, String> = either {

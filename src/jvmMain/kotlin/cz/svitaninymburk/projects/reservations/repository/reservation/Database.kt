@@ -120,6 +120,14 @@ class ExposedReservationRepository : ReservationRepository {
             .singleOrNull()
     }
 
+    override suspend fun findByIds(ids: Collection<Uuid>): List<Reservation> =
+        if (ids.isEmpty()) emptyList()
+        else dbQuery {
+            ReservationsTable.selectAll()
+                .where { ReservationsTable.id inList ids }
+                .map { it.toReservation() }
+        }
+
     override suspend fun findByReference(reference: Reference): List<Reservation> = dbQuery {
         val dbType = if (reference is Reference.Instance) {
             ReferenceDbDiscriminator.INSTANCE

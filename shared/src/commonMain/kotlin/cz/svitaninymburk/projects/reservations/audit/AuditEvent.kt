@@ -117,6 +117,11 @@ data class AuditEvent(
     val recipient: String? = null,
     val amount: Double? = null,
     val detail: String? = null,
+    /**
+     * Telefon rezervujícího. V tabulce se neukládá — server ho doplní při čtení
+     * z aktuální rezervace, takže u smazané rezervace chybí.
+     */
+    val contactPhone: String? = null,
 ) {
     val category: AuditCategory get() = type.category
 
