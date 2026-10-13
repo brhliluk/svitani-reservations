@@ -48,8 +48,7 @@ fun IComponent.DashboardLayout(
             SearchBar(model)
             ScheduleToolbar(model, model.filterName(events, series, definitions))
 
-            val shownEvents = model.events(events)
-            val shownSeries = model.series(series)
+            val (shownEvents, shownSeries) = model.shown(events, series)
             when {
                 shownEvents.isEmpty() && shownSeries.isEmpty() && model.isSearching -> NoSearchResults(model)
                 model.viewMode == ViewMode.LIST -> ScheduleList(shownEvents, shownSeries, model)

@@ -10,7 +10,7 @@ import kotlinx.datetime.plus
 
 /**
  * Hledání na rozcestníku. Dotaz se rozpadne na slova a každé musí sedět:
- * text se hledá v názvu a popisu, datum ("15.10.", "15. 10. 2026", "2026-10-15",
+ * text se hledá v titulku (popis jen jako záloha, viz [searchDashboard]), datum ("15.10.", "15. 10. 2026", "2026-10-15",
  * "dnes", "zítra"), den v týdnu ("středa", "víkend") a měsíc ("říjen", "října")
  * se porovnává s termínem akce, u kurzu s kterýmkoli dnem jeho lekcí.
  */
@@ -110,15 +110,15 @@ private fun String.splitWhen(isSeparator: (Char) -> Boolean): List<String> {
 }
 
 /**
- * Text musí sedět na začátek některého slova v [texts], datum na některý z [dates].
- * Jen začátek slova: kdekoli uvnitř by krátký dotaz ("tan") našel i "dostanete"
- * v popisu a výpis by se zúžil až od čtvrtého pátého písmene.
+ * Text musí být v některém slově z [texts] (kdekoli, i uprostřed), datum musí sedět
+ * na některý z [dates]. Že krátký dotaz ("tan") najde i "dostanete", nevadí — popis
+ * se prohledává jen jako záloha, viz [searchDashboard].
  */
 private fun List<SearchTerm>.matches(texts: List<String>, dates: Sequence<LocalDate>): Boolean {
     val haystack = texts.flatMap { words(searchKey(it)) }
     return all { term ->
         if (term is SearchTerm.Text) {
-            words(term.key).all { part -> haystack.any { it.startsWith(part) } }
+            words(term.key).all { part -> haystack.any { part in it } }
         } else {
             dates.any { term.matchesDate(it) }
         }
@@ -135,15 +135,38 @@ private fun EventSeries.lessonDays(): Sequence<LocalDate> =
         .takeWhile { it <= endDate }
         .filter { lessonDayOfWeek == null || it.dayOfWeek == lessonDayOfWeek }
 
-fun searchDashboardEvents(events: List<EventInstance>, query: String, today: LocalDate): List<EventInstance> {
+data class DashboardSearchResult(val events: List<EventInstance>, val series: List<EventSeries>)
+
+/**
+ * Hledá se v titulcích; popis přijde na řadu, jen když dotaz nesedí na žádný titulek
+ * (akce ani kurzu). Jinak by se mezi akce s hledaným slovem v názvu míchaly ty,
+ * které ho mají jen někde v popisu.
+ */
+fun searchDashboard(
+    events: List<EventInstance>,
+    series: List<EventSeries>,
+    query: String,
+    today: LocalDate,
+): DashboardSearchResult {
     val terms = parseSearch(query, today)
-    if (terms.isEmpty()) return events
-    return events.filter { terms.matches(listOf(it.title, it.description), sequenceOf(it.startDateTime.date)) }
+    if (terms.isEmpty()) return DashboardSearchResult(events, series)
+
+    fun search(withDescription: Boolean) = DashboardSearchResult(
+        events = events.filter {
+            terms.matches(listOfNotNull(it.title, it.description.takeIf { withDescription }), sequenceOf(it.startDateTime.date))
+        },
+        series = series.filter {
+            terms.matches(listOfNotNull(it.title, it.description.takeIf { withDescription }), it.lessonDays())
+        },
+    )
+
+    val byTitle = search(withDescription = false)
+    return if (byTitle.events.isNotEmpty() || byTitle.series.isNotEmpty()) byTitle else search(withDescription = true)
 }
 
-fun searchDashboardSeries(series: List<EventSeries>, query: String, today: LocalDate): List<EventSeries> {
-    val terms = parseSearch(query, today)
-    if (terms.isEmpty()) return series
-    return series.filter { terms.matches(listOf(it.title, it.description), it.lessonDays()) }
-}
+fun searchDashboardEvents(events: List<EventInstance>, query: String, today: LocalDate): List<EventInstance> =
+    searchDashboard(events, emptyList(), query, today).events
+
+fun searchDashboardSeries(series: List<EventSeries>, query: String, today: LocalDate): List<EventSeries> =
+    searchDashboard(emptyList(), series, query, today).series
 

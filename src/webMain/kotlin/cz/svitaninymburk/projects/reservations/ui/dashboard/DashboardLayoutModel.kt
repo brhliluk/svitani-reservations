@@ -11,8 +11,7 @@ import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.activeFilter
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.filterDashboardEvents
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.filterDashboardSeries
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.parseUuidOrNull
-import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.searchDashboardEvents
-import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.searchDashboardSeries
+import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.searchDashboard
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -49,14 +48,10 @@ class DashboardLayoutModel(
 
     val isSearching: Boolean get() = searchQuery.isNotBlank()
 
-    fun events(all: List<EventInstance>) = searchDashboardEvents(
-        filterDashboardEvents(all, selectedSeriesId, selectedDefinitionId, selectedInstanceId),
-        searchQuery,
-        today,
-    )
-
-    fun series(all: List<EventSeries>) = searchDashboardSeries(
-        filterDashboardSeries(all, selectedSeriesId, selectedDefinitionId, selectedInstanceId),
+    /** Akce a kurzy po filtru z adresy a hledání — hledá se v obou naráz, viz [searchDashboard]. */
+    fun shown(events: List<EventInstance>, series: List<EventSeries>) = searchDashboard(
+        filterDashboardEvents(events, selectedSeriesId, selectedDefinitionId, selectedInstanceId),
+        filterDashboardSeries(series, selectedSeriesId, selectedDefinitionId, selectedInstanceId),
         searchQuery,
         today,
     )

@@ -9,6 +9,7 @@ import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.filterDashbo
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.SearchTerm
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.parseSearch
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.parseUuidOrNull
+import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.searchDashboard
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.searchDashboardEvents
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.searchDashboardSeries
 import cz.svitaninymburk.projects.reservations.util.humanReadable
@@ -146,12 +147,37 @@ class DashboardUseCasesSpec {
     }
 
     @Test
-    fun shortSearchMatchesOnlyStartOfWords() {
-        val withDescription = danceOneOff.copy(description = "Když dostanete chuť, přijďte.")
-        assertEquals(listOf(danceOneOff), searchDashboardEvents(events, "tan", today))
-        assertEquals(listOf(withDescription), searchDashboardEvents(listOf(withDescription), "tan", today))
-        assertEquals(emptyList(), searchDashboardEvents(listOf(withDescription.copy(title = "Jóga")), "tan", today))
-        assertEquals(listOf(yogaOneOff), searchDashboardEvents(events, "uka", today))
+    fun searchMatchesAlsoInsideWords() {
+        assertEquals(listOf(danceOneOff), searchDashboardEvents(events, "anec", today))
+        assertEquals(listOf(yogaOneOff), searchDashboardEvents(events, "kazk", today))
+    }
+
+    @Test
+    fun shortSearchInTitleIsNotDilutedByDescriptions() {
+        val mentionsIt = yogaOneOff.copy(description = "Když dostanete chuť, přijďte.")
+        assertEquals(listOf(danceOneOff), searchDashboardEvents(listOf(mentionsIt, danceOneOff), "tan", today))
+    }
+
+    @Test
+    fun titleMatchesHideDescriptionMatches() {
+        val mentionsDance = yogaOneOff.copy(description = "Po józe tanec.")
+        val found = searchDashboard(listOf(mentionsDance, danceOneOff), allSeries, "tanec", today)
+        assertEquals(listOf(danceOneOff), found.events)
+        assertEquals(listOf(danceCourse), found.series)
+    }
+
+    @Test
+    fun titleMatchOnASeriesAlsoHidesDescriptionMatches() {
+        val mentionsCourse = yogaOneOff.copy(description = "Ochutnávka z jarní jógy.")
+        val found = searchDashboard(listOf(mentionsCourse), allSeries, "jarni", today)
+        assertEquals(emptyList(), found.events)
+        assertEquals(listOf(springCourse), found.series)
+    }
+
+    @Test
+    fun descriptionIsSearchedWhenNoTitleMatches() {
+        val withDescription = yogaOneOff.copy(description = "Vhodné pro těhotné.")
+        assertEquals(listOf(withDescription), searchDashboardEvents(listOf(withDescription, danceOneOff), "tehotne", today))
     }
 
     @Test
