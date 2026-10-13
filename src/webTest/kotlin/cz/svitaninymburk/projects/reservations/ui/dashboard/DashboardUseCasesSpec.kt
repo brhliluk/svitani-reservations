@@ -146,6 +146,15 @@ class DashboardUseCasesSpec {
     }
 
     @Test
+    fun shortSearchMatchesOnlyStartOfWords() {
+        val withDescription = danceOneOff.copy(description = "Když dostanete chuť, přijďte.")
+        assertEquals(listOf(danceOneOff), searchDashboardEvents(events, "tan", today))
+        assertEquals(listOf(withDescription), searchDashboardEvents(listOf(withDescription), "tan", today))
+        assertEquals(emptyList(), searchDashboardEvents(listOf(withDescription.copy(title = "Jóga")), "tan", today))
+        assertEquals(listOf(yogaOneOff), searchDashboardEvents(events, "uka", today))
+    }
+
+    @Test
     fun blankSearchKeepsEverything() {
         assertEquals(events, searchDashboardEvents(events, "", today))
         assertEquals(allSeries, searchDashboardSeries(allSeries, "   ", today))

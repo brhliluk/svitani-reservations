@@ -96,11 +96,32 @@ private fun SearchTerm.matchesDate(date: LocalDate): Boolean = when (this) {
     is SearchTerm.Month -> date.month.number == month
 }
 
-/** Text musí být v [texts], datum musí sedět na některý z [dates]. */
+private fun words(text: String): List<String> =
+    text.splitWhen { !it.isLetterOrDigit() }.filter { it.isNotEmpty() }
+
+private fun String.splitWhen(isSeparator: (Char) -> Boolean): List<String> {
+    val result = mutableListOf<String>()
+    val current = StringBuilder()
+    for (c in this) {
+        if (isSeparator(c)) { result += current.toString(); current.clear() } else current.append(c)
+    }
+    result += current.toString()
+    return result
+}
+
+/**
+ * Text musí sedět na začátek některého slova v [texts], datum na některý z [dates].
+ * Jen začátek slova: kdekoli uvnitř by krátký dotaz ("tan") našel i "dostanete"
+ * v popisu a výpis by se zúžil až od čtvrtého pátého písmene.
+ */
 private fun List<SearchTerm>.matches(texts: List<String>, dates: Sequence<LocalDate>): Boolean {
-    val haystack = texts.joinToString(" ") { searchKey(it) }
+    val haystack = texts.flatMap { words(searchKey(it)) }
     return all { term ->
-        if (term is SearchTerm.Text) term.key in haystack else dates.any { term.matchesDate(it) }
+        if (term is SearchTerm.Text) {
+            words(term.key).all { part -> haystack.any { it.startsWith(part) } }
+        } else {
+            dates.any { term.matchesDate(it) }
+        }
     }
 }
 
