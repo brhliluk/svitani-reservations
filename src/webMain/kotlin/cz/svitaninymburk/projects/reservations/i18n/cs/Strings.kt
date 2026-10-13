@@ -16,8 +16,6 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val noUpcomingReservations = "Zatím nemáš žádné nadcházející rezervace."
 
     // Dashboard
-    override val schedule = "Program"
-    override val catalog = "Nabídka"
     override val listView = "Seznam"
     override val calendarView = "Kalendář"
     override val backToDashboard = "Zpět na přehled"
@@ -35,6 +33,8 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val filter = "Filtr"
     override val clearFilterTooltip = "Kliknutím zrušíte filtr"
     override val filterIsActive: (String) -> String = { "Filtr: $it" }
+    override val dashboardSearchPlaceholder = "Hledat akci, kroužek nebo datum…"
+    override val noEventsMatchSearch: (String) -> String = { "Hledání „$it“ nic nenašlo." }
     override val copyEventLink = "Kopírovat odkaz na událost"
     override val copySeriesLink = "Kopírovat odkaz na kurz"
     override val copyLessonLink = "Kopírovat odkaz na tuto lekci"
@@ -45,7 +45,6 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val courseLessons = "lekcí"
     override val courseSignUp = "Přihlásit se"
     override val partOfCourse = "Součást kurzu"
-    override val showDates = "Termíny"
     override val detail = "Detail"
     override val priceLabel = "Cena"
     override val maxCapacity = "Max"

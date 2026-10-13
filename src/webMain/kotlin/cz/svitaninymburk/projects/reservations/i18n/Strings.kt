@@ -33,8 +33,6 @@ interface AppStrings : ErrorStrings {
     val noUpcomingReservations: String
 
     // Dashboard & Navigation
-    val schedule: String
-    val catalog: String
     val listView: String
     val calendarView: String
     val backToDashboard: String
@@ -52,6 +50,8 @@ interface AppStrings : ErrorStrings {
     val filter: String
     val clearFilterTooltip: String
     val filterIsActive: (String) -> String
+    val dashboardSearchPlaceholder: String
+    val noEventsMatchSearch: (String) -> String
     val copyEventLink: String
     val copySeriesLink: String
     /** Odkaz na jednu konkrétní lekci kurzu (`/?event=…`). */
@@ -64,7 +64,6 @@ interface AppStrings : ErrorStrings {
     val courseLessons: String
     val courseSignUp: String
     val partOfCourse: String
-    val showDates: String
     val detail: String
     val priceLabel: String
     val maxCapacity: String

@@ -6,8 +6,13 @@ import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.activeFilterName
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.filterDashboardEvents
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.filterDashboardSeries
+import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.SearchTerm
+import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.parseSearch
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.parseUuidOrNull
+import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.searchDashboardEvents
+import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.searchDashboardSeries
 import cz.svitaninymburk.projects.reservations.util.humanReadable
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
@@ -19,6 +24,7 @@ import kotlin.uuid.Uuid
 private val yogaId = Uuid.random()
 private val danceId = Uuid.random()
 private val springCourseId = Uuid.random()
+private val today = LocalDate(2099, 5, 31)
 
 private fun instance(title: String, definitionId: Uuid, seriesId: Uuid? = null) = EventInstance(
     id = Uuid.random(),
@@ -125,5 +131,71 @@ class DashboardUseCasesSpec {
         assertNull(parseUuidOrNull("nesmysl"))
         assertNull(parseUuidOrNull(null))
         assertEquals(yogaId, parseUuidOrNull(yogaId.toString()))
+    }
+
+    @Test
+    fun searchIgnoresCaseAndDiacritics() {
+        assertEquals(listOf(yogaLesson, yogaOneOff), searchDashboardEvents(events, "JOGA", today))
+        assertEquals(listOf(springCourse), searchDashboardSeries(allSeries, "jarni", today))
+    }
+
+    @Test
+    fun everySearchWordMustMatch() {
+        assertEquals(listOf(yogaOneOff), searchDashboardEvents(events, "joga ukazka", today))
+        assertEquals(emptyList(), searchDashboardEvents(events, "joga tanec", today))
+    }
+
+    @Test
+    fun blankSearchKeepsEverything() {
+        assertEquals(events, searchDashboardEvents(events, "", today))
+        assertEquals(allSeries, searchDashboardSeries(allSeries, "   ", today))
+    }
+
+    // Akce v testu jsou 1. 6. 2099 (pondělí), jarní kurz 1. 6. – 1. 7. 2099.
+
+    @Test
+    fun dateIsUnderstoodInCommonForms() {
+        val onFirstJune = listOf(SearchTerm.Date(1, 6, 2099))
+        assertEquals(onFirstJune, parseSearch("1.6.2099", today))
+        assertEquals(onFirstJune, parseSearch("1. 6. 2099", today))
+        assertEquals(onFirstJune, parseSearch("2099-06-01", today))
+        assertEquals(listOf(SearchTerm.Date(1, 6)), parseSearch("01.06.", today))
+        assertEquals(listOf(SearchTerm.Date(1, 6)), parseSearch("1.6", today))
+    }
+
+    @Test
+    fun relativeDaysUseToday() {
+        assertEquals(listOf(SearchTerm.Date(31, 5, 2099)), parseSearch("dnes", today))
+        assertEquals(listOf(SearchTerm.Date(1, 6, 2099)), parseSearch("zítra", today))
+    }
+
+    @Test
+    fun eventIsFoundByDateWeekdayAndMonth() {
+        assertEquals(events, searchDashboardEvents(events, "1.6.", today))
+        assertEquals(events, searchDashboardEvents(events, "zítra", today))
+        assertEquals(events, searchDashboardEvents(events, "pondělí", today))
+        assertEquals(events, searchDashboardEvents(events, "června", today))
+        assertEquals(emptyList(), searchDashboardEvents(events, "2.6.", today))
+        assertEquals(emptyList(), searchDashboardEvents(events, "úterý", today))
+    }
+
+    @Test
+    fun dateAndTextCombine() {
+        assertEquals(listOf(danceOneOff), searchDashboardEvents(events, "tanec 1. 6.", today))
+    }
+
+    @Test
+    fun seriesIsFoundByAnyDayOfItsLessons() {
+        val mondayCourse = springCourse.copy(lessonDayOfWeek = DayOfWeek.MONDAY)
+        assertEquals(listOf(mondayCourse), searchDashboardSeries(listOf(mondayCourse), "8.6.", today))
+        assertEquals(emptyList(), searchDashboardSeries(listOf(mondayCourse), "9.6.", today))
+        assertEquals(emptyList(), searchDashboardSeries(listOf(mondayCourse), "15.7.", today))
+        // Bez dne v týdnu se kurz koná kterýkoli den svého rozsahu.
+        assertEquals(listOf(springCourse), searchDashboardSeries(listOf(springCourse), "středa", today))
+    }
+
+    @Test
+    fun invalidDateIsJustText() {
+        assertEquals(listOf(SearchTerm.Text("45.13.")), parseSearch("45.13.", today))
     }
 }

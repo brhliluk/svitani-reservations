@@ -11,17 +11,23 @@ import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.activeFilter
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.filterDashboardEvents
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.filterDashboardSeries
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.parseUuidOrNull
+import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.searchDashboardEvents
+import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.searchDashboardSeries
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
-enum class DashboardTab { SCHEDULE, CATALOG }
 enum class ViewMode { LIST, CALENDAR }
 
 /**
- * Stav samotného rozcestníku — záložka, filtry, přepínač seznam/kalendář a otevřený
+ * Stav samotného rozcestníku — hledání, filtry, přepínač seznam/kalendář a otevřený
  * rezervační formulář. Žádné RPC, proto to není [cz.svitaninymburk.projects.reservations.ui.util.ScreenModel]
  * (stejně jako `CalendarModel`); data i odesílání rezervace zůstávají na [DashboardModel].
  *
  * Filtr se drží dvakrát — v modelu i v adrese — aby šel odkaz na filtrovaný výpis poslat.
+ * Hledání v adrese není: filtruje se živě při psaní a do historie prohlížeče by naplnilo stovky kroků.
  */
 class DashboardLayoutModel(
     initialFilterId: String?,
@@ -30,43 +36,39 @@ class DashboardLayoutModel(
     private val onFilterChange: (Uuid?) -> Unit,
     private val onSeriesFilterChange: (Uuid?) -> Unit,
     private val onInstanceFilterChange: (Uuid?) -> Unit,
+    /** Pro "dnes" a "zítra" v hledání. */
+    private val today: LocalDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date,
 ) {
-    var activeTab by mutableStateOf(DashboardTab.SCHEDULE); private set
     var viewMode by mutableStateOf(ViewMode.LIST); private set
     var selectedDefinitionId by mutableStateOf(parseUuidOrNull(initialFilterId)); private set
     var selectedSeriesId by mutableStateOf(parseUuidOrNull(initialSeriesId)); private set
     var selectedInstanceId by mutableStateOf(parseUuidOrNull(initialInstanceId)); private set
     var reservationTarget by mutableStateOf<ReservationTarget?>(null); private set
     var isWaitlistSignup by mutableStateOf(false); private set
+    var searchQuery by mutableStateOf(""); private set
 
-    fun events(all: List<EventInstance>) =
-        filterDashboardEvents(all, selectedSeriesId, selectedDefinitionId, selectedInstanceId)
+    val isSearching: Boolean get() = searchQuery.isNotBlank()
 
-    fun series(all: List<EventSeries>) =
-        filterDashboardSeries(all, selectedSeriesId, selectedDefinitionId, selectedInstanceId)
+    fun events(all: List<EventInstance>) = searchDashboardEvents(
+        filterDashboardEvents(all, selectedSeriesId, selectedDefinitionId, selectedInstanceId),
+        searchQuery,
+        today,
+    )
+
+    fun series(all: List<EventSeries>) = searchDashboardSeries(
+        filterDashboardSeries(all, selectedSeriesId, selectedDefinitionId, selectedInstanceId),
+        searchQuery,
+        today,
+    )
+
+    fun search(query: String) { searchQuery = query }
+
+    fun clearSearch() { searchQuery = "" }
 
     fun filterName(events: List<EventInstance>, series: List<EventSeries>, definitions: List<EventDefinition>) =
         activeFilterName(series, definitions, selectedSeriesId, selectedDefinitionId, events, selectedInstanceId)
 
-    fun showSchedule() { activeTab = DashboardTab.SCHEDULE }
-
-    /** Katalog ukazuje všechny šablony, filtr z rozpisu by v něm mátl. */
-    fun showCatalog() {
-        activeTab = DashboardTab.CATALOG
-        clearFilters()
-    }
-
     fun setViewMode(mode: ViewMode) { viewMode = mode }
-
-    fun filterByDefinition(definitionId: Uuid) {
-        selectedSeriesId = null
-        selectedInstanceId = null
-        selectedDefinitionId = definitionId
-        activeTab = DashboardTab.SCHEDULE
-        onSeriesFilterChange(null)
-        onInstanceFilterChange(null)
-        onFilterChange(definitionId)
-    }
 
     fun clearFilters() {
         selectedDefinitionId = null

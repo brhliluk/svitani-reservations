@@ -15,8 +15,6 @@ object EnStrings : AppStrings {
     override val noUpcomingReservations = "You have no upcoming reservations."
 
     // Dashboard
-    override val schedule = "Schedule"
-    override val catalog = "Catalog"
     override val listView = "List"
     override val calendarView = "Calendar"
     override val backToDashboard = "Back to dashboard"
@@ -34,6 +32,8 @@ object EnStrings : AppStrings {
     override val filter = "Filter"
     override val clearFilterTooltip = "Click to clear filter"
     override val filterIsActive: (String) -> String = { "Filter: $it" }
+    override val dashboardSearchPlaceholder = "Search events, courses or dates…"
+    override val noEventsMatchSearch: (String) -> String = { "No results for “$it”." }
     override val copyEventLink = "Copy link to event"
     override val copySeriesLink = "Copy link to course"
     override val copyLessonLink = "Copy link to this lesson"
@@ -44,7 +44,6 @@ object EnStrings : AppStrings {
     override val courseLessons = "lessons"
     override val courseSignUp = "Sign up"
     override val partOfCourse = "Part of course"
-    override val showDates = "Dates"
     override val detail = "Detail"
     override val priceLabel = "Price"
     override val maxCapacity = "Max"
