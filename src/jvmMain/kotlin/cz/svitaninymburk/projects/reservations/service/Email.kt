@@ -18,9 +18,6 @@ import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.util.humanReadable
-import com.sun.mail.smtp.SMTPAddressFailedException
-import com.sun.mail.smtp.SMTPSendFailedException
-import com.sun.mail.util.MailConnectException
 import io.ktor.util.logging.KtorSimpleLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -37,13 +34,23 @@ import kotlinx.html.stream.appendHTML
 import kotlinx.html.strong
 import kotlinx.html.ul
 import kotlinx.datetime.LocalDateTime
-import org.apache.commons.mail.DefaultAuthenticator
-import org.apache.commons.mail.EmailException
-import org.apache.commons.mail.HtmlEmail
+import jakarta.mail.Message
+import org.eclipse.angus.mail.smtp.SMTPAddressFailedException
+import org.eclipse.angus.mail.smtp.SMTPSendFailedException
+import org.eclipse.angus.mail.util.MailConnectException
+import org.simplejavamail.MailException
+import org.simplejavamail.api.email.CalendarMethod
+import org.simplejavamail.api.email.Email
+import org.simplejavamail.api.email.EmailPopulatingBuilder
+import org.simplejavamail.api.email.Recipient
+import org.simplejavamail.api.mailer.Mailer
+import org.simplejavamail.api.mailer.config.TransportStrategy
+import org.simplejavamail.email.EmailBuilder
+import org.simplejavamail.mailer.MailerBuilder
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
-import javax.mail.util.ByteArrayDataSource
+import java.util.concurrent.CompletionException
 import kotlin.reflect.jvm.jvmName
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
@@ -64,8 +71,8 @@ private val SEND_RETRY_DELAYS = listOf(2.seconds, 5.seconds)
  * Špatná adresa, odmítnutá autentizace nebo 5xx se opakováním nespraví a jen by
  * prodloužily požadavek o dalších sedm sekund.
  *
- * Chodí se po `cause` — `EmailException` z commons-email je jen obal, skutečnou
- * příčinu (a u SMTP i návratový kód) nese až zabalená výjimka z javax.mail.
+ * Chodí se po `cause` — `MailException` ze Simple Java Mail je jen obal, skutečnou
+ * příčinu (a u SMTP i návratový kód) nese až zabalená výjimka z Angus Mail.
  */
 internal fun Throwable.isTransientSmtpFailure(): Boolean {
     var cause: Throwable? = this
@@ -82,6 +89,56 @@ internal fun Throwable.isTransientSmtpFailure(): Boolean {
     return false
 }
 
+/** Celý řetězec příčin — samotná `MailException` říká jen „Failed to send email“. */
+internal fun Throwable.fullMessage(): String = buildString {
+    var t: Throwable? = this@fullMessage
+    while (t != null) {
+        if (isNotEmpty()) append(" → ")
+        append(t::class.simpleName).append(": ").append(t.message)
+        t = t.cause
+    }
+}
+
+internal fun gmailMailer(username: String, appPassword: String): Mailer =
+    MailerBuilder
+        .withSMTPServer("smtp.gmail.com", 465, username, appPassword)
+        .withTransportStrategy(TransportStrategy.SMTPS)
+        .buildMailer()
+
+/**
+ * Synchronní odeslání. Chyba může vyletět rovnou, nebo zabalená do budoucnosti —
+ * ven jde v obou případech původní výjimka, aby ji šlo chytit jako [MailException].
+ */
+internal fun Mailer.sendBlocking(email: Email) {
+    try {
+        sendMail(email).join()
+    } catch (e: CompletionException) {
+        throw e.cause ?: e
+    }
+}
+
+internal fun EmailPopulatingBuilder.addTo(address: String): EmailPopulatingBuilder =
+    withRecipients(Recipient(null, address, Message.RecipientType.TO, null))
+
+internal const val PAYMENT_QR_CID = "qr-code-platba"
+
+/** Vloží QR kód platby jako inline obrázek; vrací `cid`, na který se odkáže HTML. */
+internal fun EmailPopulatingBuilder.embedPaymentQr(png: ByteArray): String {
+    withEmbeddedImage(PAYMENT_QR_CID, png, "image/png")
+    return PAYMENT_QR_CID
+}
+
+/**
+ * iCal rezervace. Gmail nabídne „Přidat do kalendáře“ jen u části `text/calendar`
+ * s `method=REQUEST` — přílohám ale Simple Java Mail parametry typu zahodí, proto
+ * jde pozvánka jako calendar část zprávy (iMIP, stejně jako od Google Calendar)
+ * a soubor navíc jako obyčejná příloha ke stažení.
+ */
+internal fun EmailPopulatingBuilder.attachIcal(icalBytes: ByteArray) {
+    withCalendarText(CalendarMethod.REQUEST, icalBytes.decodeToString())
+    withAttachment("rezervace.ics", icalBytes, "text/calendar", "Rezervace do kalendáře")
+}
+
 
 class GmailEmailService(
     private val settings: AppSettingsProvider,
@@ -94,18 +151,16 @@ class GmailEmailService(
 
     /**
      * Odešle mail a při dočasném odmítnutí to zkusí znovu — viz [SEND_RETRY_DELAYS].
-     *
-     * MIME zpráva se staví jen jednou: `Email.send()` volané podruhé spadne na
-     * „The MimeMessage is already built.“, takže opakovat se smí samotné odeslání,
-     * ne celý `send()`. Chyba z posledního pokusu propadne ven stejně jako dřív.
+     * Chyba z posledního pokusu propadne ven.
      */
-    private suspend fun HtmlEmail.sendWithRetry() {
-        buildMimeMessage()
+    private suspend fun EmailPopulatingBuilder.sendWithRetry() {
+        val email = buildEmail()
+        val mailer = settings.current.let { gmailMailer(it.senderEmail, it.gmailAppPassword) }
         SEND_RETRY_DELAYS.forEachIndexed { index, pause ->
             try {
-                sendMimeMessage()
+                mailer.sendBlocking(email)
                 return
-            } catch (e: EmailException) {
+            } catch (e: MailException) {
                 if (!e.isTransientSmtpFailure()) throw e
                 logger.warn(
                     "SMTP odmítl zprávu dočasně (pokus ${index + 1}/${SEND_RETRY_DELAYS.size + 1}), " +
@@ -114,7 +169,7 @@ class GmailEmailService(
                 delay(pause)
             }
         }
-        sendMimeMessage()
+        mailer.sendBlocking(email)
     }
 
     /**
@@ -126,25 +181,9 @@ class GmailEmailService(
         is Reference.Series -> eventSeriesRepository.get(ref.id)?.title
     }
 
-    private fun EmailException.fullMessage(): String = buildString {
-        var t: Throwable? = this@fullMessage
-        while (t != null) {
-            if (isNotEmpty()) append(" → ")
-            append(t::class.simpleName).append(": ").append(t.message)
-            t = t.cause
-        }
-    }
-
-    private fun setupEmail(): HtmlEmail {
+    private fun setupEmail(): EmailPopulatingBuilder {
         val s = settings.current
-        val email = HtmlEmail()
-        email.hostName = "smtp.gmail.com"
-        email.setSslSmtpPort("465")
-        email.setAuthenticator(DefaultAuthenticator(s.senderEmail, s.gmailAppPassword))
-        email.isSSLOnConnect = true
-        email.setCharset("UTF-8")
-        email.setFrom(s.senderEmail, s.senderDisplayName)
-        return email
+        return EmailBuilder.startingBlank().from(s.senderDisplayName, s.senderEmail)
     }
 
     override suspend fun sendReservationConfirmation(
@@ -161,17 +200,12 @@ class GmailEmailService(
         email.addTo(toEmail)
 
         val eventDate = target.startDateTime.humanReadable
-        email.subject = s.reservationConfirmationSubject(target.title, eventDate)
+        email.withSubject(s.reservationConfirmationSubject(target.title, eventDate))
 
         // Embed QR only if present (bank transfer payment)
-        val cid: String? = if (qrCodeImage != null) {
-            val dataSource = ByteArrayDataSource(qrCodeImage, "image/png")
-            email.embed(dataSource, "qr-code-platba")
-        } else null
+        val cid: String? = qrCodeImage?.let { email.embedPaymentQr(it) }
 
-        // Attach iCal so Gmail offers "Add to Calendar"
-        val icalSource = ByteArrayDataSource(icalBytes, "text/calendar; charset=UTF-8; method=REQUEST")
-        email.attach(icalSource, "rezervace.ics", "Rezervace do kalendáře")
+        email.attachIcal(icalBytes)
 
         val htmlMessage = buildString { appendHTML().html { body {
             h1 { +s.reservationConfirmationHeading }
@@ -201,11 +235,11 @@ class GmailEmailService(
             p { +s.reservationViewLink("$appBaseUrl/reservation/${reservation.id}") }
         } } }
 
-        email.setHtmlMsg(htmlMessage)
-        email.setTextMsg(s.reservationHtmlFallback)
+        email.withHTMLText(htmlMessage)
+        email.withPlainText(s.reservationHtmlFallback)
 
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendReservationConfirmationFailed(e.fullMessage()))
     } } }
 
@@ -215,15 +249,15 @@ class GmailEmailService(
         email.addTo(toEmail)
 
         val url = "$appBaseUrl/reservation/$reservationId"
-        email.subject = s.cancellationSubject(eventTitle)
-        email.setHtmlMsg(buildString { appendHTML().html { body {
+        email.withSubject(s.cancellationSubject(eventTitle))
+        email.withHTMLText(buildString { appendHTML().html { body {
             p { +s.cancellationBody(eventTitle) }
             p { +s.reservationViewLink(url) }
         } } })
-        email.setTextMsg(s.cancellationBody(eventTitle) + "\n" + s.reservationViewLink(url))
+        email.withPlainText(s.cancellationBody(eventTitle) + "\n" + s.reservationViewLink(url))
 
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendCancellationFailed(e.fullMessage()))
     } } }
 
@@ -231,19 +265,19 @@ class GmailEmailService(
         val s = emailStringsFor(reservation.locale)
         val email = setupEmail()
         email.addTo(reservation.contactEmail)
-        email.subject = s.paymentReceivedSubject
+        email.withSubject(s.paymentReceivedSubject)
 
         val eventTitle = titleFor(reservation)
         val url = "$appBaseUrl/reservation/${reservation.id}"
 
-        email.setHtmlMsg(buildString { appendHTML().html { body {
+        email.withHTMLText(buildString { appendHTML().html { body {
             p { +s.paymentReceivedBody(eventTitle) }
             p { +s.reservationViewLink(url) }
         } } })
-        email.setTextMsg(s.paymentReceivedBody(eventTitle) + "\n" + s.reservationViewLink(url))
+        email.withPlainText(s.paymentReceivedBody(eventTitle) + "\n" + s.reservationViewLink(url))
 
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendPaymentConfirmationFailed(e.fullMessage()))
     } } }
 
@@ -256,14 +290,13 @@ class GmailEmailService(
         val s = emailStringsFor(reservation.locale)
         val email = setupEmail()
         email.addTo(reservation.contactEmail)
-        email.subject = s.partialPaymentSubject
+        email.withSubject(s.partialPaymentSubject)
 
         val eventTitle = titleFor(reservation)
 
-        val dataSource = ByteArrayDataSource(qrCodeImage, "image/png")
-        val cid = email.embed(dataSource, "qr-code-platba")
+        val cid = email.embedPaymentQr(qrCodeImage)
 
-        email.setHtmlMsg(buildString { appendHTML().html { body {
+        email.withHTMLText(buildString { appendHTML().html { body {
             p { +s.partialPaymentBody(eventTitle) }
             p { +s.partialPaymentAmount(paymentInfo.amount) }
             p { +s.partialPaymentRemaining(reservation.unpaidAmount) }
@@ -280,7 +313,7 @@ class GmailEmailService(
         } } })
 
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendPaymentNotPaidInFullFailed(e.fullMessage()))
     } } }
 
@@ -288,9 +321,9 @@ class GmailEmailService(
         val s = emailStringsFor("cs") // TODO: pass locale when interface supports it
         val email = setupEmail()
         email.addTo(toEmail)
-        email.subject = s.passwordResetSubject
+        email.withSubject(s.passwordResetSubject)
 
-        email.setHtmlMsg(buildString { appendHTML().html { body {
+        email.withHTMLText(buildString { appendHTML().html { body {
             h1 { +s.passwordResetHeading }
 
             p { +s.passwordResetBody }
@@ -301,7 +334,7 @@ class GmailEmailService(
         } } })
 
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendPasswordResetFailed(e.fullMessage()))
     } } }
 
@@ -314,9 +347,9 @@ class GmailEmailService(
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(toEmail)
-        email.subject = s.reservationClaimSubject
+        email.withSubject(s.reservationClaimSubject)
 
-        email.setHtmlMsg(buildString { appendHTML().html { body {
+        email.withHTMLText(buildString { appendHTML().html { body {
             h1 { +s.reservationClaimHeading }
 
             p { +s.reservationClaimBody(reservations.size) }
@@ -335,7 +368,7 @@ class GmailEmailService(
         } } })
 
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendReservationClaimFailed(e.fullMessage()))
     } } }
 
@@ -350,10 +383,10 @@ class GmailEmailService(
         val email = setupEmail()
         val s = emailStringsFor(locale)
         email.addTo(toEmail)
-        email.subject = s.lessonRescheduledSubject(seriesTitle)
-        email.setTextMsg(s.lessonRescheduledBody(contactName, seriesTitle, oldDateTime.humanReadable, newDateTime.humanReadable))
+        email.withSubject(s.lessonRescheduledSubject(seriesTitle))
+        email.withPlainText(s.lessonRescheduledBody(contactName, seriesTitle, oldDateTime.humanReadable, newDateTime.humanReadable))
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendLessonRescheduledFailed(e.fullMessage()))
     } } }
 
@@ -367,10 +400,10 @@ class GmailEmailService(
         val email = setupEmail()
         val s = emailStringsFor(locale)
         email.addTo(toEmail)
-        email.subject = s.lessonCancelledSubject(seriesTitle)
-        email.setTextMsg(s.lessonCancelledBody(contactName, seriesTitle, lessonDateTime.humanReadable))
+        email.withSubject(s.lessonCancelledSubject(seriesTitle))
+        email.withPlainText(s.lessonCancelledBody(contactName, seriesTitle, lessonDateTime.humanReadable))
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendLessonCancelledFailed(e.fullMessage()))
     } } }
 
@@ -384,10 +417,10 @@ class GmailEmailService(
         val email = setupEmail()
         val s = emailStringsFor(locale)
         email.addTo(toEmail)
-        email.subject = s.remainingLessonsCancelledSubject(seriesTitle)
-        email.setTextMsg(s.remainingLessonsCancelledBody(contactName, seriesTitle, lessonDateTimes.map { it.humanReadable }))
+        email.withSubject(s.remainingLessonsCancelledSubject(seriesTitle))
+        email.withPlainText(s.remainingLessonsCancelledBody(contactName, seriesTitle, lessonDateTimes.map { it.humanReadable }))
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendLessonCancelledFailed(e.fullMessage()))
     } } }
 
@@ -406,11 +439,11 @@ class GmailEmailService(
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(lectorEmail)
-        email.subject = s.lectorReservationSubject(eventTitle, target)
+        email.withSubject(s.lectorReservationSubject(eventTitle, target))
         val formattedPhone = contactPhone?.let { PhoneNumber.format(it) }
-        email.setTextMsg(s.lectorReservationBody(contactName, contactEmail, formattedPhone, seatCount, eventTitle, target, occupiedSpots, capacity))
+        email.withPlainText(s.lectorReservationBody(contactName, contactEmail, formattedPhone, seatCount, eventTitle, target, occupiedSpots, capacity))
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendLectorReservationFailed(e.fullMessage()))
     } } }
 
@@ -427,10 +460,10 @@ class GmailEmailService(
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(lectorEmail)
-        email.subject = s.lectorCancellationSubject(eventTitle, target)
-        email.setTextMsg(s.lectorCancellationBody(contactName, eventTitle, target, seatCount, occupiedSpots, capacity))
+        email.withSubject(s.lectorCancellationSubject(eventTitle, target))
+        email.withPlainText(s.lectorCancellationBody(contactName, eventTitle, target, seatCount, occupiedSpots, capacity))
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendLectorCancellationFailed(e.fullMessage()))
     } } }
 
@@ -444,10 +477,10 @@ class GmailEmailService(
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(toEmail)
-        email.subject = s.lessonOptOutSubject(eventTitle)
-        email.setTextMsg(s.lessonOptOutBody(eventTitle, lessonDate, isLateCancellation))
+        email.withSubject(s.lessonOptOutSubject(eventTitle))
+        email.withPlainText(s.lessonOptOutBody(eventTitle, lessonDate, isLateCancellation))
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendCancellationFailed(e.fullMessage()))
     } } }
 
@@ -462,10 +495,10 @@ class GmailEmailService(
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(lectorEmail)
-        email.subject = s.lectorLessonOptOutSubject(eventTitle)
-        email.setTextMsg(s.lectorLessonOptOutBody(contactName, eventTitle, lessonDate, isLateCancellation))
+        email.withSubject(s.lectorLessonOptOutSubject(eventTitle))
+        email.withPlainText(s.lectorLessonOptOutBody(contactName, eventTitle, lessonDate, isLateCancellation))
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendLectorCancellationFailed(e.fullMessage()))
     } } }
 
@@ -483,10 +516,10 @@ class GmailEmailService(
         val walletLink = "$appBaseUrl/wallet/$walletCode"
         val email = setupEmail()
         email.addTo(toEmail)
-        email.subject = strings.walletCreditedSubject("%.0f".format(creditedAmount))
-        email.setHtmlMsg(strings.walletCreditedBody(walletCode, "%.0f".format(creditedAmount), "%.0f".format(newBalance), resetDate, walletLink))
+        email.withSubject(strings.walletCreditedSubject("%.0f".format(creditedAmount)))
+        email.withHTMLText(strings.walletCreditedBody(walletCode, "%.0f".format(creditedAmount), "%.0f".format(newBalance), resetDate, walletLink))
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendWalletFailed(e.fullMessage()))
     } } }
 
@@ -501,10 +534,10 @@ class GmailEmailService(
         val walletLink = "$appBaseUrl/wallet/$walletCode"
         val email = setupEmail()
         email.addTo(toEmail)
-        email.subject = strings.walletAppliedSubject()
-        email.setHtmlMsg(strings.walletAppliedBody(walletCode, "%.0f".format(deductedAmount), "%.0f".format(remainingBalance), walletLink))
+        email.withSubject(strings.walletAppliedSubject())
+        email.withHTMLText(strings.walletAppliedBody(walletCode, "%.0f".format(deductedAmount), "%.0f".format(remainingBalance), walletLink))
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendWalletFailed(e.fullMessage()))
     } } }
 
@@ -521,10 +554,10 @@ class GmailEmailService(
         val walletLink = "$appBaseUrl/wallet/$walletCode"
         val email = setupEmail()
         email.addTo(toEmail)
-        email.subject = strings.walletResetWarningSubject(resetDate)
-        email.setHtmlMsg(strings.walletResetWarningBody("%.0f".format(currentBalance), walletCode, resetDate, walletLink))
+        email.withSubject(strings.walletResetWarningSubject(resetDate))
+        email.withHTMLText(strings.walletResetWarningBody("%.0f".format(currentBalance), walletCode, resetDate, walletLink))
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendWalletFailed(e.fullMessage()))
     } } }
 
@@ -538,16 +571,16 @@ class GmailEmailService(
         val s = emailStringsFor(locale)
         val email = setupEmail()
         email.addTo(toEmail)
-        email.subject = s.waitlistConfirmationSubject(eventTitle)
+        email.withSubject(s.waitlistConfirmationSubject(eventTitle))
         val url = "$appBaseUrl/reservation/$reservationId"
-        email.setHtmlMsg(buildString { appendHTML().html { body {
+        email.withHTMLText(buildString { appendHTML().html { body {
             h1 { +s.waitlistConfirmationHeading }
             p { +s.waitlistConfirmationBody(eventTitle, contactName) }
             p { +s.reservationViewLink(url) }
         } } })
-        email.setTextMsg(s.waitlistConfirmationBody(eventTitle, contactName) + "\n" + s.reservationViewLink(url))
+        email.withPlainText(s.waitlistConfirmationBody(eventTitle, contactName) + "\n" + s.reservationViewLink(url))
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendWaitlistConfirmationFailed(e.fullMessage()))
     } } }
 
@@ -563,12 +596,10 @@ class GmailEmailService(
         val s = emailStringsFor(reservation.locale)
         email.addTo(toEmail)
         val eventDate = target.startDateTime.humanReadable
-        email.subject = s.waitlistPromotionSubject(target.title, eventDate)
+        email.withSubject(s.waitlistPromotionSubject(target.title, eventDate))
 
-        val cid: String? = if (qrCodeImage != null) {
-            email.embed(ByteArrayDataSource(qrCodeImage, "image/png"), "qr-code-platba")
-        } else null
-        email.attach(ByteArrayDataSource(icalBytes, "text/calendar; charset=UTF-8; method=REQUEST"), "rezervace.ics", "Rezervace do kalendáře")
+        val cid: String? = qrCodeImage?.let { email.embedPaymentQr(it) }
+        email.attachIcal(icalBytes)
 
         val htmlMessage = buildString { appendHTML().html { body {
             h1 { +s.waitlistPromotionHeading }
@@ -591,10 +622,10 @@ class GmailEmailService(
             }
             p { +s.reservationViewLink("$appBaseUrl/reservation/${reservation.id}") }
         } } }
-        email.setHtmlMsg(htmlMessage)
-        email.setTextMsg(s.reservationHtmlFallback)
+        email.withHTMLText(htmlMessage)
+        email.withPlainText(s.reservationHtmlFallback)
         email.sendWithRetry()
-    }) { e: EmailException ->
+    }) { e: MailException ->
         raise(EmailError.SendWaitlistPromotionFailed(e.fullMessage()))
     } } }
 }

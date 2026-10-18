@@ -1,15 +1,20 @@
 package cz.svitaninymburk.projects.reservations.service
 
-import com.sun.mail.smtp.SMTPAddressFailedException
-import com.sun.mail.smtp.SMTPSendFailedException
-import com.sun.mail.util.MailConnectException
-import com.sun.mail.util.SocketConnectException
-import org.apache.commons.mail.EmailException
+import jakarta.mail.internet.AddressException
+import jakarta.mail.internet.InternetAddress
+import org.eclipse.angus.mail.smtp.SMTPAddressFailedException
+import org.eclipse.angus.mail.smtp.SMTPSendFailedException
+import org.eclipse.angus.mail.util.MailConnectException
+import org.eclipse.angus.mail.util.SocketConnectException
+import org.simplejavamail.MailException
+import org.simplejavamail.api.mailer.config.TransportStrategy
+import org.simplejavamail.email.EmailBuilder
+import org.simplejavamail.mailer.MailerBuilder
 import java.net.ConnectException
+import java.net.ServerSocket
 import java.net.SocketTimeoutException
-import javax.mail.internet.AddressException
-import javax.mail.internet.InternetAddress
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -24,8 +29,8 @@ class TransientSmtpFailureSpec {
         "DATA", 451, "451-4.3.0 Mail server temporarily rejected message.", null, arrayOf(), arrayOf(), arrayOf(),
     )
 
-    private fun wrapped(cause: Throwable) =
-        EmailException("Sending the email to the following server failed : smtp.gmail.com:465", cause)
+    private fun wrapped(cause: Throwable): MailException =
+        object : MailException("Third party error", cause) {}
 
     @Test
     fun `SMTP 4xx is retried`() {
@@ -63,5 +68,24 @@ class TransientSmtpFailureSpec {
     @Test
     fun `unknown error is not retried`() {
         assertFalse(wrapped(IllegalStateException("něco jiného")).isTransientSmtpFailure())
+    }
+
+    /** Skutečné odeslání na zavřený port — ověří, že `sendBlocking` pustí ven řetězec, ve kterém retry chybu najde. */
+    @Test
+    fun `real connection failure surfaces as a transient MailException`() {
+        val closedPort = ServerSocket(0).use { it.localPort }
+        val mailer = MailerBuilder
+            .withSMTPServer("127.0.0.1", closedPort)
+            .withTransportStrategy(TransportStrategy.SMTP)
+            .buildMailer()
+        val email = EmailBuilder.startingBlank()
+            .from("Svítání", "odesilatel@example.com")
+            .addTo("prijemce@example.com")
+            .withSubject("Test")
+            .withPlainText("Test")
+            .buildEmail()
+
+        val failure = assertFailsWith<MailException> { mailer.sendBlocking(email) }
+        assertTrue(failure.isTransientSmtpFailure(), failure.fullMessage())
     }
 }

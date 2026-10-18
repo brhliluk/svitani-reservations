@@ -19,9 +19,8 @@ import io.ktor.server.util.url
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.apache.commons.mail.DefaultAuthenticator
-import org.apache.commons.mail.EmailException
-import org.apache.commons.mail.HtmlEmail
+import org.simplejavamail.MailException
+import org.simplejavamail.email.EmailBuilder
 
 class AppSettingsService(
     private val repo: AppSettingsRepository,
@@ -53,25 +52,21 @@ class AppSettingsService(
         displayName: String,
     ): Either<SettingsError, Unit> = either {
         val password = appPassword ?: provider.current.gmailAppPassword
-        val smtpError: EmailException? = withContext(Dispatchers.IO) {
+        val smtpError: MailException? = withContext(Dispatchers.IO) {
             try {
-                val email = HtmlEmail()
-                email.hostName = "smtp.gmail.com"
-                email.setSslSmtpPort("465")
-                email.setAuthenticator(DefaultAuthenticator(senderEmail, password))
-                email.isSSLOnConnect = true
-                email.setCharset("UTF-8")
-                email.setFrom(senderEmail, displayName)
-                email.addTo(senderEmail)
-                email.subject = "Test nastavení e-mailu / Email settings test"
-                email.setTextMsg("Tento e-mail potvrzuje, že nastavení odesílání funguje správně.")
-                email.send()
+                val email = EmailBuilder.startingBlank()
+                    .from(displayName, senderEmail)
+                    .addTo(senderEmail)
+                    .withSubject("Test nastavení e-mailu / Email settings test")
+                    .withPlainText("Tento e-mail potvrzuje, že nastavení odesílání funguje správně.")
+                    .buildEmail()
+                gmailMailer(senderEmail, password).sendBlocking(email)
                 null
-            } catch (e: EmailException) {
+            } catch (e: MailException) {
                 e
             }
         }
-        if (smtpError != null) raise(SettingsError.EmailTestFailed(smtpError.chainedMessage()))
+        if (smtpError != null) raise(SettingsError.EmailTestFailed(smtpError.fullMessage()))
     }
 
     /**
@@ -112,14 +107,5 @@ class AppSettingsService(
             raise(SettingsError.SaveFailed)
         }
         provider.reload()
-    }
-
-    private fun EmailException.chainedMessage(): String = buildString {
-        var t: Throwable? = this@chainedMessage
-        while (t != null) {
-            if (isNotEmpty()) append(" → ")
-            append(t::class.simpleName).append(": ").append(t.message)
-            t = t.cause
-        }
     }
 }

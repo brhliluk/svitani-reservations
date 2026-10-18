@@ -178,7 +178,7 @@ kotlin {
 
                 implementation(libs.bcrypt)
 
-                implementation(libs.mail)
+                implementation(libs.simple.java.mail)
                 implementation(libs.kotlinx.html)
                 implementation(libs.qrCode)
 
