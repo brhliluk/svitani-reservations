@@ -35,7 +35,8 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
 
-fun Application.configureDatabases() {
+/** [featureTables] = tabulky volitelných modulů, zakládají a migrují se spolu s tabulkami jádra. */
+fun Application.configureDatabases(featureTables: List<Table> = emptyList()) {
     val config = HikariConfig().apply {
         jdbcUrl = "jdbc:sqlite:${System.getenv("DB_PATH") ?: "reservations.db"}?journal_mode=WAL&busy_timeout=5000"
         driverClassName = "org.sqlite.JDBC"
@@ -83,8 +84,9 @@ fun Application.configureDatabases() {
             }
         }
 
-        SchemaUtils.create(*ALL_TABLES)
-        MigrationUtils.statementsRequiredForDatabaseMigration(*ALL_TABLES, withLogs = false).forEach { exec(it) }
+        val tables = ALL_TABLES + featureTables
+        SchemaUtils.create(*tables)
+        MigrationUtils.statementsRequiredForDatabaseMigration(*tables, withLogs = false).forEach { exec(it) }
 
         nonFatal("is_published backfill") {
             backfillPublishedIfFirstRun("event_instances", instancesPublishMissing)

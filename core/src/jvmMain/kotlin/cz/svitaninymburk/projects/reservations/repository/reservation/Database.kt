@@ -9,6 +9,7 @@ import cz.svitaninymburk.projects.reservations.repository.user.UsersTable
 import cz.svitaninymburk.projects.reservations.util.dbQuery
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.datetime.datetime
 import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
@@ -50,6 +51,10 @@ object ReservationsTable : Table("reservations") {
     val walletId = uuid("wallet_id").nullable()
     val walletDeductedAmount = double("wallet_deducted_amount").default(0.0)
     val lessonShare = double("lesson_share").nullable()
+
+    /** Rezervovaný úsek u rezervace časového úseku (hlídání); u akcí a kurzů prázdné. */
+    val slotStart = datetime("slot_start").nullable()
+    val slotEnd = datetime("slot_end").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

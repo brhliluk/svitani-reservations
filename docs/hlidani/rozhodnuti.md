@@ -9,8 +9,10 @@ z fáze 0 (19. 10. 2026) a o odchylky, na kterých jsme se domluvili.
 - **Modularizace: hotovo a nasazeno** (commit `f4cbea4`). Jádro je v modulu `:core`, kořenový
   projekt je jen aplikace. Viz „Moduly“ níž.
 - **Fáze 1: hotovo.** Modul `:slots` (model, `expandAvailability`, testy), přepínač
-  `-Pfeatures.slots` a `Features.kt` (zatím jen seznam modulů pro log při startu).
-- **Další krok: fáze 2** (persistence).
+  `-Pfeatures.slots` a `Features.kt`.
+- **Fáze 2: hotovo, čeká na review.** Tabulky a repozitáře modulu, sloupce `slot_start`/`slot_end`,
+  napojení přes `ServerFeature`, mock data.
+- **Další krok: fáze 3** (napojení rezervací).
 
 ## Rozhodnutí
 
@@ -74,7 +76,7 @@ hlídání**, proto:
 - `@RpcService` nikdy do kořenového projektu (ten KSP neaplikuje).
 - Tailwind třídy ze zdrojáků modulu se do CSS dostanou bez nastavení (ověřeno).
 
-## Rozhodnutí z fáze 1
+## Rozhodnutí z fáze 1 (k potvrzení při review)
 
 - Model je v `slots/src/commonMain/…/slot/Slot.kt`, `expandAvailability` v `Availability.kt` vedle něj.
   Rezervace vstupují jako `BookedInterval(start, end, seats)`.
@@ -88,6 +90,24 @@ hlídání**, proto:
 - `expandAvailability` nezná „teď“: uzávěrku a horizont ořízne volající (fáze 4). Dny bez kroku
   ve výsledku nejsou.
 - `Features.kt` je zatím jen v `jvmMain`. Webová verze přibude s místy napojení v UI.
+
+## Rozhodnutí z fáze 2 (k potvrzení při review)
+
+- **Místo napojení na serveru:** `ServerFeature` v jádru (jméno, tabulky, Koin moduly, mock data).
+  Aplikace předá seznam do `reservationsServer(features)` a jádro modul zapojí. Ve fázi 4 se přidají
+  RPC routy. Jádro při startu zaloguje „Volitelné moduly: slots“.
+- **`ReferenceDbDiscriminator.SLOT` až ve fázi 3** spolu s `Reference.Slot`. Bez něj by čtení řádku
+  `SLOT` nemělo na co mapovat. Sloupec je `varchar`, takže nová hodnota schéma nemění.
+- `APP_TIMEZONE` a `nowInAppTimeZone` v jádru jsou nově veřejné, aby modul počítal čas stejně.
+- Tabulky `slot_services`, `slot_availability_rules`, `slot_availability_exceptions`. Délky se
+  ukládají v ms a časy dne jako text „HH:MM“, stejně jako u kurzů. E-maily lektorů jsou JSON sloupec
+  služby, ne `event_owner_emails` jádra.
+- **Výjimky nemají unikátní index na (služba, den).** Víc výjimek na den řeší `expandAvailability`
+  (potvrzeno 19. 10.).
+- Pravidla se ukládají celou sadou (`replaceForService`), protože admin ukládá týden jako celek.
+- `delete` služby maže pravidla a výjimky výslovně. SQLite bez `PRAGMA foreign_keys` cizí klíče
+  nevynucuje a `CASCADE` by nezabral.
+- Mock data: nepublikovaná služba „Hlídání dětí“, út a čt 8–12, nejbližší čtvrtek zavřeno.
 
 ## Nálezy z fáze 0 pro fázi 3
 

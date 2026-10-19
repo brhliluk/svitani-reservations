@@ -17,8 +17,8 @@ import kotlin.time.Clock
  * Jen pro jvmMain: prohlížeč databázi časových pásem nemá a `TimeZone.of` by
  * v něm spadl — klient dostává hranice spočítané serverem jako `Instant`.
  */
-internal val APP_TIMEZONE: TimeZone = TimeZone.of("Europe/Prague")
+val APP_TIMEZONE: TimeZone = TimeZone.of("Europe/Prague")
 
 /** Teď v provozní zóně — pro porovnání s časy akcí. */
-internal fun nowInAppTimeZone(clock: Clock = Clock.System): LocalDateTime =
+fun nowInAppTimeZone(clock: Clock = Clock.System): LocalDateTime =
     clock.now().toLocalDateTime(APP_TIMEZONE)

@@ -28,10 +28,11 @@ import org.slf4j.event.Level
 
 /**
  * Celý server jádra rezervací. Volá ho vstupní bod aplikace (`Application.main` v kořenovém
- * projektu), aby jádro šlo poskládat i s volitelnými moduly a bez nich.
+ * projektu), aby jádro šlo poskládat i s volitelnými moduly ([features]) a bez nich.
  */
-fun Application.reservationsServer() {
+fun Application.reservationsServer(features: List<ServerFeature> = emptyList()) {
     log.info("Reservations ${BuildInfo.VERSION} (commit ${BuildInfo.COMMIT}, ${BuildInfo.COMMIT_TIME})")
+    log.info("Volitelné moduly: ${features.map { it.name }.ifEmpty { listOf("žádné") }.joinToString()}")
     // Sentry co nejdřív, ať i chyby při startu (DB, migrace) nesou release a environment.
     configureSentry()
     install(Compression)
@@ -52,7 +53,7 @@ fun Application.reservationsServer() {
     install(ContentNegotiation) {
         json(AppJson)
     }
-    configureDatabases()
+    configureDatabases(features.flatMap { it.tables })
     // `Application` je CoroutineScope, která žije po celý běh serveru — přesně to,
     // co potřebuje odesílání mailů mimo request (BackgroundEmailDispatcher).
     // Request scope by se po odeslání odpovědi zrušila a maily s ní.
@@ -62,6 +63,7 @@ fun Application.reservationsServer() {
             module { single { applicationScope } },
             appModule,
         )
+        modules(features.flatMap { it.koinModules })
     }
     startPaymentCheck()
     startWalletResetJobs()
@@ -76,6 +78,7 @@ fun Application.reservationsServer() {
         launch {
             mockLoader.clearAll()
             mockLoader.load()
+            features.forEach { it.loadMockData?.invoke() }
             println("Mock data pro Rodinné centrum načtena ✅")
         }
     }

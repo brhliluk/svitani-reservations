@@ -39,6 +39,13 @@ kotlin {
                 implementation(libs.kotlinx.serialization.json)
             }
         }
+        val jvmMain by getting {
+            dependencies {
+                implementation(libs.bundles.database)
+                implementation(project.dependencies.platform(libs.koin.bom))
+                implementation(libs.koin.core)
+            }
+        }
         val jvmTest by getting {
             dependencies {
                 implementation(kotlin("test"))
