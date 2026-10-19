@@ -22,4 +22,5 @@ dependencyResolutionManagement {
 rootProject.name = "reservations"
 
 include(":shared")
+include(":core")
 include(":androidApp")

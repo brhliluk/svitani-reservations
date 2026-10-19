@@ -14,7 +14,6 @@ import dev.kilua.compose.root
 import dev.kilua.startApplication
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import web.dom.document
-import web.blob.Blob
 
 class App : Application() {
     override fun start() {
@@ -41,11 +40,3 @@ fun main() {
 }
 
 expect fun bundlerHot(): Hot?
-
-expect fun copyToClipboard(text: String)
-
-expect fun shareQrImage(imageUrl: String)
-
-expect fun shareSvgAsPng(svgString: String)
-
-expect fun shareBlob(blob: Blob)
