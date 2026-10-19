@@ -23,4 +23,5 @@ rootProject.name = "reservations"
 
 include(":shared")
 include(":core")
+include(":slots")
 include(":androidApp")

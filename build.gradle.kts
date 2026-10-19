@@ -28,6 +28,11 @@ tasks.withType<Jar>().configureEach {
     archiveVersion.set("")
 }
 
+// Volitelné moduly. `-Pfeatures.slots=false` postaví aplikaci bez hlídání dětí: modul se
+// nepřidá jako závislost a místo src/featureSlotsOn se zkompiluje prázdné src/featureSlotsOff.
+val slotsEnabled: Boolean = providers.gradleProperty("features.slots").map { it.toBoolean() }.getOrElse(true)
+val slotsVariant = if (slotsEnabled) "featureSlotsOn" else "featureSlotsOff"
+
 @OptIn(ExperimentalWasmDsl::class)
 kotlin {
     jvmToolchain(25)
@@ -72,11 +77,13 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation(projects.core)
+                if (slotsEnabled) implementation(projects.slots)
                 // Podle téhle závislosti plugin Kilua RPC pozná typ serveru pro jarWithJs/jvmRun.
                 implementation(libs.kilua.rpc)
             }
         }
         val jvmMain by getting {
+            kotlin.srcDir("src/$slotsVariant/jvmMain/kotlin")
             dependencies {
                 implementation(libs.ktor.server.netty)
             }
