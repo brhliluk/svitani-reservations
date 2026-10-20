@@ -9,15 +9,23 @@ import app.softwork.routingcompose.Router
 import cz.svitaninymburk.projects.reservations.PageContext
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.slot.DayAvailability
+import cz.svitaninymburk.projects.reservations.slot.SlotSegment
 import cz.svitaninymburk.projects.reservations.slot.SlotService
 import cz.svitaninymburk.projects.reservations.slot.ui.i18n.slotStrings
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.dayHasAvailability
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.endLimit
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.isStartAvailable
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.isStepSelectable
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.maxSeatsFor
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.SlotPick
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.SlotSelection
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.possibleLasts
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.selectionEnd
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.selectionDuration
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.selectionHours
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.selectionPrice
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.selectionStart
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.windows
 import cz.svitaninymburk.projects.reservations.ui.reservation.DuplicateReservationModal
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationModal
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
@@ -168,18 +176,26 @@ private fun IComponent.ServiceBooking(model: SlotPageModel, service: SlotService
         is SlotDaysState.Loaded -> if (state.days.isEmpty()) {
             InfoAlert(s.noDays)
         } else {
+            SeatsPicker(model, service)
             DayStrip(model, service, state.days)
-            SeatsStepper(model, service)
-            TimeAxis(model, service)
+            if (model.segments.isEmpty()) {
+                InfoAlert(s.noStepsThatDay)
+            } else {
+                ArrivalStep(model, service)
+                DepartureStep(model, service)
+            }
         }
     }
 }
 
 @Composable
-private fun IComponent.StepHeading(number: Int, title: String) {
-    h2(className = "text-sm font-bold uppercase tracking-wider text-base-content/60 flex items-center gap-2") {
-        span(className = "badge badge-primary badge-sm") { +"$number" }
-        +title
+private fun IComponent.StepHeading(number: Int, title: String, trailing: @Composable IComponent.() -> Unit = {}) {
+    div(className = "flex items-center justify-between gap-2 min-h-8") {
+        h2(className = "text-sm font-bold uppercase tracking-wider text-base-content/60 flex items-center gap-2") {
+            span(className = "badge badge-primary badge-sm") { +"$number" }
+            +title
+        }
+        trailing()
     }
 }
 
@@ -220,90 +236,202 @@ private fun IComponent.DayStrip(model: SlotPageModel, service: SlotService, days
     }
 }
 
+/**
+ * Počet dětí jako jeden řádek nad dny: určuje, které dny a časy jsou volné. Do čtyř dětí
+ * na rezervaci volba čísel, nad to stepper, aby se řádek vešel na telefon.
+ */
 @Composable
-private fun IComponent.SeatsStepper(model: SlotPageModel, service: SlotService) {
+private fun IComponent.SeatsPicker(model: SlotPageModel, service: SlotService) {
     val s = slotStrings
     val max = maxSeatsFor(service)
-    div(className = "flex flex-col gap-2") {
-        StepHeading(2, s.seatsStep)
-        div(className = "$CARD p-3 flex items-center justify-between gap-3") {
-            button(className = "btn btn-circle btn-ghost min-h-11 min-w-11") {
-                attribute("aria-label", s.decreaseSeats)
-                disabled(model.seats <= 1)
-                onClick { model.setSeats(model.seats - 1) }
-                span(className = "icon-[heroicons--minus] size-5")
+    div(className = "flex items-center justify-between gap-3") {
+        span(className = "font-bold") { +s.seatsStep }
+        if (max <= 4) {
+            div(className = "join bg-base-100 shadow-sm border border-base-300 rounded-lg") {
+                attribute("role", "group")
+                attribute("aria-label", s.seatsStep)
+                (1..max).forEach { count ->
+                    val isSelected = count == model.seats
+                    button(className = "join-item btn min-h-11 min-w-11 tabular-nums ${if (isSelected) "btn-primary" else "btn-ghost"}") {
+                        attribute("aria-pressed", isSelected.toString())
+                        attribute("aria-label", s.children(count))
+                        onClick { model.setSeats(count) }
+                        +"$count"
+                    }
+                }
             }
-            span(className = "text-lg font-semibold") {
-                attribute("aria-live", "polite")
-                +s.children(model.seats)
-            }
-            button(className = "btn btn-circle btn-ghost min-h-11 min-w-11") {
-                attribute("aria-label", s.increaseSeats)
-                disabled(model.seats >= max)
-                onClick { model.setSeats(model.seats + 1) }
-                span(className = "icon-[heroicons--plus] size-5")
+        } else {
+            div(className = "flex items-center gap-1 bg-base-100 shadow-sm border border-base-300 rounded-lg") {
+                button(className = "btn btn-ghost btn-square min-h-11 min-w-11") {
+                    attribute("aria-label", s.decreaseSeats)
+                    disabled(model.seats <= 1)
+                    onClick { model.setSeats(model.seats - 1) }
+                    span(className = "icon-[heroicons--minus] size-5")
+                }
+                span(className = "font-semibold tabular-nums min-w-16 text-center") {
+                    attribute("aria-live", "polite")
+                    +s.children(model.seats)
+                }
+                button(className = "btn btn-ghost btn-square min-h-11 min-w-11") {
+                    attribute("aria-label", s.increaseSeats)
+                    disabled(model.seats >= max)
+                    onClick { model.setSeats(model.seats + 1) }
+                    span(className = "icon-[heroicons--plus] size-5")
+                }
             }
         }
     }
 }
 
 /**
- * Svislá osa kroků vybraného dne. Řádek = krok; pruh ukazuje obsazenost, text volná
- * místa. Mezi okny (mezera v čase) je oddělovač, přes který výběr nejde.
+ * Příchod: pás dne s obsazeností a pod ním čipy začátků po oknech. Nabízí se jen začátky,
+ * ze kterých jde rezervovat aspoň nejkratší úsek; plné kroky jsou přeškrtnuté.
  */
 @Composable
-private fun IComponent.TimeAxis(model: SlotPageModel, service: SlotService) {
+private fun IComponent.ArrivalStep(model: SlotPageModel, service: SlotService) {
     val s = slotStrings
     val segments = model.segments
-    val selection = model.selection
+    val pick = model.pick
     div(className = "flex flex-col gap-2") {
-        StepHeading(3, s.timeStep)
-        if (segments.isEmpty()) {
-            InfoAlert(s.noStepsThatDay)
-        } else {
-            p(className = "text-sm text-base-content/60") { +s.timeHint }
-        }
-        if (segments.isNotEmpty()) div(className = "$CARD p-2 flex flex-col gap-1") {
-            segments.forEachIndexed { index, segment ->
-                if (index > 0 && segments[index - 1].end != segment.start) {
-                    div(className = "border-t border-dashed border-base-300 my-1")
-                }
-                val isSelected = selection != null && index in selection.first..selection.last
-                val selectable = isStepSelectable(segment, model.seats)
-                val tone = when {
-                    isSelected -> "bg-primary/10 text-primary"
-                    selectable -> "hover:bg-base-200"
-                    else -> "opacity-50"
-                }
-                val occupied = segment.capacity - segment.free
-                val occupiedPercent = if (segment.capacity > 0) occupied * 100 / segment.capacity else 100
-                button(className = "w-full min-h-11 px-3 rounded-lg flex items-center gap-3 text-left transition-colors $tone") {
-                    attribute("aria-pressed", isSelected.toString())
-                    onClick { model.tapStep(index) }
-                    span(className = "w-12 font-medium tabular-nums") { +segment.start.time.hourMinute }
-                    div(className = "flex-1 h-2 rounded-full bg-base-200 overflow-hidden") {
-                        attribute("aria-hidden", "true")
-                        div(className = "h-full bg-primary/50") {
-                            attribute("style", "width: $occupiedPercent%")
-                        }
-                    }
-                    span(className = "w-20 text-right text-sm tabular-nums") {
-                        +if (segment.free > 0) s.freeSeats(segment.free) else s.stepFull
-                    }
+        StepHeading(2, s.arrivalStep) {
+            if (pick != null) {
+                button(className = "btn btn-ghost btn-sm text-primary gap-1 min-h-11") {
+                    onClick { model.clearSelection() }
+                    span(className = "icon-[heroicons--x-mark] size-4")
+                    +s.clearSelection
                 }
             }
         }
-        model.selectionError?.let { error ->
-            div(className = "alert alert-warning py-2 text-sm") {
-                attribute("role", "alert")
-                span(className = "icon-[heroicons--exclamation-triangle] size-5")
-                span { +s.selectionError(error, service.maxDuration) }
+        val selection = model.selection
+        DayRibbon(segments, model.seats, highlighted = selection?.let { it.first..it.last } ?: pick?.let { it.start..it.start })
+        windows(segments).forEach { window ->
+            span(className = "text-xs font-semibold text-base-content/60 tabular-nums") {
+                +"${segments[window.first].start.time.hourMinute}\u2013${segments[window.last].end.time.hourMinute}"
+            }
+            div(className = "grid grid-cols-4 sm:grid-cols-6 gap-2") {
+                window.forEach { index ->
+                    val segment = segments[index]
+                    val isSelected = pick?.start == index
+                    val available = isStartAvailable(index, segments, model.seats, service)
+                    val isFull = !isStepSelectable(segment, model.seats)
+                    val tone = when {
+                        isSelected -> "bg-primary text-primary-content border-primary"
+                        available -> "bg-base-100 border-base-300 hover:border-primary/50"
+                        else -> "bg-base-100 border-base-200 opacity-40 cursor-not-allowed"
+                    }
+                    button(className = "min-h-11 rounded-lg border px-1 py-1 flex flex-col items-center justify-center leading-tight font-bold tabular-nums transition-colors $tone") {
+                        attribute("aria-pressed", isSelected.toString())
+                        disabled(!available && !isSelected)
+                        onClick { model.tapStart(index) }
+                        span(className = if (isFull) "line-through" else "") { +segment.start.time.hourMinute }
+                        if (isFull) span(className = "text-xs font-normal") { +s.stepFull }
+                    }
+                }
             }
         }
         // Bez minima (0) je dost dlouhý každý výběr a nápověda „nejkratší je 0 min“ nedává smysl.
-        if (selection != null && !model.canContinue && service.minDuration > Duration.ZERO) {
+        if (service.minDuration > Duration.ZERO) {
             p(className = "text-sm text-base-content/60") { +s.minDurationHint(service.minDuration) }
         }
+    }
+}
+
+/** Odchod: jen časy, které z vybraného příchodu jdou, s délkou a větou, proč ne později. */
+@Composable
+private fun IComponent.DepartureStep(model: SlotPageModel, service: SlotService) {
+    val s = slotStrings
+    val segments = model.segments
+    val pick = model.pick
+    div(className = "flex flex-col gap-2") {
+        StepHeading(3, s.departureStep)
+        if (pick == null) {
+            div(className = "border-2 border-dashed border-base-300 rounded-xl p-4 text-center text-sm text-base-content/60") {
+                +s.pickArrivalFirst
+            }
+        } else {
+            DepartureChips(model, service, pick)
+        }
+        // Úsek je zarovnaný na kroky; skutečné časy napíše rodič do poznámky ve formuláři.
+        p(className = "text-sm text-base-content/60 flex items-start gap-2") {
+            span(className = "icon-[heroicons--pencil-square] size-5 shrink-0")
+            span { +s.exactTimeHint }
+        }
+    }
+}
+
+@Composable
+private fun IComponent.DepartureChips(model: SlotPageModel, service: SlotService, pick: SlotPick) {
+    val s = slotStrings
+    val segments = model.segments
+    div(className = "grid grid-cols-4 sm:grid-cols-6 gap-2") {
+        possibleLasts(pick.start, segments, model.seats, service).forEach { index ->
+            val end = segments[index].end
+            val isSelected = pick.last == index
+            val tone = if (isSelected) {
+                "bg-primary text-primary-content border-primary"
+            } else {
+                "bg-base-100 border-base-300 hover:border-primary/50"
+            }
+            button(className = "min-h-11 rounded-lg border px-1 py-1 flex flex-col items-center justify-center leading-tight font-bold tabular-nums transition-colors $tone") {
+                attribute("aria-pressed", isSelected.toString())
+                onClick { model.tapEnd(index) }
+                span { +end.time.hourMinute }
+                span(className = "text-xs font-normal opacity-80") {
+                    +s.duration(selectionDuration(SlotSelection(pick.start, index), segments))
+                }
+            }
+        }
+    }
+    endLimit(pick.start, segments, model.seats, service)?.let { limit ->
+        p(className = "text-sm text-base-content/60 flex items-start gap-2") {
+            span(className = "icon-[heroicons--information-circle] size-5 shrink-0")
+            span { +s.endLimit(limit) }
+        }
+    }
+}
+
+/**
+ * Pás dne: krok = políčko, okna vedle sebe v poměru délky. Zelená = volno pro zvolený
+ * počet dětí, šedá = plno, primární barva = vybraný čas. Jen přehled, klikají se čipy pod ním.
+ */
+@Composable
+private fun IComponent.DayRibbon(segments: List<SlotSegment>, seats: Int, highlighted: IntRange?) {
+    val s = slotStrings
+    div(className = "flex items-start gap-3") {
+        attribute("aria-hidden", "true")
+        windows(segments).forEach { window ->
+            div(className = "flex flex-col gap-1 min-w-0") {
+                attribute("style", "flex: ${window.count()} 1 0")
+                div(className = "flex gap-0.5") {
+                    window.forEach { index ->
+                        val tone = when {
+                            highlighted != null && index in highlighted -> "bg-primary"
+                            isStepSelectable(segments[index], seats) -> "bg-success/40"
+                            else -> "bg-base-content/20"
+                        }
+                        div(className = "flex-1 h-3 rounded-sm $tone")
+                    }
+                }
+                div(className = "flex justify-between text-xs text-base-content/60 tabular-nums") {
+                    span { +segments[window.first].start.time.hourMinute }
+                    span { +segments[window.last].end.time.hourMinute }
+                }
+            }
+        }
+    }
+    div(className = "flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/60") {
+        attribute("aria-hidden", "true")
+        LegendItem("bg-success/40", s.legendFree)
+        LegendItem("bg-base-content/20", s.legendFull(s.children(seats)))
+        LegendItem("bg-primary", s.legendSelected)
+    }
+}
+
+@Composable
+private fun IComponent.LegendItem(swatch: String, label: String) {
+    span(className = "flex items-center gap-1.5") {
+        span(className = "w-3 h-2.5 rounded-sm $swatch")
+        +label
     }
 }
 
@@ -313,23 +441,31 @@ private fun IComponent.TimeAxis(model: SlotPageModel, service: SlotService) {
  */
 @Composable
 private fun IComponent.SelectionSummary(model: SlotPageModel, service: SlotService) {
-    val selection = model.selection ?: return
+    val pick = model.pick ?: return
     val segments = model.segments
     if (segments.isEmpty()) return
     val s = slotStrings
     val currentStrings by strings
-    val hours = selectionHours(selection, segments)
-    val price = selectionPrice(service, model.seats, hours)
+    val selection = model.selection
 
     div(className = "sticky bottom-0 z-40 bg-base-100 border-t border-base-200 shadow-lg") {
         div(className = "max-w-3xl mx-auto px-3 sm:px-4 py-3 flex items-center gap-3") {
             div(className = "flex-1 min-w-0 text-sm") {
-                div(className = "font-semibold truncate") {
-                    +currentStrings.slotInterval(selectionStart(selection, segments), selectionEnd(selection, segments))
-                }
-                div(className = "text-base-content/60 truncate") {
-                    +"${s.children(model.seats)} · ${s.hours(hours)} · "
-                    span(className = "font-semibold text-primary") { +totalPriceLabel(price, currentStrings) }
+                if (selection == null) {
+                    div(className = "font-semibold truncate") {
+                        +s.arrivalSummary(segments[pick.start].start.time.hourMinute)
+                    }
+                    div(className = "text-base-content/60 truncate") { +s.pickDepartureHint }
+                } else {
+                    val hours = selectionHours(selection, segments)
+                    val price = selectionPrice(service, model.seats, hours)
+                    div(className = "font-semibold truncate") {
+                        +currentStrings.slotInterval(selectionStart(selection, segments), selectionEnd(selection, segments))
+                    }
+                    div(className = "text-base-content/60 truncate") {
+                        +"${s.children(model.seats)} · ${s.hours(hours)} · "
+                        span(className = "font-semibold text-primary") { +totalPriceLabel(price, currentStrings) }
+                    }
                 }
             }
             button(className = "btn btn-primary min-h-11 px-6") {

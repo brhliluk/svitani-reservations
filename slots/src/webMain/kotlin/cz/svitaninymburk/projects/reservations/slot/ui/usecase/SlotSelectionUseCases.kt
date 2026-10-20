@@ -1,6 +1,5 @@
 package cz.svitaninymburk.projects.reservations.slot.ui.usecase
 
-import arrow.core.Either
 import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.slot.DayAvailability
@@ -19,15 +18,24 @@ import kotlin.time.Duration.Companion.seconds
 /** Vybraný úsek jako rozsah indexů kroků dne, oba včetně. */
 data class SlotSelection(val first: Int, val last: Int)
 
-enum class SlotSelectionError {
-    /** Klepnutý krok nemá pro zvolený počet dětí místo. */
-    STEP_FULL,
+/**
+ * Rozpracovaný výběr: příchod a případně odchod. [last] je index posledního kroku úseku
+ * (odchod = jeho konec), `null` = odchod ještě není vybraný.
+ */
+data class SlotPick(val start: Int, val last: Int? = null) {
+    val selection: SlotSelection? get() = last?.let { SlotSelection(start, it) }
+}
 
-    /** Úsek by přešel přes plný krok nebo přes hranici mezi okny (zavřeno). */
-    CROSSES_UNAVAILABLE,
+/** Proč nabídka odchodů končí tam, kde končí. */
+sealed interface EndLimit {
+    /** Další krok už nemá pro zvolený počet dětí místo. */
+    data class Full(val at: LocalDateTime) : EndLimit
 
-    /** Úsek by byl delší, než služba dovolí (jen u služby s limitem délky). */
-    TOO_LONG,
+    /** Okno hlídání v tu chvíli končí. */
+    data class Closes(val at: LocalDateTime) : EndLimit
+
+    /** Delší rezervaci služba nedovolí. */
+    data class MaxDuration(val max: Duration) : EndLimit
 }
 
 fun isStepSelectable(segment: SlotSegment, seats: Int): Boolean = segment.free >= seats
@@ -38,39 +46,88 @@ private fun follows(previous: SlotSegment, next: SlotSegment): Boolean = previou
 private fun durationBetween(start: LocalDateTime, end: LocalDateTime): Duration =
     (end.time.toSecondOfDay() - start.time.toSecondOfDay()).seconds
 
-/**
- * Nový výběr po klepnutí na krok [tappedIndex]. První klepnutí nastaví začátek, klepnutí
- * na pozdější krok posune konec (i zpět, výběr se tak dá zkrátit). Klepnutí před začátek
- * začne nový výběr a klepnutí na jediný vybraný krok výběr zruší (`null`).
- *
- * Při chybě zůstává výběr, jaký byl, a stránka ukáže hlášku.
- */
-fun extendSelection(
-    current: SlotSelection?,
-    tappedIndex: Int,
-    segments: List<SlotSegment>,
-    seats: Int,
-    service: SlotService,
-): Either<SlotSelectionError, SlotSelection?> {
-    val tapped = segments.getOrNull(tappedIndex) ?: return Either.Right(current)
-    if (current == null || tappedIndex < current.first) {
-        return if (isStepSelectable(tapped, seats)) {
-            Either.Right(SlotSelection(tappedIndex, tappedIndex))
-        } else {
-            Either.Left(SlotSelectionError.STEP_FULL)
+/** Souvislá okna dne jako rozsahy indexů kroků. */
+fun windows(segments: List<SlotSegment>): List<IntRange> {
+    val result = mutableListOf<IntRange>()
+    var windowStart = 0
+    for (index in 1..segments.size) {
+        if (index == segments.size || !follows(segments[index - 1], segments[index])) {
+            if (index > windowStart) result += windowStart until index
+            windowStart = index
         }
     }
-    if (tappedIndex == current.first && current.last == current.first) return Either.Right(null)
+    return result
+}
 
-    val range = current.first..tappedIndex
-    val passable = range.all { isStepSelectable(segments[it], seats) } &&
-        (current.first until tappedIndex).all { follows(segments[it], segments[it + 1]) }
-    if (!passable) return Either.Left(SlotSelectionError.CROSSES_UNAVAILABLE)
+/** Nejdelší souvislý běh volných kroků od [start] v mezích maximální délky služby. */
+private fun lastReachable(start: Int, segments: List<SlotSegment>, seats: Int, service: SlotService): Int {
+    val from = segments[start].start
+    var last = start
+    while (true) {
+        val next = segments.getOrNull(last + 1) ?: break
+        if (!follows(segments[last], next) || !isStepSelectable(next, seats)) break
+        val maxDuration = service.maxDuration
+        if (maxDuration != null && durationBetween(from, next.end) > maxDuration) break
+        last++
+    }
+    return last
+}
 
-    val candidate = SlotSelection(current.first, tappedIndex)
-    val maxDuration = service.maxDuration
-    if (maxDuration != null && selectionDuration(candidate, segments) > maxDuration) return Either.Left(SlotSelectionError.TOO_LONG)
-    return Either.Right(candidate)
+/**
+ * Poslední kroky, se kterými jde z příchodu [start] rezervovat: úsek je souvislý, má místo
+ * pro všechny děti a délku mezi minimem a maximem služby. Prázdné = odsud rezervovat nejde.
+ */
+fun possibleLasts(start: Int, segments: List<SlotSegment>, seats: Int, service: SlotService): IntRange {
+    val first = segments.getOrNull(start) ?: return IntRange.EMPTY
+    if (!isStepSelectable(first, seats)) return IntRange.EMPTY
+    val last = lastReachable(start, segments, seats, service)
+    val shortest = (start..last).firstOrNull { durationBetween(first.start, segments[it].end) >= service.minDuration }
+        ?: return IntRange.EMPTY
+    return shortest..last
+}
+
+fun isStartAvailable(start: Int, segments: List<SlotSegment>, seats: Int, service: SlotService): Boolean =
+    !possibleLasts(start, segments, seats, service).isEmpty()
+
+/** Důvod, proč odchod z příchodu [start] nejde později. `null`, když z něj rezervovat nejde vůbec. */
+fun endLimit(start: Int, segments: List<SlotSegment>, seats: Int, service: SlotService): EndLimit? {
+    val lasts = possibleLasts(start, segments, seats, service)
+    if (lasts.isEmpty()) return null
+    val last = segments[lasts.last]
+    val next = segments.getOrNull(lasts.last + 1)?.takeIf { follows(last, it) }
+    return when {
+        next == null -> EndLimit.Closes(last.end)
+        !isStepSelectable(next, seats) -> EndLimit.Full(next.start)
+        else -> service.maxDuration?.let { EndLimit.MaxDuration(it) } ?: EndLimit.Closes(last.end)
+    }
+}
+
+/**
+ * Klepnutí na příchod [tapped]. Na vybraný příchod výběr zruší. Jiný příchod nechá odchod,
+ * pokud z nového příchodu pořád jde, jinak ho vynuluje. Příchod, ze kterého rezervovat nejde,
+ * výběr nezmění (stránka ho stejně nenabízí).
+ */
+fun pickStart(current: SlotPick?, tapped: Int, segments: List<SlotSegment>, seats: Int, service: SlotService): SlotPick? {
+    if (current?.start == tapped) return null
+    val lasts = possibleLasts(tapped, segments, seats, service)
+    if (lasts.isEmpty()) return current
+    return SlotPick(tapped, current?.last?.takeIf { it in lasts })
+}
+
+/** Klepnutí na odchod (index posledního kroku). Na vybraný odchod ho zruší, nenabízený výběr nezmění. */
+fun pickLast(current: SlotPick, tapped: Int, segments: List<SlotSegment>, seats: Int, service: SlotService): SlotPick =
+    when {
+        current.last == tapped -> current.copy(last = null)
+        tapped in possibleLasts(current.start, segments, seats, service) -> current.copy(last = tapped)
+        else -> current
+    }
+
+/** Výběr po změně počtu dětí: co pořád platí, zůstane. Neplatný odchod zmizí, neplatný příchod celý výběr. */
+fun keepPick(current: SlotPick?, segments: List<SlotSegment>, seats: Int, service: SlotService): SlotPick? {
+    current ?: return null
+    val lasts = possibleLasts(current.start, segments, seats, service)
+    if (lasts.isEmpty()) return null
+    return current.copy(last = current.last?.takeIf { it in lasts })
 }
 
 fun selectionStart(selection: SlotSelection, segments: List<SlotSegment>): LocalDateTime = segments[selection.first].start
@@ -95,7 +152,7 @@ fun selectionPrice(service: SlotService, seats: Int, hours: Double): Double =
         timeMultiplier = hours,
     )
 
-/** Úsek splňuje minimální délku (maximum hlídá už [extendSelection]). Minimum 0 splní každý výběr. */
+/** Úsek splňuje minimální délku. Výběr přes [pickLast] ji splní vždy, tohle je pojistka tlačítka. */
 fun isSelectionLongEnough(selection: SlotSelection, segments: List<SlotSegment>, service: SlotService): Boolean =
     selectionDuration(selection, segments) >= service.minDuration
 

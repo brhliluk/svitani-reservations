@@ -189,11 +189,19 @@ hlídání**, proto:
   Chyba při dotazu odkaz skryje. Stránka `/hlidani` je registrovaná vždy, bez služby ukáže
   „Hlídání teď není v nabídce“.
 - **Víc služeb:** výběr služby přímo na stránce (bez vlastní adresy), jedna služba se otevře rovnou.
-- **Výběr úseku** (`SlotSelectionUseCases.kt`): první klepnutí nastaví začátek (jeden krok),
-  klepnutí na pozdější krok posune konec, klepnutí uvnitř výběru ho zkrátí, klepnutí před
-  začátek začne nový výběr a klepnutí na jediný vybraný krok výběr zruší. Chyby: plný krok,
-  přechod přes plný krok nebo mezeru mezi okny, delší než maximum. Minimální délku hlídá tlačítko
-  „Pokračovat“ (s nápovědou), ne klepání. Výběr se **neprodlužuje** sám na minimum.
+- **Výběr úseku: příchod a odchod** (20. 10., nahrazuje původní svislou osu s klepáním
+  „začátek, pak poslední úsek“, která rodiče mátla: klepnutí na vybraný řádek výběr nezrušilo,
+  konec úseku nebyl na ose vidět a jedno gesto dělalo podle místa tři věci). Pořadí na stránce:
+  počet dětí (jeden řádek, do 4 dětí volba čísel, nad to stepper), den, **kdy dítě přivedete**
+  (čipy začátků po oknech, nad nimi pás dne s obsazeností), **kdy si ho vyzvednete** (jen
+  odchody, které z příchodu jdou, s délkou; pod nimi věta, proč ne později: plno, konec okna,
+  maximum, a pod tím vždy „Přesný čas můžete doplnit do poznámky v následujícím kroku“, viz
+  nezarovnaný čas výše). Nabízí se jen příchody, ze kterých jde aspoň nejkratší úsek, takže chybové hlášky
+  odpadly. Klepnutí na vybraný příchod nebo odchod ho zruší, „Zrušit výběr“ zruší oba. Jiný
+  příchod nechá odchod, pokud pořád jde. Změna počtu dětí nechá, co pořád platí (`keepPick`),
+  změna dne výběr zruší. Logika v `SlotSelectionUseCases.kt` (`SlotPick`, `possibleLasts`,
+  `endLimit`, `pickStart`, `pickLast`, `keepPick`, `windows`), `SlotSelection` a server beze změny.
+  Klikatelný návrh se třemi variantami: https://claude.ai/artifact/NaG4uJFegX9d6T3EgbGrpH
 - `dayHasAvailability(day, seats, minDuration)` má navíc minimální délku: den, kde je volno jen
   na kratší úsek, než služba dovolí, se ukáže jako „plno“.
 - `maxSeatsFor` = menší z `maxSeatsPerBooking` a kapacity.

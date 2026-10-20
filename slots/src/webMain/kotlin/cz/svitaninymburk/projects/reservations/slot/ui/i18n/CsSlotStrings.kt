@@ -1,7 +1,8 @@
 package cz.svitaninymburk.projects.reservations.slot.ui.i18n
 
-import cz.svitaninymburk.projects.reservations.slot.ui.usecase.SlotSelectionError
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.EndLimit
 import cz.svitaninymburk.projects.reservations.ui.util.formatAmountNumber
+import cz.svitaninymburk.projects.reservations.util.hourMinute
 import kotlin.time.Duration
 
 object CsSlotStrings : SlotStrings {
@@ -14,23 +15,30 @@ object CsSlotStrings : SlotStrings {
 
     override val dayStep = "Den"
     override val seatsStep = "Počet dětí"
-    override val timeStep = "Čas"
+    override val arrivalStep = "Kdy dítě přivedete"
+    override val departureStep = "Kdy si ho vyzvednete"
+    override val pickArrivalFirst = "Nejdřív vyberte, kdy dítě přivedete."
+    override val exactTimeHint = "Přesný čas můžete doplnit do poznámky v následujícím kroku."
+    override val clearSelection = "Zrušit výběr"
     override val dayFree = "volno"
     override val dayFull = "plno"
     override val noDays = "V nejbližších dnech není žádný volný termín."
     override val noStepsThatDay = "Tento den už nejde rezervovat."
     override val decreaseSeats = "Méně dětí"
     override val increaseSeats = "Více dětí"
-    override fun freeSeats(count: Int) = "volno $count"
     override val stepFull = "plno"
-    override val timeHint = "Klepněte na začátek a pak na poslední časový úsek, který chcete."
 
-    override fun selectionError(error: SlotSelectionError, maxDuration: Duration?) = when (error) {
-        SlotSelectionError.STEP_FULL -> "V tomto čase už pro zvolený počet dětí není místo."
-        SlotSelectionError.CROSSES_UNAVAILABLE -> "Úsek nesmí přejít přes obsazený nebo zavřený čas."
-        SlotSelectionError.TOO_LONG ->
-            maxDuration?.let { "Nejdelší možná rezervace je ${duration(it)}." } ?: "Úsek je příliš dlouhý."
+    override fun endLimit(limit: EndLimit) = when (limit) {
+        is EndLimit.Full -> "V ${limit.at.time.hourMinute} už je pro zvolený počet dětí plno."
+        is EndLimit.Closes -> "V ${limit.at.time.hourMinute} hlídání končí."
+        is EndLimit.MaxDuration -> "Nejdelší možná rezervace je ${duration(limit.max)}."
     }
+
+    override val legendFree = "volno"
+    override fun legendFull(children: String) = "plno pro $children"
+    override val legendSelected = "váš čas"
+    override fun arrivalSummary(time: String) = "Příchod $time"
+    override val pickDepartureHint = "Vyberte, kdy si dítě vyzvednete."
 
     override fun minDurationHint(minDuration: Duration) = "Nejkratší možná rezervace je ${duration(minDuration)}."
 

@@ -1,7 +1,8 @@
 package cz.svitaninymburk.projects.reservations.slot.ui.i18n
 
-import cz.svitaninymburk.projects.reservations.slot.ui.usecase.SlotSelectionError
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.EndLimit
 import cz.svitaninymburk.projects.reservations.ui.util.formatAmountNumber
+import cz.svitaninymburk.projects.reservations.util.hourMinute
 import kotlin.time.Duration
 
 object EnSlotStrings : SlotStrings {
@@ -14,23 +15,30 @@ object EnSlotStrings : SlotStrings {
 
     override val dayStep = "Day"
     override val seatsStep = "Number of children"
-    override val timeStep = "Time"
+    override val arrivalStep = "Drop-off time"
+    override val departureStep = "Pick-up time"
+    override val pickArrivalFirst = "Choose the drop-off time first."
+    override val exactTimeHint = "You can add the exact time to the note in the next step."
+    override val clearSelection = "Clear"
     override val dayFree = "free"
     override val dayFull = "full"
     override val noDays = "There are no free times in the coming days."
     override val noStepsThatDay = "This day can no longer be booked."
     override val decreaseSeats = "Fewer children"
     override val increaseSeats = "More children"
-    override fun freeSeats(count: Int) = "$count free"
     override val stepFull = "full"
-    override val timeHint = "Tap the start, then the last block you want."
 
-    override fun selectionError(error: SlotSelectionError, maxDuration: Duration?) = when (error) {
-        SlotSelectionError.STEP_FULL -> "There is no room for this many children at that time."
-        SlotSelectionError.CROSSES_UNAVAILABLE -> "The booking cannot span a full or closed time."
-        SlotSelectionError.TOO_LONG ->
-            maxDuration?.let { "The longest possible booking is ${duration(it)}." } ?: "The booking is too long."
+    override fun endLimit(limit: EndLimit) = when (limit) {
+        is EndLimit.Full -> "From ${limit.at.time.hourMinute} there is no room for this many children."
+        is EndLimit.Closes -> "Childcare ends at ${limit.at.time.hourMinute}."
+        is EndLimit.MaxDuration -> "The longest possible booking is ${duration(limit.max)}."
     }
+
+    override val legendFree = "free"
+    override fun legendFull(children: String) = "full for $children"
+    override val legendSelected = "your time"
+    override fun arrivalSummary(time: String) = "Drop-off $time"
+    override val pickDepartureHint = "Choose the pick-up time."
 
     override fun minDurationHint(minDuration: Duration) = "The shortest possible booking is ${duration(minDuration)}."
 

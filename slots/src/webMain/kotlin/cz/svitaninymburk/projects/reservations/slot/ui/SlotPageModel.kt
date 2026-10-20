@@ -14,15 +14,17 @@ import cz.svitaninymburk.projects.reservations.slot.DayAvailability
 import cz.svitaninymburk.projects.reservations.slot.SlotSegment
 import cz.svitaninymburk.projects.reservations.slot.SlotService
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.SlotQueries
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.SlotPick
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.SlotSelection
-import cz.svitaninymburk.projects.reservations.slot.ui.usecase.SlotSelectionError
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.SlotSubmitter
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.availabilityRange
-import cz.svitaninymburk.projects.reservations.slot.ui.usecase.extendSelection
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.initialDay
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.invalidatesSelection
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.isSelectionLongEnough
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.keepPick
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.maxSeatsFor
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.pickLast
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.pickStart
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.selectionTarget
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationSubmittingModel
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.ReservationSubmitUseCase
@@ -51,9 +53,9 @@ sealed interface SlotDaysState {
 }
 
 /**
- * Stránka hlídání: výběr služby, dne, počtu dětí a úseku, pak stávající rezervační
- * formulář jádra. Počet dětí je před časem, protože určuje, které kroky jsou volné;
- * jeho změna proto výběr času zruší, stejně jako změna dne.
+ * Stránka hlídání: výběr služby, počtu dětí, dne, příchodu a odchodu, pak stávající
+ * rezervační formulář jádra. Počet dětí je před časem, protože určuje, které kroky jsou
+ * volné; jeho změna nechá z výběru času to, co pořád platí. Změna dne výběr zruší.
  */
 class SlotPageModel(
     scope: CoroutineScope,
@@ -69,14 +71,14 @@ class SlotPageModel(
     var daysState: SlotDaysState by mutableStateOf(SlotDaysState.Loading); private set
     var selectedDate: LocalDate? by mutableStateOf(null); private set
     var seats by mutableIntStateOf(1); private set
-    var selection: SlotSelection? by mutableStateOf(null); private set
-    var selectionError: SlotSelectionError? by mutableStateOf(null); private set
+    var pick: SlotPick? by mutableStateOf(null); private set
     var reservationTarget: ReservationTarget.Slot? by mutableStateOf(null); private set
 
     private var daysJob: Job? = null
 
     val days: List<DayAvailability> get() = (daysState as? SlotDaysState.Loaded)?.days.orEmpty()
     val segments: List<SlotSegment> get() = days.firstOrNull { it.date == selectedDate }?.segments.orEmpty()
+    val selection: SlotSelection? get() = pick?.selection
 
     /** Výběr služby má smysl jen tehdy, když je z čeho vybírat. */
     val canChangeService: Boolean
@@ -131,14 +133,19 @@ class SlotPageModel(
         val clamped = value.coerceIn(1, maxSeatsFor(service))
         if (clamped == seats) return
         seats = clamped
-        clearSelection()
+        pick = keepPick(pick, segments, clamped, service)
     }
 
-    fun tapStep(index: Int) {
+    fun tapStart(index: Int) {
         val service = service ?: return
-        extendSelection(selection, index, segments, seats, service)
-            .onRight { selection = it; selectionError = null }
-            .onLeft { selectionError = it }
+        pick = pickStart(pick, index, segments, seats, service)
+    }
+
+    /** [index] je poslední krok úseku, odchod je jeho konec. */
+    fun tapEnd(index: Int) {
+        val service = service ?: return
+        val current = pick ?: return
+        pick = pickLast(current, index, segments, seats, service)
     }
 
     fun openReservation() {
@@ -159,9 +166,8 @@ class SlotPageModel(
         loadDays(keepDay = true)
     }
 
-    private fun clearSelection() {
-        selection = null
-        selectionError = null
+    fun clearSelection() {
+        pick = null
     }
 
     /** [keepDay] = zůstat na vybraném dni, pokud v novém výsledku pořád je. */

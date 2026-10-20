@@ -1,7 +1,7 @@
 package cz.svitaninymburk.projects.reservations.slot.ui.i18n
 
 import cz.svitaninymburk.projects.reservations.i18n.strings
-import cz.svitaninymburk.projects.reservations.slot.ui.usecase.SlotSelectionError
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.EndLimit
 import kotlin.time.Duration
 
 /**
@@ -27,18 +27,30 @@ interface SlotStrings {
 
     val dayStep: String
     val seatsStep: String
-    val timeStep: String
+    /** „Kdy dítě přivedete“ */
+    val arrivalStep: String
+    /** „Kdy si ho vyzvednete“ */
+    val departureStep: String
+    val pickArrivalFirst: String
+    /** Kroky jsou zarovnané, přesný čas jde do poznámky v rezervačním formuláři. */
+    val exactTimeHint: String
+    val clearSelection: String
     val dayFree: String
     val dayFull: String
     val noDays: String
     val noStepsThatDay: String
     val decreaseSeats: String
     val increaseSeats: String
-    fun freeSeats(count: Int): String
     val stepFull: String
-    val timeHint: String
-    /** [maxDuration] null = služba nemá limit délky. */
-    fun selectionError(error: SlotSelectionError, maxDuration: Duration?): String
+    /** Věta pod nabídkou odchodů: proč nejde později. */
+    fun endLimit(limit: EndLimit): String
+    val legendFree: String
+    /** [children] je už skloněné „2 děti“. */
+    fun legendFull(children: String): String
+    val legendSelected: String
+    /** „Příchod 9:00“ v souhrnu, dokud chybí odchod. */
+    fun arrivalSummary(time: String): String
+    val pickDepartureHint: String
     fun minDurationHint(minDuration: Duration): String
 
     /** „1 dítě“, „2 děti“, „5 dětí“. */

@@ -7,20 +7,27 @@ import cz.svitaninymburk.projects.reservations.slot.DayAvailability
 import cz.svitaninymburk.projects.reservations.slot.SlotSegment
 import cz.svitaninymburk.projects.reservations.slot.SlotService
 import cz.svitaninymburk.projects.reservations.slot.ui.i18n.CsSlotStrings
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.EndLimit
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.SlotPick
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.SlotSelection
-import cz.svitaninymburk.projects.reservations.slot.ui.usecase.SlotSelectionError
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.availabilityRange
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.dayHasAvailability
-import cz.svitaninymburk.projects.reservations.slot.ui.usecase.extendSelection
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.endLimit
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.initialDay
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.invalidatesSelection
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.isSelectionLongEnough
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.isStartAvailable
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.isStepSelectable
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.keepPick
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.maxSeatsFor
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.pickLast
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.pickStart
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.possibleLasts
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.selectionHours
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.selectionPrice
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.selectionTarget
 import cz.svitaninymburk.projects.reservations.slot.ui.usecase.toCreateSlotReservationRequest
+import cz.svitaninymburk.projects.reservations.slot.ui.usecase.windows
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormData
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -83,83 +90,105 @@ class SlotSelectionUseCasesSpec {
     }
 
     @Test
-    fun firstTapSetsTheStart() {
-        assertEquals(SlotSelection(1, 1), extendSelection(null, 1, segments, 2, service()).getOrNull())
+    fun departuresRunUntilTheNextFullStep() {
+        // Dvě děti: v 9:00 je jen jedno místo, z 8:00 tedy nejpozději do 9:00.
+        assertEquals(0..1, possibleLasts(0, segments, 2, service()))
+        assertEquals(EndLimit.Full(segments[2].start), endLimit(0, segments, 2, service()))
     }
 
     @Test
-    fun firstTapOnAFullStepIsAnError() {
-        assertEquals(SlotSelectionError.STEP_FULL, extendSelection(null, 2, segments, 2, service()).leftOrNull())
+    fun departuresStopAtTheEndOfTheWindow() {
+        assertEquals(3..3, possibleLasts(3, segments, 1, service()))
+        assertEquals(EndLimit.Closes(segments[3].end), endLimit(3, segments, 1, service()))
     }
 
     @Test
-    fun laterTapExtendsTheEnd() {
-        assertEquals(SlotSelection(0, 3), extendSelection(SlotSelection(0, 0), 3, segments, 1, service()).getOrNull())
+    fun departuresRespectTheMaximumLength() {
+        val oneHour = service(maxDuration = 1.hours)
+        assertEquals(0..1, possibleLasts(0, segments, 1, oneHour))
+        assertEquals(EndLimit.MaxDuration(1.hours), endLimit(0, segments, 1, oneHour))
     }
 
     @Test
-    fun tapInsideTheSelectionShortensIt() {
-        assertEquals(SlotSelection(0, 1), extendSelection(SlotSelection(0, 3), 1, segments, 1, service()).getOrNull())
-        assertEquals(SlotSelection(0, 0), extendSelection(SlotSelection(0, 3), 0, segments, 1, service()).getOrNull())
-    }
-
-    @Test
-    fun tapBeforeTheStartStartsANewSelection() {
-        assertEquals(SlotSelection(0, 0), extendSelection(SlotSelection(1, 3), 0, segments, 1, service()).getOrNull())
-    }
-
-    @Test
-    fun tapOnTheOnlySelectedStepClearsTheSelection() {
-        val result = extendSelection(SlotSelection(1, 1), 1, segments, 1, service())
-        assertTrue(result.isRight())
-        assertNull(result.getOrNull())
-    }
-
-    @Test
-    fun selectionCannotCrossAFullStep() {
-        // V 9:00 je volné jen jedno místo, dvě děti přes něj neprojdou.
-        assertEquals(
-            SlotSelectionError.CROSSES_UNAVAILABLE,
-            extendSelection(SlotSelection(0, 0), 3, segments, 2, service()).leftOrNull(),
-        )
-    }
-
-    @Test
-    fun selectionCannotCrossTheGapBetweenWindows() {
-        assertEquals(
-            SlotSelectionError.CROSSES_UNAVAILABLE,
-            extendSelection(SlotSelection(3, 3), 4, segments, 1, service(maxDuration = 4.hours)).leftOrNull(),
-        )
-    }
-
-    @Test
-    fun selectionCannotExceedTheMaximumLength() {
-        assertEquals(
-            SlotSelectionError.TOO_LONG,
-            extendSelection(SlotSelection(0, 0), 3, segments, 1, service(maxDuration = 1.hours)).leftOrNull(),
-        )
-        assertEquals(SlotSelection(0, 1), extendSelection(SlotSelection(0, 0), 1, segments, 1, service(maxDuration = 1.hours)).getOrNull())
-    }
-
-    @Test
-    fun withoutMaximumTheSelectionIsLimitedOnlyByTheWindow() {
+    fun withoutMaximumTheDeparturesAreLimitedOnlyByTheWindow() {
         val unlimited = service(maxDuration = null)
-        assertEquals(SlotSelection(0, 3), extendSelection(SlotSelection(0, 0), 3, segments, 1, unlimited).getOrNull())
-        assertEquals(
-            SlotSelectionError.CROSSES_UNAVAILABLE,
-            extendSelection(SlotSelection(0, 0), 4, segments, 1, unlimited).leftOrNull(),
-        )
+        assertEquals(0..3, possibleLasts(0, segments, 1, unlimited))
+        assertEquals(EndLimit.Closes(segments[3].end), endLimit(0, segments, 1, unlimited))
     }
 
     @Test
-    fun tooLongMessageNamesTheMaximumWhenThereIsOne() {
-        assertTrue(CsSlotStrings.selectionError(SlotSelectionError.TOO_LONG, 1.hours).contains("1"))
-        assertTrue(CsSlotStrings.selectionError(SlotSelectionError.TOO_LONG, null).isNotBlank())
+    fun departuresStartAtTheMinimumLength() {
+        assertEquals(1..3, possibleLasts(0, segments, 1, service(minDuration = 1.hours)))
     }
 
     @Test
-    fun tapOutsideTheDayKeepsTheSelection() {
-        assertEquals(SlotSelection(0, 1), extendSelection(SlotSelection(0, 1), 99, segments, 1, service()).getOrNull())
+    fun arrivalIsAvailableOnlyWhenTheShortestBookingFits() {
+        assertTrue(isStartAvailable(0, segments, 1, service()))
+        // Plný krok.
+        assertFalse(isStartAvailable(2, segments, 2, service()))
+        assertNull(endLimit(2, segments, 2, service()))
+        // V 9:30 je volno, ale do konce okna zbývá jen půl hodiny.
+        assertFalse(isStartAvailable(3, segments, 1, service(minDuration = 1.hours)))
+        assertTrue(possibleLasts(99, segments, 1, service()).isEmpty())
+    }
+
+    @Test
+    fun firstArrivalStartsThePick() {
+        assertEquals(SlotPick(1), pickStart(null, 1, segments, 2, service()))
+    }
+
+    @Test
+    fun tapOnTheSelectedArrivalClearsThePick() {
+        assertNull(pickStart(SlotPick(1, 3), 1, segments, 1, service()))
+    }
+
+    @Test
+    fun unavailableArrivalKeepsThePick() {
+        assertEquals(SlotPick(0, 1), pickStart(SlotPick(0, 1), 2, segments, 2, service()))
+        assertNull(pickStart(null, 5, segments, 1, service()))
+    }
+
+    @Test
+    fun newArrivalKeepsTheDepartureOnlyWhenItStillFits() {
+        assertEquals(SlotPick(1, 3), pickStart(SlotPick(0, 3), 1, segments, 1, service()))
+        assertEquals(SlotPick(3), pickStart(SlotPick(0, 1), 3, segments, 1, service()))
+    }
+
+    @Test
+    fun departureTapSelectsAndSecondTapClearsIt() {
+        val withDeparture = pickLast(SlotPick(0), 3, segments, 1, service())
+        assertEquals(SlotPick(0, 3), withDeparture)
+        assertEquals(SlotSelection(0, 3), withDeparture.selection)
+        assertEquals(SlotPick(0), pickLast(withDeparture, 3, segments, 1, service()))
+        assertNull(SlotPick(0).selection)
+    }
+
+    @Test
+    fun departureThatIsNotOfferedKeepsThePick() {
+        // Přes mezeru mezi okny ani přes plný krok to nejde.
+        assertEquals(SlotPick(0, 1), pickLast(SlotPick(0, 1), 4, segments, 1, service(maxDuration = null)))
+        assertEquals(SlotPick(0), pickLast(SlotPick(0), 3, segments, 2, service()))
+    }
+
+    @Test
+    fun moreChildrenKeepWhatStillFits() {
+        assertEquals(SlotPick(0, 1), keepPick(SlotPick(0, 1), segments, 2, service()))
+        assertEquals(SlotPick(0), keepPick(SlotPick(0, 3), segments, 2, service()))
+        assertNull(keepPick(SlotPick(2, 2), segments, 2, service()))
+        assertNull(keepPick(null, segments, 2, service()))
+    }
+
+    @Test
+    fun daySplitsIntoWindowsAtGaps() {
+        assertEquals(listOf(0..3, 4..5), windows(segments))
+        assertEquals(emptyList<IntRange>(), windows(emptyList()))
+    }
+
+    @Test
+    fun departureLimitMessageNamesTheTime() {
+        assertTrue(CsSlotStrings.endLimit(EndLimit.Full(segments[2].start)).contains("9:00"))
+        assertTrue(CsSlotStrings.endLimit(EndLimit.Closes(segments[3].end)).contains("10:00"))
+        assertTrue(CsSlotStrings.endLimit(EndLimit.MaxDuration(2.hours)).contains("2 h"))
     }
 
     @Test
@@ -183,8 +212,8 @@ class SlotSelectionUseCasesSpec {
         }
         val hourly = service(minDuration = kotlin.time.Duration.ZERO, maxDuration = 3.hours).copy(step = 60.minutes)
 
-        assertEquals(SlotSelection(0, 2), extendSelection(SlotSelection(0, 0), 2, hourSteps, 1, hourly).getOrNull())
-        assertEquals(SlotSelectionError.TOO_LONG, extendSelection(SlotSelection(0, 0), 3, hourSteps, 1, hourly).leftOrNull())
+        assertEquals(0..2, possibleLasts(0, hourSteps, 1, hourly))
+        assertEquals(EndLimit.MaxDuration(3.hours), endLimit(0, hourSteps, 1, hourly))
         assertEquals(3.0, selectionHours(SlotSelection(0, 2), hourSteps))
         assertTrue(isSelectionLongEnough(SlotSelection(1, 1), hourSteps, hourly))
     }
