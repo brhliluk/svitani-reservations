@@ -57,7 +57,7 @@ fun IComponent.renderCustomField(
                 if (field.isMultiline) {
                     textArea(
                         value = (stateMap[field.key] as? TextValue)?.value,
-                        className = "textarea textarea-bordered h-24${if (showError) " textarea-error" else ""}",
+                        className = "textarea textarea-bordered h-24 w-full${if (showError) " textarea-error" else ""}",
                     ) {
                         onInput { stateMap[field.key] = TextValue(field.key, this.value ?: "") }
                     }
