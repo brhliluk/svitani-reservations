@@ -114,16 +114,21 @@ fun IComponent.AppHeader(
                             span(className = "hidden sm:inline") { +currentStrings.adminPanelLink }
                         }
                     }
-                    button(className = "btn btn-ghost btn-sm min-h-11 gap-2") {
-                        onClick { onOpenMyReservations() }
-                        span(className = "icon-[heroicons--ticket] size-5")
-                        span(className = "hidden sm:inline") { +currentStrings.myReservations }
-                    }
-                    if (walletCode != null) {
+                    // Admin má v hlavičce navíc odkaz do administrace a modulů; na telefonu by se
+                    // tlačítka nevešla, proto má Moje rezervace a Peněženku v nabídce pod svým jménem.
+                    val isAdmin = onNavigateToAdmin != null
+                    if (!isAdmin) {
                         button(className = "btn btn-ghost btn-sm min-h-11 gap-2") {
-                            onClick { onOpenMyWallet() }
-                            span(className = "icon-[heroicons--wallet] size-5")
-                            span(className = "hidden sm:inline") { +currentStrings.wallet }
+                            onClick { onOpenMyReservations() }
+                            span(className = "icon-[heroicons--ticket] size-5")
+                            span(className = "hidden sm:inline") { +currentStrings.myReservations }
+                        }
+                        if (walletCode != null) {
+                            button(className = "btn btn-ghost btn-sm min-h-11 gap-2") {
+                                onClick { onOpenMyWallet() }
+                                span(className = "icon-[heroicons--wallet] size-5")
+                                span(className = "hidden sm:inline") { +currentStrings.wallet }
+                            }
                         }
                     }
 
@@ -147,6 +152,24 @@ fun IComponent.AppHeader(
                         }
                         ul(className = "dropdown-content menu p-2 shadow-lg bg-base-100 rounded-box w-48 border border-base-200 z-50") {
                             attribute("tabindex", "0")
+                            if (isAdmin) {
+                                li {
+                                    div(className = "flex items-center gap-2") {
+                                        onClick { onOpenMyReservations() }
+                                        span(className = "icon-[heroicons--ticket] size-4")
+                                        +currentStrings.myReservations
+                                    }
+                                }
+                                if (walletCode != null) {
+                                    li {
+                                        div(className = "flex items-center gap-2") {
+                                            onClick { onOpenMyWallet() }
+                                            span(className = "icon-[heroicons--wallet] size-4")
+                                            +currentStrings.wallet
+                                        }
+                                    }
+                                }
+                            }
                             if (user is User.Email) {
                                 li {
                                     div(className = "flex items-center gap-2") {
