@@ -53,6 +53,7 @@ import dev.kilua.html.footer
 import dev.kilua.html.main
 import dev.kilua.html.p
 import dev.kilua.routing.RoutingBuilder
+import dev.kilua.routing.StringRoutingContext
 import dev.kilua.routing.browserRouter
 import kotlinx.coroutines.CancellationException
 import kotlin.uuid.Uuid
@@ -106,57 +107,63 @@ private fun IComponent.MainRoutes(session: SessionModel, features: List<WebFeatu
                         }
                     }
                     route("/instance") { string { eventId ->
-                        view {
+                        view { id ->
                             AdminRoute(session) {
-                                AdminEventDetailScreen(eventId = eventId.value, isSeries = false)
+                                key(id) { AdminEventDetailScreen(eventId = id, isSeries = false) }
                             }
                         }
                         route("/attendance") {
                             view {
                                 AdminRoute(session) {
-                                    AdminAttendanceScreen(eventId = eventId.value, isSeries = false)
+                                    val id = eventId.observedValue()
+                                    key(id) { AdminAttendanceScreen(eventId = id, isSeries = false) }
                                 }
                             }
                         }
                         route("/edit") {
                             view {
                                 AdminRoute(session) {
-                                    AdminEditEventInstanceScreen(id = eventId.value)
+                                    val id = eventId.observedValue()
+                                    key(id) { AdminEditEventInstanceScreen(id = id) }
                                 }
                             }
                         }
                         route("/preview") {
                             view {
                                 AdminRoute(session) {
-                                    EventPreviewScreen(eventId = eventId.value, isSeries = false, currentUser = session.currentUser!!)
+                                    val id = eventId.observedValue()
+                                    key(id) { EventPreviewScreen(eventId = id, isSeries = false, currentUser = session.currentUser!!) }
                                 }
                             }
                         }
                     } }
                     route("/series") { string { seriesId ->
-                        view {
+                        view { id ->
                             AdminRoute(session) {
-                                AdminEventDetailScreen(eventId = seriesId.value, isSeries = true)
+                                key(id) { AdminEventDetailScreen(eventId = id, isSeries = true) }
                             }
                         }
                         route("/attendance") {
                             view {
                                 AdminRoute(session) {
-                                    AdminAttendanceScreen(eventId = seriesId.value, isSeries = true)
+                                    val id = seriesId.observedValue()
+                                    key(id) { AdminAttendanceScreen(eventId = id, isSeries = true) }
                                 }
                             }
                         }
                         route("/edit") {
                             view {
                                 AdminRoute(session) {
-                                    AdminEditEventSeriesScreen(id = seriesId.value)
+                                    val id = seriesId.observedValue()
+                                    key(id) { AdminEditEventSeriesScreen(id = id) }
                                 }
                             }
                         }
                         route("/preview") {
                             view {
                                 AdminRoute(session) {
-                                    EventPreviewScreen(eventId = seriesId.value, isSeries = true, currentUser = session.currentUser!!)
+                                    val id = seriesId.observedValue()
+                                    key(id) { EventPreviewScreen(eventId = id, isSeries = true, currentUser = session.currentUser!!) }
                                 }
                             }
                         }
@@ -177,10 +184,10 @@ private fun IComponent.MainRoutes(session: SessionModel, features: List<WebFeatu
                             }
                         }
                         route("/choose") {
-                            string { definitionId ->
-                                view {
+                            string {
+                                view { definitionId ->
                                     AdminRoute(session) {
-                                        AdminEventCreateChooseScreen(definitionId = definitionId.value)
+                                        key(definitionId) { AdminEventCreateChooseScreen(definitionId = definitionId) }
                                     }
                                 }
                             }
@@ -191,10 +198,12 @@ private fun IComponent.MainRoutes(session: SessionModel, features: List<WebFeatu
                                     AdminCreateEventInstanceScreen(currentUser = session.currentUser!!)
                                 }
                             }
-                            string { definitionId ->
-                                view {
+                            string {
+                                view { definitionId ->
                                     AdminRoute(session) {
-                                        AdminCreateEventInstanceScreen(currentUser = session.currentUser!!, preselectedDefinitionId = definitionId.value)
+                                        key(definitionId) {
+                                            AdminCreateEventInstanceScreen(currentUser = session.currentUser!!, preselectedDefinitionId = definitionId)
+                                        }
                                     }
                                 }
                             }
@@ -205,10 +214,12 @@ private fun IComponent.MainRoutes(session: SessionModel, features: List<WebFeatu
                                     AdminCreateEventSeriesScreen(currentUser = session.currentUser!!)
                                 }
                             }
-                            string { definitionId ->
-                                view {
+                            string {
+                                view { definitionId ->
                                     AdminRoute(session) {
-                                        AdminCreateEventSeriesScreen(currentUser = session.currentUser!!, preselectedDefinitionId = definitionId.value)
+                                        key(definitionId) {
+                                            AdminCreateEventSeriesScreen(currentUser = session.currentUser!!, preselectedDefinitionId = definitionId)
+                                        }
                                     }
                                 }
                             }
@@ -219,7 +230,8 @@ private fun IComponent.MainRoutes(session: SessionModel, features: List<WebFeatu
                             route("/edit") {
                                 view {
                                     AdminRoute(session) {
-                                        AdminEditEventDefinitionScreen(id = definitionId.value)
+                                        val id = definitionId.observedValue()
+                                        key(id) { AdminEditEventDefinitionScreen(id = id) }
                                     }
                                 }
                             }
@@ -279,10 +291,10 @@ private fun IComponent.MainRoutes(session: SessionModel, features: List<WebFeatu
                 }
                 route("/wallets") {
                     // Proklik z historie: /admin/wallets/{kód} otevře rovnou detail peněženky.
-                    string { walletCode ->
-                        view {
+                    string {
+                        view { walletCode ->
                             AdminRoute(session) {
-                                AdminWalletsScreen(preselectCode = walletCode.value)
+                                key(walletCode) { AdminWalletsScreen(preselectCode = walletCode) }
                             }
                         }
                     }
@@ -341,15 +353,17 @@ private fun RoutingBuilder.publicRoutes(
     }
 
     route("/reservation") {
-        string { reservationId ->
-            view {
+        string {
+            view { reservationId ->
                 val reservationUuid =
-                    try { Uuid.parse(reservationId.value) }
+                    try { Uuid.parse(reservationId) }
                     catch (_: IllegalArgumentException) { null }
                 val router = Router.current
                 UserRoute(session, headerLinks) {
-                    if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/") }
-                    else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/") })
+                    key(reservationId) {
+                        if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/") }
+                        else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/") })
+                    }
                 }
             }
         }
@@ -367,10 +381,10 @@ private fun RoutingBuilder.publicRoutes(
     }
 
     route("/wallet") {
-        string { code ->
-            view {
+        string {
+            view { code ->
                 UserRoute(session, headerLinks) {
-                    WalletScreen(initialCode = code.value, initialEmail = session.currentUser?.email ?: "")
+                    key(code) { WalletScreen(initialCode = code, initialEmail = session.currentUser?.email ?: "") }
                 }
             }
         }
@@ -382,24 +396,26 @@ private fun RoutingBuilder.publicRoutes(
     }
 
     route("/reset-password") {
-        string { token ->
-            view {
+        string {
+            view { token ->
                 val router = Router.current
                 UserRoute(session, headerLinks) {
-                    ResetPasswordScreen(token = token.value, onSuccess = { router.navigate("/") })
+                    key(token) { ResetPasswordScreen(token = token, onSuccess = { router.navigate("/") }) }
                 }
             }
         }
     }
     route("/claim-reservations") {
-        string { token ->
-            view {
+        string {
+            view { token ->
                 val router = Router.current
                 UserRoute(session, headerLinks) {
-                    ClaimReservationsScreen(
-                        token = token.value,
-                        onOpenMyReservations = { router.navigate("/my-reservations") },
-                    )
+                    key(token) {
+                        ClaimReservationsScreen(
+                            token = token,
+                            onOpenMyReservations = { router.navigate("/my-reservations") },
+                        )
+                    }
                 }
             }
         }
@@ -446,6 +462,19 @@ private fun visibleHeaderLinks(features: List<WebFeature>, session: SessionModel
         }
     }
     return visible
+}
+
+/**
+ * Hodnota segmentu `{id}` pro view vnořené routy (`/x/{id}/edit`). Taková view parametr
+ * nedostává a kontext je obyčejné pole mimo Compose — při přechodu `/x/A/edit` → `/x/B/edit`
+ * by se view přeskočilo a zůstala by stará obrazovka. Čtení aktuální adresy z routeru (je to
+ * Compose stav) view při změně adresy překreslí. Přímá view berou hodnotu z parametru
+ * `view { id -> }`, jako u `adminPages`.
+ */
+@Composable
+private fun StringRoutingContext.observedValue(): String {
+    Router.current.currentPath()
+    return value
 }
 
 /**
