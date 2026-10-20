@@ -14,7 +14,7 @@ z fáze 0 (19. 10. 2026) a o odchylky, na kterých jsme se domluvili.
   napojení přes `ServerFeature`, mock data.
 - **Fáze 3: hotovo.** `Reference.Slot`, `ReservationTarget.Slot`, všechna `when`,
   `ReservationTargetResolver`, `timeMultiplier` v ceně.
-- **Fáze 4: hotovo, čeká na review.** `SlotServiceInterface` (`listServices`, `getAvailability`,
+- **Fáze 4: hotovo** (commit `ee88205`). `SlotServiceInterface` (`listServices`, `getAvailability`,
   `reserveSlot`) se všemi validacemi pod `Mutex`, e-maily a pozvánka s intervalem, testy validací
   a souběhu. Admin RPC je přesunuté do fáze 6.
 - **Další krok: fáze 5** (veřejné UI).
@@ -82,7 +82,7 @@ hlídání**, proto:
 - `@RpcService` nikdy do kořenového projektu (ten KSP neaplikuje).
 - Tailwind třídy ze zdrojáků modulu se do CSS dostanou bez nastavení (ověřeno).
 
-## Rozhodnutí z fáze 1 (k potvrzení při review)
+## Rozhodnutí z fáze 1
 
 - Model je v `slots/src/commonMain/…/slot/Slot.kt`, `expandAvailability` v `Availability.kt` vedle něj.
   Rezervace vstupují jako `BookedInterval(start, end, seats)`.
@@ -97,7 +97,7 @@ hlídání**, proto:
   ve výsledku nejsou.
 - `Features.kt` je zatím jen v `jvmMain`. Webová verze přibude s místy napojení v UI.
 
-## Rozhodnutí z fáze 2 (k potvrzení při review)
+## Rozhodnutí z fáze 2
 
 - **Místo napojení na serveru:** `ServerFeature` v jádru (jméno, tabulky, Koin moduly, mock data).
   Aplikace předá seznam do `reservationsServer(features)` a jádro modul zapojí. Ve fázi 4 se přidají
@@ -115,7 +115,7 @@ hlídání**, proto:
   nevynucuje a `CASCADE` by nezabral.
 - Mock data: nepublikovaná služba „Hlídání dětí“, út a čt 8–12, nejbližší čtvrtek zavřeno.
 
-## Rozhodnutí z fáze 3 (k potvrzení při review)
+## Rozhodnutí z fáze 3
 
 - `Reference.Slot` a `ReservationTarget.Slot` jsou ve `shared`, protože obě hierarchie jsou
   zapečetěné. `ReservationTarget.Slot` má proti tabulce výš navíc **`capacity`**: e-mail lektorovi
@@ -141,7 +141,7 @@ hlídání**, proto:
   nenačte. **Android build lokálně neprojde** (`AndroidSdkHandler`, chybí JAXB pod JDK 25),
   nezávisle na téhle změně, takže appka ověřená kompilací není.
 
-## Rozhodnutí z fáze 4 (k potvrzení při review)
+## Rozhodnutí z fáze 4
 
 - **Admin RPC** (CRUD služby, rozvrhu, výjimek a denní přehled) až ve fázi 6 spolu s admin UI.
   Ve fázi 4 je jen veřejné `SlotServiceInterface`.
@@ -169,6 +169,57 @@ hlídání**, proto:
 - Cíl existující rezervace (`targetFor`) počítá volná místa včetně té rezervace, tedy stav „teď“.
 - **Nález mimo hlídání:** server nekontroluje povinná vlastní pole (ani u akcí), hlídá je jen
   formulář. Odloženo, viz `docs/followups/serverova-kontrola-povinnych-poli.md`.
+
+## Podklady pro fázi 5 (veřejné UI)
+
+Sepsáno na konci fáze 4, aby fáze 5 mohla začít s čistým kontextem.
+
+**Co je hotové na serveru** (modul `slots/`):
+- RPC `SlotServiceInterface` (`slots/src/commonMain/…/slot/SlotServiceInterface.kt`):
+  - `listServices()`: admin dostane všechny služby, ostatní jen publikované;
+  - `getAvailability(serviceId, from, to)`: jen kroky, které jde ještě rezervovat;
+  - `reserveSlot(CreateSlotReservationRequest, userId)`.
+- Model `SlotService`, `SlotSegment` a `DayAvailability` je v `slots/src/commonMain/…/slot/Slot.kt`.
+  Mezera mezi `end` a dalším `start` znamená hranici mezi okny.
+- Ukázková služba z mock dat je **nepublikovaná**, takže ji vidí jen admin
+  (`admin@reservations.cz` / `123456`). Pro anonymní pohled ji v kopii DB zveřejni
+  (`update slot_services set is_published = 1`).
+
+**Napojení webu, které ve fázi 5 ještě chybí:**
+- `Features.kt` má zatím jen JVM verzi (`src/featureSlotsOn|Off/jvmMain`). Pro web je potřeba
+  `src/featureSlotsOn|Off/webMain/…/Features.kt` a zapojit ji v kořenovém `build.gradle.kts`
+  (`webMain.kotlin.srcDir`, stejně jako u `jvmMain`).
+- V jádru chybí místo napojení pro webové routy a odkaz v hlavičce: routy jsou natvrdo v
+  `core/src/webMain/…/ui/Main.kt` (`MainLayout`, `browserRouter`), hlavička v `ui/Header.kt`. Navrhnout
+  obdobu `ServerFeature`, např. `WebFeature`, a předat ji z `src/webMain/…/main.kt` do `MainLayout`.
+  Odkaz „Hlídání“ se má ukázat jen tehdy, když `listServices()` něco vrátí.
+- Kilua RPC na webu v modulu: vygenerovaný `SlotServiceInterfaceImpl(RpcSerializersModules)` je jen v
+  `jsMain`/`wasmJsMain`, proto ve `webMain` `expect fun slotService(): SlotServiceInterface` a `actual`
+  v obou. `getService()` z jádra o službách modulu neví.
+- Modul pro UI potřebuje plugin Compose a webové závislosti jako `core/build.gradle.kts`
+  (`kilua`, `kilua-routing` …) a `webTest` s `kilua-testutils`. Tailwind třídy z modulu se do CSS
+  dostanou samy.
+
+**Rezervační modal** (`core/…/ui/reservation/Form.kt`, `ReservationModal`):
+- Odeslání jde přes `ReservationSubmitUseCase(reservations, slotSubmitter)`
+  (`ui/reservation/usecase/ReservationSubmitUseCases.kt`). Modul dodá `slotSubmitter`, který zavolá
+  `reserveSlot`. Modely, které use case skládají: `DashboardModel`, `EventPreviewModel`,
+  `EventDetailUseCases`. Hlídání bude mít vlastní model a vlastní `ReservationSubmitUseCase`.
+- Úpravy podle zadání: nadpis s intervalem, počet míst jen ke čtení s odkazem „změnit“ a řádek ceny
+  „X Kč × N dětí × H h“. Cenu počítat přes `calculateTotalPrice(..., timeMultiplier = hodiny)`.
+- `ReservationTarget.Slot` má `pricePerHour`, `freeSeats`, `capacity`, `maxSeatsPerBooking`,
+  `startDateTime` a `endDateTime`.
+
+**Moje rezervace a detail:**
+- `MyReservationListItem.kind` (`INSTANCE`/`SERIES`/`SLOT`) už server plní. Web dnes ukazuje úsek
+  jako kartu akce (`ui/dashboard/MyReservations.kt` a model se řídí `isSeries`). Má být
+  „Hlídání · út 14. 10. 9:00–11:30“.
+- Detail rezervace (`ui/reservation/detail/ReservationDetailModel.kt`) dostane
+  `ReservationTarget.Slot`. Ukázat interval.
+
+**Rozhodnuto pro UI:** vstup je odkaz v hlavičce a stránka `/hlidani`, ne třetí záložka. Kroky jsou
+zarovnané (žádné volné minuty) a skutečné časy píše rodič do pole „Poznámka“. Styl: agenda view,
+`heroicons`. Texty jdou do i18n modulu (cs i en).
 
 ## Nálezy z fáze 0 pro fázi 3
 
