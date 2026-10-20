@@ -14,7 +14,7 @@ import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
-import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isCustomFieldValid
+import cz.svitaninymburk.projects.reservations.reservation.isCustomFieldValid
 import dev.kilua.core.IComponent
 import dev.kilua.form.InputType
 import dev.kilua.form.check.checkBox

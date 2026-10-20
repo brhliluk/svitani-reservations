@@ -12,7 +12,7 @@ import cz.svitaninymburk.projects.reservations.event.TextValue
 import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
-import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isCustomFieldValid
+import cz.svitaninymburk.projects.reservations.reservation.isCustomFieldValid
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test

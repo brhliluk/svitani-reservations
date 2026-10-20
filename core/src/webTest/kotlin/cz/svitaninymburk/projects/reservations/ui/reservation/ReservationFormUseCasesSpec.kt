@@ -13,7 +13,7 @@ import cz.svitaninymburk.projects.reservations.event.TimeRangeValue
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.WALLET_CODE_LENGTH
-import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.areCustomFieldsValid
+import cz.svitaninymburk.projects.reservations.reservation.areCustomFieldsValid
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.effectivePaymentType
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.formatPriceHours
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.initialPaymentType

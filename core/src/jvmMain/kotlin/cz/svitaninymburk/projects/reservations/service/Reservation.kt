@@ -11,6 +11,7 @@ import arrow.core.raise.ensure
 import cz.svitaninymburk.projects.reservations.error.DuplicateScope
 import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.error.WalletError
+import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
 import cz.svitaninymburk.projects.reservations.event.calculateTotalPrice
@@ -39,6 +40,7 @@ import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonsView
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.reservation.ReservationKind
+import cz.svitaninymburk.projects.reservations.reservation.firstInvalidCustomField
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.audit.AuditActorType
@@ -295,16 +297,16 @@ open class ReservationService(
         ensure(request.seatCount >= 1) { ReservationError.InvalidSeatCount }
         ensure(instance.allowMultipleSeats || request.seatCount == 1) { ReservationError.MultipleSeatsNotAllowed }
         ensurePaymentTypeAllowed(request.paymentType, instance.allowedPaymentTypes)
+        val target = ReservationTarget.Instance(instance)
 
         // Musí být před zabráním kapacity — attemptToReserveSpots ukousne místo hned
         // a odmítnutý pokus by ho už nevrátil.
+        ensureRequiredFieldsFilled(target, request.customValues)
         ensureNoDuplicate(request.acknowledgedDuplicate) { duplicateDetector.forInstance(instance, request.contactEmail) }
 
         val isReserved = eventInstanceRepository.attemptToReserveSpots(instanceId = instance.id, amount = request.seatCount,)
 
         ensure(isReserved) { ReservationError.CapacityExceeded }
-
-        val target = ReservationTarget.Instance(instance)
 
         createReservationFlow(
             reference = Reference.Instance(instance.id),
@@ -328,6 +330,7 @@ open class ReservationService(
         ensure(series.allowMultipleSeats || request.seatCount == 1) { ReservationError.MultipleSeatsNotAllowed }
         ensurePaymentTypeAllowed(request.paymentType, series.allowedPaymentTypes)
 
+        ensureRequiredFieldsFilled(ReservationTarget.Series(series), request.customValues)
         ensureNoDuplicate(request.acknowledgedDuplicate) { duplicateDetector.forSeries(series.id, request.contactEmail) }
 
         val isReserved = eventSeriesRepository.attemptToReserveSpots(series.id, request.seatCount)
@@ -360,6 +363,7 @@ open class ReservationService(
     ): Either<ReservationError.CreateReservation, Reservation> = either {
         ensure(requestData.seatCount >= 1) { ReservationError.InvalidSeatCount }
         ensurePaymentTypeAllowed(requestData.paymentType, target.allowedPaymentTypes)
+        ensureRequiredFieldsFilled(target, requestData.customValues)
         val reference = Reference.Slot(target.serviceId, target.startDateTime, target.endDateTime)
         ensureNoDuplicate(acknowledgedDuplicate) { duplicateDetector.forSlot(reference, requestData.contactEmail) }
 
@@ -390,6 +394,7 @@ open class ReservationService(
         ensure(request.seatCount == 1) { ReservationError.InvalidSeatCount }
         ensurePaymentTypeAllowed(request.paymentType, instance.allowedPaymentTypes)
 
+        ensureRequiredFieldsFilled(ReservationTarget.Instance(instance), request.customValues)
         ensureNoDuplicate(request.acknowledgedDuplicate) { duplicateDetector.forInstance(instance, request.contactEmail) }
 
         val claimed = eventInstanceRepository.attemptToReserveWaitlistSpot(instance.id)
@@ -419,6 +424,7 @@ open class ReservationService(
         ensure(request.seatCount == 1) { ReservationError.InvalidSeatCount }
         ensurePaymentTypeAllowed(request.paymentType, series.allowedPaymentTypes)
 
+        ensureRequiredFieldsFilled(ReservationTarget.Series(series), request.customValues)
         ensureNoDuplicate(request.acknowledgedDuplicate) { duplicateDetector.forSeries(series.id, request.contactEmail) }
 
         val claimed = eventSeriesRepository.attemptToReserveWaitlistSpot(series.id)
@@ -444,6 +450,19 @@ open class ReservationService(
     ) {
         if (requested == PaymentType.FREE) return
         ensure(requested in allowed) { ReservationError.PaymentTypeNotAllowed }
+    }
+
+    /**
+     * Povinná vlastní pole podle stejného pravidla jako formulář. Musí běžet před zabráním
+     * místa — odmítnutý pokus by ho jinak držel. Odmítne i pole, které klient nezná, protože
+     * ho admin přidal až po načtení formuláře; hláška proto radí načíst stránku znovu.
+     */
+    private fun Raise<ReservationError.CreateReservation>.ensureRequiredFieldsFilled(
+        target: ReservationTarget,
+        values: Map<String, CustomFieldValue>,
+    ) {
+        val invalid = firstInvalidCustomField(target, values) ?: return
+        raise(ReservationError.RequiredFieldMissing(key = invalid.key, label = invalid.label))
     }
 
     /**

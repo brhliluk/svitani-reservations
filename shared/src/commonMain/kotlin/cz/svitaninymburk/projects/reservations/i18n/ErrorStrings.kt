@@ -21,6 +21,7 @@ interface ErrorStrings {
     val errorMultipleSeatsNotAllowed: String
     val errorInvalidSeatCount: String
     val errorPaymentTypeNotAllowed: String
+    fun errorRequiredFieldMissing(label: String): String
     val errorEventAlreadyFinished: String
     val errorEventAlreadyStarted: String
     val errorSeriesAlreadyStarted: String

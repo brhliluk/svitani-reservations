@@ -53,6 +53,11 @@ enum class DuplicateScope {
     @Serializable data object InvalidSeatCount : CreateReservation
     /** Způsob platby, který akce nepovoluje — třeba převod u akce jen s platbou na místě. */
     @Serializable data object PaymentTypeNotAllowed : CreateReservation
+    /**
+     * Povinné vlastní pole akce chybí nebo nesedí (viz `isCustomFieldValid`). Web ho
+     * nepustí dál už ve formuláři; tohle je pojistka pro požadavky mimo něj.
+     */
+    @Serializable data class RequiredFieldMissing(val key: String, val label: String) : CreateReservation
     @Serializable data object FailedToGetAllReservations : GetAll
     @Serializable data class SystemError(val message: String) : CreateReservation
     @Serializable data object NotASeriesReservation : CancelReservation
@@ -113,6 +118,7 @@ fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (thi
     is ReservationError.MultipleSeatsNotAllowed -> strings.errorMultipleSeatsNotAllowed
     is ReservationError.InvalidSeatCount -> strings.errorInvalidSeatCount
     is ReservationError.PaymentTypeNotAllowed -> strings.errorPaymentTypeNotAllowed
+    is ReservationError.RequiredFieldMissing -> strings.errorRequiredFieldMissing(label)
     is ReservationError.EventAlreadyFinished -> strings.errorEventAlreadyFinished
     is ReservationError.EventAlreadyStarted -> strings.errorEventAlreadyStarted
     is ReservationError.SeriesAlreadyStarted -> strings.errorSeriesAlreadyStarted
