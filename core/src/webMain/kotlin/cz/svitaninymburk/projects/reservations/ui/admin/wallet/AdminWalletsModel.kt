@@ -35,6 +35,7 @@ class AdminWalletsModel(
 
     var uiState: AdminWalletsUiState by mutableStateOf(AdminWalletsUiState.Loading); private set
     var page by mutableIntStateOf(0); private set
+    var hideEmpty by mutableStateOf(false); private set
 
     /** Není-li null, místo seznamu se ukazuje detail té peněženky. */
     var selectedWallet: Wallet? by mutableStateOf(null); private set
@@ -42,7 +43,7 @@ class AdminWalletsModel(
     fun load() {
         uiState = AdminWalletsUiState.Loading
         scope.launch {
-            queries.wallets(page, WALLETS_PAGE_SIZE)
+            queries.wallets(page, WALLETS_PAGE_SIZE, hideEmpty)
                 .onRight { uiState = AdminWalletsUiState.Success(it) }
                 .onLeft { uiState = AdminWalletsUiState.Error(it.localizedMessage(currentStrings)) }
         }
@@ -56,6 +57,12 @@ class AdminWalletsModel(
     fun goToPage(target: Int) {
         if (target == page || target < 0) return
         page = target
+        load()
+    }
+
+    fun setHideEmpty(value: Boolean) {
+        hideEmpty = value
+        page = 0
         load()
     }
 

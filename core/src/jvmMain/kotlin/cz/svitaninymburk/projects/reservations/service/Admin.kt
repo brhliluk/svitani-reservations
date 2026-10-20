@@ -1747,8 +1747,8 @@ class AdminDashboardService(
         resender.resend(auditEventId).bind()
     }
 
-    override suspend fun getWallets(page: Int, pageSize: Int): Either<AdminError.GetWallets, WalletsPage> =
-        Either.catch { walletService.getAll(page, pageSize) }
+    override suspend fun getWallets(page: Int, pageSize: Int, hideEmpty: Boolean): Either<AdminError.GetWallets, WalletsPage> =
+        Either.catch { walletService.getAll(page, pageSize, hideEmpty) }
             .mapLeft { AdminError.WalletOperationFailed }
 
     /** Pro proklik z historie: /admin/wallets/{code} musí umět načíst jednu peněženku. */

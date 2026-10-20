@@ -18,6 +18,7 @@ import cz.svitaninymburk.projects.reservations.ui.util.Pagination
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
 import dev.kilua.core.IComponent
+import dev.kilua.form.check.checkBox
 import dev.kilua.form.number.numeric
 import app.softwork.routingcompose.Router
 import dev.kilua.form.text.text
@@ -43,8 +44,14 @@ fun IComponent.AdminWalletsScreen(preselectCode: String? = null) {
     div(className = "flex flex-col gap-6 animate-fade-in") {
 
         // --- 1. HEADER ---
-        div {
+        div(className = "flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4") {
             h1(className = "text-3xl font-bold text-base-content") { +currentStrings.adminWallets }
+            label(className = "label cursor-pointer gap-2") {
+                span(className = "label-text text-sm") { +currentStrings.adminWalletsHideEmpty }
+                checkBox(value = model.hideEmpty, className = "toggle toggle-sm toggle-primary") {
+                    onChange { model.setHideEmpty(value) }
+                }
+            }
         }
 
         // --- 2. TABLE ---

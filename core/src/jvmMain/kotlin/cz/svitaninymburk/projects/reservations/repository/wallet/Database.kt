@@ -94,8 +94,9 @@ interface WalletRepository {
 
     suspend fun insertTransaction(tx: NewWalletTransaction): WalletTransaction
     suspend fun getTransactions(walletId: Uuid): List<WalletTransaction>
-    suspend fun findAll(page: Int, pageSize: Int): List<Wallet>
-    suspend fun countAll(): Long
+    /** Od nejnovější; [nonEmptyOnly] vynechá peněženky s nulovým zůstatkem. */
+    suspend fun findAll(page: Int, pageSize: Int, nonEmptyOnly: Boolean = false): List<Wallet>
+    suspend fun countAll(nonEmptyOnly: Boolean = false): Long
     suspend fun findAllWithPositiveBalance(): List<Wallet>
     suspend fun isCodeUnique(code: String): Boolean
 }
@@ -185,14 +186,19 @@ class ExposedWalletRepository : WalletRepository {
             .map { it.toWalletTransaction() }
     }
 
-    override suspend fun findAll(page: Int, pageSize: Int): List<Wallet> = dbQuery {
+    override suspend fun findAll(page: Int, pageSize: Int, nonEmptyOnly: Boolean): List<Wallet> = dbQuery {
         WalletsTable.selectAll()
+            .apply { if (nonEmptyOnly) where { WalletsTable.balance greater 0.0 } }
+            // Kód jako druhý klíč, aby stránkování nepřeskakovalo při shodném čase.
+            .orderBy(WalletsTable.createdAt to SortOrder.DESC, WalletsTable.code to SortOrder.ASC)
             .limit(pageSize).offset((page * pageSize).toLong())
             .map { it.toWallet() }
     }
 
-    override suspend fun countAll(): Long = dbQuery {
-        WalletsTable.selectAll().count()
+    override suspend fun countAll(nonEmptyOnly: Boolean): Long = dbQuery {
+        WalletsTable.selectAll()
+            .apply { if (nonEmptyOnly) where { WalletsTable.balance greater 0.0 } }
+            .count()
     }
 
     override suspend fun findAllWithPositiveBalance(): List<Wallet> = dbQuery {

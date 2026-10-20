@@ -704,6 +704,7 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val walletCreditIssued = "Kredit byl připsán do peněženky"
     override val cancellationEmailNotSent = "Rezervace je zrušená. Potvrzení e-mailem se nám teď nepodařilo odeslat, ale nic dalšího dělat nemusíte."
     override val adminWallets = "Peněženky"
+    override val adminWalletsHideEmpty = "Skrýt prázdné"
     override val tooltipViewWallet = "Zobrazit detail peněženky"
     override val adminWalletDetail = "Detail peněženky"
     override val adminWalletAdjust = "Ruční úprava kreditu"

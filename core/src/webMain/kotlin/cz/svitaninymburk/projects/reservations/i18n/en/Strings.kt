@@ -691,6 +691,7 @@ object EnStrings : AppStrings {
     override val walletCreditIssued = "Credit was added to your wallet"
     override val cancellationEmailNotSent = "Your reservation is cancelled. We couldn't send the confirmation email right now, but there's nothing else you need to do."
     override val adminWallets = "Wallets"
+    override val adminWalletsHideEmpty = "Hide empty"
     override val tooltipViewWallet = "View wallet detail"
     override val adminWalletDetail = "Wallet detail"
     override val adminWalletAdjust = "Manual balance adjustment"

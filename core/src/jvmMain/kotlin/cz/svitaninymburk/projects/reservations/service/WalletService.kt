@@ -154,9 +154,9 @@ class WalletService(private val repo: WalletRepository) {
 
     suspend fun getWalletInfo(code: String): Wallet? = repo.findByCode(code)
 
-    suspend fun getAll(page: Int, pageSize: Int): WalletsPage = WalletsPage(
-        items = repo.findAll(page, pageSize),
-        totalCount = repo.countAll(),
+    suspend fun getAll(page: Int, pageSize: Int, hideEmpty: Boolean = false): WalletsPage = WalletsPage(
+        items = repo.findAll(page, pageSize, nonEmptyOnly = hideEmpty),
+        totalCount = repo.countAll(nonEmptyOnly = hideEmpty),
         page = page,
         pageSize = pageSize,
     )

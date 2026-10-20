@@ -141,6 +141,23 @@ class WalletServiceSpec {
         assertEquals(-150.0, resetTx.amount)
     }
 
+    @Test
+    fun `getAll with hideEmpty skips wallets with zero balance`() = runBlocking {
+        val svc = service()
+        val empty = svc.findOrCreateForRegisteredUser(Uuid.random(), "empty@test.com")
+        val full = svc.findOrCreateForRegisteredUser(Uuid.random(), "full@test.com")
+        svc.credit(full.id, 100.0, WalletTransactionReason.ADMIN_CREDIT)
+
+        val all = svc.getAll(page = 0, pageSize = 20)
+        assertEquals(2L, all.totalCount)
+        assertEquals(setOf(empty.id, full.id), all.items.map { it.id }.toSet())
+
+        // Počet musí sedět s filtrem, jinak stránkování ukazuje prázdné stránky.
+        val nonEmpty = svc.getAll(page = 0, pageSize = 20, hideEmpty = true)
+        assertEquals(1L, nonEmpty.totalCount)
+        assertEquals(listOf(full.id), nonEmpty.items.map { it.id })
+    }
+
     private fun reservation(
         email: String,
         registeredUserId: Uuid? = null,
