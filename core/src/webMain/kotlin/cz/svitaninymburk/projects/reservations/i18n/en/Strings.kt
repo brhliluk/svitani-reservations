@@ -923,4 +923,10 @@ object EnStrings : AppStrings {
         "${shortDayName(start.date.dayOfWeek.isoDayNumber - 1)} ${start.date.day} ${monthName(start.date.month.number - 1).take(3)} " +
             "${start.time.hourMinute}\u2013${end.time.hourMinute}"
     override val changeSelection = "change"
+
+    override val reservationKindFilter = "Reservation type"
+    override val reservationKindAll = "All types"
+    override val reservationKindInstance = "Events"
+    override val reservationKindSeries = "Courses"
+    override val reservationKindSlot = "Time slots"
 }

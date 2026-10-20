@@ -1,5 +1,9 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.reservations
 
+import web.html.HTMLSelectElement
+import dev.kilua.html.option
+import dev.kilua.form.select.select
+import cz.svitaninymburk.projects.reservations.reservation.ReservationKind
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,10 +32,10 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 @Composable
-fun IComponent.AdminReservationsScreen() {
+fun IComponent.AdminReservationsScreen(initialSearch: String? = null) {
     val scope = rememberCoroutineScope()
     val currentStrings by strings
-    val model = remember { buildAdminReservationsModel(scope) }
+    val model = remember(initialSearch) { buildAdminReservationsModel(scope, initialSearch) }
 
     LaunchedEffect(Unit) { model.load() }
 
@@ -65,6 +69,23 @@ fun IComponent.AdminReservationsScreen() {
                         attribute("data-tip", currentStrings.clearSearch)
                         onClick { model.clearSearch() }
                         span(className = "icon-[heroicons--x-mark] size-5")
+                    }
+                }
+                select(className = "select select-bordered") {
+                    attribute("aria-label", currentStrings.reservationKindFilter)
+                    listOf(
+                        null to currentStrings.reservationKindAll,
+                        ReservationKind.INSTANCE to currentStrings.reservationKindInstance,
+                        ReservationKind.SERIES to currentStrings.reservationKindSeries,
+                        ReservationKind.SLOT to currentStrings.reservationKindSlot,
+                    ).forEach { (kind, label) ->
+                        option(kind?.name ?: "", label = label) {
+                            if (kind == model.kindFilter) selected(true)
+                        }
+                    }
+                    onChange { event ->
+                        val value = (event.target as? HTMLSelectElement)?.value.orEmpty()
+                        model.setKindFilter(ReservationKind.entries.firstOrNull { it.name == value })
                     }
                 }
                 label(className = "flex items-center gap-2 cursor-pointer select-none") {

@@ -26,7 +26,7 @@ enum class SlotSelectionError {
     /** Úsek by přešel přes plný krok nebo přes hranici mezi okny (zavřeno). */
     CROSSES_UNAVAILABLE,
 
-    /** Úsek by byl delší, než služba dovolí. */
+    /** Úsek by byl delší, než služba dovolí (jen u služby s limitem délky). */
     TOO_LONG,
 }
 
@@ -68,7 +68,8 @@ fun extendSelection(
     if (!passable) return Either.Left(SlotSelectionError.CROSSES_UNAVAILABLE)
 
     val candidate = SlotSelection(current.first, tappedIndex)
-    if (selectionDuration(candidate, segments) > service.maxDuration) return Either.Left(SlotSelectionError.TOO_LONG)
+    val maxDuration = service.maxDuration
+    if (maxDuration != null && selectionDuration(candidate, segments) > maxDuration) return Either.Left(SlotSelectionError.TOO_LONG)
     return Either.Right(candidate)
 }
 
@@ -94,13 +95,13 @@ fun selectionPrice(service: SlotService, seats: Int, hours: Double): Double =
         timeMultiplier = hours,
     )
 
-/** Úsek splňuje minimální délku (maximum hlídá už [extendSelection]). */
+/** Úsek splňuje minimální délku (maximum hlídá už [extendSelection]). Minimum 0 splní každý výběr. */
 fun isSelectionLongEnough(selection: SlotSelection, segments: List<SlotSegment>, service: SlotService): Boolean =
     selectionDuration(selection, segments) >= service.minDuration
 
 /**
  * Jde ten den pro [seats] dětí zarezervovat aspoň nejkratší úsek? Hledá souvislý
- * běh volných kroků dlouhý aspoň [minDuration].
+ * běh volných kroků dlouhý aspoň [minDuration]. Při minimu 0 stačí jeden volný krok.
  */
 fun dayHasAvailability(day: DayAvailability, seats: Int, minDuration: Duration = Duration.ZERO): Boolean {
     var runStart: LocalDateTime? = null

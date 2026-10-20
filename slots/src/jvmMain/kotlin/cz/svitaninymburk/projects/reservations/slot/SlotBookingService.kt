@@ -72,7 +72,8 @@ open class SlotBookingService(
             ensure(
                 end > start && start.date == end.date && start.isAlignedTo(service.step) && end.isAlignedTo(service.step)
             ) { ReservationError.SlotNotAligned }
-            ensure(durationBetween(start.time, end.time) in service.minDuration..service.maxDuration) {
+            val duration = durationBetween(start.time, end.time)
+            ensure(duration >= service.minDuration && service.maxDuration.let { it == null || duration <= it }) {
                 ReservationError.SlotDurationOutOfRange
             }
 

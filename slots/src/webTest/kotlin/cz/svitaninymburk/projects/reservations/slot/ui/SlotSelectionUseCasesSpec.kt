@@ -38,7 +38,7 @@ private val DAY = LocalDate(2026, 10, 14)
 
 private fun service(
     minDuration: kotlin.time.Duration = 30.minutes,
-    maxDuration: kotlin.time.Duration = 2.hours,
+    maxDuration: kotlin.time.Duration? = 2.hours,
     maxSeatsPerBooking: Int = 3,
     capacity: Int = 8,
 ) = SlotService(
@@ -142,6 +142,22 @@ class SlotSelectionUseCasesSpec {
     }
 
     @Test
+    fun withoutMaximumTheSelectionIsLimitedOnlyByTheWindow() {
+        val unlimited = service(maxDuration = null)
+        assertEquals(SlotSelection(0, 3), extendSelection(SlotSelection(0, 0), 3, segments, 1, unlimited).getOrNull())
+        assertEquals(
+            SlotSelectionError.CROSSES_UNAVAILABLE,
+            extendSelection(SlotSelection(0, 0), 4, segments, 1, unlimited).leftOrNull(),
+        )
+    }
+
+    @Test
+    fun tooLongMessageNamesTheMaximumWhenThereIsOne() {
+        assertTrue(CsSlotStrings.selectionError(SlotSelectionError.TOO_LONG, 1.hours).contains("1"))
+        assertTrue(CsSlotStrings.selectionError(SlotSelectionError.TOO_LONG, null).isNotBlank())
+    }
+
+    @Test
     fun tapOutsideTheDayKeepsTheSelection() {
         assertEquals(SlotSelection(0, 1), extendSelection(SlotSelection(0, 1), 99, segments, 1, service()).getOrNull())
     }
@@ -151,6 +167,26 @@ class SlotSelectionUseCasesSpec {
         val oneHourMinimum = service(minDuration = 1.hours)
         assertFalse(isSelectionLongEnough(SlotSelection(0, 0), segments, oneHourMinimum))
         assertTrue(isSelectionLongEnough(SlotSelection(0, 1), segments, oneHourMinimum))
+    }
+
+    @Test
+    fun zeroMinimumAcceptsASingleStep() {
+        val noMinimum = service(minDuration = kotlin.time.Duration.ZERO)
+        assertTrue(isSelectionLongEnough(SlotSelection(0, 0), segments, noMinimum))
+        assertTrue(dayHasAvailability(DayAvailability(DAY, listOf(step(9, 30, free = 1))), seats = 1, minDuration = noMinimum.minDuration))
+    }
+
+    @Test
+    fun hourStepsAreSelectedAndPricedAsWholeHours() {
+        val hourSteps = (8..11).map { hour ->
+            SlotSegment(LocalDateTime(DAY.year, DAY.month, DAY.day, hour, 0), LocalDateTime(DAY.year, DAY.month, DAY.day, hour + 1, 0), 4, 8)
+        }
+        val hourly = service(minDuration = kotlin.time.Duration.ZERO, maxDuration = 3.hours).copy(step = 60.minutes)
+
+        assertEquals(SlotSelection(0, 2), extendSelection(SlotSelection(0, 0), 2, hourSteps, 1, hourly).getOrNull())
+        assertEquals(SlotSelectionError.TOO_LONG, extendSelection(SlotSelection(0, 0), 3, hourSteps, 1, hourly).leftOrNull())
+        assertEquals(3.0, selectionHours(SlotSelection(0, 2), hourSteps))
+        assertTrue(isSelectionLongEnough(SlotSelection(1, 1), hourSteps, hourly))
     }
 
     @Test

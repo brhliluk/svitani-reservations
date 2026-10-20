@@ -1,8 +1,11 @@
 package cz.svitaninymburk.projects.reservations.ui
 
+import cz.svitaninymburk.projects.reservations.LocalWebFeatures
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -63,6 +66,14 @@ fun IComponent.MainLayout(features: List<WebFeature> = emptyList()) {
 
     LaunchedEffect(Unit) { session.refresh() }
 
+    // Admin menu je hluboko v layoutu; moduly se k němu dostanou přes CompositionLocal.
+    CompositionLocalProvider(LocalWebFeatures provides features) {
+        MainRoutes(session, features, headerLinks)
+    }
+}
+
+@Composable
+private fun IComponent.MainRoutes(session: SessionModel, features: List<WebFeature>, headerLinks: List<HeaderLink>) {
     if (!session.isLoaded) {
         div {}
     } else if (session.isAdmin) {
@@ -215,10 +226,10 @@ fun IComponent.MainLayout(features: List<WebFeature> = emptyList()) {
                         }
                     }
                 }
-                route("/reservations") {
+                route("/reservations") { context ->
                     view {
                         AdminRoute(session) {
-                            AdminReservationsScreen()
+                            AdminReservationsScreen(initialSearch = context.parameters?.map?.get("search")?.firstOrNull())
                         }
                     }
                 }
@@ -240,6 +251,29 @@ fun IComponent.MainLayout(features: List<WebFeature> = emptyList()) {
                     view {
                         AdminRoute(session) {
                             AdminPaymentsScreen()
+                        }
+                    }
+                }
+                features.flatMap { it.adminPages }.forEach { page ->
+                    route(page.path) {
+                        page.detail?.let { detail ->
+                            string {
+                                // Hodnotu brát z parametru view, ne z kontextu (`it.value`): kontext je obyčejné
+                                // pole mimo Compose, takže při přechodu /x/new → /x/<id> by se view přeskočil
+                                // a zůstala by stará obrazovka. key(id) dá každé adrese čerstvý stav obrazovky.
+                                view { id ->
+                                    AdminRoute(session) {
+                                        key(id) {
+                                            detail(this, PageContext(session.currentUser, session.walletCode), id)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        view {
+                            AdminRoute(session) {
+                                page.content(this, PageContext(session.currentUser, session.walletCode))
+                            }
                         }
                     }
                 }

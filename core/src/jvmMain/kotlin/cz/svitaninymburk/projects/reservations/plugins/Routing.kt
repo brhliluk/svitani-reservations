@@ -44,7 +44,7 @@ fun Application.configureRouting(features: List<ServerFeature> = emptyList()) {
         }
 
         authenticate("auth-jwt") {
-            adminRoutes()
+            adminRoutes(features)
         }
 
         authenticate("auth-jwt", optional = true) {

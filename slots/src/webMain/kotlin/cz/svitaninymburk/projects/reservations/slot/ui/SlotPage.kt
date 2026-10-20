@@ -36,6 +36,7 @@ import dev.kilua.html.p
 import dev.kilua.html.span
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
+import kotlin.time.Duration
 
 @Composable
 fun IComponent.SlotPage(context: PageContext) {
@@ -299,7 +300,8 @@ private fun IComponent.TimeAxis(model: SlotPageModel, service: SlotService) {
                 span { +s.selectionError(error, service.maxDuration) }
             }
         }
-        if (selection != null && !model.canContinue) {
+        // Bez minima (0) je dost dlouhý každý výběr a nápověda „nejkratší je 0 min“ nedává smysl.
+        if (selection != null && !model.canContinue && service.minDuration > Duration.ZERO) {
             p(className = "text-sm text-base-content/60") { +s.minDurationHint(service.minDuration) }
         }
     }

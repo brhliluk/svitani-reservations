@@ -21,10 +21,12 @@ data class SlotService(
     val id: Uuid,
     val title: String,
     val description: String,
-    /** Krok zarovnání začátku i konce (15 nebo 30 min), počítáno od půlnoci. */
+    /** Krok zarovnání začátku i konce (15, 30 nebo 60 min, viz [SLOT_STEPS]), počítáno od půlnoci. */
     val step: Duration,
+    /** Nejkratší úsek; 0 = bez minima (úsek má vždy aspoň jeden krok). */
     val minDuration: Duration,
-    val maxDuration: Duration,
+    /** Nejdelší úsek; null = bez omezení (úsek stejně nepřesáhne okno dne). */
+    val maxDuration: Duration?,
     /** Cena za hodinu a jedno místo (dítě). */
     val pricePerHour: Double,
     /** Kolik míst (dětí) může být obsazeno současně. */

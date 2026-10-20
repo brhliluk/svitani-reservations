@@ -37,7 +37,8 @@ interface SlotStrings {
     fun freeSeats(count: Int): String
     val stepFull: String
     val timeHint: String
-    fun selectionError(error: SlotSelectionError, maxDuration: Duration): String
+    /** [maxDuration] null = služba nemá limit délky. */
+    fun selectionError(error: SlotSelectionError, maxDuration: Duration?): String
     fun minDurationHint(minDuration: Duration): String
 
     /** „1 dítě“, „2 děti“, „5 dětí“. */

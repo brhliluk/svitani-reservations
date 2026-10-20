@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.repository.reservation
 
+import cz.svitaninymburk.projects.reservations.reservation.ReservationKind
 import cz.svitaninymburk.projects.reservations.repository.event.INACTIVE_RESERVATION_STATUSES
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
@@ -69,35 +70,25 @@ class InMemoryReservationRepository : ReservationRepository {
         return reservations.values.toList()
     }
 
-    override suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int, includeCancelled: Boolean): List<Reservation> {
-        var result = if (includeCancelled) reservations.values.toList() else reservations.values.filter {
-            it.status != Reservation.Status.CANCELLED && it.status != Reservation.Status.REJECTED
+    private fun adminList(searchQuery: String?, includeCancelled: Boolean, kind: ReservationKind?): List<Reservation> {
+        val q = searchQuery?.takeIf { it.isNotBlank() }?.lowercase()
+        return reservations.values.filter {
+            (includeCancelled || (it.status != Reservation.Status.CANCELLED && it.status != Reservation.Status.REJECTED)) &&
+                (kind == null || it.reference.kind == kind) &&
+                (q == null || it.contactName.lowercase().contains(q) ||
+                    it.contactEmail.lowercase().contains(q) ||
+                    it.variableSymbol?.lowercase()?.contains(q) == true)
         }
-        if (!searchQuery.isNullOrBlank()) {
-            val q = searchQuery.lowercase()
-            result = result.filter {
-                it.contactName.lowercase().contains(q) ||
-                it.contactEmail.lowercase().contains(q) ||
-                it.variableSymbol?.lowercase()?.contains(q) == true
-            }
-        }
-        return result.sortedByDescending { it.createdAt }
-                     .drop(page * pageSize)
-                     .take(pageSize)
     }
 
-    override suspend fun countAll(searchQuery: String?, includeCancelled: Boolean): Long {
-        val base = if (includeCancelled) reservations.values.toList() else reservations.values.filter {
-            it.status != Reservation.Status.CANCELLED && it.status != Reservation.Status.REJECTED
-        }
-        if (searchQuery.isNullOrBlank()) return base.size.toLong()
-        val q = searchQuery.lowercase()
-        return base.count {
-            it.contactName.lowercase().contains(q) ||
-            it.contactEmail.lowercase().contains(q) ||
-            it.variableSymbol?.lowercase()?.contains(q) == true
-        }.toLong()
-    }
+    override suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int, includeCancelled: Boolean, kind: ReservationKind?): List<Reservation> =
+        adminList(searchQuery, includeCancelled, kind)
+            .sortedByDescending { it.createdAt }
+            .drop(page * pageSize)
+            .take(pageSize)
+
+    override suspend fun countAll(searchQuery: String?, includeCancelled: Boolean, kind: ReservationKind?): Long =
+        adminList(searchQuery, includeCancelled, kind).size.toLong()
 
     override suspend fun existsByVariableSymbol(variableSymbol: String): Boolean {
         return reservations.values.any { it.variableSymbol == variableSymbol }
@@ -153,3 +144,10 @@ class InMemorySeriesLessonOptOutRepository : SeriesLessonOptOutRepository {
         found.isNotEmpty()
     }
 }
+
+private val Reference.kind: ReservationKind
+    get() = when (this) {
+        is Reference.Instance -> ReservationKind.INSTANCE
+        is Reference.Series -> ReservationKind.SERIES
+        is Reference.Slot -> ReservationKind.SLOT
+    }

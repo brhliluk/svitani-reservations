@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.admin
 
+import cz.svitaninymburk.projects.reservations.AdminNavLink
+import cz.svitaninymburk.projects.reservations.LocalWebFeatures
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.ui.auth.ChangePasswordDialog
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
@@ -116,7 +118,8 @@ fun IComponent.AdminLayout(
 @Composable
 private fun IComponent.AdminNavLinks(onNavigate: (String) -> Unit) {
     val currentStrings by strings
-    val links = listOf(
+    val featureLinks = LocalWebFeatures.current.flatMap { it.adminNavLinks }
+    val coreLinks = listOf(
         Triple("/admin", "icon-[heroicons--home] size-5 text-primary/70", currentStrings.dashboard),
         Triple("/admin/schedule", "icon-[heroicons--clock] size-5 text-primary/70", currentStrings.navSchedule),
         Triple("/admin/events", "icon-[heroicons--calendar-days] size-5 text-primary/70", currentStrings.navEvents),
@@ -125,7 +128,8 @@ private fun IComponent.AdminNavLinks(onNavigate: (String) -> Unit) {
         Triple("/admin/payments", "icon-[heroicons--banknotes] size-5 text-primary/70", currentStrings.navPayments),
         Triple("/admin/wallets", "icon-[heroicons--wallet] size-5 text-primary/70", currentStrings.adminWallets),
         Triple("/admin/settings", "icon-[heroicons--cog-6-tooth] size-5 text-primary/70", currentStrings.navSettings),
-    )
+    ).map { (path, icon, label) -> AdminNavLink(path, icon, label = { label }) }
+    val links = mergeNavLinks(coreLinks, featureLinks).map { Triple(it.path, it.iconClass, it.label()) }
 
     ul(className = "flex-1 space-y-2") {
         links.forEach { (route, icon, label) ->
@@ -146,4 +150,15 @@ private fun IComponent.AdminNavLinks(onNavigate: (String) -> Unit) {
             }
         }
     }
+}
+
+/**
+ * Pořadí bočního menu: položky jádra a mezi ně odkazy modulů. Odkaz s [AdminNavLink.after] jde hned
+ * za tu položku jádra (víc odkazů za jednou položkou v pořadí, v jakém přišly), ostatní na konec.
+ */
+internal fun mergeNavLinks(core: List<AdminNavLink>, feature: List<AdminNavLink>): List<AdminNavLink> {
+    val corePaths = core.map { it.path }.toSet()
+    val (anchored, trailing) = feature.partition { link -> link.after?.let { it in corePaths } == true }
+    val byAnchor = anchored.groupBy { it.after }
+    return core.flatMap { listOf(it) + byAnchor[it.path].orEmpty() } + trailing
 }

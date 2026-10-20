@@ -774,6 +774,13 @@ interface AppStrings : ErrorStrings {
     val waitlistCapacityLabel: String
     fun waitlistPositionLabel(position: Int): String
 
+    // Filtr typu v admin přehledu rezervací
+    val reservationKindFilter: String
+    val reservationKindAll: String
+    val reservationKindInstance: String
+    val reservationKindSeries: String
+    val reservationKindSlot: String
+
     // Rezervace časového úseku (hlídání)
     /** „út 14. 10. 9:00–11:30“ — úsek je vždy v jednom dni. */
     fun slotInterval(start: LocalDateTime, end: LocalDateTime): String

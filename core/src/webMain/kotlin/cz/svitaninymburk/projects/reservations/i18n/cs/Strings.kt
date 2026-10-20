@@ -845,4 +845,10 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
         "${shortDayName(start.date.dayOfWeek.isoDayNumber - 1).lowercase()} ${start.date.day}. ${start.date.month.number}. " +
             "${start.time.hourMinute}\u2013${end.time.hourMinute}"
     override val changeSelection = "změnit"
+
+    override val reservationKindFilter = "Typ rezervace"
+    override val reservationKindAll = "Všechny typy"
+    override val reservationKindInstance = "Akce"
+    override val reservationKindSeries = "Kurzy"
+    override val reservationKindSlot = "Časové úseky"
 }

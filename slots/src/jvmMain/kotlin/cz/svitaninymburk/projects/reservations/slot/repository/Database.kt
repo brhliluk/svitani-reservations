@@ -31,7 +31,8 @@ object SlotServicesTable : Table("slot_services") {
     val description = text("description")
     val stepMs = long("step_ms")
     val minDurationMs = long("min_duration_ms")
-    val maxDurationMs = long("max_duration_ms")
+    /** null = bez omezení délky. */
+    val maxDurationMs = long("max_duration_ms").nullable()
     val pricePerHour = double("price_per_hour")
     val capacity = integer("capacity")
     val maxSeatsPerBooking = integer("max_seats_per_booking")
@@ -117,7 +118,7 @@ class ExposedSlotServiceRepository : SlotServiceRepository {
         this[SlotServicesTable.description] = service.description
         this[SlotServicesTable.stepMs] = service.step.inWholeMilliseconds
         this[SlotServicesTable.minDurationMs] = service.minDuration.inWholeMilliseconds
-        this[SlotServicesTable.maxDurationMs] = service.maxDuration.inWholeMilliseconds
+        this[SlotServicesTable.maxDurationMs] = service.maxDuration?.inWholeMilliseconds
         this[SlotServicesTable.pricePerHour] = service.pricePerHour
         this[SlotServicesTable.capacity] = service.capacity
         this[SlotServicesTable.maxSeatsPerBooking] = service.maxSeatsPerBooking
@@ -193,7 +194,7 @@ private fun ResultRow.toSlotService() = SlotService(
     description = this[SlotServicesTable.description],
     step = this[SlotServicesTable.stepMs].milliseconds,
     minDuration = this[SlotServicesTable.minDurationMs].milliseconds,
-    maxDuration = this[SlotServicesTable.maxDurationMs].milliseconds,
+    maxDuration = this[SlotServicesTable.maxDurationMs]?.milliseconds,
     pricePerHour = this[SlotServicesTable.pricePerHour],
     capacity = this[SlotServicesTable.capacity],
     maxSeatsPerBooking = this[SlotServicesTable.maxSeatsPerBooking],

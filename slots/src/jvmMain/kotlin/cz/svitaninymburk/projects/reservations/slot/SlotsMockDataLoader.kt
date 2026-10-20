@@ -11,6 +11,7 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.plus
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -32,8 +33,9 @@ class SlotsMockDataLoader : KoinComponent {
                 title = "Hlídání dětí",
                 description = "Pohlídáme vaše děti v herně Svítání, zatímco si vyřídíte, co potřebujete.",
                 step = 30.minutes,
-                minDuration = 1.hours,
-                maxDuration = 4.hours,
+                // Výchozí jako u nové služby z adminu: bez minima a bez limitu délky.
+                minDuration = Duration.ZERO,
+                maxDuration = null,
                 pricePerHour = 150.0,
                 capacity = 8,
                 maxSeatsPerBooking = 3,

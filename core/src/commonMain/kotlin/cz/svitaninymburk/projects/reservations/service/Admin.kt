@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.reservation.ReservationKind
 import arrow.core.Either
 import cz.svitaninymburk.projects.reservations.error.AdminError
 import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
@@ -38,7 +39,8 @@ interface AdminServiceInterface {
     suspend fun getDashboardSummary(): Either<AdminError.GetSummary, AdminDashboardData>
     suspend fun markReservationAsPaid(reservationId: Uuid): Either<AdminError.MarkReservationPaid, Unit>
     suspend fun getEventDetail(eventId: Uuid, isSeries: Boolean): Either<AdminError.GetEventDetail, AdminEventDetailData>
-    suspend fun getAllReservations(searchQuery: String? = null, page: Int = 0, pageSize: Int = 20, includeCancelled: Boolean = false): Either<AdminError.GetReservations, ReservationsPage>
+    /** [kind] = jen rezervace na akce, kurzy, nebo úseky (hlídání); null = všechny. */
+    suspend fun getAllReservations(searchQuery: String? = null, page: Int = 0, pageSize: Int = 20, includeCancelled: Boolean = false, kind: ReservationKind? = null): Either<AdminError.GetReservations, ReservationsPage>
     suspend fun getAllEvents(page: Int = 0, pageSize: Int = 20, includePast: Boolean = false): Either<AdminError.GetEvents, EventsPage>
     suspend fun getSchedule(page: Int = 0, pageSize: Int = 20, includePast: Boolean = false): Either<AdminError.GetSchedule, SchedulePage>
     suspend fun createEventDefinition(request: CreateEventDefinitionRequest): Either<AdminError.CreateEvent, Uuid>

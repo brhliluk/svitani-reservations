@@ -284,6 +284,20 @@ class ExpandAvailabilitySpec {
     }
 
     @Test
+    fun hourStepIsAlignedFromMidnight() {
+        val days = expand(
+            listOf(rule(DayOfWeek.TUESDAY, LocalTime(8, 30), LocalTime(12, 15))),
+            booked = listOf(BookedInterval(at(tuesday, 10, 30), at(tuesday, 10, 45), seats = 2)),
+            svc = service.copy(step = 60.minutes),
+        )
+
+        // Kus 8:30–9:00 a 12:00–12:15 nedá celou hodinu, takže odpadne.
+        assertEquals(listOf(LocalTime(9, 0), LocalTime(10, 0), LocalTime(11, 0)), days.single().startTimes())
+        assertEquals(at(tuesday, 12), days.single().segments.last().end)
+        assertEquals(listOf(8, 6, 8), days.single().segments.map { it.free })
+    }
+
+    @Test
     fun nonPositiveStepIsRejected() {
         assertFailsWith<IllegalArgumentException> {
             expand(emptyList(), svc = service.copy(step = 0.minutes))

@@ -314,6 +314,20 @@ components:
           nullable: true
         isSeries:
           type: boolean
+          description: Rezervace na kroužek. U hlídání (`kind` = SLOT) je false.
+        kind:
+          type: string
+          enum: [INSTANCE, SERIES, SLOT]
+          description: |
+            Na co rezervace je: jednorázová akce, kroužek, nebo časový úsek (hlídání dětí).
+            Pole se posílá jen tehdy, když se liší od hodnoty odvozené z `isSeries`, tedy
+            v praxi jen u SLOT. Chybí-li, platí SERIES při `isSeries` = true, jinak INSTANCE.
+        endDateTime:
+          type: string
+          format: date-time
+          description: |
+            Konec rezervovaného úseku, jen u `kind` = SLOT (začátek je `startDateTime`).
+            U akcí a kroužků pole chybí.
 
     CreateInstanceReservationRequest:
       type: object

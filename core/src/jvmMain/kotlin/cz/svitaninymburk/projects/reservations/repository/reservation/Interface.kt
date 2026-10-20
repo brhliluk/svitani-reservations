@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.repository.reservation
 
+import cz.svitaninymburk.projects.reservations.reservation.ReservationKind
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.datetime.LocalDateTime
@@ -49,8 +50,9 @@ interface ReservationRepository {
     suspend fun countSeats(id: Uuid): Int
     suspend fun getAll(userId: Uuid): List<Reservation>
     suspend fun findAll(): List<Reservation>
-    suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int, includeCancelled: Boolean = false): List<Reservation>
-    suspend fun countAll(searchQuery: String?, includeCancelled: Boolean = false): Long
+    /** [kind] = jen rezervace na akce, kurzy, nebo úseky; null = všechny. */
+    suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int, includeCancelled: Boolean = false, kind: ReservationKind? = null): List<Reservation>
+    suspend fun countAll(searchQuery: String?, includeCancelled: Boolean = false, kind: ReservationKind? = null): Long
     suspend fun existsByVariableSymbol(variableSymbol: String): Boolean
     suspend fun updateStatus(id: Uuid, status: Reservation.Status): Boolean
 

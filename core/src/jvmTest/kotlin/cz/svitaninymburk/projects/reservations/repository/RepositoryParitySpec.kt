@@ -18,6 +18,7 @@ import cz.svitaninymburk.projects.reservations.repository.user.UsersTable
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import cz.svitaninymburk.projects.reservations.reservation.ReservationKind
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -172,6 +173,24 @@ class RepositoryParitySpec {
             val found = repo.findActiveSlotReservations(serviceId, at(9), at(10)).map { it.id }.toSet()
 
             assertEquals(setOf(overlapping.id, inside.id), found, repo::class.simpleName)
+        }
+    }
+
+    @Test
+    fun `admin list filters by reservation kind together with search`() = runBlocking {
+        for (repo in reservationRepos()) {
+            repo.save(reservation(Uuid.random(), email = "akce@test.cz"))
+            repo.save(reservation(Uuid.random()).copy(reference = Reference.Series(Uuid.random()), contactEmail = "kurz@test.cz"))
+            val start = LocalDateTime(2026, 10, 20, 9, 0)
+            repo.save(reservation(Uuid.random()).copy(reference = Reference.Slot(Uuid.random(), start, LocalDateTime(2026, 10, 20, 10, 0)), contactEmail = "hlidani@test.cz"))
+            repo.save(reservation(Uuid.random(), status = Reservation.Status.CANCELLED).copy(reference = Reference.Slot(Uuid.random(), start, start), contactEmail = "storno@test.cz"))
+
+            val slots = repo.findAllPaged(null, 0, 20, kind = ReservationKind.SLOT)
+            assertEquals(listOf("hlidani@test.cz"), slots.map { it.contactEmail }, repo::class.simpleName)
+            assertEquals(1L, repo.countAll(null, kind = ReservationKind.SLOT))
+            assertEquals(2L, repo.countAll(null, includeCancelled = true, kind = ReservationKind.SLOT))
+            assertEquals(0L, repo.countAll("akce", kind = ReservationKind.SLOT))
+            assertEquals(3L, repo.countAll(null))
         }
     }
 }

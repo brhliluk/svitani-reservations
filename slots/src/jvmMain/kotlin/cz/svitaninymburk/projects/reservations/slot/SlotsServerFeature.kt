@@ -9,6 +9,7 @@ import cz.svitaninymburk.projects.reservations.slot.repository.ExposedSlotServic
 import cz.svitaninymburk.projects.reservations.slot.repository.SLOT_TABLES
 import cz.svitaninymburk.projects.reservations.slot.repository.SlotServiceRepository
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
+import cz.svitaninymburk.projects.reservations.service.AdminDashboardService
 import cz.svitaninymburk.projects.reservations.service.ReservationService
 import cz.svitaninymburk.projects.reservations.service.SlotBookingProvider
 import dev.kilua.rpc.applyRoutes
@@ -22,6 +23,18 @@ val slotsKoinModule = module {
     // Jádro se přes SlotBookingProvider ptá na cíl rezervace úseku.
     single { SlotAvailability(get(), get(), get(), get()) } bind SlotBookingProvider::class
     single { SlotBookingService(get(), get(), get<ReservationService>()) } bind SlotServiceInterface::class
+    single {
+        val admin = get<AdminDashboardService>()
+        SlotAdminService(
+            services = get(),
+            rules = get(),
+            exceptions = get(),
+            availability = get(),
+            reservations = get(),
+            audit = get(),
+            canceller = DeletedTargetCanceller(admin::cancelReservationsOfDeletedTarget),
+        )
+    } bind SlotAdminServiceInterface::class
 }
 
 /** Hlídání dětí, jak ho do serveru zapojí aplikace (`Features.kt`). */
@@ -32,4 +45,5 @@ val slotsServerFeature = ServerFeature(
     loadMockData = { SlotsMockDataLoader().load() },
     // Vygenerovaný manager napřímo: getServiceManager() z jádra o službách modulu neví.
     publicRoutes = { applyRoutes(SlotServiceInterfaceManager, RpcSerializersModules) },
+    adminRoutes = { applyRoutes(SlotAdminServiceInterfaceManager, RpcSerializersModules) },
 )

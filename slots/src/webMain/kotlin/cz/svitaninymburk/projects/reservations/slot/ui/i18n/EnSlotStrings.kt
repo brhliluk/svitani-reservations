@@ -25,10 +25,11 @@ object EnSlotStrings : SlotStrings {
     override val stepFull = "full"
     override val timeHint = "Tap the start, then the last block you want."
 
-    override fun selectionError(error: SlotSelectionError, maxDuration: Duration) = when (error) {
+    override fun selectionError(error: SlotSelectionError, maxDuration: Duration?) = when (error) {
         SlotSelectionError.STEP_FULL -> "There is no room for this many children at that time."
         SlotSelectionError.CROSSES_UNAVAILABLE -> "The booking cannot span a full or closed time."
-        SlotSelectionError.TOO_LONG -> "The longest possible booking is ${duration(maxDuration)}."
+        SlotSelectionError.TOO_LONG ->
+            maxDuration?.let { "The longest possible booking is ${duration(it)}." } ?: "The booking is too long."
     }
 
     override fun minDurationHint(minDuration: Duration) = "The shortest possible booking is ${duration(minDuration)}."

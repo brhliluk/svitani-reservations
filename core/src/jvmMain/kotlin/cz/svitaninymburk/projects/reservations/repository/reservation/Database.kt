@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.repository.reservation
 
+import org.jetbrains.exposed.v1.core.Op
+import cz.svitaninymburk.projects.reservations.reservation.ReservationKind
 import cz.svitaninymburk.projects.reservations.repository.event.INACTIVE_RESERVATION_STATUSES
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.Reference
@@ -20,6 +22,12 @@ import kotlinx.datetime.LocalDateTime
 import kotlin.uuid.Uuid
 
 enum class ReferenceDbDiscriminator { INSTANCE, SERIES, SLOT }
+
+private fun ReservationKind.toDiscriminator(): ReferenceDbDiscriminator = when (this) {
+    ReservationKind.INSTANCE -> ReferenceDbDiscriminator.INSTANCE
+    ReservationKind.SERIES -> ReferenceDbDiscriminator.SERIES
+    ReservationKind.SLOT -> ReferenceDbDiscriminator.SLOT
+}
 
 object ReservationsTable : Table("reservations") {
     val id = uuid("id").autoGenerate()
@@ -230,40 +238,33 @@ class ExposedReservationRepository : ReservationRepository {
         ReservationsTable.selectAll().map { it.toReservation() }
     }
 
-    override suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int, includeCancelled: Boolean): List<Reservation> = dbQuery {
-        val query = ReservationsTable.selectAll()
+    /** Filtr admin přehledu: hledání, stornované a typ rezervace. null = bez omezení. */
+    private fun adminListFilter(searchQuery: String?, includeCancelled: Boolean, kind: ReservationKind?): Op<Boolean>? {
         val activeFilter = if (includeCancelled) null else
             (ReservationsTable.status neq Reservation.Status.CANCELLED) and
             (ReservationsTable.status neq Reservation.Status.REJECTED)
-        if (!searchQuery.isNullOrBlank()) {
-            val q = "%${searchQuery.lowercase()}%"
-            val searchFilter = (ReservationsTable.contactName.lowerCase() like q) or
+        val searchFilter = searchQuery?.takeIf { it.isNotBlank() }?.let { query ->
+            val q = "%${query.lowercase()}%"
+            (ReservationsTable.contactName.lowerCase() like q) or
                 (ReservationsTable.contactEmail.lowerCase() like q) or
                 (ReservationsTable.variableSymbol.lowerCase() like q)
-            query.where { if (activeFilter != null) activeFilter and searchFilter else searchFilter }
-        } else if (activeFilter != null) {
-            query.where { activeFilter }
         }
+        val kindFilter = kind?.let { ReservationsTable.referenceType eq it.toDiscriminator() }
+        return listOfNotNull(activeFilter, searchFilter, kindFilter).reduceOrNull { a, b -> a and b }
+    }
+
+    override suspend fun findAllPaged(searchQuery: String?, page: Int, pageSize: Int, includeCancelled: Boolean, kind: ReservationKind?): List<Reservation> = dbQuery {
+        val query = ReservationsTable.selectAll()
+        adminListFilter(searchQuery, includeCancelled, kind)?.let { filter -> query.where { filter } }
         query.orderBy(ReservationsTable.createdAt, SortOrder.DESC)
              .limit(pageSize)
              .offset(page.toLong() * pageSize)
              .map { it.toReservation() }
     }
 
-    override suspend fun countAll(searchQuery: String?, includeCancelled: Boolean): Long = dbQuery {
+    override suspend fun countAll(searchQuery: String?, includeCancelled: Boolean, kind: ReservationKind?): Long = dbQuery {
         val query = ReservationsTable.selectAll()
-        val activeFilter = if (includeCancelled) null else
-            (ReservationsTable.status neq Reservation.Status.CANCELLED) and
-            (ReservationsTable.status neq Reservation.Status.REJECTED)
-        if (!searchQuery.isNullOrBlank()) {
-            val q = "%${searchQuery.lowercase()}%"
-            val searchFilter = (ReservationsTable.contactName.lowerCase() like q) or
-                (ReservationsTable.contactEmail.lowerCase() like q) or
-                (ReservationsTable.variableSymbol.lowerCase() like q)
-            query.where { if (activeFilter != null) activeFilter and searchFilter else searchFilter }
-        } else if (activeFilter != null) {
-            query.where { activeFilter }
-        }
+        adminListFilter(searchQuery, includeCancelled, kind)?.let { filter -> query.where { filter } }
         query.count()
     }
 

@@ -18,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -73,9 +74,11 @@ class SlotRepositoryParitySpec {
         for (repos in allRepos()) {
             val withDeadline = repos.services.create(service())
             val withoutDeadline = repos.services.create(service().copy(reservationDeadline = null, customFields = emptyList()))
+            val unlimited = repos.services.create(service().copy(step = 60.minutes, minDuration = Duration.ZERO, maxDuration = null))
 
             assertEquals(withDeadline, repos.services.get(withDeadline.id), repos.name)
             assertEquals(withoutDeadline, repos.services.get(withoutDeadline.id), repos.name)
+            assertEquals(unlimited, repos.services.get(unlimited.id), repos.name)
             assertNull(repos.services.get(Uuid.random()), repos.name)
         }
     }

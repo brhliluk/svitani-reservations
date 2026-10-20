@@ -21,4 +21,6 @@ class ServerFeature(
      * Služba si roli volajícího zjistí sama, např. přes `isAdminCall()`.
      */
     val publicRoutes: Route.() -> Unit = {},
+    /** RPC routy administrace: jen pro přihlášeného admina (`AdminAuthorization`), jako admin RPC jádra. */
+    val adminRoutes: Route.() -> Unit = {},
 )

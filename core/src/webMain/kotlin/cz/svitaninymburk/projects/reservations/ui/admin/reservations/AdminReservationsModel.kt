@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.reservations
 
+import cz.svitaninymburk.projects.reservations.reservation.ReservationKind
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -31,13 +32,17 @@ class AdminReservationsModel(
     scope: CoroutineScope,
     private val queries: AdminReservationsQueries,
     private val mutations: AdminReservationsMutations,
+    /** Hledání předané v adrese (`?search=`), např. proklik z denního přehledu hlídání. */
+    initialSearch: String? = null,
 ) : ScreenModel(scope) {
 
     var uiState: AdminReservationsUiState by mutableStateOf(AdminReservationsUiState.Loading); private set
 
     /** Co je napsané ve vyhledávacím poli — do dotazu se to překlopí až potvrzením. */
-    var searchInput by mutableStateOf("")
-    var activeSearchQuery: String? by mutableStateOf(null); private set
+    var searchInput by mutableStateOf(initialSearch.orEmpty())
+    var activeSearchQuery: String? by mutableStateOf(searchQueryOf(initialSearch.orEmpty())); private set
+    /** Jen rezervace na akce, kurzy, nebo časové úseky; null = všechny. */
+    var kindFilter: ReservationKind? by mutableStateOf(null); private set
     var page by mutableIntStateOf(0); private set
     var includeCancelled by mutableStateOf(false); private set
 
@@ -49,7 +54,7 @@ class AdminReservationsModel(
     fun load() {
         uiState = AdminReservationsUiState.Loading
         scope.launch {
-            queries.reservations(activeSearchQuery, page, RESERVATIONS_PAGE_SIZE, includeCancelled)
+            queries.reservations(activeSearchQuery, page, RESERVATIONS_PAGE_SIZE, includeCancelled, kindFilter)
                 .onRight { uiState = AdminReservationsUiState.Success(it) }
                 .onLeft { uiState = AdminReservationsUiState.Error(it.localizedMessage(currentStrings)) }
         }
@@ -64,6 +69,12 @@ class AdminReservationsModel(
     fun clearSearch() {
         searchInput = ""
         activeSearchQuery = null
+        page = 0
+        load()
+    }
+
+    fun setKindFilter(value: ReservationKind?) {
+        kindFilter = value
         page = 0
         load()
     }
@@ -153,12 +164,13 @@ class AdminReservationsModel(
     }
 }
 
-fun IComponent.buildAdminReservationsModel(scope: CoroutineScope): AdminReservationsModel {
+fun IComponent.buildAdminReservationsModel(scope: CoroutineScope, initialSearch: String? = null): AdminReservationsModel {
     val admin = getService<AdminServiceInterface>(RpcSerializersModules)
     val reservation = getService<ReservationServiceInterface>(RpcSerializersModules)
     return AdminReservationsModel(
         scope = scope,
         queries = AdminReservationsQueries(admin),
         mutations = AdminReservationsMutations(admin, reservation),
+        initialSearch = initialSearch,
     )
 }

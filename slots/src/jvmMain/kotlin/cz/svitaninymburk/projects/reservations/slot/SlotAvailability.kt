@@ -81,4 +81,4 @@ fun SlotService.slotTarget(start: LocalDateTime, end: LocalDateTime, freeSeats: 
     ownerEmails = ownerEmails,
 )
 
-private fun LocalDate.atStartOfDay() = LocalDateTime(this, LocalTime(0, 0))
+internal fun LocalDate.atStartOfDay() = LocalDateTime(this, LocalTime(0, 0))

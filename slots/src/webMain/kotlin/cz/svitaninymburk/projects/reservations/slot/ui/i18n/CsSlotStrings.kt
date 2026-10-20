@@ -25,10 +25,11 @@ object CsSlotStrings : SlotStrings {
     override val stepFull = "plno"
     override val timeHint = "Klepněte na začátek a pak na poslední časový úsek, který chcete."
 
-    override fun selectionError(error: SlotSelectionError, maxDuration: Duration) = when (error) {
+    override fun selectionError(error: SlotSelectionError, maxDuration: Duration?) = when (error) {
         SlotSelectionError.STEP_FULL -> "V tomto čase už pro zvolený počet dětí není místo."
         SlotSelectionError.CROSSES_UNAVAILABLE -> "Úsek nesmí přejít přes obsazený nebo zavřený čas."
-        SlotSelectionError.TOO_LONG -> "Nejdelší možná rezervace je ${duration(maxDuration)}."
+        SlotSelectionError.TOO_LONG ->
+            maxDuration?.let { "Nejdelší možná rezervace je ${duration(it)}." } ?: "Úsek je příliš dlouhý."
     }
 
     override fun minDurationHint(minDuration: Duration) = "Nejkratší možná rezervace je ${duration(minDuration)}."

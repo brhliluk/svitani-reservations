@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.reservation.ReservationKind
 import cz.svitaninymburk.projects.reservations.util.nowInAppTimeZone
 import cz.svitaninymburk.projects.reservations.util.APP_TIMEZONE
 import arrow.core.Either
@@ -195,6 +196,17 @@ class AdminDashboardService(
                     refundSafely(res, resSubject) { wallet -> refundService.refundWholeReservation(wallet, res) }
                 }
             }
+    }
+
+    /**
+     * Pro volitelné moduly, které mažou vlastní cíl rezervací (např. službu hlídání):
+     * stornuje rezervace na [references] stejně jako smazání akce — oznámení zákazníkům
+     * a při [refund] vratka do peněženky. Záznam o smazání si modul zapíše sám.
+     */
+    suspend fun cancelReservationsOfDeletedTarget(references: Collection<Reference>, noticeTitle: String, refund: Boolean) {
+        references.distinct().forEach { reference ->
+            cancelAllReservations(reference, noticeTitle, refund, seriesId = null, instanceId = null, historyDetail = null)
+        }
     }
 
     override suspend fun getDashboardSummary(): Either<AdminError.GetSummary, AdminDashboardData> = either {
@@ -408,13 +420,13 @@ class AdminDashboardService(
         )
     }
 
-    override suspend fun getAllReservations(searchQuery: String?, page: Int, pageSize: Int, includeCancelled: Boolean): Either<AdminError.GetReservations, ReservationsPage> = either {
+    override suspend fun getAllReservations(searchQuery: String?, page: Int, pageSize: Int, includeCancelled: Boolean, kind: ReservationKind?): Either<AdminError.GetReservations, ReservationsPage> = either {
         ensure(page >= 0) { AdminError.FailedToGetReservations("Neplatná stránka.") }
         ensure(pageSize in 1..200) { AdminError.FailedToGetReservations("Neplatná velikost stránky.") }
         try {
             val (reservations, totalCount) = parZip(
-                { reservationRepository.findAllPaged(searchQuery, page, pageSize, includeCancelled) },
-                { reservationRepository.countAll(searchQuery, includeCancelled) },
+                { reservationRepository.findAllPaged(searchQuery, page, pageSize, includeCancelled, kind) },
+                { reservationRepository.countAll(searchQuery, includeCancelled, kind) },
             ) { r, c -> r to c }
 
             val instanceIds = reservations.mapNotNull { (it.reference as? Reference.Instance)?.id }

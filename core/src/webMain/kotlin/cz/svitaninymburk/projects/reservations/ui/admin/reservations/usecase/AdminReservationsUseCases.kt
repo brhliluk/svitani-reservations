@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.reservations.usecase
 
+import cz.svitaninymburk.projects.reservations.reservation.ReservationKind
 import cz.svitaninymburk.projects.reservations.reservation.isFreePrice
 import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
@@ -36,8 +37,8 @@ fun reservationPaymentMethod(
 // --- UseCase třídy (tenké, vrací Either) ---
 
 class AdminReservationsQueries(private val admin: AdminServiceInterface) {
-    suspend fun reservations(query: String?, page: Int, pageSize: Int, includeCancelled: Boolean) =
-        admin.getAllReservations(query, page, pageSize, includeCancelled)
+    suspend fun reservations(query: String?, page: Int, pageSize: Int, includeCancelled: Boolean, kind: ReservationKind? = null) =
+        admin.getAllReservations(query, page, pageSize, includeCancelled, kind)
 }
 
 class AdminReservationsMutations(

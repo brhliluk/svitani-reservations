@@ -20,6 +20,11 @@ import web.html.HTMLSelectElement
 @Composable
 fun IComponent.CustomFieldsBuilderSection(
     customFields: List<CustomFieldDefinition>,
+    /**
+     * Nabízet u časového rozsahu násobení ceny hodinami. Hlídání cenu hodinami násobí
+     * samo, takže by se násobilo dvakrát — tam je `false`.
+     */
+    allowTimeMultiplier: Boolean = true,
     onCustomFieldsChange: (List<CustomFieldDefinition>) -> Unit,
 ) {
     val currentStrings by strings
@@ -145,7 +150,7 @@ fun IComponent.CustomFieldsBuilderSection(
 
                                 // Specifické nastavení podle typu pole
                                 when (field) {
-                                    is TimeRangeFieldDefinition -> {
+                                    is TimeRangeFieldDefinition -> if (allowTimeMultiplier) {
                                         div(className = "form-control md:col-span-2 pt-2 mt-1 border-t border-base-content/15") {
                                             label(className = "cursor-pointer label justify-start gap-2 py-1") {
                                                 checkBox(value = field.priceModifier is PriceModifier.TimeMultiplier, className = "checkbox checkbox-xs checkbox-accent") {

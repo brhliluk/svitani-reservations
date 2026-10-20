@@ -42,6 +42,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -239,6 +240,23 @@ class SlotBookingServiceSpec {
         runBlocking { serviceRepo.update(service.copy(maxDuration = 2.hours)) }
         assertEquals(ReservationError.SlotDurationOutOfRange, failure(request(start = at(tuesday, 9), end = at(tuesday, 11, 30))))
         assertTrue(reserve(request(start = at(tuesday, 9), end = at(tuesday, 11))).isRight())
+    }
+
+    @Test
+    fun `zero minimum allows a single step and no maximum allows the whole window`() {
+        runBlocking { serviceRepo.update(service.copy(minDuration = Duration.ZERO, maxDuration = null)) }
+
+        assertTrue(reserve(request(start = at(tuesday, 8), end = at(tuesday, 8, 30), seats = 1)).isRight())
+        assertTrue(reserve(request(start = at(tuesday, 8), end = at(tuesday, 12), seats = 1, email = "eva@test.cz")).isRight())
+    }
+
+    @Test
+    fun `hour step accepts whole hours only`() {
+        runBlocking { serviceRepo.update(service.copy(step = 60.minutes, minDuration = Duration.ZERO, maxDuration = null)) }
+
+        assertEquals(ReservationError.SlotNotAligned, failure(request(start = at(tuesday, 9, 30), end = at(tuesday, 10, 30))))
+        assertEquals(ReservationError.SlotNotAligned, failure(request(start = at(tuesday, 9), end = at(tuesday, 10, 30))))
+        assertTrue(reserve(request(start = at(tuesday, 9), end = at(tuesday, 10))).isRight())
     }
 
     // --- 3. celý úsek v jednom okně ---
