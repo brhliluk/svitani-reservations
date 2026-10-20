@@ -56,6 +56,13 @@ class DuplicateReservationDetector(
         }
     }
 
+    /** Rezervace úseku: koliduje s aktivním úsekem téže služby, který se s ním překrývá. */
+    suspend fun forSlot(slot: Reference.Slot, email: String): DuplicateScope? {
+        val normalized = normalize(email) ?: return null
+        val overlapping = reservationRepository.findActiveSlotReservations(slot.id, slot.start, slot.end)
+        return if (overlapping.any { normalize(it.contactEmail) == normalized }) DuplicateScope.SLOT_OVERLAP else null
+    }
+
     /** Prázdný e-mail nemá s čím kolidovat — formulář ho stejně nepustí dál. */
     private fun normalize(email: String): String? = email.trim().lowercase().ifBlank { null }
 }

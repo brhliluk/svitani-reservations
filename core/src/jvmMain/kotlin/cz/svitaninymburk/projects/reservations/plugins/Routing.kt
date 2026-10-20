@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations.plugins
 
 import cz.svitaninymburk.projects.reservations.RpcSerializersModules
+import cz.svitaninymburk.projects.reservations.ServerFeature
 import cz.svitaninymburk.projects.reservations.routing.adminRoutes
 import cz.svitaninymburk.projects.reservations.service.AuthServiceInterface
 import cz.svitaninymburk.projects.reservations.service.AuthenticatedReservationServiceInterface
@@ -18,7 +19,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 
-fun Application.configureRouting() {
+fun Application.configureRouting(features: List<ServerFeature> = emptyList()) {
     routing {
         swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml")
 
@@ -50,6 +51,7 @@ fun Application.configureRouting() {
             applyRoutes(getServiceManager<AuthServiceInterface>(), RpcSerializersModules)
             applyRoutes(getServiceManager<ReservationServiceInterface>(), RpcSerializersModules)
             applyRoutes(getServiceManager<EventServiceInterface>(), RpcSerializersModules)
+            features.forEach { it.publicRoutes(this) }
         }
     }
 }

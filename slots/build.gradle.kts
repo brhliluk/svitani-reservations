@@ -6,12 +6,34 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlinx.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.kilua.rpc)
+}
+
+// jarWithJs, jvmRun a spol. od pluginu Kilua RPC patří jen aplikaci — stejně jako
+// v core/build.gradle.kts (tam je i vysvětlení, proč se nedají vypnout jinak).
+tasks.named { it in setOf("jarWithJs", "jvmRun") }.configureEach {
+    enabled = false
+    setDependsOn(emptyList<Any>())
+}
+
+// Plugin Kilua RPC generuje dev/kilua/rpc/Generated*Kt v každém modulu se stejným jménem.
+// Ve fat jaru aplikace by pak byly dvakrát a vyhrála by kopie, která je v jaru dřív.
+// Jádro je má taky a služby modulu z nich potřebují jen prázdné registerRpcServiceExceptions().
+// Kdyby modul někdy definoval vlastní RPC výjimky, tohle se musí vyřešit jinak.
+tasks.withType<Jar>().named { it == "jvmJar" }.configureEach {
+    exclude("dev/kilua/rpc/Generated*")
 }
 
 @OptIn(ExperimentalWasmDsl::class)
 kotlin {
     jvmToolchain(25)
     jvm {
+        @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
+        mainRun {
+            // Jen aby šel vypnutý jvmRun/jarWithJs nakonfigurovat, viz výš.
+            mainClass.set("io.ktor.server.netty.EngineMain")
+        }
         compilerOptions {
             freeCompilerArgs.add("-Xjsr305=strict")
         }
@@ -35,13 +57,18 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation(projects.core)
+                implementation(libs.kilua.rpc)
                 implementation(libs.kotlinx.datetime)
+                implementation(project.dependencies.platform(libs.arrow.stack))
+                implementation(libs.arrow.core)
+                implementation(libs.arrow.serialization)
                 implementation(libs.kotlinx.serialization.json)
             }
         }
         val jvmMain by getting {
             dependencies {
                 implementation(libs.bundles.database)
+                implementation(libs.ktor.server.netty)
                 implementation(project.dependencies.platform(libs.koin.bom))
                 implementation(libs.koin.core)
             }

@@ -12,9 +12,12 @@ z fáze 0 (19. 10. 2026) a o odchylky, na kterých jsme se domluvili.
   `-Pfeatures.slots` a `Features.kt`.
 - **Fáze 2: hotovo.** Tabulky a repozitáře modulu, sloupce `slot_start`/`slot_end`,
   napojení přes `ServerFeature`, mock data.
-- **Fáze 3: hotovo, čeká na review.** `Reference.Slot`, `ReservationTarget.Slot`, všechna `when`,
+- **Fáze 3: hotovo.** `Reference.Slot`, `ReservationTarget.Slot`, všechna `when`,
   `ReservationTargetResolver`, `timeMultiplier` v ceně.
-- **Další krok: fáze 4** (rezervační služba hlídání).
+- **Fáze 4: hotovo, čeká na review.** `SlotServiceInterface` (`listServices`, `getAvailability`,
+  `reserveSlot`) se všemi validacemi pod `Mutex`, e-maily a pozvánka s intervalem, testy validací
+  a souběhu. Admin RPC je přesunuté do fáze 6.
+- **Další krok: fáze 5** (veřejné UI).
 
 ## Rozhodnutí
 
@@ -31,6 +34,7 @@ z fáze 0 (19. 10. 2026) a o odchylky, na kterých jsme se domluvili.
 | `ReservationTarget.Slot` | **Datový cíl bez `SlotService`**: jádro nesmí znát typy z modulu. Ploché položky: id služby, název, `start`/`end`, cena za hodinu, **`freeSeats`** (minimum volných míst přes interval, vyplní server), max. míst na rezervaci, platby, vlastní pole, e-maily lektorů. `maxCapacity = freeSeats`. |
 | Audit | `AuditSubject` u hlídání nese jen `reservationId` a název. Sloupec `slot_service_id` se nepřidává. |
 | Duplicity | Nová hodnota `DuplicateScope.SLOT_OVERLAP` s vlastním textem: aktivní rezervace téže služby se stejným e-mailem a překryvem intervalu. |
+| Nezarovnaný čas (19. 10.) | **Kroky + poznámka.** Rezervace je dál zarovnaná na krok (admin může zvolit 15 min). Skutečné časy (např. přivedu 9:25, vyzvednu 10:05) napíše rodič do volitelného pole „Poznámka“, které nová služba dostane do vlastních polí jako výchozí. Platí se a blokuje celý krok. |
 
 ## Moduly (odchylka od zadání)
 
@@ -136,6 +140,35 @@ hlídání**, proto:
 - Android: větev pro úsek v `ReservationFormViewModel` hodí chybu, protože appka úsek nikdy
   nenačte. **Android build lokálně neprojde** (`AndroidSdkHandler`, chybí JAXB pod JDK 25),
   nezávisle na téhle změně, takže appka ověřená kompilací není.
+
+## Rozhodnutí z fáze 4 (k potvrzení při review)
+
+- **Admin RPC** (CRUD služby, rozvrhu, výjimek a denní přehled) až ve fázi 6 spolu s admin UI.
+  Ve fázi 4 je jen veřejné `SlotServiceInterface`.
+- `getAvailability` vrací jen kroky, které jde ještě rezervovat: začátek nejdřív za uzávěrku od
+  „teď“ a konec nejpozději na konci horizontu. **Horizont se tak počítá ke konci úseku** a uzávěrka
+  k začátku. Každý souvislý výběr z vrácených kroků pak validací projde (kromě kapacity a délky).
+- Chyby: nové `SlotNotAligned` (i konec ≤ začátek nebo jiný den), `SlotDurationOutOfRange`,
+  `SlotOutsideOpeningHours`, `SlotBeyondBookingHorizon`, `SlotCapacityExceeded` a
+  `DuplicateScope.SLOT_OVERLAP`, vše s texty cs/en. Znovu použité: `ReservationNotFound`
+  (neznámá nebo skrytá služba), `InvalidSeatCount` (0 i nad maximum na rezervaci),
+  `EventAlreadyStarted`, `ReservationDeadlinePassed`, `PaymentTypeNotAllowed`.
+- Pořadí validací: služba → počet míst → zarovnání → délka → okno → začátek/uzávěrka/horizont →
+  kapacita na každém kroku. Platbu a duplicitu ověří jádro v `createSlotReservation`, pořád pod
+  zámkem modulu.
+- Modul má dvě třídy: `SlotAvailability` (obsazenost, zároveň `SlotBookingProvider`) a
+  `SlotBookingService` (RPC). Jedna třída by v Koinu vytvořila cyklus resolver → modul →
+  `ReservationService` → resolver.
+- Jádro: veřejné `ReservationService.createSlotReservation`, `isAdminCall()` v `util/CallContext.kt`
+  a `ServerFeature.publicRoutes`, kde jsou routy pod volitelným JWT.
+- **Fat jar:** `dev/kilua/rpc/Generated*Kt` se z jaru modulu vyřazují (`slots/build.gradle.kts`),
+  v aplikaci zůstane jen kopie z jádra. Funguje to, protože modul z nich potřebuje jen prázdné
+  `registerRpcServiceExceptions()`.
+- KSP v modulu vyžaduje metadata webové části jádra. Jejich kompilace padala na
+  `navigator.languages.length` v `i18n/Strings.kt`, opraveno na `navigator.languages.toList()`.
+- Cíl existující rezervace (`targetFor`) počítá volná místa včetně té rezervace, tedy stav „teď“.
+- **Nález mimo hlídání:** server nekontroluje povinná vlastní pole (ani u akcí), hlídá je jen
+  formulář. Odloženo, viz `docs/followups/serverova-kontrola-povinnych-poli.md`.
 
 ## Nálezy z fáze 0 pro fázi 3
 

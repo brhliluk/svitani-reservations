@@ -49,6 +49,12 @@ interface ErrorStrings {
     val errorAlreadyReservedSameEvent: String
     val errorAlreadyReservedParentSeries: String
     val errorAlreadyReservedSeriesLesson: String
+    val errorAlreadyReservedSlotOverlap: String
+    val errorSlotNotAligned: String
+    val errorSlotDurationOutOfRange: String
+    val errorSlotOutsideOpeningHours: String
+    val errorSlotBeyondBookingHorizon: String
+    val errorSlotCapacityExceeded: String
     val errorReservationAlreadyClaimed: String
     val errorReservationEmailDoesNotMatch: String
     val errorReservationNotClaimable: String

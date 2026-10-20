@@ -52,6 +52,7 @@ import cz.svitaninymburk.projects.reservations.util.auditSubjectFor
 import cz.svitaninymburk.projects.reservations.util.withAuditSubject
 import cz.svitaninymburk.projects.reservations.util.captureEmailError
 import cz.svitaninymburk.projects.reservations.util.currentCall
+import cz.svitaninymburk.projects.reservations.util.isAdminCall
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
 import cz.svitaninymburk.projects.reservations.wallet.WalletInfo
@@ -218,12 +219,7 @@ open class ReservationService(
         callerUserId?.let { userRepository.findById(it)?.email }
 
     /** Stejný testovací seam jako [currentCallerUserId] — admin obchází kontroly přístupu. */
-    internal open suspend fun isAdminCaller(): Boolean {
-        val role = currentCall()
-            ?.principal<JWTPrincipal>()
-            ?.payload?.getClaim("role")?.asString()
-        return role == User.Role.ADMIN.name
-    }
+    internal open suspend fun isAdminCaller(): Boolean = isAdminCall()
 
     /**
      * Rezervace vznikají i bez přihlášení, takže se aktér nedá vždy vzít z JWT.
@@ -346,6 +342,36 @@ open class ReservationService(
             pricePerSeat = series.price,
             target = seriesTarget,
             walletCode = request.walletCode,
+        )
+    }
+
+    /**
+     * Rezervace časového úseku pro modul hlídání. Úsek (okna, kroky, uzávěrku, kapacitu)
+     * a zámek proti souběhu ověřuje modul, který jádro nezná, a [target] mu tu dává
+     * hotový. Odsud dál je to stejné jako u akcí: platba, peněženka, e-maily, audit.
+     * Cena se násobí délkou úseku v hodinách, bez zaokrouhlení.
+     */
+    suspend fun createSlotReservation(
+        target: ReservationTarget.Slot,
+        requestData: ReservationRequestData,
+        walletCode: String?,
+        acknowledgedDuplicate: Boolean,
+        userId: Uuid?,
+    ): Either<ReservationError.CreateReservation, Reservation> = either {
+        ensure(requestData.seatCount >= 1) { ReservationError.InvalidSeatCount }
+        ensurePaymentTypeAllowed(requestData.paymentType, target.allowedPaymentTypes)
+        val reference = Reference.Slot(target.serviceId, target.startDateTime, target.endDateTime)
+        ensureNoDuplicate(acknowledgedDuplicate) { duplicateDetector.forSlot(reference, requestData.contactEmail) }
+
+        val duration = target.endDateTime.toInstant(APP_TIMEZONE) - target.startDateTime.toInstant(APP_TIMEZONE)
+        createReservationFlow(
+            reference = reference,
+            userId = userId,
+            requestData = requestData,
+            pricePerSeat = target.pricePerHour,
+            target = target,
+            walletCode = walletCode,
+            timeMultiplier = duration.inWholeMinutes / 60.0,
         )
     }
 
@@ -1018,7 +1044,7 @@ open class ReservationService(
             endDate = series.endDate,
             lessonCount = series.lessonCount,
         )
-        is ReservationTarget.Slot -> LectorTarget.Occasion(startDateTime)
+        is ReservationTarget.Slot -> LectorTarget.Slot(startDateTime, endDateTime)
     }
 
     /**

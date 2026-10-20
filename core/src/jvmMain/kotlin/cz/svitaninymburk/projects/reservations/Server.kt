@@ -71,7 +71,7 @@ fun Application.reservationsServer(features: List<ServerFeature> = emptyList()) 
     startAuditBackfill()
     startAuditRetentionJob()
     configureSecurity()
-    configureRouting()
+    configureRouting(features)
 
     if (System.getenv("LOAD_MOCK_DATA").toBoolean()) {
         val mockLoader = MockDataLoader()

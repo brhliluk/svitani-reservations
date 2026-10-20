@@ -4,6 +4,7 @@ import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import androidx.compose.runtime.mutableStateOf
 import cz.svitaninymburk.projects.reservations.i18n.cs.CsStrings
 import cz.svitaninymburk.projects.reservations.i18n.en.EnStrings
+import js.array.toList
 import web.navigator.navigator
 import kotlin.js.ExperimentalWasmJsInterop
 
@@ -15,8 +16,8 @@ private val supportedLanguages = mapOf(
 
 @OptIn(ExperimentalWasmJsInterop::class)
 private fun resolveStrings(): AppStrings {
-    val languages = (0 until navigator.languages.length)
-        .mapNotNull { navigator.languages[it]?.toString()?.substringBefore('-') }
+    val languages = navigator.languages.toList()
+        .map { it.toString().substringBefore('-') }
     return supportedLanguages.firstNotNullOfOrNull { (key, value) -> languages.find { it == key }?.let { value } } ?: CsStrings
 }
 

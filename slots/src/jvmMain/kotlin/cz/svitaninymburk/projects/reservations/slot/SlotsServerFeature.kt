@@ -8,12 +8,20 @@ import cz.svitaninymburk.projects.reservations.slot.repository.ExposedAvailabili
 import cz.svitaninymburk.projects.reservations.slot.repository.ExposedSlotServiceRepository
 import cz.svitaninymburk.projects.reservations.slot.repository.SLOT_TABLES
 import cz.svitaninymburk.projects.reservations.slot.repository.SlotServiceRepository
+import cz.svitaninymburk.projects.reservations.RpcSerializersModules
+import cz.svitaninymburk.projects.reservations.service.ReservationService
+import cz.svitaninymburk.projects.reservations.service.SlotBookingProvider
+import dev.kilua.rpc.applyRoutes
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val slotsKoinModule = module {
     single<SlotServiceRepository> { ExposedSlotServiceRepository() }
     single<AvailabilityRuleRepository> { ExposedAvailabilityRuleRepository() }
     single<AvailabilityExceptionRepository> { ExposedAvailabilityExceptionRepository() }
+    // Jádro se přes SlotBookingProvider ptá na cíl rezervace úseku.
+    single { SlotAvailability(get(), get(), get(), get()) } bind SlotBookingProvider::class
+    single { SlotBookingService(get(), get(), get<ReservationService>()) } bind SlotServiceInterface::class
 }
 
 /** Hlídání dětí, jak ho do serveru zapojí aplikace (`Features.kt`). */
@@ -22,4 +30,6 @@ val slotsServerFeature = ServerFeature(
     tables = SLOT_TABLES,
     koinModules = listOf(slotsKoinModule),
     loadMockData = { SlotsMockDataLoader().load() },
+    // Vygenerovaný manager napřímo: getServiceManager() z jádra o službách modulu neví.
+    publicRoutes = { applyRoutes(SlotServiceInterfaceManager, RpcSerializersModules) },
 )

@@ -17,6 +17,7 @@ import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
+import cz.svitaninymburk.projects.reservations.util.hourMinute
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import io.ktor.util.logging.KtorSimpleLogger
 import kotlinx.coroutines.Dispatchers
@@ -198,7 +199,7 @@ class GmailEmailService(
 
         email.addTo(toEmail)
 
-        val eventDate = target.startDateTime.humanReadable
+        val eventDate = target.whenLabel()
         email.withSubject(s.reservationConfirmationSubject(target.title, eventDate))
 
         // Embed QR only if present (bank transfer payment)
@@ -594,7 +595,7 @@ class GmailEmailService(
         val email = setupEmail()
         val s = emailStringsFor(reservation.locale)
         email.addTo(toEmail)
-        val eventDate = target.startDateTime.humanReadable
+        val eventDate = target.whenLabel()
         email.withSubject(s.waitlistPromotionSubject(target.title, eventDate))
 
         val cid: String? = qrCodeImage?.let { email.embedPaymentQr(it) }
@@ -783,4 +784,10 @@ class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService
         println("📧 [MOCK] Waitlist promotion → $toEmail | ${target.title}")
         return Unit.right()
     }
+}
+
+/** Kdy cíl rezervace je, pro e-maily: u úseku i s koncem („20.10.2026 9:00–11:30“). */
+internal fun ReservationTarget.whenLabel(): String = when (this) {
+    is ReservationTarget.Slot -> "${startDateTime.humanReadable}\u2013${endDateTime.time.hourMinute}"
+    is ReservationTarget.Instance, is ReservationTarget.Series -> startDateTime.humanReadable
 }

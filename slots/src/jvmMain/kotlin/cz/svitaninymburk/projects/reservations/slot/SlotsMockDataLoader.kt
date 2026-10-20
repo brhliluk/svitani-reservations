@@ -39,6 +39,7 @@ class SlotsMockDataLoader : KoinComponent {
                 maxSeatsPerBooking = 3,
                 customFields = listOf(
                     TextFieldDefinition(key = "children", label = "Jména a věk dětí", isRequired = true, isMultiline = true),
+                    TextFieldDefinition(key = "note", label = "Poznámka (např. kdy dítě přivedete a vyzvednete)", isMultiline = true),
                 ),
                 reservationDeadline = 2.hours,
                 bookingHorizon = 28.days,

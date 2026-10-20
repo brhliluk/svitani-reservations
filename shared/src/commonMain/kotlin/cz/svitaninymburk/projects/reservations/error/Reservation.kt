@@ -17,6 +17,8 @@ enum class DuplicateScope {
     PARENT_SERIES,
     /** Rezervuje celý kurz, ale na některou jeho lekci už rezervaci má. */
     SERIES_LESSON,
+    /** Rezervuje úsek služby (hlídání), který se překrývá s úsekem, který už má. */
+    SLOT_OVERLAP,
 }
 
 @Serializable @SerialName("reservation") sealed interface ReservationError : AppError {
@@ -66,6 +68,18 @@ enum class DuplicateScope {
     @Serializable data object EventNotFull : CreateReservation
     @Serializable data object WaitlistNotAvailable : CreateReservation
     @Serializable data object WaitlistFull : CreateReservation
+
+    // Rezervace časového úseku (hlídání)
+    /** Začátek nebo konec nesedí na krok služby, nebo konec není po začátku. */
+    @Serializable data object SlotNotAligned : CreateReservation
+    /** Úsek je kratší nebo delší, než služba dovoluje. */
+    @Serializable data object SlotDurationOutOfRange : CreateReservation
+    /** Úsek nezačíná a nekončí v jednom otevřeném okně daného dne. */
+    @Serializable data object SlotOutsideOpeningHours : CreateReservation
+    /** Úsek je dál dopředu, než jde rezervovat. */
+    @Serializable data object SlotBeyondBookingHorizon : CreateReservation
+    /** V některé části úseku už není dost volných míst. */
+    @Serializable data object SlotCapacityExceeded : CreateReservation
 
     /** Rezervaci už někdo přivlastnil — i kdyby to byl někdo jiný, ven jde jen tohle. */
     @Serializable data object AlreadyClaimed : ClaimReservation
@@ -118,6 +132,11 @@ fun ReservationError.localizedMessage(strings: ErrorStrings): String = when (thi
     is ReservationError.EventNotFull -> strings.errorEventNotFull
     is ReservationError.WaitlistNotAvailable -> strings.errorWaitlistNotAvailable
     is ReservationError.WaitlistFull -> strings.errorWaitlistFull
+    is ReservationError.SlotNotAligned -> strings.errorSlotNotAligned
+    is ReservationError.SlotDurationOutOfRange -> strings.errorSlotDurationOutOfRange
+    is ReservationError.SlotOutsideOpeningHours -> strings.errorSlotOutsideOpeningHours
+    is ReservationError.SlotBeyondBookingHorizon -> strings.errorSlotBeyondBookingHorizon
+    is ReservationError.SlotCapacityExceeded -> strings.errorSlotCapacityExceeded
     is ReservationError.AlreadyReserved -> scope.localizedMessage(strings)
     is ReservationError.AlreadyClaimed -> strings.errorReservationAlreadyClaimed
     is ReservationError.EmailDoesNotMatch -> strings.errorReservationEmailDoesNotMatch
@@ -132,4 +151,5 @@ fun DuplicateScope.localizedMessage(strings: ErrorStrings): String = when (this)
     DuplicateScope.SAME_EVENT -> strings.errorAlreadyReservedSameEvent
     DuplicateScope.PARENT_SERIES -> strings.errorAlreadyReservedParentSeries
     DuplicateScope.SERIES_LESSON -> strings.errorAlreadyReservedSeriesLesson
+    DuplicateScope.SLOT_OVERLAP -> strings.errorAlreadyReservedSlotOverlap
 }
