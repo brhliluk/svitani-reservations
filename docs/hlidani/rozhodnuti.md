@@ -10,9 +10,11 @@ z fáze 0 (19. 10. 2026) a o odchylky, na kterých jsme se domluvili.
   projekt je jen aplikace. Viz „Moduly“ níž.
 - **Fáze 1: hotovo.** Modul `:slots` (model, `expandAvailability`, testy), přepínač
   `-Pfeatures.slots` a `Features.kt`.
-- **Fáze 2: hotovo, čeká na review.** Tabulky a repozitáře modulu, sloupce `slot_start`/`slot_end`,
+- **Fáze 2: hotovo.** Tabulky a repozitáře modulu, sloupce `slot_start`/`slot_end`,
   napojení přes `ServerFeature`, mock data.
-- **Další krok: fáze 3** (napojení rezervací).
+- **Fáze 3: hotovo, čeká na review.** `Reference.Slot`, `ReservationTarget.Slot`, všechna `when`,
+  `ReservationTargetResolver`, `timeMultiplier` v ceně.
+- **Další krok: fáze 4** (rezervační služba hlídání).
 
 ## Rozhodnutí
 
@@ -108,6 +110,32 @@ hlídání**, proto:
 - `delete` služby maže pravidla a výjimky výslovně. SQLite bez `PRAGMA foreign_keys` cizí klíče
   nevynucuje a `CASCADE` by nezabral.
 - Mock data: nepublikovaná služba „Hlídání dětí“, út a čt 8–12, nejbližší čtvrtek zavřeno.
+
+## Rozhodnutí z fáze 3 (k potvrzení při review)
+
+- `Reference.Slot` a `ReservationTarget.Slot` jsou ve `shared`, protože obě hierarchie jsou
+  zapečetěné. `ReservationTarget.Slot` má proti tabulce výš navíc **`capacity`**: e-mail lektorovi
+  hlásí obsazenost „X/Y“. Obsazenost úseku = `capacity − freeSeats`, tedy nejvyšší v jeho průběhu.
+- **`ReservationTargetResolver`** v jádru nahradil převod reference na cíl v 8 službách (7 ze
+  seznamu výš a `GmailEmailService.titleFor`). Úseky se ptá rozhraní **`SlotBookingProvider`**, které
+  modul zaregistruje do Koinu (ve fázi 4). Bez něj je cíl `null`, tedy jako smazaná akce.
+  Služby mají resolver jako poslední parametr s výchozí hodnotou, takže testy se neměnily.
+- `ReservationRepository.findByReference` je přepsaný na `when`. Úsek se hledá i podle času, stejně
+  jako v InMemory. Nový dotaz `findActiveSlotReservations(serviceId, from, to)` vrací aktivní
+  rezervace služby, které se s rozsahem překrývají.
+- `createReservationFlow` má `timeMultiplier`, ale **zůstává `private`**. `internal` mezi moduly
+  nefunguje, takže veřejný vstup pro modul přibude ve fázi 4 spolu s `reserveSlot`.
+- `DuplicateScope.SLOT_OVERLAP` až ve fázi 4, kde se poprvé použije.
+- E-mail lektorovi u úseku zatím ukazuje jen začátek (`LectorTarget.Occasion`). Texty s intervalem
+  přijdou ve fázi 4. Pozvánka do kalendáře už má interval (`ICalGenerator.forTarget`).
+- Web: `ReservationSubmitUseCase` má volitelný `slotSubmitter`. RPC hlídání je v modulu, takže ho
+  ve fázi 5 dodá modul. Bez něj skončí odeslání jako rezervace neexistující akce.
+- `MyReservationListItem.kind` přibyl s výchozí hodnotou odvozenou z `isSeries`. Web zatím ukazuje
+  úsek jako kartu akce, úprava je ve fázi 5.
+- `AuditBackfill` plní `instanceId` jen u rezervací na termín, ne u úseků.
+- Android: větev pro úsek v `ReservationFormViewModel` hodí chybu, protože appka úsek nikdy
+  nenačte. **Android build lokálně neprojde** (`AndroidSdkHandler`, chybí JAXB pod JDK 25),
+  nezávisle na téhle změně, takže appka ověřená kompilací není.
 
 ## Nálezy z fáze 0 pro fázi 3
 

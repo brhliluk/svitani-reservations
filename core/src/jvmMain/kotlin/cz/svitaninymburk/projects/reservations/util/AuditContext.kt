@@ -55,4 +55,9 @@ fun auditSubjectFor(
         reservationId = reservationId,
         label = target.title,
     )
+    // Služba úseků patří volitelnému modulu, historie ji nezná — jen rezervaci.
+    is ReservationTarget.Slot -> AuditSubject(
+        reservationId = reservationId,
+        label = target.title,
+    )
 }

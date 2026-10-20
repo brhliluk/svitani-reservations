@@ -20,6 +20,7 @@ import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -27,6 +28,7 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.time.Duration.Companion.hours
 import kotlin.uuid.Uuid
 
@@ -119,6 +121,57 @@ class RepositoryParitySpec {
             val stored = repo.get(series.id)!!
             assertEquals("Přejmenovaný kurz", stored.title, repo::class.simpleName)
             assertEquals(true, stored.isCancelled, repo::class.simpleName)
+        }
+    }
+
+    private fun slotReservation(
+        serviceId: Uuid,
+        start: LocalDateTime,
+        end: LocalDateTime,
+        status: Reservation.Status = Reservation.Status.CONFIRMED,
+    ) = reservation(serviceId, status = status, seats = 2).copy(
+        reference = Reference.Slot(serviceId, start, end),
+        // Celé sekundy: SQLite čas ukládá s menší přesností, než má Clock.System.
+        createdAt = Instant.fromEpochSeconds(1_790_000_000),
+    )
+
+    @Test
+    fun `slot reservation round trips with its interval`() = runBlocking {
+        for (repo in reservationRepos()) {
+            val saved = repo.save(slotReservation(Uuid.random(), LocalDateTime(2026, 10, 20, 9, 0), LocalDateTime(2026, 10, 20, 11, 30)))
+
+            assertEquals(saved, repo.findById(saved.id), repo::class.simpleName)
+        }
+    }
+
+    @Test
+    fun `slot reference matches only the same interval`() = runBlocking {
+        for (repo in reservationRepos()) {
+            val serviceId = Uuid.random()
+            val morning = repo.save(slotReservation(serviceId, LocalDateTime(2026, 10, 20, 9, 0), LocalDateTime(2026, 10, 20, 10, 0)))
+            repo.save(slotReservation(serviceId, LocalDateTime(2026, 10, 20, 10, 0), LocalDateTime(2026, 10, 20, 11, 0)))
+
+            assertEquals(listOf(morning.id), repo.findByReference(morning.reference).map { it.id }, repo::class.simpleName)
+        }
+    }
+
+    @Test
+    fun `active slot reservations of a service overlapping a range`() = runBlocking {
+        for (repo in reservationRepos()) {
+            val serviceId = Uuid.random()
+            val day = LocalDate(2026, 10, 20)
+            fun at(hour: Int, minute: Int = 0) = LocalDateTime(day.year, day.month, day.day, hour, minute)
+            val overlapping = repo.save(slotReservation(serviceId, at(8), at(9, 30)))
+            val inside = repo.save(slotReservation(serviceId, at(9, 30), at(10)))
+            repo.save(slotReservation(serviceId, at(10), at(11)))            // začíná na konci rozsahu
+            repo.save(slotReservation(serviceId, at(7), at(9)))              // končí na začátku rozsahu
+            repo.save(slotReservation(serviceId, at(9), at(10), Reservation.Status.CANCELLED))
+            repo.save(slotReservation(Uuid.random(), at(9), at(10)))         // jiná služba
+            repo.save(reservation(serviceId))                                // akce se stejným id
+
+            val found = repo.findActiveSlotReservations(serviceId, at(9), at(10)).map { it.id }.toSet()
+
+            assertEquals(setOf(overlapping.id, inside.id), found, repo::class.simpleName)
         }
     }
 }

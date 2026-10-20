@@ -16,9 +16,10 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.json.json
+import kotlinx.datetime.LocalDateTime
 import kotlin.uuid.Uuid
 
-enum class ReferenceDbDiscriminator { INSTANCE, SERIES }
+enum class ReferenceDbDiscriminator { INSTANCE, SERIES, SLOT }
 
 object ReservationsTable : Table("reservations") {
     val id = uuid("id").autoGenerate()
@@ -83,7 +84,7 @@ class ExposedReservationRepository : ReservationRepository {
             ReservationsTable.insert { row ->
                 row[id] = reservation.id
 
-                when (reservation.reference) {
+                when (val reference = reservation.reference) {
                     is Reference.Instance -> {
                         row[referenceId] = reservation.reference.id
                         row[referenceType] = ReferenceDbDiscriminator.INSTANCE
@@ -91,6 +92,12 @@ class ExposedReservationRepository : ReservationRepository {
                     is Reference.Series -> {
                         row[referenceId] = reservation.reference.id
                         row[referenceType] = ReferenceDbDiscriminator.SERIES
+                    }
+                    is Reference.Slot -> {
+                        row[referenceId] = reservation.reference.id
+                        row[referenceType] = ReferenceDbDiscriminator.SLOT
+                        row[slotStart] = reference.start
+                        row[slotEnd] = reference.end
                     }
                 }
 
@@ -134,13 +141,26 @@ class ExposedReservationRepository : ReservationRepository {
         }
 
     override suspend fun findByReference(reference: Reference): List<Reservation> = dbQuery {
-        val dbType = if (reference is Reference.Instance) {
-            ReferenceDbDiscriminator.INSTANCE
-        } else {
-            ReferenceDbDiscriminator.SERIES
+        val sameTarget = when (reference) {
+            is Reference.Instance -> ReservationsTable.referenceType eq ReferenceDbDiscriminator.INSTANCE
+            is Reference.Series -> ReservationsTable.referenceType eq ReferenceDbDiscriminator.SERIES
+            // Úsek je jedna konkrétní rezervovaná doba, ne celá služba — stejně jako v InMemory.
+            is Reference.Slot -> (ReservationsTable.referenceType eq ReferenceDbDiscriminator.SLOT) and
+                (ReservationsTable.slotStart eq reference.start) and (ReservationsTable.slotEnd eq reference.end)
         }
         ReservationsTable.selectAll()
-            .where { (ReservationsTable.referenceId eq reference.id) and (ReservationsTable.referenceType eq dbType) }
+            .where { (ReservationsTable.referenceId eq reference.id) and sameTarget }
+            .map { it.toReservation() }
+    }
+
+    override suspend fun findActiveSlotReservations(serviceId: Uuid, from: LocalDateTime, to: LocalDateTime): List<Reservation> = dbQuery {
+        ReservationsTable.selectAll()
+            .where {
+                (ReservationsTable.referenceId eq serviceId) and
+                    (ReservationsTable.referenceType eq ReferenceDbDiscriminator.SLOT) and
+                    (ReservationsTable.status notInList INACTIVE_RESERVATION_STATUSES) and
+                    (ReservationsTable.slotStart less to) and (ReservationsTable.slotEnd greater from)
+            }
             .map { it.toReservation() }
     }
 
@@ -273,6 +293,11 @@ fun ResultRow.toReservation(): Reservation {
     val reference = when (this[ReservationsTable.referenceType]) {
         ReferenceDbDiscriminator.INSTANCE -> Reference.Instance(refId)
         ReferenceDbDiscriminator.SERIES -> Reference.Series(refId)
+        ReferenceDbDiscriminator.SLOT -> Reference.Slot(
+            id = refId,
+            start = checkNotNull(this[ReservationsTable.slotStart]) { "Rezervace úseku bez začátku" },
+            end = checkNotNull(this[ReservationsTable.slotEnd]) { "Rezervace úseku bez konce" },
+        )
     }
 
     return Reservation(

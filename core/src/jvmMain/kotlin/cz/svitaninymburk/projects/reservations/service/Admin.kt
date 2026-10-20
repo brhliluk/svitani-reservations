@@ -62,6 +62,7 @@ import cz.svitaninymburk.projects.reservations.util.AuditSubject
 import cz.svitaninymburk.projects.reservations.util.withAuditSubject
 import cz.svitaninymburk.projects.reservations.util.captureEmailError
 import cz.svitaninymburk.projects.reservations.util.humanReadable
+import cz.svitaninymburk.projects.reservations.util.hourMinute
 import io.ktor.util.logging.KtorSimpleLogger
 import arrow.fx.coroutines.parZip
 import kotlin.reflect.jvm.jvmName
@@ -99,6 +100,7 @@ class AdminDashboardService(
     private val lessonOptOutRefunds: LessonOptOutRefunds = LessonOptOutRefunds(
         seriesLessonOptOutRepository, eventSeriesRepository, walletService, refundService,
     ),
+    private val targetResolver: ReservationTargetResolver = ReservationTargetResolver(eventInstanceRepository, eventSeriesRepository),
 ): AdminServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -136,6 +138,11 @@ class AdminDashboardService(
         )
         is Reference.Series -> AuditSubject(
             seriesId = ref.id,
+            reservationId = reservation.id,
+            label = reservation.contactName,
+        )
+        // Služba úseků patří volitelnému modulu, historie zná jen rezervaci.
+        is Reference.Slot -> AuditSubject(
             reservationId = reservation.id,
             label = reservation.contactName,
         )
@@ -232,6 +239,7 @@ class AdminDashboardService(
                 val eventName = when (val ref = res.reference) {
                     is Reference.Instance -> eventInstanceRepository.get(ref.id)?.title ?: "Neznámá událost"
                     is Reference.Series -> eventSeriesRepository.get(ref.id)?.title ?: "Neznámý kurz"
+                    is Reference.Slot -> targetResolver.resolve(ref)?.title ?: "Neznámá služba"
                 }
 
                 AdminPendingReservation(
@@ -415,6 +423,7 @@ class AdminDashboardService(
                 { eventInstanceRepository.getAll(instanceIds).associateBy { it.id } },
                 { eventSeriesRepository.getAll(seriesIds).associateBy { it.id } },
             ) { i, s -> i to s }
+            val slotsByReference = targetResolver.resolveAll(reservations.map { it.reference }.filterIsInstance<Reference.Slot>())
 
             val items = reservations.map { res ->
                 var eventTitle = "Neznámá událost"
@@ -431,6 +440,11 @@ class AdminDashboardService(
                         eventTitle = series.title
                         eventDate = "Kurz (od ${series.startDate})"
                         customFields = series.customFields
+                    }
+                    is Reference.Slot -> slotsByReference[ref]?.let { slot ->
+                        eventTitle = slot.title
+                        eventDate = "${slot.startDateTime.humanReadable}–${slot.endDateTime.time.hourMinute}"
+                        customFields = slot.customFields
                     }
                 }
 

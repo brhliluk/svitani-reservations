@@ -75,6 +75,9 @@ sealed interface Reference {
     data class Instance(override val id: Uuid): Reference
     @Serializable @SerialName("series")
     data class Series(override val id: Uuid): Reference
+    /** Rezervace časového úseku (hlídání); [id] je služba, která úsek nabízí. */
+    @Serializable @SerialName("slot")
+    data class Slot(override val id: Uuid, val start: LocalDateTime, val end: LocalDateTime): Reference
 }
 
 @Serializable
@@ -116,6 +119,34 @@ sealed interface ReservationTarget {
         override val startDateTime = LocalDateTime(date = series.startDate, time = LocalTime(0,0))
         override val endDateTime = LocalDateTime(date = series.endDate, time = LocalTime(23,0))
         override val customFields = series.customFields
+    }
+
+    /**
+     * Úsek služby s rezervací libovolného času (hlídání). Jen data: model služby patří
+     * volitelnému modulu, o kterém jádro neví, a cíl za něj vyplní server.
+     */
+    @Serializable
+    @SerialName("slot")
+    data class Slot(
+        val serviceId: Uuid,
+        override val title: String,
+        override val startDateTime: LocalDateTime,
+        override val endDateTime: LocalDateTime,
+        /** Cena za hodinu a jedno místo. */
+        val pricePerHour: Double,
+        /** Nejmenší počet volných míst přes celý úsek. */
+        val freeSeats: Int,
+        /** Kolik míst služba nabízí současně. */
+        val capacity: Int,
+        val maxSeatsPerBooking: Int,
+        override val allowedPaymentTypes: List<PaymentType>,
+        override val customFields: List<CustomFieldDefinition>,
+        val ownerEmails: List<String> = emptyList(),
+    ) : ReservationTarget {
+        override val id get() = serviceId
+        override val price get() = pricePerHour
+        override val maxCapacity get() = freeSeats
+        override val allowMultipleSeats get() = maxSeatsPerBooking > 1
     }
 }
 
@@ -197,9 +228,15 @@ data class MyReservationListItem(
     val paymentType: PaymentType,
     val variableSymbol: String?,
     val isSeries: Boolean,
+    /** Podrobnější než [isSeries], které zůstává kvůli mobilní appce. */
+    val kind: ReservationKind = if (isSeries) ReservationKind.SERIES else ReservationKind.INSTANCE,
 ) {
     val isFree: Boolean get() = isFreePrice(totalPrice)
 }
+
+/** Na co rezervace je: jednorázová akce, kurz, nebo časový úsek (hlídání). */
+@Serializable
+enum class ReservationKind { INSTANCE, SERIES, SLOT }
 
 /**
  * Výsledek uplatnění potvrzovacího odkazu z mailu.

@@ -145,6 +145,7 @@ class GmailEmailService(
     private val appBaseUrl: String,
     private val eventRepository: EventInstanceRepository,
     private val eventSeriesRepository: EventSeriesRepository,
+    private val targetResolver: ReservationTargetResolver = ReservationTargetResolver(eventRepository, eventSeriesRepository),
 ) : EmailService, LectorEmailService, WalletEmailService {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -176,10 +177,8 @@ class GmailEmailService(
      * Název akce pro platební maily. Přihláška na kurz je rezervace na sérii, ne na
      * instanci — hledat ji jen mezi lekcemi znamenalo "Vaše rezervace na akci: null".
      */
-    internal suspend fun titleFor(reservation: Reservation): String? = when (val ref = reservation.reference) {
-        is Reference.Instance -> eventRepository.get(ref.id)?.title
-        is Reference.Series -> eventSeriesRepository.get(ref.id)?.title
-    }
+    internal suspend fun titleFor(reservation: Reservation): String? =
+        targetResolver.resolve(reservation.reference)?.title
 
     private fun setupEmail(): EmailPopulatingBuilder {
         val s = settings.current

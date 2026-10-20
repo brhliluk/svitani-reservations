@@ -49,6 +49,7 @@ class EmailResendService(
     private val emailService: EmailService,
     private val qrCodeService: QrCodeGeneratorService,
     private val appBaseUrl: String,
+    private val targetResolver: ReservationTargetResolver = ReservationTargetResolver(eventInstanceRepository, eventSeriesRepository),
 ) {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -129,21 +130,12 @@ class EmailResendService(
     }
 
     private suspend fun targetFor(reservation: Reservation): ReservationTarget? =
-        when (val reference = reservation.reference) {
-            is Reference.Instance -> eventInstanceRepository.get(reference.id)?.let { ReservationTarget.Instance(it) }
-            is Reference.Series -> eventSeriesRepository.get(reference.id)?.let { series ->
-                ReservationTarget.Series(
-                    series.copy(lessonCount = eventInstanceRepository.countActiveBySeries(series.id).toInt())
-                )
-            }
-        }
+        targetResolver.resolve(reservation.reference, activeLessonCount = true)
 
     /** QR kód dává smysl jen u převodem placené rezervace — stejně jako při prvním odeslání. */
     private fun qrCodeFor(reservation: Reservation, target: ReservationTarget): ByteArray? =
         if (reservation.paymentType == PaymentType.BANK_TRANSFER) qrCodeService.generateQrPng(reservation, target) else null
 
-    private fun icalFor(target: ReservationTarget, reservation: Reservation): ByteArray = when (target) {
-        is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, reservation.id, appBaseUrl)
-        is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, reservation.id, appBaseUrl)
-    }.toByteArray(Charsets.UTF_8)
+    private fun icalFor(target: ReservationTarget, reservation: Reservation): ByteArray =
+        ICalGenerator.forTarget(target, reservation.id, appBaseUrl).toByteArray(Charsets.UTF_8)
 }

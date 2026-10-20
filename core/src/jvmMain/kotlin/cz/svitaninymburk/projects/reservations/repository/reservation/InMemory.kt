@@ -5,6 +5,7 @@ import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.datetime.LocalDateTime
 import kotlin.uuid.Uuid
 
 
@@ -22,6 +23,13 @@ class InMemoryReservationRepository : ReservationRepository {
     override suspend fun findByReference(reference: Reference): List<Reservation> {
         return reservations.filterValues { it.reference == reference }.values.toList()
     }
+
+    override suspend fun findActiveSlotReservations(serviceId: Uuid, from: LocalDateTime, to: LocalDateTime): List<Reservation> =
+        reservations.values.filter { reservation ->
+            val ref = reservation.reference
+            ref is Reference.Slot && ref.id == serviceId && reservation.status !in INACTIVE_RESERVATION_STATUSES &&
+                ref.start < to && ref.end > from
+        }
 
     override suspend fun findActiveByReferenceIdsAndEmail(
         referenceIds: List<Uuid>,

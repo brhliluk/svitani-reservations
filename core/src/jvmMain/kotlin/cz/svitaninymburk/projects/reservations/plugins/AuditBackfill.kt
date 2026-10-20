@@ -72,13 +72,15 @@ private suspend fun reservationsCreated(): List<NewAuditEvent> {
         ReservationsTable.selectAll().map { row ->
             val refId = row[ReservationsTable.referenceId]
             val isSeries = row[ReservationsTable.referenceType] == ReferenceDbDiscriminator.SERIES
+            // Úsek (hlídání) nemá v historii ani kurz, ani termín.
+            val isInstance = row[ReservationsTable.referenceType] == ReferenceDbDiscriminator.INSTANCE
             NewAuditEvent(
                 type = AuditEventType.RESERVATION_CREATED,
                 actorType = AuditActorType.SYSTEM,
                 actorLabel = BACKFILL_ACTOR,
                 subjectLabel = row[ReservationsTable.contactName],
                 seriesId = if (isSeries) refId else seriesOf[refId],
-                instanceId = if (isSeries) null else refId,
+                instanceId = if (isInstance) refId else null,
                 reservationId = row[ReservationsTable.id],
                 amount = row[ReservationsTable.totalPrice],
                 detail = "${row[ReservationsTable.seatCount]}× místo (doplněno zpětně)",
@@ -101,6 +103,7 @@ private suspend fun paymentsPaired(): List<NewAuditEvent> {
             .map { row ->
                 val refId = row.getOrNull(ReservationsTable.referenceId)
                 val isSeries = row.getOrNull(ReservationsTable.referenceType) == ReferenceDbDiscriminator.SERIES
+                val isInstance = row.getOrNull(ReservationsTable.referenceType) == ReferenceDbDiscriminator.INSTANCE
                 NewAuditEvent(
                     // payment_events nerozlišuje nedoplatek, takže se vše mapuje na spárováno
                     type = when (row[PaymentEventsTable.paymentSource]) {
@@ -111,7 +114,7 @@ private suspend fun paymentsPaired(): List<NewAuditEvent> {
                     actorLabel = BACKFILL_ACTOR,
                     subjectLabel = row.getOrNull(ReservationsTable.contactName) ?: "",
                     seriesId = if (isSeries) refId else refId?.let { seriesOf[it] },
-                    instanceId = if (isSeries) null else refId,
+                    instanceId = if (isInstance) refId else null,
                     reservationId = row[PaymentEventsTable.reservationId],
                     amount = row[PaymentEventsTable.amount],
                     detail = "Doplněno zpětně z payment_events",
@@ -171,13 +174,14 @@ private suspend fun walletRefunds(): List<NewAuditEvent> {
             .map { row ->
                 val refId = row.getOrNull(ReservationsTable.referenceId)
                 val isSeries = row.getOrNull(ReservationsTable.referenceType) == ReferenceDbDiscriminator.SERIES
+                val isInstance = row.getOrNull(ReservationsTable.referenceType) == ReferenceDbDiscriminator.INSTANCE
                 NewAuditEvent(
                     type = AuditEventType.PAYMENT_REFUNDED,
                     actorType = AuditActorType.SYSTEM,
                     actorLabel = BACKFILL_ACTOR,
                     subjectLabel = row.getOrNull(ReservationsTable.contactName) ?: "",
                     seriesId = if (isSeries) refId else refId?.let { seriesOf[it] },
-                    instanceId = if (isSeries) null else refId,
+                    instanceId = if (isInstance) refId else null,
                     reservationId = row[WalletTransactionsTable.reservationId],
                     amount = row[WalletTransactionsTable.amount],
                     detail = row[WalletTransactionsTable.reason].name,

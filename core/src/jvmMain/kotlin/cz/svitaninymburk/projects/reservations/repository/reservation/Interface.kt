@@ -2,6 +2,7 @@ package cz.svitaninymburk.projects.reservations.repository.reservation
 
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
+import kotlinx.datetime.LocalDateTime
 import kotlin.uuid.Uuid
 
 /**
@@ -23,6 +24,12 @@ interface ReservationRepository {
     /** Víc rezervací naráz; chybějící id se tiše vynechají. */
     suspend fun findByIds(ids: Collection<Uuid>): List<Reservation> = ids.mapNotNull { findById(it) }
     suspend fun findByReference(reference: Reference): List<Reservation>
+
+    /**
+     * Aktivní rezervace úseků služby [serviceId], které se překrývají s `[from, to)`.
+     * Z nich se počítá obsazenost hlídání — čítač míst úseky nemají.
+     */
+    suspend fun findActiveSlotReservations(serviceId: Uuid, from: LocalDateTime, to: LocalDateTime): List<Reservation>
 
     /**
      * Aktivní přihlášky daného e-mailu na kterýkoli z uvedených cílů. Jedním dotazem,

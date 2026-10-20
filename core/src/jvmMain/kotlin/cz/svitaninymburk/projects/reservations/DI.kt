@@ -108,6 +108,8 @@ val appModule = module {
 
     // Reservations
     single<ReservationRepository> { ExposedReservationRepository() }
+    // Poskytovatele úseků registruje volitelný modul (hlídání); bez něj je null.
+    single { ReservationTargetResolver(get(), get(), getOrNull<SlotBookingProvider>()) }
     single<PaymentEventRepository> { ExposedPaymentEventRepository() }
 
     // Audit log
@@ -141,12 +143,13 @@ val appModule = module {
             appBaseUrl = System.getenv("APP_BASE_URL") ?: error("APP_BASE_URL env var is required"),
             eventRepository = get(),
             eventSeriesRepository = get(),
+            targetResolver = get(),
         )
         AuditingEmailService(gmail, gmail, gmail, audit = get())
     } binds arrayOf(EmailService::class, LectorEmailService::class, WalletEmailService::class)
     single { QrCodeService() }
     single { BackendQrCodeGenerator(get(), get()) } bind QrCodeGeneratorService::class
-    single { WaitlistPromoter(get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", audit = get(), emailDispatcher = get()) }
+    single { WaitlistPromoter(get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", audit = get(), emailDispatcher = get(), targetResolver = get()) }
     single<ReservationClaimTokenRepository> { ExposedReservationClaimTokenRepository() }
     single {
         ReservationClaimService(
@@ -158,12 +161,13 @@ val appModule = module {
             emailService = get(),
             appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz",
             audit = get(),
+            targetResolver = get(),
         )
     }
-    single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get(), userRepository = get(), emailDispatcher = get(), audit = get(), refundService = get(), waitlistPromoter = get(), claimService = get()) } bind ReservationServiceInterface::class
-    single { AuthenticatedReservationService(get(), get(), get(), get(), get(), claimService = get()) } bind AuthenticatedReservationServiceInterface::class
+    single { ReservationService(get(), get(), get(), get(), get(), get(), get(), get(), appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz", seriesLessonOptOutRepository = get(), walletService = get(), walletEmailService = get(), appSettingsProvider = get(), userRepository = get(), emailDispatcher = get(), audit = get(), refundService = get(), waitlistPromoter = get(), claimService = get(), targetResolver = get()) } bind ReservationServiceInterface::class
+    single { AuthenticatedReservationService(get(), get(), get(), get(), get(), claimService = get(), targetResolver = get()) } bind AuthenticatedReservationServiceInterface::class
     single { LessonOptOutRefunds(get(), get(), get(), get()) }
-    single { PaymentPairingService(get(), get(), get(), get(), get(), get(), get(), get(), get(), lessonOptOutRefunds = get()) }
+    single { PaymentPairingService(get(), get(), get(), get(), get(), get(), get(), get(), get(), lessonOptOutRefunds = get(), targetResolver = get()) }
     single { SeriesScheduleRefresher(get(), get()) }
     single { AdminService(get()) }
     single<EmailDispatcher> { BackgroundEmailDispatcher(scope = get(), audit = get()) }
@@ -176,8 +180,9 @@ val appModule = module {
             emailService = get(),
             qrCodeService = get(),
             appBaseUrl = System.getenv("APP_BASE_URL") ?: "https://rezervace.svitaninymburk.cz",
+            targetResolver = get(),
         )
     }
-    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get(), refundService = get(), seriesLessonOptOutRepository = get(), seriesScheduleRefresher = get(), waitlistPromoter = get(), audit = get(), auditRepository = get(), emailResender = get(), emailDispatcher = get(), lessonOptOutRefunds = get()) } bind AdminServiceInterface::class
+    single { AdminDashboardService(get(), get(), get(), get(), get(), get(), get(), walletService = get(), refundService = get(), seriesLessonOptOutRepository = get(), seriesScheduleRefresher = get(), waitlistPromoter = get(), audit = get(), auditRepository = get(), emailResender = get(), emailDispatcher = get(), lessonOptOutRefunds = get(), targetResolver = get()) } bind AdminServiceInterface::class
     single { UserService(get(), get()) }
 }

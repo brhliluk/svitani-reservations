@@ -141,4 +141,26 @@ class PriceCalculatorSpec {
         val values = mapOf("children" to NumberValue("children", 5f))
         assertEquals(350.0, calculateTotalPrice(100.0, 1, fields, values))
     }
+
+    @Test
+    fun explicitTimeMultiplierScalesBasePriceExactly() {
+        // Úsek 2 h 15 min: 150 × 2 děti × 2,25 h = 675, bez zaokrouhlení.
+        assertEquals(675.0, calculateTotalPrice(150.0, 2, emptyList(), emptyMap(), timeMultiplier = 2.25))
+        assertEquals(337.5, calculateTotalPrice(150.0, 1, emptyList(), emptyMap(), timeMultiplier = 2.25))
+    }
+
+    @Test
+    fun explicitTimeMultiplierIsAppliedBeforeAdditiveModifiers() {
+        // (100 × 1 × 3 h) + 50 paušál; paušál se hodinami nenásobí.
+        val fields = listOf(
+            BooleanFieldDefinition("extra", "Extra", priceModifier = PriceModifier.FixedAmount(50.0))
+        )
+        val values = mapOf("extra" to BooleanValue("extra", true))
+        assertEquals(350.0, calculateTotalPrice(100.0, 1, fields, values, timeMultiplier = 3.0))
+    }
+
+    @Test
+    fun defaultTimeMultiplierKeepsPriceUnchanged() {
+        assertEquals(calculateTotalPrice(100.0, 2, emptyList(), emptyMap()), calculateTotalPrice(100.0, 2, emptyList(), emptyMap(), timeMultiplier = 1.0))
+    }
 }

@@ -49,6 +49,7 @@ class PaymentPairingService(
     private val audit: AuditService = AuditService(InMemoryAuditRepository()),
     /** Dorovnání kreditu za omluvenky z doby před zaplacením; null jen v testech, které ho nepotřebují. */
     private val lessonOptOutRefunds: LessonOptOutRefunds? = null,
+    private val targetResolver: ReservationTargetResolver = ReservationTargetResolver(eventInstanceRepository, eventSeriesRepository),
 ) {
     private val logger = KtorSimpleLogger(this::class.jvmName)
 
@@ -81,13 +82,16 @@ class PaymentPairingService(
             reservationId = reservation.id,
             label = reservation.contactName,
         )
+        // Služba úseků patří volitelnému modulu, historie zná jen rezervaci.
+        is Reference.Slot -> AuditSubject(
+            reservationId = reservation.id,
+            label = reservation.contactName,
+        )
     }
 
     /** Akce nebo kurz rezervace — QR kód z ní bere název do zprávy pro příjemce. */
-    private suspend fun targetFor(reservation: Reservation): ReservationTarget? = when (val ref = reservation.reference) {
-        is Reference.Instance -> eventInstanceRepository.get(ref.id)?.let { ReservationTarget.Instance(it) }
-        is Reference.Series -> eventSeriesRepository.get(ref.id)?.let { ReservationTarget.Series(it) }
-    }
+    private suspend fun targetFor(reservation: Reservation): ReservationTarget? =
+        targetResolver.resolve(reservation.reference)
     suspend fun checkAndPairPayments(): Either<PaymentPairingError.CheckAndPairPayments, Unit> = either {
         logger.info("🔄 Spouštím kontrolu plateb Fio banky...")
 

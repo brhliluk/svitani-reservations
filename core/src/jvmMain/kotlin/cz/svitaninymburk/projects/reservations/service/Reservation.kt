@@ -38,6 +38,7 @@ import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonOptOut
 import cz.svitaninymburk.projects.reservations.reservation.SeriesLessonsView
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
+import cz.svitaninymburk.projects.reservations.reservation.ReservationKind
 import cz.svitaninymburk.projects.reservations.settings.AppSettingsProvider
 import cz.svitaninymburk.projects.reservations.user.User
 import cz.svitaninymburk.projects.reservations.audit.AuditActorType
@@ -105,6 +106,7 @@ internal fun ReservationTarget.isStillRunning(now: Instant): Boolean {
     val cancelled = when (this) {
         is ReservationTarget.Instance -> event.isCancelled
         is ReservationTarget.Series -> series.isCancelled
+        is ReservationTarget.Slot -> false
     }
     return !cancelled && now < endDateTime.toInstant(APP_TIMEZONE)
 }
@@ -197,6 +199,7 @@ open class ReservationService(
         appBaseUrl,
         audit,
     ),
+    private val targetResolver: ReservationTargetResolver = ReservationTargetResolver(eventInstanceRepository, eventSeriesRepository),
 ) : ReservationServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -240,10 +243,7 @@ open class ReservationService(
     override suspend fun getDetail(id: Uuid): Either<ReservationError.GetDetail, ReservationDetail> = either {
         val reservation = get(id).getOrElse { raise(ReservationError.ReservationNotFound) }
 
-        val target: ReservationTarget? = when (val ref = reservation.reference) {
-            is Reference.Instance -> eventInstanceRepository.get(ref.id)?.let { ReservationTarget.Instance(it) }
-            is Reference.Series -> eventSeriesRepository.get(ref.id)?.let { ReservationTarget.Series(it) }
-        }
+        val target: ReservationTarget? = targetResolver.resolve(reservation.reference)
 
         val waitlistPosition: Int? = if (reservation.status == Reservation.Status.WAITLISTED) {
             val position = reservationRepository.findByReference(reservation.reference)
@@ -507,6 +507,8 @@ open class ReservationService(
         pricePerSeat: Double,
         target: ReservationTarget,
         walletCode: String? = null,
+        /** Délka úseku v hodinách u rezervace úseku; cena se jí násobí. */
+        timeMultiplier: Double = 1.0,
     ): Reservation {
         val variableSymbol = reservationRepository.generateUniqueVariableSymbol()
             ?: raise(ReservationError.SystemError("Unable to generate unique Variable Symbol"))
@@ -516,6 +518,7 @@ open class ReservationService(
             seatCount = requestData.seatCount,
             customFields = target.customFields,
             customValues = requestData.customValues,
+            timeMultiplier = timeMultiplier,
         )
         // Akce zdarma nemá kam posílat platbu, takže rezervace vzniká rovnou
         // potvrzená: jinak by detail nabízel QR kód na 0 Kč a admin přehled by ji
@@ -604,10 +607,7 @@ open class ReservationService(
                     qrCodeService.generateQrPng(confirmed, target)
                 } else null
 
-                val icalBytes = when (target) {
-                    is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, confirmed.id, appBaseUrl)
-                    is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, confirmed.id, appBaseUrl)
-                }.toByteArray(Charsets.UTF_8)
+                val icalBytes = ICalGenerator.forTarget(target, confirmed.id, appBaseUrl).toByteArray(Charsets.UTF_8)
 
                 emailService.sendReservationConfirmation(
                     toEmail = confirmed.contactEmail,
@@ -620,14 +620,8 @@ open class ReservationService(
 
                 val ownerEmails = resolveOwnerEmails(target)
                 if (ownerEmails.isNotEmpty()) {
-                    val newOccupiedSpots = when (target) {
-                        is ReservationTarget.Instance -> target.event.occupiedSpots + confirmed.seatCount
-                        is ReservationTarget.Series -> target.series.occupiedSpots + confirmed.seatCount
-                    }
-                    val capacity = when (target) {
-                        is ReservationTarget.Instance -> target.event.capacity
-                        is ReservationTarget.Series -> target.series.capacity
-                    }
+                    val newOccupiedSpots = target.occupiedSpots() + confirmed.seatCount
+                    val capacity = target.capacity()
                     ownerEmails.forEach { email ->
                         lectorEmailService.sendLectorReservationNotification(
                             lectorEmail = email,
@@ -655,7 +649,7 @@ open class ReservationService(
     private suspend fun lessonShareFor(target: ReservationTarget, totalPrice: Double): Double? = when (target) {
         is ReservationTarget.Series ->
             lessonShareOf(totalPrice, eventInstanceRepository.countActiveBySeries(target.series.id).toInt())
-        is ReservationTarget.Instance -> null
+        is ReservationTarget.Instance, is ReservationTarget.Slot -> null
     }
 
     /**
@@ -821,10 +815,7 @@ open class ReservationService(
             // záporu) a poslalo druhý storno e-mail.
             ensure(reservation.status != Reservation.Status.CANCELLED) { ReservationError.AlreadyCancelled }
 
-            val target: ReservationTarget? = when (reservation.reference) {
-                is Reference.Instance -> eventInstanceRepository.get(reservation.reference.id)?.let { ReservationTarget.Instance(it) }
-                is Reference.Series -> eventSeriesRepository.get(reservation.reference.id)?.let { ReservationTarget.Series(it) }
-            }
+            val target: ReservationTarget? = targetResolver.resolve(reservation.reference)
 
             // Rozběhnutý kurz zákazník celý nezruší — kdo odpadne v půlce, omlouvá se
             // z jednotlivých lekcí; storno celé rezervace by ho vyřadilo i z lekcí, na
@@ -854,7 +845,8 @@ open class ReservationService(
                         )
                     } else null
                 }
-                is ReservationTarget.Instance -> {
+                // Úsek (hlídání) se ruší stejně jako jednorázová akce.
+                is ReservationTarget.Instance, is ReservationTarget.Slot -> {
                     if (!isAdminCaller()) ensure(now < target.startDateTime) { ReservationError.EventAlreadyStarted }
                     null
                 }
@@ -901,11 +893,10 @@ open class ReservationService(
                     when (reservation.reference) {
                         is Reference.Instance -> eventInstanceRepository.decrementOccupiedWaitlist(reservation.reference.id, 1)
                         is Reference.Series -> eventSeriesRepository.decrementOccupiedWaitlist(reservation.reference.id, 1)
+                        // Úsek pořadník nemá.
+                        is Reference.Slot -> Unit
                     }
-                    when (target) {
-                        is ReservationTarget.Instance -> target.event.occupiedSpots
-                        is ReservationTarget.Series -> target.series.occupiedSpots
-                    }
+                    target.occupiedSpots()
                 } else {
                     // decrementOccupiedSpots vrací jen zúžený uložený sloupec (přímé
                     // rezervace bez zátěže kurzu) — pro e-mail lektorovi to čte znovu přes
@@ -920,10 +911,9 @@ open class ReservationService(
                             eventSeriesRepository.decrementOccupiedSpots(reservation.reference.id, reservation.seatCount)
                             eventSeriesRepository.get(reservation.reference.id)?.occupiedSpots
                         }
-                    } ?: when (target) {
-                        is ReservationTarget.Instance -> (target.event.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
-                        is ReservationTarget.Series -> (target.series.occupiedSpots - reservation.seatCount).coerceAtLeast(0)
-                    }
+                        // Obsazenost úseku se nepočítá do čítače, plyne z aktivních rezervací.
+                        is Reference.Slot -> null
+                    } ?: (target.occupiedSpots() - reservation.seatCount).coerceAtLeast(0)
                 }
 
                 if (!wasWaitlisted) {
@@ -961,10 +951,7 @@ open class ReservationService(
 
                 val ownerEmails = resolveOwnerEmails(target)
                 if (ownerEmails.isNotEmpty()) {
-                    val capacity = when (target) {
-                        is ReservationTarget.Instance -> target.event.capacity
-                        is ReservationTarget.Series -> target.series.capacity
-                    }
+                    val capacity = target.capacity()
                     withAuditSubject(cancelSubject) {
                         emailDispatcher.dispatch {
                             ownerEmails.forEach { email ->
@@ -1031,6 +1018,23 @@ open class ReservationService(
             endDate = series.endDate,
             lessonCount = series.lessonCount,
         )
+        is ReservationTarget.Slot -> LectorTarget.Occasion(startDateTime)
+    }
+
+    /**
+     * Obsazenost pro e-mail lektorovi. U úseku nejvyšší obsazenost v jeho průběhu,
+     * protože se počítá z nejmenšího počtu volných míst.
+     */
+    private fun ReservationTarget.occupiedSpots(): Int = when (this) {
+        is ReservationTarget.Instance -> event.occupiedSpots
+        is ReservationTarget.Series -> series.occupiedSpots
+        is ReservationTarget.Slot -> capacity - freeSeats
+    }
+
+    private fun ReservationTarget.capacity(): Int = when (this) {
+        is ReservationTarget.Instance -> event.capacity
+        is ReservationTarget.Series -> series.capacity
+        is ReservationTarget.Slot -> capacity
     }
 
     private suspend fun resolveOwnerEmails(target: ReservationTarget): List<String> {
@@ -1048,6 +1052,7 @@ open class ReservationService(
                 emails += target.series.ownerEmails
                 emails += eventDefinitionRepository.get(target.series.definitionId)?.ownerEmails ?: emptyList()
             }
+            is ReservationTarget.Slot -> emails += target.ownerEmails
         }
         return parseOwnerEmails(emails.toList())
     }
@@ -1089,6 +1094,7 @@ open class AuthenticatedReservationService(
         appBaseUrl = "",
         audit = audit,
     ),
+    private val targetResolver: ReservationTargetResolver = ReservationTargetResolver(eventInstanceRepository, eventSeriesRepository),
 ) : AuthenticatedReservationServiceInterface {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -1123,8 +1129,7 @@ open class AuthenticatedReservationService(
 
         runningReservationListItems(
             reservations = reservations,
-            eventInstanceRepository = eventInstanceRepository,
-            eventSeriesRepository = eventSeriesRepository,
+            targetResolver = targetResolver,
             now = Clock.System.now(),
         )
     }
@@ -1156,12 +1161,9 @@ open class AuthenticatedReservationService(
             else ReservationError.EmailDoesNotMatch
         }
 
-        val target: ReservationTarget = ensureNotNull(
-            when (val ref = reservation.reference) {
-                is Reference.Instance -> eventInstanceRepository.get(ref.id)?.let { ReservationTarget.Instance(it) }
-                is Reference.Series -> eventSeriesRepository.get(ref.id)?.let { ReservationTarget.Series(it) }
-            }
-        ) { ReservationError.NotClaimable }
+        val target: ReservationTarget = ensureNotNull(targetResolver.resolve(reservation.reference)) {
+            ReservationError.NotClaimable
+        }
         ensure(target.isStillRunning(Clock.System.now())) { ReservationError.NotClaimable }
 
         // Úzký UPDATE s podmínkou `registered_user_id IS NULL` — nejen aby nepřepsal
@@ -1191,42 +1193,29 @@ open class AuthenticatedReservationService(
  */
 internal suspend fun runningReservationListItems(
     reservations: List<Reservation>,
-    eventInstanceRepository: EventInstanceRepository,
-    eventSeriesRepository: EventSeriesRepository,
+    targetResolver: ReservationTargetResolver,
     now: Instant,
 ): List<MyReservationListItem> {
     if (reservations.isEmpty()) return emptyList()
 
-    val instanceIds = reservations.mapNotNull { (it.reference as? Reference.Instance)?.id }
-    val seriesIds = reservations.mapNotNull { (it.reference as? Reference.Series)?.id }
-    val events = eventInstanceRepository.getAll(instanceIds).associateBy { it.id }
-    val series = eventSeriesRepository.getAll(seriesIds).associateBy { it.id }
+    val targets = targetResolver.resolveAll(reservations.map { it.reference })
 
     return reservations.mapNotNull { reservation ->
-        when (val ref = reservation.reference) {
-            is Reference.Instance -> {
-                val event = events[ref.id] ?: return@mapNotNull null
-                if (!ReservationTarget.Instance(event).isStillRunning(now)) return@mapNotNull null
-                reservation.toListItem(
-                    title = event.title,
-                    startDateTime = event.startDateTime,
-                    isSeries = false,
-                )
-            }
-            is Reference.Series -> {
-                val seriesItem = series[ref.id] ?: return@mapNotNull null
-                if (!ReservationTarget.Series(seriesItem).isStillRunning(now)) return@mapNotNull null
-                reservation.toListItem(
-                    title = seriesItem.title,
-                    startDateTime = LocalDateTime(seriesItem.startDate, LocalTime(0, 0)),
-                    isSeries = true,
-                )
-            }
-        }
+        val target = targets[reservation.reference] ?: return@mapNotNull null
+        if (!target.isStillRunning(now)) return@mapNotNull null
+        reservation.toListItem(
+            title = target.title,
+            startDateTime = target.startDateTime,
+            kind = when (target) {
+                is ReservationTarget.Instance -> ReservationKind.INSTANCE
+                is ReservationTarget.Series -> ReservationKind.SERIES
+                is ReservationTarget.Slot -> ReservationKind.SLOT
+            },
+        )
     }.sortedBy { it.startDateTime }
 }
 
-private fun Reservation.toListItem(title: String, startDateTime: LocalDateTime, isSeries: Boolean): MyReservationListItem =
+private fun Reservation.toListItem(title: String, startDateTime: LocalDateTime, kind: ReservationKind): MyReservationListItem =
     MyReservationListItem(
         id = id,
         eventTitle = title,
@@ -1236,7 +1225,8 @@ private fun Reservation.toListItem(title: String, startDateTime: LocalDateTime, 
         status = status,
         paymentType = paymentType,
         variableSymbol = variableSymbol,
-        isSeries = isSeries,
+        isSeries = kind == ReservationKind.SERIES,
+        kind = kind,
     )
 
 /**

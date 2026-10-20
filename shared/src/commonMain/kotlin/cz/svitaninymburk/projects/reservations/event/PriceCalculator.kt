@@ -1,15 +1,21 @@
 package cz.svitaninymburk.projects.reservations.event
 
+/**
+ * [timeMultiplier] násobí cenu spolu s modifikátory v pass 1, tedy před aditivními;
+ * rezervace úseku do něj dává délku úseku v hodinách.
+ */
 fun calculateTotalPrice(
     basePrice: Double,
     seatCount: Int,
     customFields: List<CustomFieldDefinition>,
-    customValues: Map<String, CustomFieldValue>
+    customValues: Map<String, CustomFieldValue>,
+    timeMultiplier: Double = 1.0,
 ): Double {
     val fieldMap = customFields.associateBy { it.key }
     var total = basePrice * seatCount
 
     // Pass 1: multiplicative modifiers (TimeMultiplier)
+    total *= timeMultiplier
     for ((key, value) in customValues) {
         val modifier = fieldMap[key]?.priceModifier ?: continue
         if (modifier is PriceModifier.TimeMultiplier) {

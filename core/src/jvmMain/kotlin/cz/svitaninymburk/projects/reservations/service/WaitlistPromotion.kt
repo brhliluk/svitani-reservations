@@ -37,6 +37,7 @@ class WaitlistPromoter(
      * a posílá jeden mail na každého posunutého.
      */
     private val emailDispatcher: EmailDispatcher = InlineEmailDispatcher,
+    private val targetResolver: ReservationTargetResolver = ReservationTargetResolver(eventInstanceRepository, eventSeriesRepository),
 ) {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -62,6 +63,9 @@ class WaitlistPromoter(
                 if (series.isCancelled) return
                 series.capacity - series.occupiedSpots
             }
+
+            // Úsek (hlídání) pořadník nemá.
+            is Reference.Slot -> return
         }
 
         if (freeSeats <= 0) return
@@ -71,6 +75,8 @@ class WaitlistPromoter(
     }
 
     suspend fun promote(reference: Reference, freedSeats: Int) {
+        // Úsek (hlídání) pořadník nemá.
+        if (reference is Reference.Slot) return
         val waitlisted = reservationRepository.findByReference(reference)
             .filter { it.status == Reservation.Status.WAITLISTED }
             .sortedBy { it.createdAt }
@@ -93,10 +99,7 @@ class WaitlistPromoter(
                 is Reference.Series -> eventSeriesRepository.decrementOccupiedWaitlist(reference.id, 1)
             }
 
-            val target: ReservationTarget? = when (reference) {
-                is Reference.Instance -> eventInstanceRepository.get(reference.id)?.let { ReservationTarget.Instance(it) }
-                is Reference.Series -> eventSeriesRepository.get(reference.id)?.let { ReservationTarget.Series(it.copy(lessonCount = eventInstanceRepository.countActiveBySeries(it.id).toInt())) }
-            }
+            val target: ReservationTarget? = targetResolver.resolve(reference, activeLessonCount = true)
 
             val variableSymbol = reservationRepository.generateUniqueVariableSymbol()
             // Povýšení z pořadníku u akce zdarma nesmí skončit ve "čeká na platbu" —
@@ -128,10 +131,7 @@ class WaitlistPromoter(
                             qrCodeService.generateQrPng(promoted, target)
                         } else null
 
-                        val icalBytes = when (target) {
-                            is ReservationTarget.Instance -> ICalGenerator.forInstance(target.event, promoted.id, appBaseUrl)
-                            is ReservationTarget.Series -> ICalGenerator.forSeries(target.series, promoted.id, appBaseUrl)
-                        }.toByteArray(Charsets.UTF_8)
+                        val icalBytes = ICalGenerator.forTarget(target, promoted.id, appBaseUrl).toByteArray(Charsets.UTF_8)
 
                         emailService.sendWaitlistPromotion(
                             toEmail = promoted.contactEmail,

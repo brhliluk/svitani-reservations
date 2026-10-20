@@ -3,6 +3,7 @@ package cz.svitaninymburk.projects.reservations.service
 import cz.svitaninymburk.projects.reservations.util.APP_TIMEZONE
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
+import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.number
@@ -24,6 +25,21 @@ object ICalGenerator {
             dtEnd = instance.endDateTime,
             rrule = null,
         )
+
+    /** Pozvánka do kalendáře pro cíl rezervace, ať je to akce, kurz, nebo úsek. */
+    fun forTarget(target: ReservationTarget, reservationId: Uuid, appBaseUrl: String): String = when (target) {
+        is ReservationTarget.Instance -> forInstance(target.event, reservationId, appBaseUrl)
+        is ReservationTarget.Series -> forSeries(target.series, reservationId, appBaseUrl)
+        is ReservationTarget.Slot -> buildVCal(
+            uid = "$reservationId@rezervace.svitaninymburk.cz",
+            summary = target.title,
+            description = "",
+            url = "$appBaseUrl/reservation/$reservationId",
+            dtStart = target.startDateTime,
+            dtEnd = target.endDateTime,
+            rrule = null,
+        )
+    }
 
     fun forSeries(series: EventSeries, reservationId: Uuid, appBaseUrl: String): String {
         val dow = series.lessonDayOfWeek

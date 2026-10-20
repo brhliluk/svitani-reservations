@@ -52,6 +52,7 @@ class ReservationClaimService(
     private val emailService: EmailService,
     private val appBaseUrl: String,
     private val audit: AuditService,
+    private val targetResolver: ReservationTargetResolver = ReservationTargetResolver(eventInstanceRepository, eventSeriesRepository),
 ) {
 
     private val logger = KtorSimpleLogger(this::class.jvmName)
@@ -178,11 +179,8 @@ class ReservationClaimService(
     }
 
     private suspend fun listItemsFor(reservations: List<Reservation>, now: Instant): List<MyReservationListItem> =
-        runningReservationListItems(reservations, eventInstanceRepository, eventSeriesRepository, now)
+        runningReservationListItems(reservations, targetResolver, now)
 
     private suspend fun targetOf(reservation: Reservation): ReservationTarget? =
-        when (val ref = reservation.reference) {
-            is Reference.Instance -> eventInstanceRepository.get(ref.id)?.let { ReservationTarget.Instance(it) }
-            is Reference.Series -> eventSeriesRepository.get(ref.id)?.let { ReservationTarget.Series(it) }
-        }
+        targetResolver.resolve(reservation.reference)
 }

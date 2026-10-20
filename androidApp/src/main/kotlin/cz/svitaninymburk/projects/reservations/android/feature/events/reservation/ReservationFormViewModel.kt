@@ -212,6 +212,8 @@ class ReservationFormViewModel(
                         walletCode = walletCode,
                     )
                 )
+                // Hlídání appka nenabízí — cíl se tu načítá jen jako akce nebo kurz.
+                is ReservationTarget.Slot -> error("Rezervace úseku v mobilní appce není")
             }
             result
                 .onLeft { error -> uiState.update { it.copy(isSubmitting = false, submitError = error) } }

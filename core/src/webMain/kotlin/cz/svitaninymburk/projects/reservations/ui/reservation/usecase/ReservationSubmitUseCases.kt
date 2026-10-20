@@ -10,8 +10,8 @@ import kotlin.uuid.Uuid
 
 // --- Pure helpery (testovatelné bez RPC) ---
 
-/** Čtyři kombinace cíle a pořadníku — každá je jiné RPC volání. */
-enum class ReservationSubmitAction { ReserveInstance, ReserveSeries, JoinWaitlistInstance, JoinWaitlistSeries }
+/** Kombinace cíle a pořadníku — každá je jiné RPC volání. Úsek (hlídání) pořadník nemá. */
+enum class ReservationSubmitAction { ReserveInstance, ReserveSeries, JoinWaitlistInstance, JoinWaitlistSeries, ReserveSlot }
 
 fun reservationSubmitAction(target: ReservationTarget, asWaitlist: Boolean): ReservationSubmitAction = when (target) {
     is ReservationTarget.Instance -> if (asWaitlist) {
@@ -24,6 +24,7 @@ fun reservationSubmitAction(target: ReservationTarget, asWaitlist: Boolean): Res
     } else {
         ReservationSubmitAction.ReserveSeries
     }
+    is ReservationTarget.Slot -> ReservationSubmitAction.ReserveSlot
 }
 
 // --- UseCase třídy (tenké, vrací Either) ---
@@ -41,8 +42,16 @@ fun interface ReservationSubmitter {
     ): Either<ReservationError.CreateReservation, Reservation>
 }
 
-/** Jediné místo, kde se z cíle a příznaku pořadníku vybírá konkrétní volání. */
-class ReservationSubmitUseCase(private val reservations: ReservationServiceInterface) : ReservationSubmitter {
+/**
+ * Jediné místo, kde se z cíle a příznaku pořadníku vybírá konkrétní volání.
+ *
+ * Úseky rezervuje RPC volitelného modulu, o kterém jádro neví — modul proto dodá
+ * vlastní [slotSubmitter]. Bez něj rezervace úseku skončí jako na neexistující akci.
+ */
+class ReservationSubmitUseCase(
+    private val reservations: ReservationServiceInterface,
+    private val slotSubmitter: ReservationSubmitter? = null,
+) : ReservationSubmitter {
     override suspend fun submit(
         target: ReservationTarget,
         formData: ReservationFormData,
@@ -56,6 +65,9 @@ class ReservationSubmitUseCase(private val reservations: ReservationServiceInter
             ReservationSubmitAction.ReserveSeries -> reservations.reserveSeries(series(), userId)
             ReservationSubmitAction.JoinWaitlistInstance -> reservations.joinWaitlistInstance(instance(), userId)
             ReservationSubmitAction.JoinWaitlistSeries -> reservations.joinWaitlistSeries(series(), userId)
+            ReservationSubmitAction.ReserveSlot ->
+                slotSubmitter?.submit(target, formData, userId, acknowledgedDuplicate)
+                    ?: Either.Left(ReservationError.ReservationNotFound)
         }
     }
 }
