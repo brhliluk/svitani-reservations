@@ -40,3 +40,21 @@ The JVM backend requires these environment variables at startup. Missing any of 
 | `FIO_TOKEN`           | API token for the FIO banking integration that pairs incoming payments to reservations.                                                                                                                                    |
 
 For local development you can swap the `EmailService` binding in `DI.kt` back to `ConsoleEmailService` to avoid needing real Gmail credentials — emails will print to stdout instead.
+
+# Childcare (time slots)
+
+Optional module `:slots` lets parents book childcare for any block of time within opening hours
+(e.g. Tue 9:00–11:30 for 2 children), instead of a fixed event.
+
+- **Parents** open `/hlidani` (linked in the header once a service is published), pick a day,
+  the number of children and a block of steps (15 or 30 min). The booking goes through the
+  regular reservation form, so payment, wallet credit, cancellation, e-mails and "My reservations"
+  work as for events. The price is the hourly rate × children × hours.
+- **Admins** manage services at `/admin/slots`: opening hours as periods (each with its own week
+  and validity), exceptions (closed or different hours), settings and a printable day overview.
+  Changing the schedule never cancels bookings; it only lists the affected ones. Deleting a
+  service cancels its reservations like deleting an event.
+- A new service is hidden until published; hidden services are visible and bookable by admins only.
+
+The module is on by default. Build without it with `-Pfeatures.slots=false`. Design decisions
+are in `docs/hlidani/` (Czech).

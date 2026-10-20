@@ -17,9 +17,13 @@ z fáze 0 (19. 10. 2026) a o odchylky, na kterých jsme se domluvili.
 - **Fáze 4: hotovo** (commit `ee88205`). `SlotServiceInterface` (`listServices`, `getAvailability`,
   `reserveSlot`) se všemi validacemi pod `Mutex`, e-maily a pozvánka s intervalem, testy validací
   a souběhu. Admin RPC je přesunuté do fáze 6.
-- **Fáze 5: hotovo** (necommitnuto). `WebFeature` v jádru, stránka `/hlidani` v modulu, úpravy
-  rezervačního formuláře, „Moje rezervace“ a detailu.
-- **Další krok: fáze 6** (admin UI a admin RPC).
+- **Fáze 5: hotovo** (commit `c305bd4`). `WebFeature` v jádru, stránka `/hlidani` v modulu,
+  úpravy rezervačního formuláře, „Moje rezervace“ a detailu.
+- **Fáze 6: hotovo** (necommitnuto, v běžící aplikaci zatím neproklikáno). Admin RPC
+  `SlotAdminServiceInterface`, administrace `/admin/slots`, filtr typu v admin rezervacích.
+- **Fáze 7: hotovo** (necommitnuto spolu s fází 6). OpenAPI a README, anglické texty zkontrolované.
+- Funkce je kompletní podle zadání. Nic není nasazené; služba v produkci vznikne až založením
+  v administraci a zůstane skrytá, dokud ji admin nezveřejní.
 
 ## Rozhodnutí
 
@@ -222,6 +226,89 @@ hlídání**, proto:
 - Ověřeno v běžící aplikaci (admin, mock data): odkaz v hlavičce, výběr dne, počtu dětí a úseku,
   formulář, vytvoření rezervace, detail, „Moje rezervace“ a obsazenost po rezervaci. Host bez
   publikované služby odkaz nevidí a stránka hlásí, že hlídání není v nabídce.
+
+## Rozhodnutí z fáze 6
+
+- **Rozvrh jako víc období** (20. 10.): období má platnost od–do a vlastní týden Po–Ne s 0..n okny.
+  V databázi je to sada pravidel se stejnou platností (`rulesToPeriods`/`periodsToRules`
+  v `SlotValidation.kt`). Období se nesmí překrývat. Období bez jediného okna formulář neuloží,
+  protože by po uložení zmizelo. Nové období naváže den po konci posledního (otevřené poslední
+  ukončí) a převezme jeho týden.
+- **Smazání služby jako smazání akce** (20. 10.): smazat jde vždy. Aktivní rezervace se stornují,
+  zákazníci dostanou oznámení a při zaškrtnuté volbě kredit do peněženky. Jádro na to má veřejné
+  `AdminDashboardService.cancelReservationsOfDeletedTarget`, které volá tutéž `cancelAllReservations`
+  jako mazání akce. Modul ho dostane přes `DeletedTargetCanceller`. Dialog ukáže počet budoucích
+  aktivních rezervací.
+- **`/admin/schedule` hlídání neukazuje** (20. 10.): hlídání je v administraci zvlášť, souhrnný
+  blok ze zadání se nedělá.
+- **Varování u rozvrhu:** `previewSchedule` vrátí aktivní budoucí rezervace, které by po změně
+  neležely celé v jednom okně. Formulář je ukáže a uloží až po potvrzení. Nic se samo neruší.
+- **Validace** služby (`validateSlotService`) a rozvrhu (`validateSchedule`) jsou v common části
+  modulu. Server je vynucuje a formulář je ukáže dřív, než něco odešle. Krok je 15 nebo 30 min,
+  nejkratší a nejdelší rezervace musí být celý počet kroků, nejvíc dětí na rezervaci je od 1 do
+  kapacity, horizont aspoň den. Platba je povinná jen u nenulové ceny a časové pole s násobením
+  ceny je zakázané (`CustomFieldsBuilderSection(allowTimeMultiplier = false)`).
+- **Úprava nastavení nemění publikaci**, ta má vlastní akci (Zveřejnit/Skrýt) a vlastní záznam
+  v historii.
+- **Audit** používá typy jádra (`EVENT_CREATED/UPDATED/PUBLISHED/UNPUBLISHED/DELETED`) s názvem
+  služby a popisem „Hlídání: …“. Nové typy do jádra nepřibyly.
+- **Proklik z denního přehledu** vede na `/admin/reservations?search=<VS>`, bez VS podle e-mailu.
+  Admin detail jedné rezervace v jádru neexistuje, přehled rezervací umí hledat podle VS a nově
+  přebírá hledání z adresy.
+- **Tisk** je tatáž stránka, admin layout má u menu `print:hidden` a ovládání dne taky. U rezervací
+  se tisknou i vlastní pole (jména a věk dětí).
+- **Datum a čas** jsou nativní `InputType.Date/Time` jako ve zbytku administrace, ne tempus dominus
+  ze zadání.
+- **Filtr typu v admin rezervacích:** `getAllReservations(…, kind: ReservationKind?)`. Repozitář
+  filtruje podle `reference_type` (SQLite i InMemory, test v `RepositoryParitySpec`). Volba
+  „Časové úseky“ je v jádru vždy, bez modulu prostě nic nenajde.
+- **Místa napojení:** `ServerFeature.adminRoutes` (pod `AdminAuthorization` spolu s admin RPC
+  jádra). Na webu `WebFeature.adminPages` (`AdminPage(path, content, detail)` na `/admin` + path
+  a `/{id}`) a `adminNavLinks`. Do admin menu se dostanou přes `LocalWebFeatures`
+  (CompositionLocal), aby se nemusel měnit podpis `AdminLayout`.
+
+## Rozhodnutí z fáze 7
+
+- **OpenAPI:** `MyReservationListItem` má nová nepovinná pole `kind` a `endDateTime`. `AppJson`
+  neposílá výchozí hodnoty, takže `kind` v odpovědi je jen u hlídání (jinak se odvodí z `isSeries`)
+  a `endDateTime` taky. Mobilní appka hlídání neumí rezervovat. Rezervaci hlídání ve svém seznamu
+  ukáže jako akci (`isSeries` = false), nové klíče ignoruje.
+- **Anglické texty:** všechny texty modulu (`SlotStrings`, `SlotAdminStrings`), chyby a e-maily mají
+  anglickou verzi. Česky zůstávají záznamy v historii změn (stejně jako v jádru) a výchozí pole
+  nové služby, která se vytvoří v jazyce admina.
+- **README:** krátký popis funkce (anglicky, jako zbytek README).
+- **Pořadí v admin menu:** `AdminNavLink` má nepovinné `after` — cestu položky jádra, za kterou se
+  odkaz modulu vloží (víc odkazů za stejnou položkou drží pořadí, neznámá cesta nebo `null` = na
+  konec). Řadí čistá funkce `mergeNavLinks` v `ui/admin/Screen.kt` (test `AdminNavLinksSpec`).
+  Hlídání má `after = "/admin/events"`, takže je v menu hned pod „Události a Kurzy“.
+- **Založení služby → Rozvrh:** po založení se přesměruje (`replace`, zpět vede na seznam) na
+  `/admin/slots/{id}?tab=schedule`. Záložku čte detail z query přes `Router.currentPath()`
+  (čisté funkce `adminSlotServiceLink`/`slotAdminTabOf`), `AdminPage.detail` se kvůli tomu neměnil.
+  Tlačítko nové služby je „Pokračovat na časové nastavení“, u existující zůstává „Uložit“; po
+  úspěchu zůstává vypnuté a zamyká se synchronně, takže dvojklik nezaloží službu dvakrát.
+  Rozvrh není druhý krok téže obrazovky: potřebuje uloženou službu (náhled dotčených rezervací
+  i uložení jdou přes její id) a detail ho už umí, takže by šlo jen o duplikát.
+- **Chyba routingu (jádro):** Kilua `string { ctx -> view { ctx.value } }` čte hodnotu z obyčejného
+  pole kontextu — při změně segmentu (`/new` → `/<id>`) Compose view přeskočí a zůstane stará
+  obrazovka (měnila se jen adresa). Admin stránky modulů proto v `Main.kt` berou hodnotu
+  z parametru `view { id -> }` a obalují detail `key(id)`. Ostatní `string` routy jádra mají stejný
+  vzor; projeví se jen při přechodu mezi dvěma hodnotami téže routy, zatím neopraveno.
+- **Krok 60 min:** `SLOT_STEPS` = 15, 30 a 60 min. Zarovnání se dál počítá od půlnoci (kus okna
+  kratší než celá hodina odpadne, např. okno 8:30–12:15 dá kroky 9–12). Nic dalšího se kvůli tomu
+  neměnilo, veřejný výběr i server pracují s libovolným krokem.
+- **Nejkratší rezervace 0 = bez minima:** `minDuration = Duration.ZERO` je platná hodnota (validace
+  chce jen ≥ 0 a celý počet kroků). Úsek má stejně vždy aspoň jeden krok (server chce `end > start`
+  zarovnané na krok), takže 0 znamená prakticky „stačí jeden krok“. Nápověda „nejkratší je …“ se
+  na veřejné stránce při minimu 0 neukazuje.
+- **Nejdelší rezervace bez limitu:** `SlotService.maxDuration: Duration?`, `null` = bez omezení
+  (úsek omezuje jen okno dne). V DB nullable `max_duration_ms` — tabulky hlídání v produkci ještě
+  nejsou, migrace tedy není potřeba. SQLite migrace ale NOT NULL u existujícího sloupce neuvolní:
+  lokální vývojová DB, kde už `slot_services` je, potřebuje tabulky hlídání smazat (jinak uložení
+  služby bez limitu spadne). Formulář: 0 v poli nejdelší rezervace = `null` (s nápovědou).
+  Validace kontroluje max ≥ min, ≥ krok a celý počet kroků jen u zadaného maxima; server
+  (`SlotDurationOutOfRange`) i veřejný výběr (`TOO_LONG`) hlídají maximum jen, když je zadané.
+- **Výchozí hodnoty nové služby:** nejkratší 0 (bez minima), nejdelší 0 (bez limitu). Stejně mock
+  data (`SlotsMockDataLoader`).
 
 ## Podklady pro fázi 5 (veřejné UI)
 
