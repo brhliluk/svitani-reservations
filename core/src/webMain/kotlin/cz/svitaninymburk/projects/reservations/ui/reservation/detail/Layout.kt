@@ -79,7 +79,13 @@ fun IComponent.ReservationDetailLayout(
                             if (target != null) {
                                 div(className = "flex items-center gap-2 text-base-content/70 font-medium") {
                                     span(className = "icon-[heroicons--calendar] size-5")
-                                    span { +target.startDateTime.humanReadable }
+                                    span {
+                                        +if (target is ReservationTarget.Slot) {
+                                            currentStrings.slotInterval(target.startDateTime, target.endDateTime)
+                                        } else {
+                                            target.startDateTime.humanReadable
+                                        }
+                                    }
                                 }
                             }
                         }

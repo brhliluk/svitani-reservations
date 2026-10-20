@@ -230,6 +230,8 @@ data class MyReservationListItem(
     val isSeries: Boolean,
     /** Podrobnější než [isSeries], které zůstává kvůli mobilní appce. */
     val kind: ReservationKind = if (isSeries) ReservationKind.SERIES else ReservationKind.INSTANCE,
+    /** Konec úseku u [ReservationKind.SLOT], aby šel ukázat interval. U akcí a kurzů null. */
+    val endDateTime: LocalDateTime? = null,
 ) {
     val isFree: Boolean get() = isFreePrice(totalPrice)
 }

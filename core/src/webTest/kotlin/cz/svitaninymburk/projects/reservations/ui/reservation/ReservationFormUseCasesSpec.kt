@@ -1,5 +1,6 @@
 package cz.svitaninymburk.projects.reservations.ui.reservation
 
+import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.reservationTimeMultiplier
 import cz.svitaninymburk.projects.reservations.event.BooleanFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.NumberFieldDefinition
@@ -220,6 +221,30 @@ class ReservationFormPriceBreakdownSpec {
         val t = target(listOf(multiplying))
         assertNull(timeMultiplierHours(t, emptyMap()))
         assertNull(timeMultiplierHours(t, mapOf("cas" to range(LocalTime(10, 0), LocalTime(10, 0)))))
+    }
+
+    @Test
+    fun slotPriceIsMultipliedByItsLengthInHours() {
+        val slot = ReservationTarget.Slot(
+            serviceId = Uuid.random(),
+            title = "Hlídání",
+            startDateTime = LocalDateTime(2026, 10, 14, 9, 0),
+            endDateTime = LocalDateTime(2026, 10, 14, 11, 15),
+            pricePerHour = 150.0,
+            freeSeats = 4,
+            capacity = 8,
+            maxSeatsPerBooking = 3,
+            allowedPaymentTypes = listOf(PaymentType.BANK_TRANSFER),
+            customFields = emptyList(),
+        )
+        assertEquals(2.25, reservationTimeMultiplier(slot))
+        // Rozpad ceny ve formuláři ukazuje délku úseku, i když úsek nemá žádné časové pole.
+        assertEquals(2.25, timeMultiplierHours(slot, emptyMap()))
+    }
+
+    @Test
+    fun eventsAreNotMultipliedByTime() {
+        assertEquals(1.0, reservationTimeMultiplier(target(emptyList())))
     }
 
     @Test

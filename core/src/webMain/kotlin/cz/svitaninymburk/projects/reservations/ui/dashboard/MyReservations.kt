@@ -12,11 +12,11 @@ import cz.svitaninymburk.projects.reservations.ui.components.SeriesLessonsSectio
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.MyReservationPaymentMethod
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.cardOpensOnTitleOnly
 import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.myReservationPaymentMethod
+import cz.svitaninymburk.projects.reservations.ui.dashboard.usecase.myReservationWhen
 import cz.svitaninymburk.projects.reservations.ui.util.Loading
 import cz.svitaninymburk.projects.reservations.ui.util.StatusBadge
 import cz.svitaninymburk.projects.reservations.ui.util.reservationStatusBadge
 import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
-import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.html.button
 import dev.kilua.html.div
@@ -113,7 +113,7 @@ private fun IComponent.ReservationCard(item: MyReservationListItem, onCardClick:
                         }
                         div(className = "flex items-center gap-2 text-sm text-base-content/60") {
                             span(className = "icon-[heroicons--calendar] size-4 shrink-0")
-                            span { +item.startDateTime.humanReadable }
+                            span { +myReservationWhen(item, currentStrings) }
                         }
                     }
                     div(className = "flex flex-col items-start sm:items-end gap-1 shrink-0") {

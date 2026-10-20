@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import cz.svitaninymburk.projects.reservations.HeaderLink
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.ui.auth.ChangePasswordDialog
 import cz.svitaninymburk.projects.reservations.ui.auth.ForgotPasswordDialog
@@ -26,6 +27,9 @@ enum class AuthModalState { Closed, Login, Register, ForgotPassword, ChangePassw
 @Composable
 fun IComponent.AppHeader(
     user: User?,
+    /** Odkazy volitelných modulů, už jen ty, které se mají ukázat. */
+    headerLinks: List<HeaderLink> = emptyList(),
+    onNavigate: (String) -> Unit = {},
     walletCode: String?,
     onShowMessage: (String, ToastType) -> Unit,
     onLogin: () -> Unit,
@@ -85,10 +89,19 @@ fun IComponent.AppHeader(
 
     header(className = "navbar min-h-16 bg-base-100 border-b border-primary/20 px-3 sm:px-8") {
 
-        div(className = "navbar-start gap-3 sm:gap-4 cursor-pointer") {
-            onClick { onNavigateToDashboard() }
-            img(src = "logo.svg", alt = "Svítání", className = "h-9 sm:h-10 w-auto")
-            span(className = "hidden sm:inline text-lg font-bold text-primary dark:text-base-content") { +currentStrings.dashboard }
+        div(className = "navbar-start gap-2 sm:gap-4") {
+            div(className = "flex items-center gap-3 sm:gap-4 cursor-pointer") {
+                onClick { onNavigateToDashboard() }
+                img(src = "logo.svg", alt = "Svítání", className = "h-9 sm:h-10 w-auto")
+                span(className = "hidden sm:inline text-lg font-bold text-primary dark:text-base-content") { +currentStrings.dashboard }
+            }
+            headerLinks.forEach { link ->
+                button(className = "btn btn-ghost btn-sm min-h-11 gap-2") {
+                    onClick { onNavigate(link.path) }
+                    span(className = "${link.iconClass} size-5")
+                    span { +link.label() }
+                }
+            }
         }
 
         div(className = "navbar-end gap-3 sm:gap-4") {

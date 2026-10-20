@@ -46,6 +46,9 @@ abstract class ReservationSubmittingModel(
     /** Dashboard chybu ještě zabaluje do "rezervace se nezdařila", náhled ji ukazuje holou. */
     protected open fun reservationErrorMessage(localized: String): String = localized
 
+    /** Server rezervaci odmítl (mimo duplicitu, ta je dotaz). Hlídání pak znovu načte volná místa. */
+    protected open fun onRejected(error: ReservationError.CreateReservation) {}
+
     fun submitReservation(
         target: ReservationTarget,
         formData: ReservationFormData,
@@ -63,6 +66,7 @@ abstract class ReservationSubmittingModel(
                             duplicatePrompt.show(error.scope, target, formData)
                         } else {
                             showToast(reservationErrorMessage(error.localizedMessage(currentStrings)), ToastType.Error)
+                            onRejected(error)
                         }
                     }
             } catch (e: CancellationException) {

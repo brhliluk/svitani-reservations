@@ -1,9 +1,12 @@
 package cz.svitaninymburk.projects.reservations.ui.dashboard.usecase
 
+import cz.svitaninymburk.projects.reservations.i18n.AppStrings
 import cz.svitaninymburk.projects.reservations.reservation.MyReservationListItem
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
+import cz.svitaninymburk.projects.reservations.reservation.ReservationKind
 import cz.svitaninymburk.projects.reservations.service.AuthenticatedReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
+import cz.svitaninymburk.projects.reservations.util.humanReadable
 import kotlin.uuid.Uuid
 
 // --- Pure helpery (testovatelné bez RPC) ---
@@ -30,6 +33,16 @@ fun myReservationPaymentMethod(item: MyReservationListItem): MyReservationPaymen
  * navigovala i při snaze rozkliknout termín.
  */
 fun cardOpensOnTitleOnly(item: MyReservationListItem): Boolean = item.isSeries
+
+/** Kdy rezervace je: u úseku celý interval („út 14. 10. 9:00–11:30“), jinak začátek. */
+fun myReservationWhen(item: MyReservationListItem, strings: AppStrings): String {
+    val end = item.endDateTime
+    return if (item.kind == ReservationKind.SLOT && end != null) {
+        strings.slotInterval(item.startDateTime, end)
+    } else {
+        item.startDateTime.humanReadable
+    }
+}
 
 // --- UseCase třídy (tenké, vrací Either) ---
 

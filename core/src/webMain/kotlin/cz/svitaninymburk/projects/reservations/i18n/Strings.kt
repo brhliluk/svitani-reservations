@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import cz.svitaninymburk.projects.reservations.i18n.cs.CsStrings
 import cz.svitaninymburk.projects.reservations.i18n.en.EnStrings
 import js.array.toList
+import kotlinx.datetime.LocalDateTime
 import web.navigator.navigator
 import kotlin.js.ExperimentalWasmJsInterop
 
@@ -772,4 +773,10 @@ interface AppStrings : ErrorStrings {
     fun toastOptOutRevoked(name: String): String
     val waitlistCapacityLabel: String
     fun waitlistPositionLabel(position: Int): String
+
+    // Rezervace časového úseku (hlídání)
+    /** „út 14. 10. 9:00–11:30“ — úsek je vždy v jednom dni. */
+    fun slotInterval(start: LocalDateTime, end: LocalDateTime): String
+    /** Odkaz u předem vybraného počtu míst, který formulář zavře. */
+    val changeSelection: String
 }

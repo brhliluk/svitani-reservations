@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 // Hlídání dětí (rezervace libovolného časového úseku) jako volitelný modul nad jádrem.
 // Jádro o modulu neví; do aplikace ho přidá kořenový projekt podle `-Pfeatures.slots`.
@@ -6,6 +7,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlinx.serialization)
+    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kilua.rpc)
 }
@@ -25,6 +27,13 @@ tasks.withType<Jar>().named { it == "jvmJar" }.configureEach {
     exclude("dev/kilua/rpc/Generated*")
 }
 
+// Na webu se kolize ukáže už při linkování aplikace („Duplicate definition:
+// dev.kilua.rpc/registerRpcServiceExceptions“), takže se tytéž soubory vůbec nekompilují.
+// Web modulu je nepotřebuje: klienta bere přes vygenerované SlotServiceInterfaceImpl napřímo.
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile>().configureEach {
+    exclude("dev/kilua/rpc/Generated*")
+}
+
 @OptIn(ExperimentalWasmDsl::class)
 kotlin {
     jvmToolchain(25)
@@ -40,14 +49,26 @@ kotlin {
     }
     js(IR) {
         useEsModules()
-        browser()
+        browser {
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
+        }
         compilerOptions {
             target.set("es2015")
         }
     }
     wasmJs {
         useEsModules()
-        browser()
+        browser {
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
+        }
         compilerOptions {
             target.set("es2015")
         }
@@ -79,8 +100,28 @@ kotlin {
                 implementation(kotlin("test-junit"))
             }
         }
+        val webMain by getting {
+            dependencies {
+                implementation(libs.kilua)
+                implementation(libs.kilua.routing)
+            }
+        }
+        val webTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.kilua.testutils)
+            }
+        }
     }
     compilerOptions {
         optIn.add("kotlin.uuid.ExperimentalUuidApi")
     }
+}
+
+composeCompiler {
+    targetKotlinPlatforms.set(
+        KotlinPlatformType.entries
+            .filterNot { it == KotlinPlatformType.jvm }
+            .asIterable()
+    )
 }

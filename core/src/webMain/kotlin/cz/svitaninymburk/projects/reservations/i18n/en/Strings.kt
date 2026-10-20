@@ -2,6 +2,10 @@ package cz.svitaninymburk.projects.reservations.i18n.en
 
 import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import cz.svitaninymburk.projects.reservations.i18n.AppStrings
+import cz.svitaninymburk.projects.reservations.util.hourMinute
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.number
 
 
 object EnStrings : AppStrings {
@@ -914,4 +918,9 @@ object EnStrings : AppStrings {
     override fun toastOptOutRevoked(name: String) = "$name is back in the lesson."
     override val waitlistCapacityLabel = "Max. substitutes"
     override fun waitlistPositionLabel(position: Int) = "You are #$position on the waitlist"
+
+    override fun slotInterval(start: LocalDateTime, end: LocalDateTime) =
+        "${shortDayName(start.date.dayOfWeek.isoDayNumber - 1)} ${start.date.day} ${monthName(start.date.month.number - 1).take(3)} " +
+            "${start.time.hourMinute}\u2013${end.time.hourMinute}"
+    override val changeSelection = "change"
 }

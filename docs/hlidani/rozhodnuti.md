@@ -17,7 +17,9 @@ z fáze 0 (19. 10. 2026) a o odchylky, na kterých jsme se domluvili.
 - **Fáze 4: hotovo** (commit `ee88205`). `SlotServiceInterface` (`listServices`, `getAvailability`,
   `reserveSlot`) se všemi validacemi pod `Mutex`, e-maily a pozvánka s intervalem, testy validací
   a souběhu. Admin RPC je přesunuté do fáze 6.
-- **Další krok: fáze 5** (veřejné UI).
+- **Fáze 5: hotovo** (necommitnuto). `WebFeature` v jádru, stránka `/hlidani` v modulu, úpravy
+  rezervačního formuláře, „Moje rezervace“ a detailu.
+- **Další krok: fáze 6** (admin UI a admin RPC).
 
 ## Rozhodnutí
 
@@ -169,6 +171,57 @@ hlídání**, proto:
 - Cíl existující rezervace (`targetFor`) počítá volná místa včetně té rezervace, tedy stav „teď“.
 - **Nález mimo hlídání:** server nekontroluje povinná vlastní pole (ani u akcí), hlídá je jen
   formulář. Odloženo, viz `docs/followups/serverova-kontrola-povinnych-poli.md`.
+
+## Rozhodnutí z fáze 5
+
+- **Místo napojení na webu:** `WebFeature` v jádru (`core/src/webMain/…/WebFeature.kt`), obdoba
+  `ServerFeature`. Nese veřejné stránky (`WebPage(path, content)`) a odkazy do hlavičky
+  (`HeaderLink`). Aplikace ho předá přes `src/featureSlotsOn|Off/webMain/…/Features.kt` do
+  `MainLayout(webFeatures)`. Jádro stránky obalí hlavičkou a patičkou (`UserRoute`) a předá jim
+  `PageContext(user, walletCode)`. Admin routy přibudou ve fázi 6 jako další pole.
+- **Odkaz „Hlídání“** je v hlavičce hned za logem a „Přehled“. Jádro se ptá `HeaderLink.isVisible`
+  po načtení session a znovu po přihlášení nebo odhlášení. Hlídání vrací
+  `listServices().isNotEmpty()`, takže dokud je služba nepublikovaná, vidí odkaz jen admin.
+  Chyba při dotazu odkaz skryje. Stránka `/hlidani` je registrovaná vždy, bez služby ukáže
+  „Hlídání teď není v nabídce“.
+- **Víc služeb:** výběr služby přímo na stránce (bez vlastní adresy), jedna služba se otevře rovnou.
+- **Výběr úseku** (`SlotSelectionUseCases.kt`): první klepnutí nastaví začátek (jeden krok),
+  klepnutí na pozdější krok posune konec, klepnutí uvnitř výběru ho zkrátí, klepnutí před
+  začátek začne nový výběr a klepnutí na jediný vybraný krok výběr zruší. Chyby: plný krok,
+  přechod přes plný krok nebo mezeru mezi okny, delší než maximum. Minimální délku hlídá tlačítko
+  „Pokračovat“ (s nápovědou), ne klepání. Výběr se **neprodlužuje** sám na minimum.
+- `dayHasAvailability(day, seats, minDuration)` má navíc minimální délku: den, kde je volno jen
+  na kratší úsek, než služba dovolí, se ukáže jako „plno“.
+- `maxSeatsFor` = menší z `maxSeatsPerBooking` a kapacity.
+- Dostupnost se načítá od dneška podle prohlížeče do konce horizontu + 1 den. Server rozsah ořízne.
+- **Rezervační formulář (jádro):** `ReservationModal` má nové `initialSeats` a `seatsLabel`.
+  U `ReservationTarget.Slot` ukazuje interval pod nadpisem, počet míst jen ke čtení s odkazem
+  „změnit“ (zavře formulář) a rozpad „150 Kč × 2 děti × 2,25 h“. Cena ve formuláři se násobí
+  `reservationTimeMultiplier` (délka úseku v hodinách). Hodiny u úseku se píšou na dvě desetinná
+  místa (`formatAmountNumber`), protože kroky jsou po čtvrthodinách. Slovo „děti“ dodá modul
+  přes `seatsLabel`, jádro zůstává obecné.
+- **Odmítnutí rezervace:** `ReservationSubmittingModel.onRejected` (nový háček). Stránka hlídání
+  při chybách, po kterých výběr nemusí platit (`invalidatesSelection`: kapacita, okno, horizont,
+  uzávěrka, zarovnání, délka, počet míst, služba nenalezena), zavře formulář, zruší výběr a načte
+  dostupnost znovu. Ostatní chyby nechají formulář otevřený.
+- **`MyReservationListItem.endDateTime`** (nullable, výchozí `null`) nese konec úseku. Mobilní
+  appka ho ignoruje (`ignoreUnknownKeys`). Karta i detail rezervace ukazují úsek jako
+  „út 14. 10. 9:00–11:30“ (`AppStrings.slotInterval`). OpenAPI se doplní ve fázi 7.
+- `hoursBetween(start, end)` ve `shared` (`util/TimeUtils.kt`) počítá hodiny bez časového pásma.
+- Texty modulu: `slot/ui/i18n/SlotStrings.kt` s `CsSlotStrings` a `EnSlotStrings`. Jazyk se bere
+  z jádra (`strings.value.locale`).
+- Build: `:slots` má plugin Compose, `kilua` a `kilua-routing` ve `webMain` a `webTest` s karmou
+  stejně jako jádro.
+- **Kolize `dev.kilua.rpc` na webu:** KSP generuje do common části modulu
+  `registerRpcServiceExceptions`, `getAllServiceManagers` a `getServiceManagers`, které má i jádro.
+  Kompilace i testy modulu projdou, ale linkování JS aplikace spadne na
+  `Duplicate definition: dev.kilua.rpc/registerRpcServiceExceptions`. `slots/build.gradle.kts`
+  proto vyřazuje `dev/kilua/rpc/Generated*` ze všech `Kotlin2JsCompile` (js i wasm), obdobně jako
+  z jvm jaru. Ověřovat přes `:compileDevelopmentExecutableKotlinJs` nebo `jsViteRun`, ne jen přes
+  kompilaci modulu.
+- Ověřeno v běžící aplikaci (admin, mock data): odkaz v hlavičce, výběr dne, počtu dětí a úseku,
+  formulář, vytvoření rezervace, detail, „Moje rezervace“ a obsazenost po rezervaci. Host bez
+  publikované služby odkaz nevidí a stránka hlásí, že hlídání není v nabídce.
 
 ## Podklady pro fázi 5 (veřejné UI)
 

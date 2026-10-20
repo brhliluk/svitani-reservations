@@ -16,6 +16,7 @@ import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.ReservationTarget
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.util.PhoneNumber
+import cz.svitaninymburk.projects.reservations.util.hoursBetween
 
 /** Délka kódu peněženky. Teprve celý kód má smysl posílat na server k ověření. */
 const val WALLET_CODE_LENGTH = 14
@@ -54,15 +55,25 @@ fun showsPaymentTypePicker(total: Double, deduction: Double): Boolean =
 fun submittedSeatCount(asWaitlist: Boolean, seats: Int): Int = if (asWaitlist) 1 else seats
 
 /**
- * Kolik hodin se v rozpadu ceny násobí. Bere se první časový rozsah, který cenu
- * skutečně násobí ([PriceModifier.TimeMultiplier]) — ostatní časová pole cenu
- * neovlivňují, takže se v rozpadu nemají objevit. `null` = nic k násobení,
- * včetně případu, kdy rozsah ještě není vyplněný nebo je prázdný.
+ * Kolikrát se cena násobí délkou rezervace: u úseku (hlídání) jeho délka v hodinách,
+ * jinak 1. Server počítá totéž (`createSlotReservation`), formulář jen ukazuje cenu předem.
+ */
+fun reservationTimeMultiplier(target: ReservationTarget): Double = when (target) {
+    is ReservationTarget.Slot -> hoursBetween(target.startDateTime, target.endDateTime)
+    is ReservationTarget.Instance, is ReservationTarget.Series -> 1.0
+}
+
+/**
+ * Kolik hodin se v rozpadu ceny násobí. U úseku je to jeho délka. Jinak se bere první
+ * časový rozsah, který cenu skutečně násobí ([PriceModifier.TimeMultiplier]) — ostatní
+ * časová pole cenu neovlivňují, takže se v rozpadu nemají objevit. `null` = nic
+ * k násobení, včetně případu, kdy rozsah ještě není vyplněný nebo je prázdný.
  */
 fun timeMultiplierHours(
     target: ReservationTarget,
     customValues: Map<String, CustomFieldValue>,
 ): Double? {
+    if (target is ReservationTarget.Slot) return reservationTimeMultiplier(target)
     val field = target.customFields
         .filterIsInstance<TimeRangeFieldDefinition>()
         .firstOrNull { it.priceModifier is PriceModifier.TimeMultiplier }

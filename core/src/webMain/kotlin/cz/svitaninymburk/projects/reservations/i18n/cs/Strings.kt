@@ -4,6 +4,10 @@ import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import cz.svitaninymburk.projects.reservations.i18n.AppStrings
 import cz.svitaninymburk.projects.reservations.i18n.CsErrorStrings
 import cz.svitaninymburk.projects.reservations.i18n.ErrorStrings
+import cz.svitaninymburk.projects.reservations.util.hourMinute
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.number
 
 object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val locale = "cs"
@@ -836,4 +840,9 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override fun toastOptOutRevoked(name: String) = "$name se vrátil(a) do lekce."
     override val waitlistCapacityLabel = "Max. náhradníků"
     override fun waitlistPositionLabel(position: Int) = "Jste na $position. místě v pořadníku"
+
+    override fun slotInterval(start: LocalDateTime, end: LocalDateTime) =
+        "${shortDayName(start.date.dayOfWeek.isoDayNumber - 1).lowercase()} ${start.date.day}. ${start.date.month.number}. " +
+            "${start.time.hourMinute}\u2013${end.time.hourMinute}"
+    override val changeSelection = "změnit"
 }

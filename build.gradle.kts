@@ -89,6 +89,7 @@ kotlin {
             }
         }
         val webMain by getting {
+            kotlin.srcDir("src/$slotsVariant/webMain/kotlin")
             dependencies {
                 implementation(libs.kilua)
                 implementation(libs.kilua.bootstrap.icons)

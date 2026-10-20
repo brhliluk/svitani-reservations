@@ -17,6 +17,7 @@ import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.initialPay
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isCompleteWalletCode
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.isReservationFormValid
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.remainingToPay
+import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.reservationTimeMultiplier
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.showsPaymentTypePicker
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.submittedSeatCount
 import cz.svitaninymburk.projects.reservations.ui.reservation.usecase.walletDeduction
@@ -41,6 +42,8 @@ class ReservationFormModel(
     user: User?,
     initialWalletCode: String?,
     private val asWaitlist: Boolean,
+    /** U úseku je počet míst vybraný předem a formulář ho jen ukazuje. */
+    initialSeats: Int = 1,
 ) : ScreenModel(scope) {
 
     // Prefill z přihlášeného uživatele; User model nemá telefon, ten se vyplňuje vždy.
@@ -49,7 +52,7 @@ class ReservationFormModel(
     var email by mutableStateOf(user?.email.orEmpty()); private set
     var phone by mutableStateOf(""); private set
 
-    var seats by mutableIntStateOf(1); private set
+    var seats by mutableIntStateOf(target.clampSeatCount(initialSeats)); private set
     var seatsExceeded by mutableStateOf(false); private set
     /**
      * Musí začínat na první povolené možnosti — tu select ukáže jako vybranou.
@@ -74,6 +77,7 @@ class ReservationFormModel(
             seatCount = seats,
             customFields = target.customFields,
             customValues = customValues,
+            timeMultiplier = reservationTimeMultiplier(target),
         )
 
     /** Náhradník nic neplatí hned a peněženka se u něj neuplatňuje (sekce je skrytá). */
@@ -160,6 +164,7 @@ fun IComponent.buildReservationFormModel(
     user: User?,
     initialWalletCode: String?,
     asWaitlist: Boolean,
+    initialSeats: Int,
 ): ReservationFormModel {
     val reservations = getService<ReservationServiceInterface>(RpcSerializersModules)
     return ReservationFormModel(
@@ -169,5 +174,6 @@ fun IComponent.buildReservationFormModel(
         user = user,
         initialWalletCode = initialWalletCode,
         asWaitlist = asWaitlist,
+        initialSeats = initialSeats,
     )
 }

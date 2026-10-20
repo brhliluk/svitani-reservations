@@ -3,9 +3,14 @@ package cz.svitaninymburk.projects.reservations.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import app.softwork.routingcompose.Router
+import cz.svitaninymburk.projects.reservations.HeaderLink
+import cz.svitaninymburk.projects.reservations.PageContext
+import cz.svitaninymburk.projects.reservations.WebFeature
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminDashboardScreen
 import cz.svitaninymburk.projects.reservations.ui.admin.AdminLayout
@@ -46,12 +51,15 @@ import dev.kilua.html.main
 import dev.kilua.html.p
 import dev.kilua.routing.RoutingBuilder
 import dev.kilua.routing.browserRouter
+import kotlinx.coroutines.CancellationException
 import kotlin.uuid.Uuid
 
+/** [features] jsou volitelné moduly, které do aplikace přidal kořenový projekt. */
 @Composable
-fun IComponent.MainLayout() {
+fun IComponent.MainLayout(features: List<WebFeature> = emptyList()) {
     val scope = rememberCoroutineScope()
     val session = remember { buildSessionModel(scope) }
+    val headerLinks = visibleHeaderLinks(features, session)
 
     LaunchedEffect(Unit) { session.refresh() }
 
@@ -251,7 +259,7 @@ fun IComponent.MainLayout() {
                     }
                 }
             }
-            publicRoutes(session)
+            publicRoutes(session, features, headerLinks)
         }
 
     } else {
@@ -270,7 +278,7 @@ fun IComponent.MainLayout() {
                     LaunchedEffect(Unit) { router.navigate("/") }
                 }
             }
-            publicRoutes(session)
+            publicRoutes(session, features, headerLinks)
         }
     }
 }
@@ -279,10 +287,14 @@ fun IComponent.MainLayout() {
  * Veřejné stránky — stejné pro admina i ostatní, liší se jen tím, co je před
  * nimi v routeru. Poslední `view` přesměruje neznámou adresu na přehled.
  */
-private fun RoutingBuilder.publicRoutes(session: SessionModel) {
+private fun RoutingBuilder.publicRoutes(
+    session: SessionModel,
+    features: List<WebFeature>,
+    headerLinks: List<HeaderLink>,
+) {
     route("/") { context ->
         view {
-            UserRoute(session) {
+            UserRoute(session, headerLinks) {
                 DashboardScreen(
                     user = session.currentUser,
                     walletCode = session.walletCode,
@@ -301,7 +313,7 @@ private fun RoutingBuilder.publicRoutes(session: SessionModel) {
                     try { Uuid.parse(reservationId.value) }
                     catch (_: IllegalArgumentException) { null }
                 val router = Router.current
-                UserRoute(session) {
+                UserRoute(session, headerLinks) {
                     if (reservationUuid == null) LaunchedEffect(Unit) { router.navigate("/") }
                     else ReservationDetailScreen(reservationId = reservationUuid, onBackClick = { router.navigate("/") })
                 }
@@ -313,7 +325,7 @@ private fun RoutingBuilder.publicRoutes(session: SessionModel) {
         view {
             val router = Router.current
             val user = session.currentUser
-            UserRoute(session) {
+            UserRoute(session, headerLinks) {
                 if (user == null) LaunchedEffect(Unit) { router.navigate("/") }
                 else MyReservationsScreen(userId = user.id, onBackClick = { router.navigate("/") })
             }
@@ -323,13 +335,13 @@ private fun RoutingBuilder.publicRoutes(session: SessionModel) {
     route("/wallet") {
         string { code ->
             view {
-                UserRoute(session) {
+                UserRoute(session, headerLinks) {
                     WalletScreen(initialCode = code.value, initialEmail = session.currentUser?.email ?: "")
                 }
             }
         }
         view {
-            UserRoute(session) {
+            UserRoute(session, headerLinks) {
                 WalletScreen()
             }
         }
@@ -339,7 +351,7 @@ private fun RoutingBuilder.publicRoutes(session: SessionModel) {
         string { token ->
             view {
                 val router = Router.current
-                UserRoute(session) {
+                UserRoute(session, headerLinks) {
                     ResetPasswordScreen(token = token.value, onSuccess = { router.navigate("/") })
                 }
             }
@@ -349,7 +361,7 @@ private fun RoutingBuilder.publicRoutes(session: SessionModel) {
         string { token ->
             view {
                 val router = Router.current
-                UserRoute(session) {
+                UserRoute(session, headerLinks) {
                     ClaimReservationsScreen(
                         token = token.value,
                         onOpenMyReservations = { router.navigate("/my-reservations") },
@@ -360,8 +372,17 @@ private fun RoutingBuilder.publicRoutes(session: SessionModel) {
     }
     route("/privacy") {
         view {
-            UserRoute(session) {
+            UserRoute(session, headerLinks) {
                 PrivacyScreen()
+            }
+        }
+    }
+    features.flatMap { it.publicPages }.forEach { page ->
+        route(page.path) {
+            view {
+                UserRoute(session, headerLinks) {
+                    page.content(this, PageContext(user = session.currentUser, walletCode = session.walletCode))
+                }
             }
         }
     }
@@ -369,6 +390,28 @@ private fun RoutingBuilder.publicRoutes(session: SessionModel) {
         val router = Router.current
         LaunchedEffect(Unit) { router.navigate("/") }
     }
+}
+
+/**
+ * Odkazy modulů do hlavičky, které se mají ukázat. Ptá se až po načtení session
+ * a znovu po každém přihlášení nebo odhlášení — co modul nabízí, může záviset na roli.
+ */
+@Composable
+private fun visibleHeaderLinks(features: List<WebFeature>, session: SessionModel): List<HeaderLink> {
+    var visible by remember { mutableStateOf(emptyList<HeaderLink>()) }
+    LaunchedEffect(features, session.isLoaded, session.currentUser?.id) {
+        if (!session.isLoaded) return@LaunchedEffect
+        visible = features.flatMap { it.headerLinks }.filter { link ->
+            try {
+                link.isVisible()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+    return visible
 }
 
 /**
@@ -385,10 +428,16 @@ private fun IComponent.AdminRoute(session: SessionModel, content: @Composable IC
  * podle role — dřív o tom rozhodovalo to, ze které větve routeru se `UserShell` volal.
  */
 @Composable
-private fun IComponent.UserRoute(session: SessionModel, content: @Composable IComponent.() -> Unit) {
+private fun IComponent.UserRoute(
+    session: SessionModel,
+    headerLinks: List<HeaderLink>,
+    content: @Composable IComponent.() -> Unit,
+) {
     val router = Router.current
     UserShell(
         user = session.currentUser,
+        headerLinks = headerLinks,
+        onNavigate = { router.navigate(it) },
         walletCode = session.walletCode,
         onShowMessage = session::showMessage,
         onLogin = { session.refresh(); session.checkClaimable() },
@@ -404,6 +453,8 @@ private fun IComponent.UserRoute(session: SessionModel, content: @Composable ICo
 @Composable
 private fun IComponent.UserShell(
     user: User?,
+    headerLinks: List<HeaderLink>,
+    onNavigate: (String) -> Unit,
     walletCode: String?,
     onShowMessage: (String, ToastType) -> Unit,
     onLogin: () -> Unit,
@@ -420,6 +471,8 @@ private fun IComponent.UserShell(
     div(className = "min-h-screen flex flex-col bg-base-100 text-base-content") {
         AppHeader(
             user = user,
+            headerLinks = headerLinks,
+            onNavigate = onNavigate,
             walletCode = walletCode,
             onShowMessage = onShowMessage,
             onLogin = onLogin,

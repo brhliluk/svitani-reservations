@@ -2,6 +2,7 @@ package cz.svitaninymburk.projects.reservations.ui.reservation
 
 import cz.svitaninymburk.projects.reservations.ui.util.totalPriceLabel
 import cz.svitaninymburk.projects.reservations.ui.util.formatAmount
+import cz.svitaninymburk.projects.reservations.ui.util.formatAmountNumber
 import cz.svitaninymburk.projects.reservations.ui.util.ModalBackdrop
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,6 +41,10 @@ fun IComponent.ReservationModal(
     initialWalletCode: String? = null,
     isSubmitting: Boolean = false,
     asWaitlist: Boolean = false,
+    /** Předem vybraný počet míst. U úseku ho formulář jen ukazuje, změnit jde po zavření. */
+    initialSeats: Int = 1,
+    /** Jak napsat počet míst („2 děti“). Bez něj „2 osob“. */
+    seatsLabel: ((Int) -> String)? = null,
     onClose: () -> Unit,
     onSubmit: (ReservationTarget, ReservationFormData) -> Unit
 ) {
@@ -47,9 +52,12 @@ fun IComponent.ReservationModal(
 
     val currentStrings by strings
     val scope = rememberCoroutineScope()
-    val model = remember(target, user) {
-        buildReservationFormModel(scope, target, user, initialWalletCode, asWaitlist)
+    val model = remember(target, user, initialSeats) {
+        buildReservationFormModel(scope, target, user, initialWalletCode, asWaitlist, initialSeats)
     }
+    val seatsText = { seats: Int -> seatsLabel?.invoke(seats) ?: "$seats ${currentStrings.persons}" }
+    // Úsek má počet míst vybraný na stránce hlídání, protože na něm závisí, co je volné.
+    val isSlot = target is ReservationTarget.Slot
 
     LaunchedEffect(target) { model.lookUpWallet() }
 
@@ -69,6 +77,12 @@ fun IComponent.ReservationModal(
                         +currentStrings.substituteInfoNote
                     }
                 }
+                if (isSlot) {
+                    p(className = "flex items-center gap-2 text-base-content/70 font-medium mt-1") {
+                        span(className = "icon-[heroicons--clock] size-5")
+                        +currentStrings.slotInterval(target.startDateTime, target.endDateTime)
+                    }
+                }
 
                 // Cena info
                 div(className = "py-4") {
@@ -81,10 +95,12 @@ fun IComponent.ReservationModal(
                             div(className = "stat-desc") {
                                 // Bez volby počtu míst je "× 1 osob" jen šum — rozpad ceny ho vynechá.
                                 val seatsPart =
-                                    if (target.allowMultipleSeats && !asWaitlist) " × ${model.seats} ${currentStrings.persons}" else ""
+                                    if ((target.allowMultipleSeats || isSlot) && !asWaitlist) " × ${seatsText(model.seats)}" else ""
                                 val hours = timeMultiplierHours(target, model.customValues)
                                 if (hours != null) {
-                                    +"${formatAmount(target.price, currentStrings)}$seatsPart × ${formatPriceHours(hours)} ${currentStrings.hours}"
+                                    // Úsek je po čtvrthodinách, jedno desetinné místo by z 2,25 h udělalo 2,3 h.
+                                    val hoursText = if (isSlot) formatAmountNumber(hours) else formatPriceHours(hours)
+                                    +"${formatAmount(target.price, currentStrings)}$seatsPart × $hoursText ${currentStrings.hours}"
                                 } else {
                                     +"${formatAmount(target.price, currentStrings)}$seatsPart"
                                 }
@@ -189,8 +205,23 @@ fun IComponent.ReservationModal(
 
                         // Počet míst — u akcí bez volby počtu míst se pole nezobrazuje a rezervuje se 1 místo.
                         // Náhradník drží vždy jedno místo (submittedSeatCount), takže ani jemu se pole neukazuje.
-                        val showsSeatCount = target.allowMultipleSeats && !asWaitlist
-                        if (showsSeatCount) {
+                        val showsSeatCount = (target.allowMultipleSeats || isSlot) && !asWaitlist
+                        if (isSlot) {
+                            div(className = "form-control w-full sm:col-span-1") {
+                                div(className = "label") {
+                                    span(className = "label-text") { +currentStrings.seatCountLabel }
+                                }
+                                div(className = "flex items-center justify-between gap-2 min-h-11 px-1") {
+                                    span(className = "font-semibold") { +seatsText(model.seats) }
+                                    button(className = "btn btn-link btn-sm min-h-11 px-1") {
+                                        attribute("type", "button")
+                                        disabled(isSubmitting)
+                                        onClick { if (!isSubmitting) onClose() }
+                                        +currentStrings.changeSelection
+                                    }
+                                }
+                            }
+                        } else if (showsSeatCount) {
                             label(className = "form-control w-full sm:col-span-1") {
                                 div(className = "label") {
                                     span(className = "label-text") { +currentStrings.seatCountLabel }

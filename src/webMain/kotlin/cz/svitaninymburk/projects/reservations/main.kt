@@ -20,7 +20,7 @@ class App : Application() {
         // Bez souladu `lang` s obsahem nabízí Chrome (hlavně na mobilu) automatický překlad.
         document.documentElement.lang = strings.value.locale
         root("root") {
-            MainLayout()
+            MainLayout(webFeatures)
         }
     }
 }

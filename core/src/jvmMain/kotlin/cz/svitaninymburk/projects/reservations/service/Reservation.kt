@@ -1232,6 +1232,7 @@ internal suspend fun runningReservationListItems(
         reservation.toListItem(
             title = target.title,
             startDateTime = target.startDateTime,
+            slotEnd = (target as? ReservationTarget.Slot)?.endDateTime,
             kind = when (target) {
                 is ReservationTarget.Instance -> ReservationKind.INSTANCE
                 is ReservationTarget.Series -> ReservationKind.SERIES
@@ -1241,7 +1242,12 @@ internal suspend fun runningReservationListItems(
     }.sortedBy { it.startDateTime }
 }
 
-private fun Reservation.toListItem(title: String, startDateTime: LocalDateTime, kind: ReservationKind): MyReservationListItem =
+private fun Reservation.toListItem(
+    title: String,
+    startDateTime: LocalDateTime,
+    slotEnd: LocalDateTime?,
+    kind: ReservationKind,
+): MyReservationListItem =
     MyReservationListItem(
         id = id,
         eventTitle = title,
@@ -1253,6 +1259,7 @@ private fun Reservation.toListItem(title: String, startDateTime: LocalDateTime, 
         variableSymbol = variableSymbol,
         isSeries = kind == ReservationKind.SERIES,
         kind = kind,
+        endDateTime = slotEnd,
     )
 
 /**
