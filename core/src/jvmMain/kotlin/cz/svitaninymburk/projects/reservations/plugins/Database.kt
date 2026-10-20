@@ -129,8 +129,15 @@ fun Application.configureDatabases(featureTables: List<Table> = emptyList()) {
         // s první příchozí rezervací (viz komentář u recomputeOccupiedSpotsInTransaction
         // v OccupancyBackfill.kt). Dvě UPDATE na málo řádků, na latenci startu to nic
         // nepřidá.
+        // Loguje se i nula: série nul napříč restarty je podklad pro zrušení čítačů
+        // (docs/followups/varianta-c-zruseni-ulozene-obsazenosti.md).
         nonFatal("occupancy backfill") {
-            recomputeOccupiedSpotsInTransaction()
+            val drift = recomputeOccupiedSpotsInTransaction()
+            if (drift.total > 0) {
+                println("⚠️ obsazenost: přepočet opravil uložené čítače ($drift)")
+            } else {
+                println("ℹ️ obsazenost: přepočet nic neopravoval")
+            }
         }
     }
 }

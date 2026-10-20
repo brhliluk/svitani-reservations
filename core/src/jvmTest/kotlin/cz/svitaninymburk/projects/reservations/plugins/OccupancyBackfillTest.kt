@@ -96,4 +96,23 @@ class OccupancyBackfillTest {
         assertEquals(2, instanceSpots())
         assertEquals(3, seriesSpots())
     }
+
+    @Test
+    fun `backfill reports what it had to fix and nothing on the second run`() = runBlocking {
+        val first = recomputeOccupiedSpots()
+        assertEquals(OccupancyDrift(instanceSpots = 1, seriesSpots = 1, instanceWaitlist = 1, seriesWaitlist = 1), first)
+
+        val second = recomputeOccupiedSpots()
+        assertEquals(0, second.total, "čítače už sedí, druhý běh nemá co opravit")
+    }
+
+    @Test
+    fun `counter that matches reservations is not reported`() = runBlocking {
+        transaction { exec("UPDATE event_instances SET occupied_spots = 2 WHERE id = '$lessonId'") }
+
+        val drift = recomputeOccupiedSpots()
+
+        assertEquals(0, drift.instanceSpots, "lekce má uloženo 2 a rezervace drží 2")
+        assertEquals(2, instanceSpots())
+    }
 }

@@ -19,48 +19,61 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
  * commitne `attemptToReserveSpots` (+N) a uložení rezervace ve dvou různých
  * transakcích — přepočet spuštěný mezi nimi by čerstvě založenou rezervaci ještě
  * neviděl a tiše by o ni srazil čítač (přeprodané místo).
+ *
+ * Vrací, kolik hodnot musel opravit. Zápisové cesty mají čítače držet v souladu
+ * s rezervacemi, takže v produkci by tu měly být samé nuly — z logu se to dá
+ * ověřit, než se čítače zruší úplně
+ * (`docs/followups/varianta-c-zruseni-ulozene-obsazenosti.md`).
  */
-internal fun JdbcTransaction.recomputeOccupiedSpotsInTransaction() {
+internal fun JdbcTransaction.recomputeOccupiedSpotsInTransaction(): OccupancyDrift {
     // Stavy se skládají z INACTIVE_RESERVATION_STATUSES, aby se SQL nemohlo rozejít s Kotlinem.
     val inactive = INACTIVE_RESERVATION_STATUSES.joinToString(",") { "'${it.name}'" }
-    exec("""
-        UPDATE event_instances SET occupied_spots = (
-            SELECT COALESCE(SUM(r.seat_count), 0) FROM reservations r
-             WHERE r.reference_type = 'INSTANCE'
-               AND r.reference_id = event_instances.id
-               AND r.status NOT IN ($inactive)
-        )
-    """.trimIndent())
 
-    exec("""
-        UPDATE event_series SET occupied_spots = (
-            SELECT COALESCE(SUM(r.seat_count), 0) FROM reservations r
-             WHERE r.reference_type = 'SERIES'
-               AND r.reference_id = event_series.id
-               AND r.status NOT IN ($inactive)
-        )
-    """.trimIndent())
+    fun seats(table: String, referenceType: String) = """
+        (SELECT COALESCE(SUM(r.seat_count), 0) FROM reservations r
+          WHERE r.reference_type = '$referenceType'
+            AND r.reference_id = $table.id
+            AND r.status NOT IN ($inactive))
+    """.trimIndent()
 
     // Pořadník se počítá po přihláškách, ne po místech: attemptToReserveWaitlistSpot
     // zvedá čítač o 1 a strop se kontroluje jako occupiedWaitlist + 1 <= waitlistCapacity.
     // Proto COUNT(*), ne SUM(seat_count).
-    exec("""
-        UPDATE event_instances SET occupied_waitlist = (
-            SELECT COUNT(*) FROM reservations r
-             WHERE r.reference_type = 'INSTANCE'
-               AND r.reference_id = event_instances.id
-               AND r.status = 'WAITLISTED'
-        )
-    """.trimIndent())
+    fun waitlisted(table: String, referenceType: String) = """
+        (SELECT COUNT(*) FROM reservations r
+          WHERE r.reference_type = '$referenceType'
+            AND r.reference_id = $table.id
+            AND r.status = 'WAITLISTED')
+    """.trimIndent()
 
-    exec("""
-        UPDATE event_series SET occupied_waitlist = (
-            SELECT COUNT(*) FROM reservations r
-             WHERE r.reference_type = 'SERIES'
-               AND r.reference_id = event_series.id
-               AND r.status = 'WAITLISTED'
-        )
-    """.trimIndent())
+    // Přepisuje se jen to, co nesedí, a počet se vrací — stejně jako confirmFreeReservations.
+    fun recompute(table: String, column: String, derived: String): Int {
+        val drifted = exec("SELECT count(*) FROM $table WHERE $column <> $derived") { rs ->
+            rs.next(); rs.getInt(1)
+        } ?: 0
+        if (drifted > 0) exec("UPDATE $table SET $column = $derived WHERE $column <> $derived")
+        return drifted
+    }
+
+    return OccupancyDrift(
+        instanceSpots = recompute("event_instances", "occupied_spots", seats("event_instances", "INSTANCE")),
+        seriesSpots = recompute("event_series", "occupied_spots", seats("event_series", "SERIES")),
+        instanceWaitlist = recompute("event_instances", "occupied_waitlist", waitlisted("event_instances", "INSTANCE")),
+        seriesWaitlist = recompute("event_series", "occupied_waitlist", waitlisted("event_series", "SERIES")),
+    )
+}
+
+/** Kolik lekcí a kurzů mělo při startu uložený čítač jinak, než říkají rezervace. */
+data class OccupancyDrift(
+    val instanceSpots: Int,
+    val seriesSpots: Int,
+    val instanceWaitlist: Int,
+    val seriesWaitlist: Int,
+) {
+    val total: Int get() = instanceSpots + seriesSpots + instanceWaitlist + seriesWaitlist
+
+    override fun toString(): String =
+        "místa: $instanceSpots lekcí, $seriesSpots kurzů; pořadník: $instanceWaitlist lekcí, $seriesWaitlist kurzů"
 }
 
 /**
