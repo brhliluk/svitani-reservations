@@ -7,6 +7,7 @@ import kotlin.time.Duration
 
 object CsSlotStrings : SlotStrings {
     override val navLink = "Hlídání"
+    override val navLinkLong = "Hlídání dětí"
     override val chooseService = "Vyberte službu"
     override fun pricePerHour(price: String) = "$price za hodinu a dítě"
     override val noServices = "Hlídání teď není v nabídce."

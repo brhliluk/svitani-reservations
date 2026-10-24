@@ -21,10 +21,13 @@ val slotsWebFeature = WebFeature(
     headerLinks = listOf(
         HeaderLink(
             path = SLOTS_PATH,
-            iconClass = "icon-[heroicons--clock]",
+            // Stejná ikona jako v admin menu; hodiny četly spíš jako otevírací dobu.
+            iconClass = "icon-[heroicons--face-smile]",
             label = { slotStrings.navLink },
             // Nepublikovanou službu vidí jen admin, takže host odkaz do té doby nevidí.
             isVisible = { slotService().listServices().isNotEmpty() },
+            emphasized = true,
+            longLabel = { slotStrings.navLinkLong },
         ),
     ),
     adminPages = listOf(

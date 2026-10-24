@@ -500,6 +500,7 @@ private fun IComponent.UserRoute(
     UserShell(
         user = session.currentUser,
         headerLinks = headerLinks,
+        currentPath = router.currentPath().path,
         onNavigate = { router.navigate(it) },
         walletCode = session.walletCode,
         onShowMessage = session::showMessage,
@@ -517,6 +518,7 @@ private fun IComponent.UserRoute(
 private fun IComponent.UserShell(
     user: User?,
     headerLinks: List<HeaderLink>,
+    currentPath: String,
     onNavigate: (String) -> Unit,
     walletCode: String?,
     onShowMessage: (String, ToastType) -> Unit,
@@ -535,6 +537,7 @@ private fun IComponent.UserShell(
         AppHeader(
             user = user,
             headerLinks = headerLinks,
+            currentPath = currentPath,
             onNavigate = onNavigate,
             walletCode = walletCode,
             onShowMessage = onShowMessage,

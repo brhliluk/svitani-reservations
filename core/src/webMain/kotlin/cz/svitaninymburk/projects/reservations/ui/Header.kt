@@ -29,6 +29,8 @@ fun IComponent.AppHeader(
     user: User?,
     /** Odkazy volitelných modulů, už jen ty, které se mají ukázat. */
     headerLinks: List<HeaderLink> = emptyList(),
+    /** Cesta otevřené stránky, aby odkaz modulu ukázal, že je na něm uživatel. */
+    currentPath: String? = null,
     onNavigate: (String) -> Unit = {},
     walletCode: String?,
     onShowMessage: (String, ToastType) -> Unit,
@@ -89,17 +91,36 @@ fun IComponent.AppHeader(
 
     header(className = "navbar min-h-16 bg-base-100 border-b border-primary/20 px-3 sm:px-8") {
 
-        div(className = "navbar-start gap-2 sm:gap-4") {
+        div(className = "navbar-start @container gap-2 sm:gap-4") {
             div(className = "flex items-center gap-3 sm:gap-4 cursor-pointer") {
                 onClick { onNavigateToDashboard() }
                 img(src = "logo.svg", alt = "Svítání", className = "h-9 sm:h-10 w-auto")
                 span(className = "hidden sm:inline text-lg font-bold text-primary dark:text-base-content") { +currentStrings.dashboard }
             }
             headerLinks.forEach { link ->
-                button(className = "btn btn-ghost btn-sm min-h-11 gap-2") {
+                val isActive = currentPath == link.path
+                // Barvy jen z tokenů motivu (secondary v průhlednosti, base-content), aby
+                // pilulka seděla ve světlém i tmavém režimu. Plná secondary by v tmavém svítila.
+                val className = when {
+                    link.emphasized && isActive -> "btn btn-sm min-h-11 gap-2 rounded-full shadow-none font-bold text-base-content dark:text-secondary border-secondary bg-secondary/40 hover:bg-secondary/40"
+                    link.emphasized -> "btn btn-sm min-h-11 gap-2 rounded-full shadow-none font-bold text-base-content dark:text-secondary border-secondary/70 bg-secondary/20 hover:bg-secondary/35"
+                    isActive -> "btn btn-ghost btn-active btn-sm min-h-11 gap-2"
+                    else -> "btn btn-ghost btn-sm min-h-11 gap-2"
+                }
+                button(className = className) {
+                    if (isActive) attribute("aria-current", "page")
                     onClick { onNavigate(link.path) }
                     span(className = "${link.iconClass} size-5")
-                    span { +link.label() }
+                    val longLabel = link.longLabel
+                    if (longLabel == null) {
+                        span { +link.label() }
+                    } else {
+                        // Rozhoduje šířka levé půlky hlavičky (kontejner níž), ne celé obrazovky:
+                        // navbar-start má pevně 50 %, takže nezáleží na tom, co je vpravo.
+                        // 10.5rem = logo + mezera + pilulka „Hlídání dětí“ (165 px) s rezervou.
+                        span(className = "@min-[10.5rem]:hidden") { +link.label() }
+                        span(className = "hidden @min-[10.5rem]:inline") { +longLabel() }
+                    }
                 }
             }
         }

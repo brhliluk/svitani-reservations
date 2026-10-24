@@ -71,4 +71,8 @@ class HeaderLink(
      * admin může vidět víc než host. Výjimka znamená odkaz skrýt.
      */
     val isVisible: suspend () -> Boolean = { true },
+    /** Výrazná pilulka místo nenápadného odkazu — pro službu, kterou chceme návštěvníkům ukázat. */
+    val emphasized: Boolean = false,
+    /** Delší popisek, který hlavička ukáže místo [label], když se vejde (na telefonu nemusí). */
+    val longLabel: (() -> String)? = null,
 )

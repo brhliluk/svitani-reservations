@@ -18,6 +18,8 @@ val slotStrings: SlotStrings
 interface SlotStrings {
     /** Odkaz v hlavičce. */
     val navLink: String
+    /** Odkaz v hlavičce, když je na něj místo. */
+    val navLinkLong: String
     val chooseService: String
     /** „150 Kč za hodinu a dítě“ */
     fun pricePerHour(price: String): String

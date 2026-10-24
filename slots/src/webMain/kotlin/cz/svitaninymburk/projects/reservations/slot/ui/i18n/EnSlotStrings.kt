@@ -7,6 +7,7 @@ import kotlin.time.Duration
 
 object EnSlotStrings : SlotStrings {
     override val navLink = "Childcare"
+    override val navLinkLong = "Childcare"
     override val chooseService = "Choose a service"
     override fun pricePerHour(price: String) = "$price per hour per child"
     override val noServices = "Childcare is not on offer right now."
