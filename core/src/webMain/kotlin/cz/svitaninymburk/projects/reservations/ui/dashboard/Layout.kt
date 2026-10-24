@@ -163,7 +163,11 @@ private fun IComponent.ScheduleList(
                     }
                     div(className = "grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6") {
                         series.forEach { seriesItem ->
-                            SeriesCard(seriesItem) { model.openReservation(ReservationTarget.Series(seriesItem)) }
+                            SeriesCard(
+                                series = seriesItem,
+                                onSignUpClick = { model.openReservation(ReservationTarget.Series(seriesItem)) },
+                                onLessonClick = { lesson, asWaitlist -> model.openReservation(ReservationTarget.Instance(lesson), asWaitlist) },
+                            )
                         }
                     }
                 }

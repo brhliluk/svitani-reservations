@@ -58,6 +58,7 @@ fun IComponent.EventPreviewScreen(eventId: String, isSeries: Boolean, currentUse
                 is EventPreviewState.Series -> SeriesCard(
                     series = s.detail.series,
                     onSignUpClick = { model.openReservation(ReservationTarget.Series(s.detail.series)) },
+                    onLessonClick = { lesson, asWaitlist -> model.openReservation(ReservationTarget.Instance(lesson), asWaitlist) },
                 )
             }
         }

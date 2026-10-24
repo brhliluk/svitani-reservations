@@ -65,6 +65,9 @@ interface AppStrings : ErrorStrings {
     val course: String
     val courseLessons: String
     val courseSignUp: String
+    /** Rozbalení termínů kurzu na kartě na rozcestníku. */
+    val showCourseLessons: String
+    val hideCourseLessons: String
     val partOfCourse: String
     val detail: String
     val priceLabel: String

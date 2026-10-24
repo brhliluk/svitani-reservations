@@ -47,6 +47,8 @@ object EnStrings : AppStrings {
     override val course = "Course"
     override val courseLessons = "lessons"
     override val courseSignUp = "Sign up"
+    override val showCourseLessons = "Show lessons"
+    override val hideCourseLessons = "Hide lessons"
     override val partOfCourse = "Part of course"
     override val detail = "Detail"
     override val priceLabel = "Price"

@@ -48,6 +48,8 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val course = "Kroužek"
     override val courseLessons = "lekcí"
     override val courseSignUp = "Přihlásit se"
+    override val showCourseLessons = "Zobrazit lekce"
+    override val hideCourseLessons = "Skrýt lekce"
     override val partOfCourse = "Součást kurzu"
     override val detail = "Detail"
     override val priceLabel = "Cena"
