@@ -36,19 +36,30 @@ class AdminEventsModel(
     var definitionsPage by mutableIntStateOf(0); private set
     val childrenPageByDef = mutableStateMapOf<Uuid, Int>()
     var includePast by mutableStateOf(false); private set
+    var isRefreshing by mutableStateOf(false); private set
+    private var loadSeq = 0
 
     var deleteDefinitionPending: AdminEventListItem? by mutableStateOf(null); private set
     var deleteItemPending: AdminEventListItem? by mutableStateOf(null); private set
     var hideItemPending: AdminEventListItem? by mutableStateOf(null); private set
     var refundMoney by mutableStateOf(true)
 
-    // Reproduces the original produceState: previous data stays visible on refetch;
-    // only the initial state is Loading.
+    // Previous data stays visible on refetch; only the initial state is Loading.
+    // A refetch is signalled by isRefreshing. Only the latest request applies its result,
+    // so quick toggling can't let an older response overwrite a newer one.
     fun load() {
+        val seq = ++loadSeq
+        isRefreshing = true
         scope.launch {
-            queries.events(definitionsPage, DEFINITIONS_PAGE_SIZE, includePast)
-                .onRight { uiState = AdminEventsUiState.Success(it) }
-                .onLeft { uiState = AdminEventsUiState.Error(it.localizedMessage(currentStrings)) }
+            try {
+                val result = queries.events(definitionsPage, DEFINITIONS_PAGE_SIZE, includePast)
+                if (seq != loadSeq) return@launch
+                result
+                    .onRight { uiState = AdminEventsUiState.Success(it) }
+                    .onLeft { uiState = AdminEventsUiState.Error(it.localizedMessage(currentStrings)) }
+            } finally {
+                if (seq == loadSeq) isRefreshing = false
+            }
         }
     }
 

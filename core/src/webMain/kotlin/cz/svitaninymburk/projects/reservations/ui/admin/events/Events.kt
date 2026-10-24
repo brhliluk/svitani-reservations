@@ -42,6 +42,9 @@ fun IComponent.AdminEventsScreen() {
             }
 
             div(className = "flex items-center gap-4") {
+                // Místo pro točítko drží `invisible`, ať přepínač při načítání neposkakuje.
+                val showSpinner = model.isRefreshing && model.uiState is AdminEventsUiState.Success
+                span(className = "loading loading-spinner loading-sm text-primary" + if (showSpinner) "" else " invisible")
                 label(className = "label cursor-pointer gap-2") {
                     span(className = "label-text text-sm") { +currentStrings.showPastLabel }
                     checkBox(value = model.includePast, className = "toggle toggle-sm toggle-primary") {
@@ -76,7 +79,7 @@ fun IComponent.AdminEventsScreen() {
                         }
                     }
                 } else {
-                    div(className = "flex flex-col gap-4") {
+                    div(className = "flex flex-col gap-4 transition-opacity" + if (model.isRefreshing) " opacity-50 pointer-events-none" else "") {
                         definitions.forEach { def ->
                             val children = childrenByDef[def.id] ?: emptyList()
                             val hasInstances = children.any { !it.isSeries }
