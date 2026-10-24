@@ -10,6 +10,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.bu
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.buildCreateEventAndSeriesRequest
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.parseCourseStartDate
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.parseSingleEventDateTime
+import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.startsInPast
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.validateEventCreateCommon
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -17,6 +18,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
@@ -231,5 +233,20 @@ class EventCreateFormUseCasesSpec {
             isPublished = false,
         )
         assertEquals(4, request.defaultWaitlistCapacity)
+    }
+
+    @Test
+    fun startEarlierTodayIsInPast() {
+        val now = LocalDateTime(2026, 10, 23, 15, 37)
+        assertTrue(startsInPast(LocalDate(2026, 10, 23), LocalTime(9, 0), now))
+        assertFalse(startsInPast(LocalDate(2026, 10, 23), LocalTime(16, 0), now))
+        assertFalse(startsInPast(LocalDate(2026, 12, 13), LocalTime(9, 0), now))
+    }
+
+    @Test
+    fun startWithoutTimeComparesOnlyDate() {
+        val now = LocalDateTime(2026, 10, 23, 15, 37)
+        assertFalse(startsInPast(LocalDate(2026, 10, 23), null, now))
+        assertTrue(startsInPast(LocalDate(2026, 10, 22), null, now))
     }
 }

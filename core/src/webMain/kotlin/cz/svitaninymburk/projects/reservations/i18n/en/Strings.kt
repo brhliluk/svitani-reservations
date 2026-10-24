@@ -493,6 +493,11 @@ object EnStrings : AppStrings {
     override val eventTypeCourse = "Course"
     override val createEventButton = "Create"
     override val toastEventCreated = "Event was successfully created!"
+    override val pastStartConfirmTitle = "Date is in the past"
+    override val pastStartConfirmMessage: (String) -> String = { start ->
+        "The first date ($start) has already passed. Did you forget to change the date? Past events are hidden from the overview by default."
+    }
+    override val pastStartConfirmButton = "Create anyway"
     override val toastEventsCreated: (Int) -> String = { "Created $it events!" }
     override val toastCourseCreated = "Course was successfully created!"
     override val validationTitleRequired = "Event name is required."

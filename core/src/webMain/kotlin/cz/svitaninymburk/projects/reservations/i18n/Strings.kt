@@ -466,6 +466,9 @@ interface AppStrings : ErrorStrings {
     val validationTitleRequired: String
     val validationDatesOrTimeRequired: String
     val validationCourseDatesRequired: String
+    val pastStartConfirmTitle: String
+    val pastStartConfirmMessage: (String) -> String
+    val pastStartConfirmButton: String
 
     // Event Create Choose
     val chooseTypeTitle: String

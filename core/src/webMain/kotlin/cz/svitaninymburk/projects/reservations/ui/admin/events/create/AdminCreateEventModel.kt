@@ -22,6 +22,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.bu
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.buildCreateEventAndSeriesRequest
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.parseCourseStartDate
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.parseSingleEventDateTime
+import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.startsInPast
 import cz.svitaninymburk.projects.reservations.ui.admin.events.create.usecase.validateEventCreateCommon
 import cz.svitaninymburk.projects.reservations.ui.admin.events.instance.usecase.instanceRecurrencePreviewDates
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.buildSeriesLessonConfigs
@@ -32,6 +33,7 @@ import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.ke
 import cz.svitaninymburk.projects.reservations.ui.admin.events.series.usecase.parseTimeOrNull
 import cz.svitaninymburk.projects.reservations.ui.util.ScreenModel
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.CoroutineScope
@@ -57,7 +59,8 @@ class AdminCreateEventModel(
     currentUserEmail: String,
 ) : ScreenModel(scope) {
 
-    private val today get() = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+    private val now get() = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    private val today get() = now.date.toString()
 
     var eventType by mutableStateOf(EventCreateType.SINGLE); private set
 
@@ -99,6 +102,14 @@ class AdminCreateEventModel(
     val deadline = ReservationDeadlineState()
 
     var isSubmitting by mutableStateOf(false); private set
+
+    /**
+     * Odeslání čeká na potvrzení, protože první termín je v minulosti. Nese, jestli
+     * se mělo zveřejnit, a čitelný první termín pro text dialogu.
+     */
+    var pendingPastStart: PendingPastStart? by mutableStateOf(null); private set
+
+    data class PendingPastStart(val isPublished: Boolean, val firstStartLabel: String)
 
     /** Termíny opakované akce; prázdné, dokud nejsou vyplněná všechna tři pole. */
     val previewDates: List<LocalDateTime>
@@ -161,20 +172,39 @@ class AdminCreateEventModel(
         }
     }
 
-    fun submit(isPublished: Boolean) {
+    fun submit(isPublished: Boolean) = submit(isPublished, allowPastStart = false)
+
+    fun confirmPastStart() {
+        val pending = pendingPastStart ?: return
+        pendingPastStart = null
+        submit(pending.isPublished, allowPastStart = true)
+    }
+
+    fun dismissPastStart() { pendingPastStart = null }
+
+    private fun submit(isPublished: Boolean, allowPastStart: Boolean) {
         validateEventCreateCommon(title, ownerEmails)?.let { return showValidationError(it) }
         when (eventType) {
-            EventCreateType.SINGLE -> submitSingle(isPublished)
-            EventCreateType.RECURRING -> submitRecurring(isPublished)
-            EventCreateType.COURSE -> submitCourse(isPublished)
+            EventCreateType.SINGLE -> submitSingle(isPublished, allowPastStart)
+            EventCreateType.RECURRING -> submitRecurring(isPublished, allowPastStart)
+            EventCreateType.COURSE -> submitCourse(isPublished, allowPastStart)
         }
     }
 
-    private fun submitSingle(isPublished: Boolean) {
+    /** Je-li první termín v minulosti a admin to ještě nepotvrdil, otevře dialog a vrátí true. */
+    private fun askAboutPastStart(isPublished: Boolean, allowPastStart: Boolean, date: LocalDate, time: LocalTime?): Boolean {
+        if (allowPastStart || !startsInPast(date, time, now)) return false
+        val label = time?.let { LocalDateTime(date, it).humanReadable } ?: date.humanReadable
+        pendingPastStart = PendingPastStart(isPublished, label)
+        return true
+    }
+
+    private fun submitSingle(isPublished: Boolean, allowPastStart: Boolean) {
         val dateTime = when (val parsed = parseSingleEventDateTime(startDate, startTime)) {
             is SingleEventDateTime.Invalid -> return showValidationError(parsed.error)
             is SingleEventDateTime.Valid -> parsed.dateTime
         }
+        if (askAboutPastStart(isPublished, allowPastStart, dateTime.date, dateTime.time)) return
         createInstances(
             dateTimes = listOf(dateTime),
             isPublished = isPublished,
@@ -182,9 +212,11 @@ class AdminCreateEventModel(
         )
     }
 
-    private fun submitRecurring(isPublished: Boolean) {
+    private fun submitRecurring(isPublished: Boolean, allowPastStart: Boolean) {
         val dates = previewDates
         if (dates.isEmpty()) return showValidationError(EventCreateValidationError.NoRecurrenceDates)
+        val first = dates.min()
+        if (askAboutPastStart(isPublished, allowPastStart, first.date, first.time)) return
         createInstances(
             dateTimes = dates,
             isPublished = isPublished,
@@ -207,7 +239,7 @@ class AdminCreateEventModel(
         )
     }
 
-    private fun submitCourse(isPublished: Boolean) {
+    private fun submitCourse(isPublished: Boolean, allowPastStart: Boolean) {
         val parsedStart = when (val parsed = parseCourseStartDate(courseStartDate)) {
             is CourseStartDate.Invalid -> return showValidationError(parsed.error)
             is CourseStartDate.Valid -> parsed.date
@@ -222,6 +254,9 @@ class AdminCreateEventModel(
         val lessonStartTime = courseLessonStartTime
         val lessonEndTime = lessonStartTime?.let { computeLessonEndTime(it, form.totalDurationMinutes) }
         val firstLessonDate = effective.firstOrNull() ?: parsedStart
+        // Přepsaná data lekcí nemusí jít popořadě — v minulosti může být kterákoli.
+        val earliestLessonDate = effective.minOrNull() ?: parsedStart
+        if (askAboutPastStart(isPublished, allowPastStart, earliestLessonDate, lessonStartTime)) return
         val request = buildCreateEventAndSeriesRequest(
             form = form,
             startDate = firstLessonDate,

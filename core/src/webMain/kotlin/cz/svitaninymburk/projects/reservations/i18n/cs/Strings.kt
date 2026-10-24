@@ -498,6 +498,11 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val eventTypeCourse = "Kurz"
     override val createEventButton = "Vytvořit"
     override val toastEventCreated = "Událost byla úspěšně vytvořena!"
+    override val pastStartConfirmTitle = "Termín je v minulosti"
+    override val pastStartConfirmMessage: (String) -> String = { start ->
+        "První termín ($start) už proběhl. Nezapomněli jste změnit datum? Proběhlé akce se v přehledu ve výchozím stavu nezobrazují."
+    }
+    override val pastStartConfirmButton = "Přesto vytvořit"
     override val toastEventsCreated: (Int) -> String = { "Vytvořeno $it termínů!" }
     override val toastCourseCreated = "Kurz byl úspěšně vytvořen!"
     override val validationTitleRequired = "Název události je povinný."

@@ -81,6 +81,14 @@ fun parseSingleEventDateTime(startDate: String, startTime: String): SingleEventD
     }
 }
 
+/**
+ * Začíná akce dřív než [now]? Formulář předvyplňuje dnešek, takže stačí zadat jen
+ * čas a akce snadno vznikne o pár hodin "zpátky" — v přehledu pak schovaná mezi
+ * proběhlými. Bez času (kurz bez zadané hodiny lekce) rozhoduje jen datum.
+ */
+fun startsInPast(date: LocalDate, time: LocalTime?, now: LocalDateTime): Boolean =
+    if (time == null) date < now.date else LocalDateTime(date, time) < now
+
 sealed interface CourseStartDate {
     data class Valid(val date: LocalDate) : CourseStartDate
     data class Invalid(val error: EventCreateValidationError) : CourseStartDate
