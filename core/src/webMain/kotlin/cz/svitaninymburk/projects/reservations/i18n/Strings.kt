@@ -703,6 +703,7 @@ interface AppStrings : ErrorStrings {
     val adminWallets: String
     val adminWalletsHideEmpty: String
     val tooltipViewWallet: String
+    val tooltipViewReservation: String
     val adminWalletDetail: String
     val adminWalletAdjust: String
     val adminWalletAdjustNote: String

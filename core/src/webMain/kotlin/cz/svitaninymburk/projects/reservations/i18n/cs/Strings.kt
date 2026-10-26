@@ -713,6 +713,7 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val adminWallets = "Peněženky"
     override val adminWalletsHideEmpty = "Skrýt prázdné"
     override val tooltipViewWallet = "Zobrazit detail peněženky"
+    override val tooltipViewReservation = "Zobrazit detail rezervace"
     override val adminWalletDetail = "Detail peněženky"
     override val adminWalletAdjust = "Ruční úprava kreditu"
     override val adminWalletAdjustNote = "Poznámka (povinná)"

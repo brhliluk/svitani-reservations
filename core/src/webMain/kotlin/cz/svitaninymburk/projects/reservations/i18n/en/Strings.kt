@@ -700,6 +700,7 @@ object EnStrings : AppStrings {
     override val adminWallets = "Wallets"
     override val adminWalletsHideEmpty = "Hide empty"
     override val tooltipViewWallet = "View wallet detail"
+    override val tooltipViewReservation = "View reservation detail"
     override val adminWalletDetail = "Wallet detail"
     override val adminWalletAdjust = "Manual balance adjustment"
     override val adminWalletAdjustNote = "Note (required)"

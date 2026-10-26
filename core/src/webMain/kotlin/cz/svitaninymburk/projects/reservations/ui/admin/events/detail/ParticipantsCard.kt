@@ -187,6 +187,7 @@ private fun IComponent.ParticipantRow(
         }
         td(className = "text-right") {
             div(className = "flex justify-end items-center gap-1") {
+                OpenReservationButton(participant.reservationId)
                 // Přihláška na kurz se platí i ruší jako celek, ne po lekcích —
                 // odsud vede jen proklik na detail kurzu, kde ty akce dávají smysl.
                 if (participant.fromSeries) {
@@ -274,6 +275,7 @@ fun IComponent.WaitlistCard(
                                     }
                                     td { +"${participant.seatCount}" }
                                     td(className = "text-right") {
+                                        OpenReservationButton(participant.reservationId)
                                         button(className = "btn btn-ghost btn-xs btn-error") {
                                             +currentStrings.cancelReservation
                                             onClick { onCancelReservation(participant) }
@@ -332,6 +334,7 @@ fun IComponent.OptedOutCard(
                                 }
                                 td { +"${participant.seatCount}" }
                                 td(className = "text-right") {
+                                    OpenReservationButton(participant.reservationId)
                                     button(className = "btn btn-ghost btn-xs gap-1 tooltip tooltip-left") {
                                         attribute("data-tip", currentStrings.tooltipRevokeOptOut)
                                         disabled(revokingId != null)
@@ -365,5 +368,18 @@ private fun IComponent.WalletLink(walletCode: String?) {
         onClick { router.navigate("/admin/wallets/$walletCode") }
         span(className = "icon-[heroicons--wallet] size-4")
         +walletCode
+    }
+}
+
+/** Proklik na detail rezervace (u přihlášky na kurz na rezervaci celého kurzu). */
+@Composable
+private fun IComponent.OpenReservationButton(reservationId: Uuid) {
+    val currentStrings by strings
+    val router = Router.current
+
+    button(className = "btn btn-ghost btn-xs tooltip tooltip-left") {
+        attribute("data-tip", currentStrings.tooltipViewReservation)
+        onClick { router.navigate("/reservation/$reservationId") }
+        span(className = "icon-[heroicons--document-text] size-5")
     }
 }
