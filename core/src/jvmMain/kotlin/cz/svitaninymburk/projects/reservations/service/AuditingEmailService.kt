@@ -109,44 +109,45 @@ class AuditingEmailService(
     }
 
     override suspend fun sendLessonRescheduledNotification(
-        toEmail: String,
-        contactName: String,
+        reservation: Reservation,
         seriesTitle: String,
         oldDateTime: LocalDateTime,
         newDateTime: LocalDateTime,
-        locale: String,
-    ) = audited(AuditEventType.EMAIL_LESSON_RESCHEDULED, toEmail, contactName) {
-        delegate.sendLessonRescheduledNotification(toEmail, contactName, seriesTitle, oldDateTime, newDateTime, locale)
+    ) = audited(AuditEventType.EMAIL_LESSON_RESCHEDULED, reservation.contactEmail, reservation.contactName) {
+        delegate.sendLessonRescheduledNotification(reservation, seriesTitle, oldDateTime, newDateTime)
     }
 
     override suspend fun sendLessonCancelledNotification(
         toEmail: String,
+        reservationId: Uuid,
         contactName: String,
         seriesTitle: String,
         lessonDateTime: LocalDateTime,
         locale: String,
     ) = audited(AuditEventType.EMAIL_LESSON_CANCELLED, toEmail, contactName) {
-        delegate.sendLessonCancelledNotification(toEmail, contactName, seriesTitle, lessonDateTime, locale)
+        delegate.sendLessonCancelledNotification(toEmail, reservationId, contactName, seriesTitle, lessonDateTime, locale)
     }
 
     override suspend fun sendRemainingLessonsCancelledNotification(
         toEmail: String,
+        reservationId: Uuid,
         contactName: String,
         seriesTitle: String,
         lessonDateTimes: List<LocalDateTime>,
         locale: String,
     ) = audited(AuditEventType.EMAIL_REMAINING_LESSONS_CANCELLED, toEmail, contactName) {
-        delegate.sendRemainingLessonsCancelledNotification(toEmail, contactName, seriesTitle, lessonDateTimes, locale)
+        delegate.sendRemainingLessonsCancelledNotification(toEmail, reservationId, contactName, seriesTitle, lessonDateTimes, locale)
     }
 
     override suspend fun sendLessonOptOutNotice(
         toEmail: String,
+        reservationId: Uuid,
         eventTitle: String,
         lessonDate: LocalDate,
         isLateCancellation: Boolean,
         locale: String,
     ) = audited(AuditEventType.EMAIL_LESSON_OPT_OUT, toEmail, eventTitle) {
-        delegate.sendLessonOptOutNotice(toEmail, eventTitle, lessonDate, isLateCancellation, locale)
+        delegate.sendLessonOptOutNotice(toEmail, reservationId, eventTitle, lessonDate, isLateCancellation, locale)
     }
 
     override suspend fun sendWaitlistConfirmation(

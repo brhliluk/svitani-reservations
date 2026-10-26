@@ -69,10 +69,10 @@ private class CapturingEmailService : EmailService {
     override suspend fun sendPaymentNotPaidInFull(reservation: Reservation, paymentInfo: BankTransaction, bankAccount: String, qrCodeImage: ByteArray) = Unit.right()
     override suspend fun sendPasswordResetEmail(toEmail: String, resetToken: String) = Unit.right()
     override suspend fun sendReservationClaimEmail(toEmail: String, reservations: List<MyReservationListItem>, claimToken: String, locale: String) = Unit.right()
-    override suspend fun sendLessonRescheduledNotification(toEmail: String, contactName: String, seriesTitle: String, oldDateTime: LocalDateTime, newDateTime: LocalDateTime, locale: String) = Unit.right()
-    override suspend fun sendLessonCancelledNotification(toEmail: String, contactName: String, seriesTitle: String, lessonDateTime: LocalDateTime, locale: String) = Unit.right()
-    override suspend fun sendRemainingLessonsCancelledNotification(toEmail: String, contactName: String, seriesTitle: String, lessonDateTimes: List<LocalDateTime>, locale: String) = Unit.right()
-    override suspend fun sendLessonOptOutNotice(toEmail: String, eventTitle: String, lessonDate: LocalDate, isLateCancellation: Boolean, locale: String) = Unit.right()
+    override suspend fun sendLessonRescheduledNotification(reservation: Reservation, seriesTitle: String, oldDateTime: LocalDateTime, newDateTime: LocalDateTime) = Unit.right()
+    override suspend fun sendLessonCancelledNotification(toEmail: String, reservationId: Uuid, contactName: String, seriesTitle: String, lessonDateTime: LocalDateTime, locale: String) = Unit.right()
+    override suspend fun sendRemainingLessonsCancelledNotification(toEmail: String, reservationId: Uuid, contactName: String, seriesTitle: String, lessonDateTimes: List<LocalDateTime>, locale: String) = Unit.right()
+    override suspend fun sendLessonOptOutNotice(toEmail: String, reservationId: Uuid, eventTitle: String, lessonDate: LocalDate, isLateCancellation: Boolean, locale: String) = Unit.right()
     override suspend fun sendWaitlistConfirmation(toEmail: String, eventTitle: String, contactName: String, reservationId: Uuid, locale: String) = Unit.right()
 }
 

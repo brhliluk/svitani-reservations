@@ -802,6 +802,7 @@ open class ReservationService(
                 emailDispatcher.dispatch {
                     emailService.sendLessonOptOutNotice(
                         toEmail = reservation.contactEmail,
+                        reservationId = reservationId,
                         eventTitle = instance.title,
                         lessonDate = instance.startDateTime.date,
                         isLateCancellation = isLate,

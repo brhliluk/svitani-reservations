@@ -43,16 +43,15 @@ interface EmailService {
     ): Either<EmailError.SendReservationClaim, Unit>
 
     suspend fun sendLessonRescheduledNotification(
-        toEmail: String,
-        contactName: String,
+        reservation: Reservation,
         seriesTitle: String,
         oldDateTime: LocalDateTime,
         newDateTime: LocalDateTime,
-        locale: String,
     ): Either<EmailError.SendLessonRescheduled, Unit>
 
     suspend fun sendLessonCancelledNotification(
         toEmail: String,
+        reservationId: Uuid,
         contactName: String,
         seriesTitle: String,
         lessonDateTime: LocalDateTime,
@@ -65,6 +64,7 @@ interface EmailService {
      */
     suspend fun sendRemainingLessonsCancelledNotification(
         toEmail: String,
+        reservationId: Uuid,
         contactName: String,
         seriesTitle: String,
         lessonDateTimes: List<LocalDateTime>,
@@ -73,6 +73,7 @@ interface EmailService {
 
     suspend fun sendLessonOptOutNotice(
         toEmail: String,
+        reservationId: Uuid,
         eventTitle: String,
         lessonDate: LocalDate,
         isLateCancellation: Boolean,

@@ -124,6 +124,7 @@ class AuditingEmailServiceSpec {
         withAuditSubject(AuditSubject(seriesId = seriesId, instanceId = lessonId, label = "Kurz")) {
             service.sendLessonCancelledNotification(
                 toEmail = "kdo@example.com",
+                reservationId = Uuid.random(),
                 contactName = "Jana Nováková",
                 seriesTitle = "Kurz",
                 lessonDateTime = kotlinx.datetime.LocalDateTime(2026, 9, 15, 10, 0),

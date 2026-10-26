@@ -970,12 +970,10 @@ class AdminDashboardService(
                     ) {
                         emailDispatcher.dispatch {
                             emailService.sendLessonRescheduledNotification(
-                                toEmail = res.contactEmail,
-                                contactName = res.contactName,
+                                reservation = res,
                                 seriesTitle = series?.title ?: existing.title,
                                 oldDateTime = existing.startDateTime,
                                 newDateTime = request.startDateTime,
-                                locale = res.locale,
                             ).onLeft { captureEmailError(logger, "Failed to send reschedule email for ${res.id}: $it") }
                         }
                     }
@@ -1484,6 +1482,7 @@ class AdminDashboardService(
                     emailDispatcher.dispatch {
                         emailService.sendRemainingLessonsCancelledNotification(
                             toEmail = res.contactEmail,
+                            reservationId = res.id,
                             contactName = res.contactName,
                             seriesTitle = series.title,
                             lessonDateTimes = affected.map { it.startDateTime },
@@ -1554,6 +1553,7 @@ class AdminDashboardService(
                     emailDispatcher.dispatch {
                         emailService.sendLessonCancelledNotification(
                             toEmail = res.contactEmail,
+                            reservationId = res.id,
                             contactName = res.contactName,
                             seriesTitle = seriesTitle,
                             lessonDateTime = instance.startDateTime,

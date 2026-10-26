@@ -181,6 +181,8 @@ class GmailEmailService(
     internal suspend fun titleFor(reservation: Reservation): String? =
         targetResolver.resolve(reservation.reference)?.title
 
+    private fun reservationUrl(reservationId: Uuid) = "$appBaseUrl/reservation/$reservationId"
+
     private fun setupEmail(): EmailPopulatingBuilder {
         val s = settings.current
         return EmailBuilder.startingBlank().from(s.senderDisplayName, s.senderEmail)
@@ -373,18 +375,19 @@ class GmailEmailService(
     } } }
 
     override suspend fun sendLessonRescheduledNotification(
-        toEmail: String,
-        contactName: String,
+        reservation: Reservation,
         seriesTitle: String,
         oldDateTime: LocalDateTime,
         newDateTime: LocalDateTime,
-        locale: String,
     ): Either<EmailError.SendLessonRescheduled, Unit> = either { withContext(Dispatchers.IO) { catch({
         val email = setupEmail()
-        val s = emailStringsFor(locale)
-        email.addTo(toEmail)
+        val s = emailStringsFor(reservation.locale)
+        email.addTo(reservation.contactEmail)
         email.withSubject(s.lessonRescheduledSubject(seriesTitle))
-        email.withPlainText(s.lessonRescheduledBody(contactName, seriesTitle, oldDateTime.humanReadable, newDateTime.humanReadable))
+        email.withPlainText(
+            s.lessonRescheduledBody(reservation.contactName, seriesTitle, oldDateTime.humanReadable, newDateTime.humanReadable) +
+                "\n\n" + s.reservationViewLink(reservationUrl(reservation.id))
+        )
         email.sendWithRetry()
     }) { e: MailException ->
         raise(EmailError.SendLessonRescheduledFailed(e.fullMessage()))
@@ -392,6 +395,7 @@ class GmailEmailService(
 
     override suspend fun sendLessonCancelledNotification(
         toEmail: String,
+        reservationId: Uuid,
         contactName: String,
         seriesTitle: String,
         lessonDateTime: LocalDateTime,
@@ -401,7 +405,10 @@ class GmailEmailService(
         val s = emailStringsFor(locale)
         email.addTo(toEmail)
         email.withSubject(s.lessonCancelledSubject(seriesTitle))
-        email.withPlainText(s.lessonCancelledBody(contactName, seriesTitle, lessonDateTime.humanReadable))
+        email.withPlainText(
+            s.lessonCancelledBody(contactName, seriesTitle, lessonDateTime.humanReadable) +
+                "\n\n" + s.reservationViewLink(reservationUrl(reservationId))
+        )
         email.sendWithRetry()
     }) { e: MailException ->
         raise(EmailError.SendLessonCancelledFailed(e.fullMessage()))
@@ -409,6 +416,7 @@ class GmailEmailService(
 
     override suspend fun sendRemainingLessonsCancelledNotification(
         toEmail: String,
+        reservationId: Uuid,
         contactName: String,
         seriesTitle: String,
         lessonDateTimes: List<LocalDateTime>,
@@ -418,7 +426,10 @@ class GmailEmailService(
         val s = emailStringsFor(locale)
         email.addTo(toEmail)
         email.withSubject(s.remainingLessonsCancelledSubject(seriesTitle))
-        email.withPlainText(s.remainingLessonsCancelledBody(contactName, seriesTitle, lessonDateTimes.map { it.humanReadable }))
+        email.withPlainText(
+            s.remainingLessonsCancelledBody(contactName, seriesTitle, lessonDateTimes.map { it.humanReadable }) +
+                "\n\n" + s.reservationViewLink(reservationUrl(reservationId))
+        )
         email.sendWithRetry()
     }) { e: MailException ->
         raise(EmailError.SendLessonCancelledFailed(e.fullMessage()))
@@ -469,6 +480,7 @@ class GmailEmailService(
 
     override suspend fun sendLessonOptOutNotice(
         toEmail: String,
+        reservationId: Uuid,
         eventTitle: String,
         lessonDate: kotlinx.datetime.LocalDate,
         isLateCancellation: Boolean,
@@ -478,7 +490,10 @@ class GmailEmailService(
         val email = setupEmail()
         email.addTo(toEmail)
         email.withSubject(s.lessonOptOutSubject(eventTitle))
-        email.withPlainText(s.lessonOptOutBody(eventTitle, lessonDate, isLateCancellation))
+        email.withPlainText(
+            s.lessonOptOutBody(eventTitle, lessonDate, isLateCancellation) +
+                "\n\n" + s.reservationViewLink(reservationUrl(reservationId))
+        )
         email.sendWithRetry()
     }) { e: MailException ->
         raise(EmailError.SendCancellationFailed(e.fullMessage()))
@@ -690,15 +705,15 @@ class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService
     }
 
     override suspend fun sendLessonRescheduledNotification(
-        toEmail: String, contactName: String, seriesTitle: String,
-        oldDateTime: LocalDateTime, newDateTime: LocalDateTime, locale: String,
+        reservation: Reservation, seriesTitle: String,
+        oldDateTime: LocalDateTime, newDateTime: LocalDateTime,
     ): Either<EmailError.SendLessonRescheduled, Unit> {
-        println("📧 [MOCK] Lekce přeplánována: $seriesTitle | $toEmail | ${oldDateTime} → ${newDateTime}")
+        println("📧 [MOCK] Lekce přeplánována: $seriesTitle | ${reservation.contactEmail} | ${oldDateTime} → ${newDateTime}")
         return Unit.right()
     }
 
     override suspend fun sendLessonCancelledNotification(
-        toEmail: String, contactName: String, seriesTitle: String,
+        toEmail: String, reservationId: Uuid, contactName: String, seriesTitle: String,
         lessonDateTime: LocalDateTime, locale: String,
     ): Either<EmailError.SendLessonCancelled, Unit> {
         println("📧 [MOCK] Lekce zrušena: $seriesTitle | $toEmail | $lessonDateTime")
@@ -706,7 +721,7 @@ class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService
     }
 
     override suspend fun sendRemainingLessonsCancelledNotification(
-        toEmail: String, contactName: String, seriesTitle: String,
+        toEmail: String, reservationId: Uuid, contactName: String, seriesTitle: String,
         lessonDateTimes: List<LocalDateTime>, locale: String,
     ): Either<EmailError.SendLessonCancelled, Unit> {
         println("📧 [MOCK] Zbytek kurzu zrušen: $seriesTitle | $toEmail | ${lessonDateTimes.size} lekcí")
@@ -731,6 +746,7 @@ class ConsoleEmailService : EmailService, LectorEmailService, WalletEmailService
 
     override suspend fun sendLessonOptOutNotice(
         toEmail: String,
+        reservationId: Uuid,
         eventTitle: String,
         lessonDate: kotlinx.datetime.LocalDate,
         isLateCancellation: Boolean,

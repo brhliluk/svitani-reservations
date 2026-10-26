@@ -82,16 +82,15 @@ class PaymentPairingServiceTest {
         ): Either<EmailError.SendReservationClaim, Unit> = Unit.right()
 
         override suspend fun sendLessonRescheduledNotification(
-            toEmail: String,
-            contactName: String,
+            reservation: Reservation,
             seriesTitle: String,
             oldDateTime: LocalDateTime,
             newDateTime: LocalDateTime,
-            locale: String
         ): Either<EmailError.SendLessonRescheduled, Unit> = Unit.right()
 
         override suspend fun sendLessonCancelledNotification(
             toEmail: String,
+            reservationId: Uuid,
             contactName: String,
             seriesTitle: String,
             lessonDateTime: LocalDateTime,
@@ -100,6 +99,7 @@ class PaymentPairingServiceTest {
 
         override suspend fun sendRemainingLessonsCancelledNotification(
             toEmail: String,
+            reservationId: Uuid,
             contactName: String,
             seriesTitle: String,
             lessonDateTimes: List<LocalDateTime>,
@@ -108,6 +108,7 @@ class PaymentPairingServiceTest {
 
         override suspend fun sendLessonOptOutNotice(
             toEmail: String,
+            reservationId: Uuid,
             eventTitle: String,
             lessonDate: LocalDate,
             isLateCancellation: Boolean,
