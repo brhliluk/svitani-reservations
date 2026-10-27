@@ -168,7 +168,6 @@ private fun IComponent.ParticipantRow(
             div(className = "text-xs text-base-content/50") {
                 +"${participant.contactEmail} • ${participant.contactPhone?.let { PhoneNumber.format(it) } ?: ""}"
             }
-            WalletLink(participant.walletCode)
         }
         td { +"${participant.seatCount}" }
         td(className = if (!isPaid && isCash) "font-bold text-info" else "") {
@@ -188,6 +187,7 @@ private fun IComponent.ParticipantRow(
         td(className = "text-right") {
             div(className = "flex justify-end items-center gap-1") {
                 OpenReservationButton(participant.reservationId)
+                WalletLink(participant.walletCode)
                 // Přihláška na kurz se platí i ruší jako celek, ne po lekcích —
                 // odsud vede jen proklik na detail kurzu, kde ty akce dávají smysl.
                 if (participant.fromSeries) {
@@ -271,14 +271,16 @@ fun IComponent.WaitlistCard(
                                     td {
                                         div(className = "font-medium") { +participant.contactName }
                                         div(className = "text-xs text-base-content/60") { +participant.contactEmail }
-                                        WalletLink(participant.walletCode)
                                     }
                                     td { +"${participant.seatCount}" }
                                     td(className = "text-right") {
-                                        OpenReservationButton(participant.reservationId)
-                                        button(className = "btn btn-ghost btn-xs btn-error") {
-                                            +currentStrings.cancelReservation
-                                            onClick { onCancelReservation(participant) }
+                                        div(className = "flex justify-end items-center gap-1") {
+                                            OpenReservationButton(participant.reservationId)
+                                            WalletLink(participant.walletCode)
+                                            button(className = "btn btn-ghost btn-xs btn-error") {
+                                                +currentStrings.cancelReservation
+                                                onClick { onCancelReservation(participant) }
+                                            }
                                         }
                                     }
                                 }
@@ -330,21 +332,23 @@ fun IComponent.OptedOutCard(
                                 td {
                                     div(className = "font-medium") { +participant.contactName }
                                     div(className = "text-xs text-base-content/60") { +participant.contactEmail }
-                                    WalletLink(participant.walletCode)
                                 }
                                 td { +"${participant.seatCount}" }
                                 td(className = "text-right") {
-                                    OpenReservationButton(participant.reservationId)
-                                    button(className = "btn btn-ghost btn-xs gap-1 tooltip tooltip-left") {
-                                        attribute("data-tip", currentStrings.tooltipRevokeOptOut)
-                                        disabled(revokingId != null)
-                                        onClick { onRevokeOptOut(participant) }
-                                        if (revokingId == participant.reservationId) {
-                                            span(className = "loading loading-spinner loading-xs")
-                                        } else {
-                                            span(className = "icon-[heroicons--arrow-uturn-left] size-4")
+                                    div(className = "flex justify-end items-center gap-1") {
+                                        OpenReservationButton(participant.reservationId)
+                                        WalletLink(participant.walletCode)
+                                        button(className = "btn btn-ghost btn-xs gap-1 tooltip tooltip-left") {
+                                            attribute("data-tip", currentStrings.tooltipRevokeOptOut)
+                                            disabled(revokingId != null)
+                                            onClick { onRevokeOptOut(participant) }
+                                            if (revokingId == participant.reservationId) {
+                                                span(className = "loading loading-spinner loading-xs")
+                                            } else {
+                                                span(className = "icon-[heroicons--arrow-uturn-left] size-4")
+                                            }
+                                            +currentStrings.revokeOptOut
                                         }
-                                        +currentStrings.revokeOptOut
                                     }
                                 }
                             }
@@ -363,11 +367,10 @@ private fun IComponent.WalletLink(walletCode: String?) {
     val currentStrings by strings
     val router = Router.current
 
-    button(className = "btn btn-ghost btn-xs gap-1 px-1 mt-1 font-mono text-primary tooltip tooltip-right") {
-        attribute("data-tip", currentStrings.tooltipViewWallet)
+    button(className = "btn btn-ghost btn-xs tooltip tooltip-left") {
+        attribute("data-tip", "${currentStrings.tooltipViewWallet} $walletCode")
         onClick { router.navigate("/admin/wallets/$walletCode") }
-        span(className = "icon-[heroicons--wallet] size-4")
-        +walletCode
+        span(className = "icon-[heroicons--wallet] size-5")
     }
 }
 
