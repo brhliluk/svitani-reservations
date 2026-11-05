@@ -66,14 +66,20 @@ class InMemoryWalletRepository : WalletRepository {
     override suspend fun getTransactions(walletId: Uuid) =
         transactions.values.filter { it.walletId == walletId }
 
-    override suspend fun findAll(page: Int, pageSize: Int, nonEmptyOnly: Boolean) =
+    private fun Wallet.matches(nonEmptyOnly: Boolean, searchQuery: String?): Boolean {
+        if (nonEmptyOnly && balance <= 0.0) return false
+        val q = searchQuery?.trim()?.takeIf { it.isNotEmpty() } ?: return true
+        return ownerEmail.contains(q, ignoreCase = true) || code.contains(q, ignoreCase = true)
+    }
+
+    override suspend fun findAll(page: Int, pageSize: Int, nonEmptyOnly: Boolean, searchQuery: String?) =
         wallets.values
-            .filter { !nonEmptyOnly || it.balance > 0.0 }
+            .filter { it.matches(nonEmptyOnly, searchQuery) }
             .sortedWith(compareByDescending<Wallet> { it.createdAt }.thenBy { it.code })
             .drop(page * pageSize).take(pageSize)
 
-    override suspend fun countAll(nonEmptyOnly: Boolean) =
-        wallets.values.count { !nonEmptyOnly || it.balance > 0.0 }.toLong()
+    override suspend fun countAll(nonEmptyOnly: Boolean, searchQuery: String?) =
+        wallets.values.count { it.matches(nonEmptyOnly, searchQuery) }.toLong()
     override suspend fun findAllWithPositiveBalance() = wallets.values.filter { it.balance > 0.0 }
     override suspend fun isCodeUnique(code: String) = wallets.values.none { it.code == code }
 }

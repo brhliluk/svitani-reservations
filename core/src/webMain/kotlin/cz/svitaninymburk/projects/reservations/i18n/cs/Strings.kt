@@ -712,6 +712,8 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override val cancellationEmailNotSent = "Rezervace je zrušená. Potvrzení e-mailem se nám teď nepodařilo odeslat, ale nic dalšího dělat nemusíte."
     override val adminWallets = "Peněženky"
     override val adminWalletsHideEmpty = "Skrýt prázdné"
+    override val adminWalletsSearchPlaceholder = "Hledat e-mail nebo kód peněženky..."
+    override val noWalletsForSearch: (String) -> String = { "Pro '$it' nebyla nalezena žádná peněženka." }
     override val tooltipViewWallet = "Zobrazit detail peněženky"
     override val tooltipViewReservation = "Zobrazit detail rezervace"
     override val adminWalletDetail = "Detail peněženky"

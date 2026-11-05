@@ -12,6 +12,7 @@ import cz.svitaninymburk.projects.reservations.service.AppSettingsServiceInterfa
 import cz.svitaninymburk.projects.reservations.ui.admin.wallet.usecase.AdminWalletsQueries
 import cz.svitaninymburk.projects.reservations.ui.admin.wallet.usecase.WALLETS_PAGE_SIZE
 import cz.svitaninymburk.projects.reservations.ui.util.ScreenModel
+import cz.svitaninymburk.projects.reservations.ui.util.searchQueryOf
 import cz.svitaninymburk.projects.reservations.wallet.Wallet
 import cz.svitaninymburk.projects.reservations.wallet.WalletsPage
 import dev.kilua.core.IComponent
@@ -36,6 +37,8 @@ class AdminWalletsModel(
     var uiState: AdminWalletsUiState by mutableStateOf(AdminWalletsUiState.Loading); private set
     var page by mutableIntStateOf(0); private set
     var hideEmpty by mutableStateOf(false); private set
+    var searchInput by mutableStateOf("")
+    var activeSearchQuery: String? by mutableStateOf(null); private set
 
     /** Není-li null, místo seznamu se ukazuje detail té peněženky. */
     var selectedWallet: Wallet? by mutableStateOf(null); private set
@@ -43,7 +46,7 @@ class AdminWalletsModel(
     fun load() {
         uiState = AdminWalletsUiState.Loading
         scope.launch {
-            queries.wallets(page, WALLETS_PAGE_SIZE, hideEmpty)
+            queries.wallets(page, WALLETS_PAGE_SIZE, hideEmpty, activeSearchQuery)
                 .onRight { uiState = AdminWalletsUiState.Success(it) }
                 .onLeft { uiState = AdminWalletsUiState.Error(it.localizedMessage(currentStrings)) }
         }
@@ -62,6 +65,22 @@ class AdminWalletsModel(
 
     fun setHideEmpty(value: Boolean) {
         hideEmpty = value
+        page = 0
+        load()
+    }
+
+    fun submitSearch() {
+        val query = searchQueryOf(searchInput)?.trim()
+        if (query == activeSearchQuery) return
+        activeSearchQuery = query
+        page = 0
+        load()
+    }
+
+    fun clearSearch() {
+        searchInput = ""
+        if (activeSearchQuery == null) return
+        activeSearchQuery = null
         page = 0
         load()
     }

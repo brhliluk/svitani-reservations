@@ -699,6 +699,8 @@ object EnStrings : AppStrings {
     override val cancellationEmailNotSent = "Your reservation is cancelled. We couldn't send the confirmation email right now, but there's nothing else you need to do."
     override val adminWallets = "Wallets"
     override val adminWalletsHideEmpty = "Hide empty"
+    override val adminWalletsSearchPlaceholder = "Search by email or wallet code..."
+    override val noWalletsForSearch: (String) -> String = { "No wallets found for '$it'." }
     override val tooltipViewWallet = "View wallet detail"
     override val tooltipViewReservation = "View reservation detail"
     override val adminWalletDetail = "Wallet detail"

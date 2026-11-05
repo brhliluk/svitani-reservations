@@ -23,7 +23,8 @@ class AdminWalletsQueries(
     private val admin: AdminServiceInterface,
     private val settings: AppSettingsServiceInterface,
 ) {
-    suspend fun wallets(page: Int, pageSize: Int, hideEmpty: Boolean) = admin.getWallets(page, pageSize, hideEmpty)
+    suspend fun wallets(page: Int, pageSize: Int, hideEmpty: Boolean, searchQuery: String?) =
+        admin.getWallets(page, pageSize, hideEmpty, searchQuery)
     suspend fun transactions(walletId: Uuid) = admin.getWalletTransactions(walletId.toString())
     suspend fun walletByCode(code: String) = admin.getWalletByCode(code)
     suspend fun settings() = settings.getSettings()

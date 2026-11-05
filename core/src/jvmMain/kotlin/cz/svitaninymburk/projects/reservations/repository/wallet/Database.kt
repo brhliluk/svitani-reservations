@@ -94,9 +94,12 @@ interface WalletRepository {
 
     suspend fun insertTransaction(tx: NewWalletTransaction): WalletTransaction
     suspend fun getTransactions(walletId: Uuid): List<WalletTransaction>
-    /** Od nejnovější; [nonEmptyOnly] vynechá peněženky s nulovým zůstatkem. */
-    suspend fun findAll(page: Int, pageSize: Int, nonEmptyOnly: Boolean = false): List<Wallet>
-    suspend fun countAll(nonEmptyOnly: Boolean = false): Long
+    /**
+     * Od nejnovější; [nonEmptyOnly] vynechá peněženky s nulovým zůstatkem,
+     * [searchQuery] hledá (bez ohledu na velikost písmen) část e-mailu nebo kódu.
+     */
+    suspend fun findAll(page: Int, pageSize: Int, nonEmptyOnly: Boolean = false, searchQuery: String? = null): List<Wallet>
+    suspend fun countAll(nonEmptyOnly: Boolean = false, searchQuery: String? = null): Long
     suspend fun findAllWithPositiveBalance(): List<Wallet>
     suspend fun isCodeUnique(code: String): Boolean
 }
@@ -186,18 +189,28 @@ class ExposedWalletRepository : WalletRepository {
             .map { it.toWalletTransaction() }
     }
 
-    override suspend fun findAll(page: Int, pageSize: Int, nonEmptyOnly: Boolean): List<Wallet> = dbQuery {
+    /** Filtr admin přehledu; findAll a countAll ho musí sdílet, jinak stránkování nesedí. */
+    private fun adminListFilter(nonEmptyOnly: Boolean, searchQuery: String?): Op<Boolean>? {
+        val balanceFilter = if (nonEmptyOnly) WalletsTable.balance greater 0.0 else null
+        val searchFilter = searchQuery?.trim()?.takeIf { it.isNotEmpty() }?.let { query ->
+            val q = "%${query.lowercase()}%"
+            (WalletsTable.ownerEmail.lowerCase() like q) or (WalletsTable.code.lowerCase() like q)
+        }
+        return listOfNotNull(balanceFilter, searchFilter).reduceOrNull { a, b -> a and b }
+    }
+
+    override suspend fun findAll(page: Int, pageSize: Int, nonEmptyOnly: Boolean, searchQuery: String?): List<Wallet> = dbQuery {
         WalletsTable.selectAll()
-            .apply { if (nonEmptyOnly) where { WalletsTable.balance greater 0.0 } }
+            .apply { adminListFilter(nonEmptyOnly, searchQuery)?.let { filter -> where { filter } } }
             // Kód jako druhý klíč, aby stránkování nepřeskakovalo při shodném čase.
             .orderBy(WalletsTable.createdAt to SortOrder.DESC, WalletsTable.code to SortOrder.ASC)
             .limit(pageSize).offset((page * pageSize).toLong())
             .map { it.toWallet() }
     }
 
-    override suspend fun countAll(nonEmptyOnly: Boolean): Long = dbQuery {
+    override suspend fun countAll(nonEmptyOnly: Boolean, searchQuery: String?): Long = dbQuery {
         WalletsTable.selectAll()
-            .apply { if (nonEmptyOnly) where { WalletsTable.balance greater 0.0 } }
+            .apply { adminListFilter(nonEmptyOnly, searchQuery)?.let { filter -> where { filter } } }
             .count()
     }
 

@@ -702,6 +702,8 @@ interface AppStrings : ErrorStrings {
     val cancellationEmailNotSent: String
     val adminWallets: String
     val adminWalletsHideEmpty: String
+    val adminWalletsSearchPlaceholder: String
+    val noWalletsForSearch: (String) -> String
     val tooltipViewWallet: String
     val tooltipViewReservation: String
     val adminWalletDetail: String

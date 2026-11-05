@@ -54,6 +54,31 @@ fun IComponent.AdminWalletsScreen(preselectCode: String? = null) {
             }
         }
 
+        // --- SEARCH ---
+        div(className = "flex items-center w-full md:w-auto gap-2") {
+            div(className = "relative w-full md:w-96") {
+                span(className = "absolute inset-y-0 left-3 flex items-center pointer-events-none text-base-content/50") {
+                    span(className = "icon-[heroicons--magnifying-glass] size-5")
+                }
+                text(value = model.searchInput, className = "input input-bordered w-full pl-10") {
+                    placeholder(currentStrings.adminWalletsSearchPlaceholder)
+                    onInput { model.searchInput = value ?: "" }
+                    onKeyup { event -> if (event.key == "Enter") model.submitSearch() }
+                }
+            }
+            button(className = "btn btn-primary") {
+                onClick { model.submitSearch() }
+                +currentStrings.search
+            }
+            if (model.activeSearchQuery != null) {
+                button(className = "btn btn-ghost tooltip") {
+                    attribute("data-tip", currentStrings.clearSearch)
+                    onClick { model.clearSearch() }
+                    span(className = "icon-[heroicons--x-mark] size-5")
+                }
+            }
+        }
+
         // --- 2. TABLE ---
         when (val state = model.uiState) {
             is AdminWalletsUiState.Loading -> Loading()
@@ -70,6 +95,9 @@ fun IComponent.AdminWalletsScreen(preselectCode: String? = null) {
                 if (data.totalCount == 0L) {
                     div(className = "text-center text-base-content/50 py-12") {
                         span(className = "icon-[heroicons--wallet] size-12 opacity-30")
+                        model.activeSearchQuery?.let { query ->
+                            p(className = "mt-2") { +currentStrings.noWalletsForSearch(query) }
+                        }
                     }
                 } else {
                     div(className = "card bg-base-100 shadow-sm") {

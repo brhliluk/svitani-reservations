@@ -92,8 +92,11 @@ interface AdminServiceInterface {
      * Proto se adresa vrací: obvykle je stejná jako v historii, ale nemusí být.
      */
     suspend fun resendEmail(auditEventId: Uuid): Either<AdminError.ResendEmail, String>
-    /** Od nejnovější; [hideEmpty] vynechá peněženky s nulovým zůstatkem. */
-    suspend fun getWallets(page: Int, pageSize: Int, hideEmpty: Boolean): Either<AdminError.GetWallets, WalletsPage>
+    /**
+     * Od nejnovější; [hideEmpty] vynechá peněženky s nulovým zůstatkem,
+     * [searchQuery] hledá část e-mailu nebo kódu peněženky (null = bez filtru).
+     */
+    suspend fun getWallets(page: Int, pageSize: Int, hideEmpty: Boolean, searchQuery: String?): Either<AdminError.GetWallets, WalletsPage>
     suspend fun getWalletByCode(code: String): Either<AdminError.GetWallets, Wallet>
     suspend fun getWalletTransactions(walletId: String): Either<AdminError.GetWallets, List<WalletTransaction>>
     suspend fun adjustWalletBalance(walletId: String, amount: Double, note: String, isCredit: Boolean): Either<AdminError.GetWallets, Wallet>
