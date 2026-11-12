@@ -99,7 +99,7 @@ kotlin {
                 implementation(libs.kilua.animation)
                 implementation(libs.kilua.ssr)
                 implementation(libs.kilua.tailwindcss)
-                implementation(npm("daisyui", "5.7.39"))
+                implementation(npm("daisyui", "5.7.50"))
                 implementation(npm("@iconify/tailwind4", "1.2.3"))
                 implementation(npm("@iconify-json/heroicons", "1.2.3"))
             }
