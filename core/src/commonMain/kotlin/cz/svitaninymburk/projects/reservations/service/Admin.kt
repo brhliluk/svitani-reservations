@@ -8,6 +8,7 @@ import cz.svitaninymburk.projects.reservations.wallet.Wallet
 import cz.svitaninymburk.projects.reservations.wallet.WalletTransaction
 import cz.svitaninymburk.projects.reservations.wallet.WalletsPage
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
+import cz.svitaninymburk.projects.reservations.admin.CancellationRefundRow
 import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminReservationListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminUserListItem
@@ -62,10 +63,18 @@ interface AdminServiceInterface {
     suspend fun deleteEventDefinition(id: Uuid): Either<AdminError.DeleteDefinition, Unit>
     suspend fun deleteEventInstance(id: Uuid, refund: Boolean = true): Either<AdminError.DeleteEvent, Unit>
     suspend fun deleteEventSeries(id: Uuid, refund: Boolean = true): Either<AdminError.DeleteSeries, Unit>
-    suspend fun cancelEventInstance(id: Uuid, refund: Boolean = true): Either<AdminError.CancelEvent, Unit>
+    /** [noRefundFor] = rezervace, kterým se kredit nevrací, i když [refund] platí (viz [getCancellationRefunds]). */
+    suspend fun cancelEventInstance(id: Uuid, refund: Boolean = true, noRefundFor: Set<Uuid> = emptySet()): Either<AdminError.CancelEvent, Unit>
     suspend fun cancelEventSeries(id: Uuid, refund: Boolean = true): Either<AdminError.CancelSeries, Unit>
     suspend fun getSeriesInstances(seriesId: Uuid, page: Int = 0, pageSize: Int = 10): Either<AdminError.GetInstances, SeriesInstancesPage>
-    suspend fun cancelSeriesLesson(instanceId: Uuid): Either<AdminError.CancelLesson, Unit>
+    /** Kredit se vrací všem kromě [noRefundFor] (viz [getCancellationRefunds]). */
+    suspend fun cancelSeriesLesson(instanceId: Uuid, noRefundFor: Set<Uuid> = emptySet()): Either<AdminError.CancelLesson, Unit>
+
+    /**
+     * Náhled pro dialog zrušení akce nebo lekce: kdo o místo přijde a kolik kreditu
+     * by dostal. Admin z něj vybírá, komu kredit nevracet.
+     */
+    suspend fun getCancellationRefunds(instanceId: Uuid): Either<AdminError.CancelLesson, List<CancellationRefundRow>>
 
     /**
      * Náhled vratky pro storno rezervace na rozběhnutý kurz. `null`, když rezervace

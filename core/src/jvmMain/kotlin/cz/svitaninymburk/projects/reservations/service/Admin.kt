@@ -25,6 +25,7 @@ import cz.svitaninymburk.projects.reservations.admin.PaymentEventsPage
 import cz.svitaninymburk.projects.reservations.reservation.PaymentEvent
 import cz.svitaninymburk.projects.reservations.admin.AdminDashboardData
 import cz.svitaninymburk.projects.reservations.admin.AdminEventDetailData
+import cz.svitaninymburk.projects.reservations.admin.CancellationRefundRow
 import cz.svitaninymburk.projects.reservations.admin.AdminEventListItem
 import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
 import cz.svitaninymburk.projects.reservations.admin.AdminPendingReservation
@@ -174,12 +175,14 @@ class AdminDashboardService(
         seriesId: Uuid?,
         instanceId: Uuid?,
         historyDetail: String?,
+        noRefundFor: Set<Uuid> = emptySet(),
     ) {
         reservationRepository.findByReference(reference)
             .filter { it.status != Reservation.Status.CANCELLED }
             .forEach { res ->
                 reservationRepository.updateStatus(res.id, Reservation.Status.CANCELLED)
                 val resSubject = AuditSubject(seriesId, instanceId, res.id, res.contactName)
+                val refundThis = refund && res.id !in noRefundFor
                 if (historyDetail != null) {
                     audit.record(
                         type = AuditEventType.RESERVATION_CANCELLED,
@@ -188,11 +191,12 @@ class AdminDashboardService(
                         instanceId = instanceId,
                         reservationId = res.id,
                         amount = res.paidAmount,
-                        detail = historyDetail,
+                        detail = if (refund && !refundThis && res.paidAmount > 0.0) "$historyDetail, kredit nevracen (rozhodl admin)"
+                        else historyDetail,
                     )
                 }
                 dispatchCancellationNotice(res, noticeTitle, resSubject.takeIf { historyDetail != null })
-                if (refund && res.paidAmount > 0.0) {
+                if (refundThis && res.paidAmount > 0.0) {
                     refundSafely(res, resSubject) { wallet -> refundService.refundWholeReservation(wallet, res) }
                 }
             }
@@ -1334,7 +1338,7 @@ class AdminDashboardService(
         eventDefinitionRepository.delete(id)
     }
 
-    override suspend fun cancelEventInstance(id: Uuid, refund: Boolean): Either<AdminError.CancelEvent, Unit> = either {
+    override suspend fun cancelEventInstance(id: Uuid, refund: Boolean, noRefundFor: Set<Uuid>): Either<AdminError.CancelEvent, Unit> = either {
         val instance = ensureNotNull(eventInstanceRepository.get(id)) {
             AdminError.InstanceNotFoundForCancel(id)
         }
@@ -1351,7 +1355,8 @@ class AdminDashboardService(
             subjectLabel = instance.title,
             seriesId = instance.seriesId,
             instanceId = id,
-            detail = if (refund) "Akce zrušena, kredit vracen" else "Akce zrušena bez vracení kreditu",
+            detail = (if (refund) "Akce zrušena, kredit vracen" else "Akce zrušena bez vracení kreditu") +
+                if (refund) noRefundNote(noRefundFor) else "",
         )
 
         // Lekce kurzu zrušená z jejího detailu — zapsaní na kurz na ni mají nárok
@@ -1359,12 +1364,13 @@ class AdminDashboardService(
         instance.seriesId?.let { seriesId ->
             seriesScheduleRefresher.refresh(seriesId)
             val series = eventSeriesRepository.get(seriesId)
-            notifyAndCreditEnrollees(instance, seriesId, series, series?.title ?: instance.title, refund)
+            notifyAndCreditEnrollees(instance, seriesId, series, series?.title ?: instance.title, refund, noRefundFor)
         }
 
         cancelAllReservations(
             Reference.Instance(id), instance.title, refund,
             seriesId = instance.seriesId, instanceId = id, historyDetail = "Zrušeno se zrušením akce",
+            noRefundFor = noRefundFor,
         )
     }
 
@@ -1510,10 +1516,17 @@ class AdminDashboardService(
      * o lekci z kurzu — proto storno rezervace a vrácení zaplacené částky, ne
      * sazba za lekci. Uzávěrka 18:00 se neuplatní, chyba není na jeho straně.
      */
-    private suspend fun cancelDropInReservations(instance: EventInstance, noticeTitle: String, refund: Boolean, detail: String) =
+    private suspend fun cancelDropInReservations(
+        instance: EventInstance,
+        noticeTitle: String,
+        refund: Boolean,
+        detail: String,
+        noRefundFor: Set<Uuid> = emptySet(),
+    ) =
         cancelAllReservations(
             Reference.Instance(instance.id), noticeTitle, refund,
             seriesId = instance.seriesId, instanceId = instance.id, historyDetail = detail,
+            noRefundFor = noRefundFor,
         )
 
     override suspend fun getSeriesInstances(seriesId: Uuid, page: Int, pageSize: Int): Either<AdminError.GetInstances, SeriesInstancesPage> = either {
@@ -1542,6 +1555,7 @@ class AdminDashboardService(
         series: EventSeries?,
         seriesTitle: String,
         refund: Boolean,
+        noRefundFor: Set<Uuid> = emptySet(),
     ) {
         val instanceId = instance.id
         reservationRepository.findByReference(Reference.Series(seriesId))
@@ -1562,7 +1576,7 @@ class AdminDashboardService(
                     }
                 }
 
-                if (!refund) return@forEach
+                if (!refund || res.id in noRefundFor) return@forEach
                 val alreadyOptedOut = seriesLessonOptOutRepository
                     .findByReservationAndInstance(res.id, instanceId) != null
                 // Stejný kredit jako za omluvenku.
@@ -1578,7 +1592,7 @@ class AdminDashboardService(
             }
     }
 
-    override suspend fun cancelSeriesLesson(instanceId: Uuid): Either<AdminError.CancelLesson, Unit> = either {
+    override suspend fun cancelSeriesLesson(instanceId: Uuid, noRefundFor: Set<Uuid>): Either<AdminError.CancelLesson, Unit> = either {
         val instance = ensureNotNull(eventInstanceRepository.get(instanceId)) { AdminError.CancelLesson.InstanceNotFound }
         val seriesId = instance.seriesId ?: raise(AdminError.CancelLesson.InstanceNotFound)
         // Zrušení lekce vyplácí kredit, takže druhé zavolání ho vyplatí znovu.
@@ -1603,17 +1617,61 @@ class AdminDashboardService(
                 subjectLabel = seriesTitle,
                 seriesId = seriesId,
                 instanceId = instanceId,
-                detail = "Lekce ${instance.startDateTime} zrušena",
+                detail = "Lekce ${instance.startDateTime} zrušena" + noRefundNote(noRefundFor),
             )
 
-            notifyAndCreditEnrollees(instance, seriesId, series, seriesTitle, refund = true)
+            notifyAndCreditEnrollees(instance, seriesId, series, seriesTitle, refund = true, noRefundFor = noRefundFor)
 
             // Stejný postup jako cancelEventInstance — viz cancelDropInReservations.
-            cancelDropInReservations(instance, instance.title, refund = true, detail = "Zrušeno se zrušením lekce")
+            cancelDropInReservations(
+                instance, instance.title, refund = true, detail = "Zrušeno se zrušením lekce", noRefundFor = noRefundFor,
+            )
         } catch (e: Exception) {
             e.printStackTrace()
             raise(AdminError.CancelLesson.Failed)
         }
+    }
+
+    override suspend fun getCancellationRefunds(
+        instanceId: Uuid,
+    ): Either<AdminError.CancelLesson, List<CancellationRefundRow>> = either {
+        val instance = ensureNotNull(eventInstanceRepository.get(instanceId)) { AdminError.CancelLesson.InstanceNotFound }
+        try {
+            // Stejný výběr a tytéž výpočty jako notifyAndCreditEnrollees a cancelAllReservations,
+            // jinak by dialog sliboval jinou částku, než pak odejde.
+            val enrollees = instance.seriesId?.let { seriesId ->
+                val series = eventSeriesRepository.get(seriesId)
+                val optedOut = seriesLessonOptOutRepository.findByInstance(instanceId).map { it.reservationId }.toSet()
+                reservationRepository.findByReference(Reference.Series(seriesId))
+                    .filter { it.status != Reservation.Status.CANCELLED && it.id !in optedOut }
+                    .map { it.toRefundRow(fromSeries = true, amount = refundService.cappedLessonCredit(it, series)) }
+            }.orEmpty()
+            val direct = reservationRepository.findByReference(Reference.Instance(instanceId))
+                .filter { it.status != Reservation.Status.CANCELLED }
+                .map { res ->
+                    val amount = if (res.paidAmount > 0.0) refundService.refundableForWholeReservation(res) else 0.0
+                    res.toRefundRow(fromSeries = false, amount = amount)
+                }
+            enrollees + direct
+        } catch (e: Exception) {
+            logger.error("Failed to compute cancellation refunds for instance=$instanceId", e)
+            raise(AdminError.CancelLesson.Failed)
+        }
+    }
+
+    private fun Reservation.toRefundRow(fromSeries: Boolean, amount: Double) = CancellationRefundRow(
+        reservationId = id,
+        contactName = contactName,
+        seatCount = seatCount,
+        fromSeries = fromSeries,
+        refundAmount = amount,
+    )
+
+    /** Do historie akce: komu admin kredit vědomě nevrátil. */
+    private suspend fun noRefundNote(noRefundFor: Set<Uuid>): String {
+        if (noRefundFor.isEmpty()) return ""
+        val names = noRefundFor.mapNotNull { reservationRepository.findById(it)?.contactName }
+        return if (names.isEmpty()) "" else ", bez vrácení kreditu: ${names.joinToString()}"
     }
 
     override suspend fun getStartedCourseCancellation(

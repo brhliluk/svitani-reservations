@@ -499,6 +499,11 @@ interface AppStrings : ErrorStrings {
     val lessonCancelledBadge: String
     val cancelLessonModalTitle: String
     fun cancelLessonModalBody(date: String): String
+    val cancelRefundsHeading: String
+    val cancelRefundsHint: String
+    val cancelRefundCourseBadge: String
+    val cancelRefundNothing: String
+    val cancelRefundsTotal: String
     val toastLessonCancelled: String
     val cancelLessonButton: String
     val addLessonButton: String

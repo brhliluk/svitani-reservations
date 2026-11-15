@@ -55,7 +55,7 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                         togglingDropInId = model.togglingDropInId,
                         onAddLesson = { model.showAddLesson = true },
                         onToggleDropIn = { model.toggleDropIn(it) },
-                        onCancelLesson = { model.cancelLessonPending = it },
+                        onCancelLesson = { model.requestCancelLesson(it) },
                     )
                 }
                 ParticipantsCard(
@@ -122,6 +122,8 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             reservationCount = (model.uiState as? AdminEventDetailUiState.Success)?.data?.participants?.size ?: 0,
             isRunningCourse = (model.uiState as? AdminEventDetailUiState.Success)?.data?.isRunningCourse ?: false,
             refundMoney = model.refundMoney, onRefundMoneyChange = { model.refundMoney = it },
+            perPersonRefunds = !isSeries,
+            refunds = model.cancelRefunds, onToggleRefund = { model.toggleCancelRefund(it) },
             isLoading = model.isCancelLoading,
             onConfirm = { model.cancelEvent() }, onDismiss = { model.dismissCancel() },
         )
@@ -144,8 +146,10 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
     }
     model.cancelLessonPending?.let { lesson ->
         CancelLessonModal(
-            lesson = lesson, isLoading = model.isCancelLessonLoading,
-            onConfirm = { model.cancelLesson(lesson) }, onDismiss = { model.cancelLessonPending = null },
+            lesson = lesson,
+            refunds = model.cancelRefunds, onToggleRefund = { model.toggleCancelRefund(it) },
+            isLoading = model.isCancelLessonLoading,
+            onConfirm = { model.cancelLesson(lesson) }, onDismiss = { model.dismissCancelLesson() },
         )
     }
     if (model.showAddLesson) {

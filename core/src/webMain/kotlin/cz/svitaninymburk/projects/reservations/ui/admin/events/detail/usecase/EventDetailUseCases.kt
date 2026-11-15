@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase
 
 import arrow.core.Either
+import cz.svitaninymburk.projects.reservations.admin.CancellationRefundRow
 import cz.svitaninymburk.projects.reservations.audit.AuditCategory
 import cz.svitaninymburk.projects.reservations.error.EventError
 import cz.svitaninymburk.projects.reservations.event.AddSeriesLessonRequest
@@ -43,6 +44,26 @@ fun toggleDropInRequest(lesson: EventInstance): UpdateEventInstanceRequest =
         reservationDeadlineMessage = lesson.reservationDeadlineMessage,
     )
 
+/**
+ * Výběr v dialogu zrušení akce nebo lekce: komu se kredit vrací. Výchozí je všem —
+ * admin odškrtává výjimky (třeba kdo dostane peníze zpět převodem). Server dostane
+ * jen výjimky, takže kdo se přihlásí mezi otevřením dialogu a potvrzením, kredit
+ * dostane, jak bylo dřív zvykem.
+ */
+data class CancellationRefundsDraft(
+    val instanceId: Uuid,
+    val rows: List<CancellationRefundRow>,
+    val noRefundFor: Set<Uuid> = emptySet(),
+) {
+    fun isRefunded(row: CancellationRefundRow) = row.refundAmount > 0.0 && row.reservationId !in noRefundFor
+
+    fun toggle(reservationId: Uuid) = copy(
+        noRefundFor = if (reservationId in noRefundFor) noRefundFor - reservationId else noRefundFor + reservationId
+    )
+
+    val totalRefund: Double get() = rows.filter(::isRefunded).sumOf { it.refundAmount }
+}
+
 // --- UseCase třídy (tenké, vrací Either) ---
 
 class EventDetailQueries(private val admin: AdminServiceInterface) {
@@ -63,8 +84,10 @@ class EventLifecycleUseCase(private val admin: AdminServiceInterface) {
     suspend fun delete(id: Uuid, isSeries: Boolean, refund: Boolean) =
         if (isSeries) admin.deleteEventSeries(id, refund) else admin.deleteEventInstance(id, refund)
 
-    suspend fun cancel(id: Uuid, isSeries: Boolean, refund: Boolean) =
-        if (isSeries) admin.cancelEventSeries(id, refund) else admin.cancelEventInstance(id, refund)
+    suspend fun cancel(id: Uuid, isSeries: Boolean, refund: Boolean, noRefundFor: Set<Uuid> = emptySet()) =
+        if (isSeries) admin.cancelEventSeries(id, refund) else admin.cancelEventInstance(id, refund, noRefundFor)
+
+    suspend fun cancellationRefunds(instanceId: Uuid) = admin.getCancellationRefunds(instanceId)
 }
 
 class SeriesLessonsUseCase(private val admin: AdminServiceInterface) {
@@ -75,7 +98,7 @@ class SeriesLessonsUseCase(private val admin: AdminServiceInterface) {
             AddSeriesLessonRequest(seriesId = seriesId, startDateTime = start, endDateTime = end, isDropIn = dropIn)
         )
 
-    suspend fun cancel(lessonId: Uuid) = admin.cancelSeriesLesson(lessonId)
+    suspend fun cancel(lessonId: Uuid, noRefundFor: Set<Uuid>) = admin.cancelSeriesLesson(lessonId, noRefundFor)
 
     suspend fun toggleDropIn(lesson: EventInstance) =
         admin.updateEventInstance(lesson.id, toggleDropInRequest(lesson))

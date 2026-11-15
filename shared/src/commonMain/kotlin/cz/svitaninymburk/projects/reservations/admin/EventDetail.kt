@@ -60,3 +60,20 @@ data class AdminParticipantRow(
      */
     val walletCode: String? = null,
 )
+
+/**
+ * Kdo přijde zrušením akce nebo lekce o místo a kolik kreditu by za to dostal.
+ * Admin podle toho v dialogu odškrtne, komu se vracet nemá (třeba platil převodem
+ * a peníze dostane zpět na účet). Částku počítá server stejně jako samotné zrušení —
+ * kredit za lekci kurzu závisí na sazbě a na tom, co už rezervace dostala zpět.
+ */
+@Serializable
+data class CancellationRefundRow(
+    val reservationId: Uuid,
+    val contactName: String,
+    val seatCount: Int,
+    /** Zapsaný na celý kurz (dostane kredit za lekci), ne rezervace jen téhle lekce či akce. */
+    val fromSeries: Boolean,
+    /** 0 = není co vracet (nezaplaceno, platba na místě, už omluvený…). */
+    val refundAmount: Double,
+)

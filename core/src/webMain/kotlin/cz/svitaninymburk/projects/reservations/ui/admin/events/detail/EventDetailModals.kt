@@ -8,6 +8,8 @@ import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.i18n.strings
 import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.AddLessonInput
+import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.CancellationRefundsDraft
+import cz.svitaninymburk.projects.reservations.ui.util.formatAmount
 import cz.svitaninymburk.projects.reservations.ui.util.ConfirmModal
 import cz.svitaninymburk.projects.reservations.util.humanReadable
 import dev.kilua.core.IComponent
@@ -17,6 +19,7 @@ import dev.kilua.form.form
 import dev.kilua.form.text.text
 import dev.kilua.html.*
 import kotlinx.datetime.LocalDateTime
+import kotlin.uuid.Uuid
 
 @Composable
 fun IComponent.DeleteEventModal(
@@ -51,6 +54,10 @@ fun IComponent.CancelEventModal(
     isRunningCourse: Boolean,
     refundMoney: Boolean,
     onRefundMoneyChange: (Boolean) -> Unit,
+    /** Jednotlivá akce nebo lekce: místo přepínače seznam lidí, komu vrátit. Kurz jako celek: false. */
+    perPersonRefunds: Boolean,
+    refunds: CancellationRefundsDraft?,
+    onToggleRefund: (Uuid) -> Unit,
     isLoading: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
@@ -66,11 +73,13 @@ fun IComponent.CancelEventModal(
         onDismiss = onDismiss,
         titleClassName = "text-warning",
         confirmClassName = "btn-warning",
+        confirmEnabled = !perPersonRefunds || refunds != null,
     ) {
         p(className = "py-4") {
             +if (isRunningCourse) currentStrings.cancelRunningCourseConfirmBody else currentStrings.cancelEventConfirmBody(reservationCount)
         }
-        RefundToggle(refundMoney, onRefundMoneyChange, toggleClassName = "toggle-warning")
+        if (perPersonRefunds) CancellationRefundList(refunds, onToggleRefund)
+        else RefundToggle(refundMoney, onRefundMoneyChange, toggleClassName = "toggle-warning")
     }
 }
 
@@ -122,6 +131,8 @@ private fun IComponent.RefundToggle(
 @Composable
 fun IComponent.CancelLessonModal(
     lesson: EventInstance,
+    refunds: CancellationRefundsDraft?,
+    onToggleRefund: (Uuid) -> Unit,
     isLoading: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
@@ -135,9 +146,54 @@ fun IComponent.CancelLessonModal(
         isLoading = isLoading,
         onConfirm = onConfirm,
         onDismiss = onDismiss,
+        confirmEnabled = refunds != null,
     ) {
         p(className = "py-4") {
             +currentStrings.cancelLessonModalBody(lesson.startDateTime.date.humanReadable)
+        }
+        CancellationRefundList(refunds, onToggleRefund)
+    }
+}
+
+/**
+ * Kdo přijde zrušením o místo a jestli mu vrátit kredit. Zaškrtávat jde jen ty,
+ * u kterých je co vracet; ostatní jsou v seznamu, ať admin vidí všechny přihlášené.
+ */
+@Composable
+private fun IComponent.CancellationRefundList(
+    refunds: CancellationRefundsDraft?,
+    onToggleRefund: (Uuid) -> Unit,
+) {
+    val currentStrings by strings
+
+    if (refunds == null) {
+        div(className = "flex justify-center py-2") { span(className = "loading loading-spinner loading-sm") }
+        return
+    }
+    if (refunds.rows.isEmpty()) return
+
+    div(className = "flex flex-col gap-1") {
+        p(className = "font-medium") { +currentStrings.cancelRefundsHeading }
+        p(className = "text-sm text-base-content/70 mb-1") { +currentStrings.cancelRefundsHint }
+        refunds.rows.forEach { row ->
+            val refundable = row.refundAmount > 0.0
+            label(className = "flex items-center gap-3 py-1" + if (refundable) " cursor-pointer" else "") {
+                checkBox(value = refunds.isRefunded(row), className = "checkbox checkbox-sm checkbox-warning") {
+                    disabled(!refundable)
+                    onChange { onToggleRefund(row.reservationId) }
+                }
+                span(className = "flex-1") {
+                    +row.contactName
+                    if (row.fromSeries) span(className = "badge badge-ghost badge-sm ml-2") { +currentStrings.cancelRefundCourseBadge }
+                }
+                span(className = if (refunds.isRefunded(row)) "font-medium" else "text-base-content/50") {
+                    +if (refundable) formatAmount(row.refundAmount, currentStrings) else currentStrings.cancelRefundNothing
+                }
+            }
+        }
+        div(className = "flex justify-between font-semibold border-t border-base-300 pt-1 mt-1") {
+            span { +currentStrings.cancelRefundsTotal }
+            span { +formatAmount(refunds.totalRefund, currentStrings) }
         }
     }
 }

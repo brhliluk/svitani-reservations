@@ -19,6 +19,7 @@ import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.service.EventServiceInterface
 import cz.svitaninymburk.projects.reservations.service.ReservationServiceInterface
 import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.AdminReservationUseCase
+import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.CancellationRefundsDraft
 import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.EventAuditLogQueries
 import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.EventDetailQueries
 import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.EventLifecycleUseCase
@@ -66,6 +67,14 @@ class AdminEventDetailModel(
     var showCancelConfirm by mutableStateOf(false); private set
     var isCancelLoading by mutableStateOf(false); private set
     var refundMoney by mutableStateOf(true)
+
+    /**
+     * Komu se při zrušení akce nebo lekce vrací kredit. null = náhled se ještě
+     * načítá (dialog do té doby nejde potvrdit). U kurzu jako celku se nepoužívá,
+     * tam zůstává jeden přepínač [refundMoney].
+     */
+    var cancelRefunds: CancellationRefundsDraft? by mutableStateOf(null); private set
+    private var cancelRefundsTarget: Uuid? = null
 
     // participant actions
     var pendingAction: PendingAction? by mutableStateOf(null); private set
@@ -180,7 +189,35 @@ class AdminEventDetailModel(
     }
 
     fun requestDelete() { refundMoney = true; showDeleteConfirm = true }
-    fun requestCancel() { refundMoney = true; showCancelConfirm = true }
+    fun requestCancel() {
+        refundMoney = true
+        showCancelConfirm = true
+        if (!isSeries) loadCancelRefunds(uuid)
+    }
+
+    fun requestCancelLesson(lesson: EventInstance) {
+        cancelLessonPending = lesson
+        loadCancelRefunds(lesson.id)
+    }
+
+    fun dismissCancelLesson() { cancelLessonPending = null }
+
+    fun toggleCancelRefund(reservationId: Uuid) { cancelRefunds = cancelRefunds?.toggle(reservationId) }
+
+    private fun loadCancelRefunds(instanceId: Uuid) {
+        cancelRefunds = null
+        cancelRefundsTarget = instanceId
+        run(
+            errorMessage = { it.localizedMessage(currentStrings) },
+            block = { lifecycle.cancellationRefunds(instanceId) },
+            // Pozdní odpověď pro dialog, který už admin zavřel a otevřel jiný, zahodit.
+            onSuccess = { rows -> if (cancelRefundsTarget == instanceId) cancelRefunds = CancellationRefundsDraft(instanceId, rows) },
+        )
+    }
+
+    /** Výjimky z vracení, jen pokud patří k akci či lekci, kterou admin právě ruší. */
+    private fun noRefundFor(instanceId: Uuid): Set<Uuid> =
+        cancelRefunds?.takeIf { it.instanceId == instanceId }?.noRefundFor.orEmpty()
     fun dismissDelete() { showDeleteConfirm = false }
     fun dismissCancel() { showCancelConfirm = false }
 
@@ -197,7 +234,7 @@ class AdminEventDetailModel(
     fun cancelEvent() = run(
         loading = { isCancelLoading = it },
         errorMessage = { it.localizedMessage(currentStrings) },
-        block = { lifecycle.cancel(uuid, isSeries, refundMoney) },
+        block = { lifecycle.cancel(uuid, isSeries, refundMoney || !isSeries, noRefundFor(uuid)) },
         onSuccess = {
             showCancelConfirm = false
             showToast(currentStrings.cancelEventSuccess)
@@ -215,7 +252,7 @@ class AdminEventDetailModel(
     fun cancelLesson(lesson: EventInstance) = run(
         loading = { isCancelLessonLoading = it },
         errorMessage = { it.localizedMessage(currentStrings) },
-        block = { lessons.cancel(lesson.id) },
+        block = { lessons.cancel(lesson.id, noRefundFor(lesson.id)) },
         onSuccess = { cancelLessonPending = null; showToast(currentStrings.toastLessonCancelled); refresh() },
     )
 
