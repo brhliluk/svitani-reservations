@@ -64,7 +64,10 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
                     isWaitlistSignup = model.isWaitlistSignup,
                     onAddReservation = { model.loadReservationTarget(it) },
                     onConfirmPayment = { model.confirmPayment(it) },
-                    onCancelReservation = { model.cancelReservation(it) },
+                    // Na detailu lekce či akce jde zrušit i po uzávěrce s plnou vratkou;
+                    // na detailu kurzu zůstává storno celé přihlášky (u rozběhnutého s ruční částkou).
+                    onCancelReservation = { if (isSeries) model.cancelReservation(it) else model.requestCancelParticipation(it) },
+                    onCancelParticipation = { model.requestCancelParticipation(it) },
                 )
                 OptedOutCard(
                     data = data,
@@ -126,6 +129,17 @@ fun IComponent.AdminEventDetailScreen(eventId: String, isSeries: Boolean) {
             refunds = model.cancelRefunds, onToggleRefund = { model.toggleCancelRefund(it) },
             isLoading = model.isCancelLoading,
             onConfirm = { model.cancelEvent() }, onDismiss = { model.dismissCancel() },
+        )
+    }
+    model.cancelParticipationDraft?.let { draft ->
+        CancelParticipationModal(
+            participantName = draft.row.contactName,
+            isLessonOptOut = draft.row.fromSeries,
+            refundAfterDeadline = draft.refundAfterDeadline,
+            onRefundAfterDeadlineChange = { model.setRefundAfterDeadline(it) },
+            isLoading = model.isModalLoading,
+            onConfirm = { model.confirmCancelParticipation() },
+            onDismiss = { model.dismissCancelParticipation() },
         )
     }
     model.revokeOptOutPending?.let { row ->

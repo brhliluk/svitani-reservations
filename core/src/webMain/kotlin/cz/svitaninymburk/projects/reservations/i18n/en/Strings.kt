@@ -933,6 +933,21 @@ object EnStrings : AppStrings {
     override fun revokeOptOutConfirmText(name: String) = "$name will be listed among this lesson's participants again."
     override val revokeOptOutCreditNote = "The credit they received for the opt-out will be taken back from their wallet."
     override fun toastOptOutRevoked(name: String) = "$name is back in the lesson."
+
+    override val cancelParticipation = "Cancel attendance"
+    override val tooltipCancelParticipation = "Opt out of this lesson"
+    override val cancelParticipationTitle = "Cancel attendance"
+    override fun cancelParticipationLessonText(name: String) =
+        "Opt $name out of this lesson? They stay enrolled in the course; only their seat for this lesson is freed."
+    override fun cancelParticipationReservationText(name: String) =
+        "Cancel the reservation from $name? The seat will be freed for others."
+    override val cancelParticipationRefundLabel = "Refund full credit even after the deadline"
+    override val cancelParticipationRefundHint =
+        "Before the deadline (6 pm the day before) credit is always refunded. After it only when checked — " +
+            "e.g. when something happened that is not the customer's fault."
+    override fun toastParticipationCancelled(name: String) = "Attendance of $name was cancelled."
+    override fun toastParticipationCancelledWithRefund(name: String, amount: String) =
+        "Attendance of $name was cancelled, $amount was returned to their wallet."
     override val waitlistCapacityLabel = "Max. substitutes"
     override fun waitlistPositionLabel(position: Int) = "You are #$position on the waitlist"
 

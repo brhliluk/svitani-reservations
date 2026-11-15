@@ -1,6 +1,7 @@
 package cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase
 
 import arrow.core.Either
+import cz.svitaninymburk.projects.reservations.admin.AdminParticipantRow
 import cz.svitaninymburk.projects.reservations.admin.CancellationRefundRow
 import cz.svitaninymburk.projects.reservations.audit.AuditCategory
 import cz.svitaninymburk.projects.reservations.error.EventError
@@ -128,4 +129,15 @@ class AdminReservationUseCase(
 
     suspend fun cancel(reservationId: Uuid, refundAmount: Double? = null) =
         reservation.cancelReservation(reservationId, refundAmount = refundAmount)
+
+    /**
+     * Zrušení účasti z detailu lekce či akce. Zapsaného na kurz omluví jen z téhle
+     * lekce ([instanceId]); rezervaci přímo na lekci nebo akci zruší celou.
+     */
+    suspend fun cancelParticipation(row: AdminParticipantRow, instanceId: Uuid, ignoreDeadline: Boolean) =
+        reservation.cancelReservation(
+            reservationId = row.reservationId,
+            instanceId = if (row.fromSeries) instanceId else null,
+            ignoreDeadline = ignoreDeadline,
+        )
 }

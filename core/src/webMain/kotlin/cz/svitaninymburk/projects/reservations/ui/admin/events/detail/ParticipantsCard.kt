@@ -33,6 +33,7 @@ fun IComponent.ParticipantsCard(
     onAddReservation: (asWaitlist: Boolean) -> Unit,
     onConfirmPayment: (AdminParticipantRow) -> Unit,
     onCancelReservation: (AdminParticipantRow) -> Unit,
+    onCancelParticipation: (AdminParticipantRow) -> Unit,
 ) {
     val currentStrings by strings
     var expandedIds by remember { mutableStateOf<Set<Uuid>>(emptySet()) }
@@ -119,6 +120,7 @@ fun IComponent.ParticipantsCard(
                                     },
                                     onConfirmPayment = { onConfirmPayment(participant) },
                                     onCancelReservation = { onCancelReservation(participant) },
+                                    onCancelParticipation = { onCancelParticipation(participant) },
                                 )
                             }
                         }
@@ -138,6 +140,7 @@ private fun IComponent.ParticipantRow(
     onToggleExpanded: () -> Unit,
     onConfirmPayment: () -> Unit,
     onCancelReservation: () -> Unit,
+    onCancelParticipation: () -> Unit,
 ) {
     val currentStrings by strings
     val router = Router.current
@@ -189,8 +192,15 @@ private fun IComponent.ParticipantRow(
                 OpenReservationButton(participant.reservationId)
                 WalletLink(participant.walletCode)
                 // Přihláška na kurz se platí i ruší jako celek, ne po lekcích —
-                // odsud vede jen proklik na detail kurzu, kde ty akce dávají smysl.
+                // odsud vede proklik na detail kurzu, kde ty akce dávají smysl,
+                // a omluvenka z téhle jedné lekce.
                 if (participant.fromSeries) {
+                    button(className = "btn btn-ghost btn-xs text-error gap-1 tooltip tooltip-left") {
+                        attribute("data-tip", currentStrings.tooltipCancelParticipation)
+                        onClick { onCancelParticipation() }
+                        span(className = "icon-[heroicons--user-minus] size-4")
+                        +currentStrings.cancelParticipation
+                    }
                     if (seriesId != null) {
                         button(className = "btn btn-ghost btn-xs tooltip tooltip-left") {
                             attribute("data-tip", currentStrings.tooltipOpenSeries)

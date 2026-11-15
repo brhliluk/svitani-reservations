@@ -854,6 +854,21 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
     override fun revokeOptOutConfirmText(name: String) = "$name se vrátí mezi účastníky téhle lekce."
     override val revokeOptOutCreditNote = "Kredit, který za omluvenku dostal, se mu z peněženky strhne."
     override fun toastOptOutRevoked(name: String) = "$name se vrátil(a) do lekce."
+
+    override val cancelParticipation = "Zrušit účast"
+    override val tooltipCancelParticipation = "Omluvit z téhle lekce"
+    override val cancelParticipationTitle = "Zrušit účast"
+    override fun cancelParticipationLessonText(name: String) =
+        "Omluvit $name z téhle lekce? Z kurzu zůstává zapsaný(á), uvolní se jen místo na této lekci."
+    override fun cancelParticipationReservationText(name: String) =
+        "Zrušit rezervaci od $name? Místo se uvolní pro další zájemce."
+    override val cancelParticipationRefundLabel = "Vrátit plný kredit i po uzávěrce"
+    override val cancelParticipationRefundHint =
+        "Před uzávěrkou (18:00 předchozího dne) se kredit vrací vždy. Po ní jen se zaškrtnutím — " +
+            "třeba když se stalo něco, za co zákazník nemůže."
+    override fun toastParticipationCancelled(name: String) = "Účast $name je zrušená."
+    override fun toastParticipationCancelledWithRefund(name: String, amount: String) =
+        "Účast $name je zrušená, do peněženky se vrátilo $amount."
     override val waitlistCapacityLabel = "Max. náhradníků"
     override fun waitlistPositionLabel(position: Int) = "Jste na $position. místě v pořadníku"
 

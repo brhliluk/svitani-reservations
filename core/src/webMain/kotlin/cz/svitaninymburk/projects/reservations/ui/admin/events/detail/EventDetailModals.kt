@@ -285,3 +285,44 @@ fun IComponent.RevokeOptOutModal(
         p(className = "pb-4 text-sm text-base-content/70") { +currentStrings.revokeOptOutCreditNote }
     }
 }
+
+/**
+ * Zrušení účasti z detailu lekce či akce. Zapsaného na kurz omluví z téhle lekce,
+ * jinak zruší celou rezervaci. Zaškrtávátko přepíše uzávěrku storna — provoz tak
+ * vrací peníze, když se ráno před lekcí stane něco, za co zákazník nemůže.
+ */
+@Composable
+fun IComponent.CancelParticipationModal(
+    participantName: String,
+    isLessonOptOut: Boolean,
+    refundAfterDeadline: Boolean,
+    onRefundAfterDeadlineChange: (Boolean) -> Unit,
+    isLoading: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val currentStrings by strings
+
+    ConfirmModal(
+        title = currentStrings.cancelParticipationTitle,
+        confirmLabel = currentStrings.cancelParticipation,
+        dismissLabel = currentStrings.modalBack,
+        isLoading = isLoading,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        confirmClassName = "btn-error",
+    ) {
+        p(className = "py-4") {
+            +if (isLessonOptOut) currentStrings.cancelParticipationLessonText(participantName)
+            else currentStrings.cancelParticipationReservationText(participantName)
+        }
+        label(className = "label cursor-pointer justify-start gap-2") {
+            checkBox(value = refundAfterDeadline, className = "checkbox checkbox-sm") {
+                disabled(isLoading)
+                onClick { onRefundAfterDeadlineChange(this.value) }
+            }
+            span(className = "label-text") { +currentStrings.cancelParticipationRefundLabel }
+        }
+        p(className = "pb-4 text-xs text-base-content/60 whitespace-normal") { +currentStrings.cancelParticipationRefundHint }
+    }
+}

@@ -786,6 +786,17 @@ interface AppStrings : ErrorStrings {
     fun revokeOptOutConfirmText(name: String): String
     val revokeOptOutCreditNote: String
     fun toastOptOutRevoked(name: String): String
+
+    // Zrušení účasti adminem z detailu lekce/akce (i po uzávěrce s plnou vratkou)
+    val cancelParticipation: String
+    val tooltipCancelParticipation: String
+    val cancelParticipationTitle: String
+    fun cancelParticipationLessonText(name: String): String
+    fun cancelParticipationReservationText(name: String): String
+    val cancelParticipationRefundLabel: String
+    val cancelParticipationRefundHint: String
+    fun toastParticipationCancelled(name: String): String
+    fun toastParticipationCancelledWithRefund(name: String, amount: String): String
     val waitlistCapacityLabel: String
     fun waitlistPositionLabel(position: Int): String
 

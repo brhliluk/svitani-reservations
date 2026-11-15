@@ -32,6 +32,7 @@ import cz.svitaninymburk.projects.reservations.ui.reservation.DuplicateReservati
 import cz.svitaninymburk.projects.reservations.ui.reservation.ReservationFormData
 import cz.svitaninymburk.projects.reservations.ui.util.ScreenModel
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
+import cz.svitaninymburk.projects.reservations.ui.util.formatAmount
 import dev.kilua.core.IComponent
 import dev.kilua.rpc.getService
 import kotlinx.coroutines.CoroutineScope
@@ -87,6 +88,13 @@ class AdminEventDetailModel(
     var togglingDropInId: Uuid? by mutableStateOf(null); private set
     var showAddLesson by mutableStateOf(false)
     var isAddingLesson by mutableStateOf(false); private set
+
+    /**
+     * Zrušení účasti z detailu lekce či akce. [refundAfterDeadline] je ve výchozím
+     * stavu zapnuté — provoz to používá, když chyba není na straně zákazníka.
+     */
+    data class CancelParticipationDraft(val row: AdminParticipantRow, val refundAfterDeadline: Boolean = true)
+    var cancelParticipationDraft: CancelParticipationDraft? by mutableStateOf(null); private set
 
     // omluvenky z lekce
     var revokeOptOutPending: AdminParticipantRow? by mutableStateOf(null)
@@ -318,6 +326,32 @@ class AdminEventDetailModel(
     }
 
     fun dismissPendingAction() { pendingAction = null }
+
+    fun requestCancelParticipation(row: AdminParticipantRow) { cancelParticipationDraft = CancelParticipationDraft(row) }
+
+    fun setRefundAfterDeadline(value: Boolean) {
+        cancelParticipationDraft = cancelParticipationDraft?.copy(refundAfterDeadline = value)
+    }
+
+    fun dismissCancelParticipation() { cancelParticipationDraft = null }
+
+    fun confirmCancelParticipation() {
+        val draft = cancelParticipationDraft ?: return
+        val name = draft.row.contactName
+        run(
+            loading = { isModalLoading = it },
+            errorMessage = { it.localizedMessage(currentStrings) },
+            block = { reservations.cancelParticipation(draft.row, uuid, ignoreDeadline = draft.refundAfterDeadline) },
+            onSuccess = { result ->
+                val credited = result.walletCreditAmount?.takeIf { it > 0.0 }
+                showToast(
+                    if (credited != null) currentStrings.toastParticipationCancelledWithRefund(name, formatAmount(credited, currentStrings))
+                    else currentStrings.toastParticipationCancelled(name)
+                )
+                refresh()
+            },
+        ).invokeOnCompletion { cancelParticipationDraft = null }
+    }
 
     fun updateStartedCourseRefund(value: Number?) {
         startedCourseCancel = startedCourseCancel?.copy(refundInput = value)

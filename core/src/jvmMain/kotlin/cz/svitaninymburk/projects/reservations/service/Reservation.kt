@@ -720,13 +720,18 @@ open class ReservationService(
         walletCode: String?,
         force: Boolean,
         refundAmount: Double?,
+        ignoreDeadline: Boolean,
     ): Either<ReservationError.CancelReservation, CancellationResult> = either {
         val reservation = ensureNotNull(reservationRepository.findById(reservationId)) { ReservationError.ReservationNotFound }
+        // Přepsat uzávěrku smí jen admin — provoz vrací peníze, když chyba není na
+        // straně zákazníka (volá ráno před lekcí). Zákazníkovi se příznak tiše ignoruje.
+        val overrideDeadline = ignoreDeadline && isAdminCaller()
 
         if (instanceId != null) {
             // Omluvenka z jedné lekce. Rezervaci bez účtu chrání jen znalost UUID —
             // stejná laťka jako u zrušení celé rezervace níž; registrovanou její majitel.
-            ensure(reservation.isAccessibleBy(currentCallerUserId())) {
+            // Admin omlouvá účastníky z detailu lekce, takže pro něj platí výjimka.
+            ensure(isAdminCaller() || reservation.isAccessibleBy(currentCallerUserId())) {
                 ReservationError.ReservationNotFound  // Don't reveal existence to non-owner
             }
             // Zrušená rezervace už kredit dostala a čekatel nedrží místo, které by šlo
@@ -749,7 +754,9 @@ open class ReservationService(
             ) { ReservationError.AlreadyOptedOut }
 
             val now = Clock.System.now()
-            val isLate = isPastRefundDeadline(instance.startDateTime, now)
+            val isPastDeadline = isPastRefundDeadline(instance.startDateTime, now)
+            // Po přepsání adminem je to pro kredit, audit i maily obyčejná včasná omluvenka.
+            val isLate = isPastDeadline && !overrideDeadline
 
             // Kredit i peněženku řešíme JEŠTĚ PŘED zápisem omluvenky. Neshoda e-mailu
             // u peněženky je uživatelská chyba k opakování — kdyby se vyhodila až po
@@ -788,7 +795,11 @@ open class ReservationService(
                 instanceId = instanceId,
                 reservationId = reservationId,
                 amount = optOutRefund,
-                detail = if (isLate) "pozdní omluvenka, bez vrácení kreditu" else "omluvenka z lekce",
+                detail = when {
+                    isLate -> "pozdní omluvenka, bez vrácení kreditu"
+                    isPastDeadline -> "omluvenka po uzávěrce, kredit vrácen (rozhodl admin)"
+                    else -> "omluvenka z lekce"
+                },
             )
 
             withAuditSubject(
@@ -907,11 +918,13 @@ open class ReservationService(
             // Bez odečtu toho, co už odešlo za lekce, by se po omluvence vracela
             // tatáž lekce podruhé. Když není co vracet, nezakládá se ani peněženka.
             // U rozběhnutého kurzu částku určil admin, takže uzávěrka 18:00 neplatí.
+            // Jinak ji admin smí přepsat ([overrideDeadline]) a vrátit celou vratku.
+            val isPastDeadline = target != null && isPastRefundDeadline(target.startDateTime)
             val refundWallet: Wallet? = if (startedCourseRefund != null) {
                 if (startedCourseRefund.amount > 0.0) resolveWalletFor(reservation, walletCode, force) else null
             } else if (target != null) {
                 val refundable = refundService.refundableForWholeReservation(reservation)
-                if (refundable > 0.0 && !isPastRefundDeadline(target.startDateTime)) {
+                if (refundable > 0.0 && (!isPastDeadline || overrideDeadline)) {
                     resolveWalletFor(reservation, walletCode, force)
                 } else null
             } else null
@@ -981,6 +994,7 @@ open class ReservationService(
                     detail = when {
                         wasWaitlisted -> "storno přihlášky z pořadníku"
                         startedCourseRefund != null -> "storno rozběhnutého kurzu adminem"
+                        isPastDeadline && refundWallet != null -> "storno po uzávěrce, kredit vrácen (rozhodl admin)"
                         else -> "storno celé rezervace"
                     },
                 )
@@ -1016,7 +1030,8 @@ open class ReservationService(
                     }
                 }
 
-                // Wallet credit for whole-reservation cancellation — only within the deadline (18:00 day before).
+                // Wallet credit for whole-reservation cancellation — only within the deadline (18:00 day before),
+                // unless the admin overrode it.
                 // Peněženka je vyřešená už před uložením storna (refundWallet výš).
                 if (startedCourseRefund != null) {
                     val outcome = refundWallet?.let { wallet ->

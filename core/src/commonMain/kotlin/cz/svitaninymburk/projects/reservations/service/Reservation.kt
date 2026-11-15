@@ -39,6 +39,12 @@ interface ReservationServiceInterface {
          * Tam je povinná (jinak RefundAmountRequired), jinde se ignoruje.
          */
         refundAmount: Double? = null,
+        /**
+         * Jen pro admina: vrátit kredit i po uzávěrce storna (18:00 den předem) —
+         * za lekci kurzu jako u včasné omluvenky, u rezervace celou vratku.
+         * Zákazníkovi server příznak ignoruje.
+         */
+        ignoreDeadline: Boolean = false,
     ): Either<ReservationError.CancelReservation, CancellationResult>
     suspend fun getWalletInfo(code: String, email: String): Either<ReservationError.GetWalletInfo, WalletInfo>
 
