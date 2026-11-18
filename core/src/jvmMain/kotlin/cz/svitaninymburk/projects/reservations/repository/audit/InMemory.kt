@@ -53,6 +53,35 @@ class InMemoryAuditRepository : AuditRepository {
         parentSeriesId: Uuid?,
     ): Long = matching(eventId, isSeries, category, parentSeriesId).size.toLong()
 
+    override suspend fun findForReservations(
+        subjectId: Uuid,
+        reservationIds: Collection<Uuid>,
+        category: AuditCategory?,
+        page: Int,
+        pageSize: Int,
+    ): List<AuditEvent> = matchingReservations(subjectId, reservationIds, category)
+        .sortedByDescending { it.occurredAt }
+        .drop(page * pageSize)
+        .take(pageSize)
+
+    override suspend fun countForReservations(
+        subjectId: Uuid,
+        reservationIds: Collection<Uuid>,
+        category: AuditCategory?,
+    ): Long = matchingReservations(subjectId, reservationIds, category).size.toLong()
+
+    private fun matchingReservations(
+        subjectId: Uuid,
+        reservationIds: Collection<Uuid>,
+        category: AuditCategory?,
+    ): List<AuditEvent> = synchronized(events) {
+        val ids = reservationIds.toSet()
+        events.filter { event ->
+            (event.instanceId == subjectId || event.reservationId in ids) &&
+                (category == null || event.category == category)
+        }
+    }
+
     override suspend fun countAll(): Long = synchronized(events) { events.size.toLong() }
 
     override suspend fun deleteOlderThan(cutoff: Instant): Int = synchronized(events) {

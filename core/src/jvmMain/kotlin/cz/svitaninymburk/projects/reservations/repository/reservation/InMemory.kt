@@ -32,6 +32,9 @@ class InMemoryReservationRepository : ReservationRepository {
                 ref.start < to && ref.end > from
         }
 
+    override suspend fun findSlotReservationIds(serviceId: Uuid): List<Uuid> =
+        reservations.values.filter { (it.reference as? Reference.Slot)?.id == serviceId }.map { it.id }
+
     override suspend fun findActiveByReferenceIdsAndEmail(
         referenceIds: List<Uuid>,
         email: String,

@@ -172,6 +172,15 @@ class ExposedReservationRepository : ReservationRepository {
             .map { it.toReservation() }
     }
 
+    override suspend fun findSlotReservationIds(serviceId: Uuid): List<Uuid> = dbQuery {
+        ReservationsTable.select(ReservationsTable.id)
+            .where {
+                (ReservationsTable.referenceId eq serviceId) and
+                    (ReservationsTable.referenceType eq ReferenceDbDiscriminator.SLOT)
+            }
+            .map { it[ReservationsTable.id] }
+    }
+
     override suspend fun findActiveByReferenceIdsAndEmail(
         referenceIds: List<Uuid>,
         email: String,

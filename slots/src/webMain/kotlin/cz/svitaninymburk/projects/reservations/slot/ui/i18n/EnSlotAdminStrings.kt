@@ -20,6 +20,8 @@ object EnSlotAdminStrings : SlotAdminStrings {
     override val tabDay = "Day"
     override val tabSchedule = "Schedule"
     override val tabSettings = "Settings"
+    override val tabHistory = "History"
+    override val historySubtitle = "Bookings, cancellations, payments, sent e-mails and service changes"
     override val publish = "Publish"
     override val unpublish = "Hide"
     override val deleteService = "Delete service"

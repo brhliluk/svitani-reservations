@@ -32,6 +32,7 @@ val slotsKoinModule = module {
             availability = get(),
             reservations = get(),
             audit = get(),
+            auditLog = get(),
             canceller = DeletedTargetCanceller(admin::cancelReservationsOfDeletedTarget),
         )
     } bind SlotAdminServiceInterface::class

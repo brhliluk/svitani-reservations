@@ -30,6 +30,8 @@ interface SlotAdminStrings {
     val tabDay: String
     val tabSchedule: String
     val tabSettings: String
+    val tabHistory: String
+    val historySubtitle: String
     val publish: String
     val unpublish: String
     val deleteService: String

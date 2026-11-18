@@ -1,6 +1,9 @@
 package cz.svitaninymburk.projects.reservations.slot.ui.admin.usecase
 
 import arrow.core.Either
+import cz.svitaninymburk.projects.reservations.audit.AuditCategory
+import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
+import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.usecase.AUDIT_PAGE_SIZE
 import cz.svitaninymburk.projects.reservations.event.CustomFieldDefinition
 import cz.svitaninymburk.projects.reservations.event.TextFieldDefinition
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
@@ -265,6 +268,13 @@ class SlotAdminQueries(private val rpc: SlotAdminServiceInterface) {
     suspend fun day(id: Uuid, date: LocalDate) = rpc.getDayOverview(id, date)
     suspend fun previewSchedule(id: Uuid, rules: List<AvailabilityRule>, exceptions: List<AvailabilityException>) =
         rpc.previewSchedule(id, rules, exceptions)
+    suspend fun auditLog(id: Uuid, page: Int, category: AuditCategory?) =
+        rpc.getAuditLog(id, page, AUDIT_PAGE_SIZE, category)
+}
+
+/** Přeposlání mailu z historie jde přes admin RPC jádra — stejně jako u akcí. */
+class SlotAuditResend(private val admin: AdminServiceInterface) {
+    suspend fun resend(auditEventId: Uuid) = admin.resendEmail(auditEventId)
 }
 
 class SlotAdminMutations(private val rpc: SlotAdminServiceInterface) {

@@ -54,6 +54,10 @@ fun auditDetailText(event: AuditEvent, strings: AppStrings): String = listOfNotN
     event.detail,
 ).joinToString(" · ")
 
+/**
+ * Historie akce. Používá ji i modul hlídání: tam je to samostatná záložka,
+ * proto jde vypnout sbalování ([collapsible]) a přepsat podtitulek.
+ */
 @Composable
 fun IComponent.AuditLogCard(
     currentEventId: String,
@@ -68,6 +72,8 @@ fun IComponent.AuditLogCard(
     onPageChange: (Int) -> Unit,
     onCategoryChange: (AuditCategory?) -> Unit,
     onResend: (AuditEvent) -> Unit,
+    collapsible: Boolean = true,
+    subtitle: String? = null,
 ) {
     val currentStrings by strings
     val router = Router.current
@@ -78,16 +84,18 @@ fun IComponent.AuditLogCard(
             div(className = "flex items-center justify-between gap-4 flex-wrap") {
                 div {
                     h2(className = "card-title") { +currentStrings.auditTitle }
-                    p(className = "text-sm text-base-content/60") { +currentStrings.auditSubtitle }
+                    p(className = "text-sm text-base-content/60") { +(subtitle ?: currentStrings.auditSubtitle) }
                 }
-                button(className = "btn btn-sm btn-outline") {
-                    onClick { onToggle() }
-                    span(className = if (isExpanded) "icon-[heroicons--chevron-up] size-4" else "icon-[heroicons--chevron-down] size-4")
-                    +(if (isExpanded) currentStrings.auditHide else currentStrings.auditShow)
+                if (collapsible) {
+                    button(className = "btn btn-sm btn-outline") {
+                        onClick { onToggle() }
+                        span(className = if (isExpanded) "icon-[heroicons--chevron-up] size-4" else "icon-[heroicons--chevron-down] size-4")
+                        +(if (isExpanded) currentStrings.auditHide else currentStrings.auditShow)
+                    }
                 }
             }
 
-            if (!isExpanded) return@div
+            if (collapsible && !isExpanded) return@div
 
             div(className = "flex gap-2 flex-wrap mt-4") {
                 AUDIT_FILTER_OPTIONS.forEach { option ->

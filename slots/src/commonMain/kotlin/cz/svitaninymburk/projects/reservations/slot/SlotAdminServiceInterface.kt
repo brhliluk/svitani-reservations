@@ -1,6 +1,8 @@
 package cz.svitaninymburk.projects.reservations.slot
 
 import arrow.core.Either
+import cz.svitaninymburk.projects.reservations.admin.AuditLogPage
+import cz.svitaninymburk.projects.reservations.audit.AuditCategory
 import cz.svitaninymburk.projects.reservations.event.CustomFieldValue
 import cz.svitaninymburk.projects.reservations.reservation.PaymentType
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
@@ -92,4 +94,15 @@ interface SlotAdminServiceInterface {
     ): Either<SlotAdminError, Unit>
 
     suspend fun getDayOverview(id: Uuid, date: LocalDate): Either<SlotAdminError, SlotDayOverview>
+
+    /**
+     * Historie služby, nejnovější první: rezervace a jejich storna, maily, platby
+     * i úpravy služby samotné. Stejný tvar jako historie akce v jádru.
+     */
+    suspend fun getAuditLog(
+        id: Uuid,
+        page: Int,
+        pageSize: Int,
+        category: AuditCategory?,
+    ): Either<SlotAdminError, AuditLogPage>
 }

@@ -32,6 +32,9 @@ interface ReservationRepository {
      */
     suspend fun findActiveSlotReservations(serviceId: Uuid, from: LocalDateTime, to: LocalDateTime): List<Reservation>
 
+    /** Id všech rezervací služby úseků [serviceId] včetně zrušených — podklad pro její historii. */
+    suspend fun findSlotReservationIds(serviceId: Uuid): List<Uuid>
+
     /**
      * Aktivní přihlášky daného e-mailu na kterýkoli z uvedených cílů. Jedním dotazem,
      * protože u kurzu se ptáme i na všechny jeho lekce. E-mail se porovnává bez ohledu

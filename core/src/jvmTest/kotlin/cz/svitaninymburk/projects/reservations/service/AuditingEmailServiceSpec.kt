@@ -39,6 +39,15 @@ class AuditingEmailServiceSpec {
             category: cz.svitaninymburk.projects.reservations.audit.AuditCategory?,
             parentSeriesId: Uuid?,
         ) = 0L
+        override suspend fun findForReservations(
+            subjectId: Uuid, reservationIds: Collection<Uuid>,
+            category: cz.svitaninymburk.projects.reservations.audit.AuditCategory?,
+            page: Int, pageSize: Int,
+        ) = emptyList<cz.svitaninymburk.projects.reservations.audit.AuditEvent>()
+        override suspend fun countForReservations(
+            subjectId: Uuid, reservationIds: Collection<Uuid>,
+            category: cz.svitaninymburk.projects.reservations.audit.AuditCategory?,
+        ) = 0L
         override suspend fun countAll() = 0L
         override suspend fun deleteOlderThan(cutoff: Instant) = 0
     }

@@ -1,8 +1,15 @@
 package cz.svitaninymburk.projects.reservations.slot.ui.admin
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import cz.svitaninymburk.projects.reservations.RpcSerializersModules
+import cz.svitaninymburk.projects.reservations.admin.AuditLogPage
+import cz.svitaninymburk.projects.reservations.audit.AuditCategory
+import cz.svitaninymburk.projects.reservations.audit.AuditEvent
+import cz.svitaninymburk.projects.reservations.error.localizedMessage
+import cz.svitaninymburk.projects.reservations.service.AdminServiceInterface
 import cz.svitaninymburk.projects.reservations.slot.AvailabilityException
 import cz.svitaninymburk.projects.reservations.slot.AvailabilityRule
 import cz.svitaninymburk.projects.reservations.slot.ScheduleProblem
@@ -15,6 +22,7 @@ import cz.svitaninymburk.projects.reservations.slot.SlotServiceProblem
 import cz.svitaninymburk.projects.reservations.slot.ui.admin.usecase.ScheduleDraft
 import cz.svitaninymburk.projects.reservations.slot.ui.admin.usecase.SlotAdminMutations
 import cz.svitaninymburk.projects.reservations.slot.ui.admin.usecase.SlotAdminQueries
+import cz.svitaninymburk.projects.reservations.slot.ui.admin.usecase.SlotAuditResend
 import cz.svitaninymburk.projects.reservations.slot.ui.admin.usecase.SlotServiceForm
 import cz.svitaninymburk.projects.reservations.slot.ui.admin.usecase.formOf
 import cz.svitaninymburk.projects.reservations.slot.ui.admin.usecase.formProblems
@@ -30,6 +38,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import dev.kilua.rpc.getService
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -68,13 +77,14 @@ fun buildAdminSlotServicesModel(scope: CoroutineScope) = AdminSlotServicesModel(
 
 // --- Detail služby ---
 
-enum class SlotAdminTab { DAY, SCHEDULE, SETTINGS }
+enum class SlotAdminTab { DAY, SCHEDULE, SETTINGS, HISTORY }
 
 class AdminSlotServiceModel(
     scope: CoroutineScope,
     private val serviceId: Uuid,
     private val queries: SlotAdminQueries,
     private val mutations: SlotAdminMutations,
+    resend: SlotAuditResend,
     private val onDeleted: () -> Unit,
     /** Záložka z adresy (`?tab=schedule`) — po založení služby se otevírá rovnou Rozvrh. */
     initialTab: SlotAdminTab = SlotAdminTab.DAY,
@@ -90,6 +100,7 @@ class AdminSlotServiceModel(
     val day = SlotDayModel(scope, serviceId, queries)
     val schedule = SlotScheduleModel(scope, serviceId, queries, mutations, onSaved = { reload() })
     val settings = SlotSettingsModel(scope, mutations, existingId = serviceId, onSaved = { reload() })
+    val history = SlotHistoryModel(scope, serviceId, queries, resend)
 
     val detail: SlotServiceDetail? get() = (state as? LoadState.Loaded)?.value
 
@@ -155,7 +166,76 @@ fun buildAdminSlotServiceModel(
     onDeleted: () -> Unit,
 ): AdminSlotServiceModel {
     val rpc = slotAdminService()
-    return AdminSlotServiceModel(scope, serviceId, SlotAdminQueries(rpc), SlotAdminMutations(rpc), onDeleted, initialTab)
+    val resend = SlotAuditResend(getService<AdminServiceInterface>(RpcSerializersModules))
+    return AdminSlotServiceModel(scope, serviceId, SlotAdminQueries(rpc), SlotAdminMutations(rpc), resend, onDeleted, initialTab)
+}
+
+// --- Historie ---
+
+/**
+ * Historie služby — stejná tabulka i chování jako historie akce
+ * (`AdminEventDetailModel`), jen bez sbalování: je to samostatná záložka.
+ * Načítá se až při prvním otevření záložky.
+ */
+class SlotHistoryModel(
+    scope: CoroutineScope,
+    private val serviceId: Uuid,
+    private val queries: SlotAdminQueries,
+    private val auditResend: SlotAuditResend,
+) : ScreenModel(scope) {
+    var page: AuditLogPage? by mutableStateOf(null); private set
+    var error: String? by mutableStateOf(null); private set
+    var currentPage by mutableIntStateOf(0); private set
+    var category: AuditCategory? by mutableStateOf(null); private set
+    var isLoading by mutableStateOf(false); private set
+    var resendPending: AuditEvent? by mutableStateOf(null)
+    var resendingId: Uuid? by mutableStateOf(null); private set
+    private var job: Job? = null
+
+    /** Při prvním zobrazení záložky; další otevření drží načtenou stránku. */
+    fun ensureLoaded() { if (page == null && !isLoading) load() }
+
+    fun goToPage(value: Int) {
+        currentPage = value
+        load()
+    }
+
+    fun changeCategory(value: AuditCategory?) {
+        category = value
+        currentPage = 0
+        load()
+    }
+
+    fun load() {
+        job?.cancel()
+        isLoading = true
+        error = null
+        val requestedPage = currentPage
+        val requestedCategory = category
+        job = scope.launch {
+            try {
+                queries.auditLog(serviceId, requestedPage, requestedCategory)
+                    .onRight { page = it }
+                    .onLeft { error = slotAdminStrings.error(it) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                error = slotAdminStrings.loadError
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    /** Po odeslání se historie přenačte — přibude řádek nového pokusu. */
+    fun resend(entry: AuditEvent) {
+        resendingId = entry.id
+        run(
+            errorMessage = { it.localizedMessage(currentStrings) },
+            block = { auditResend.resend(entry.id) },
+            onSuccess = { recipient -> showToast(currentStrings.auditResendSuccess(recipient)) },
+        ).invokeOnCompletion { resendingId = null; resendPending = null; load() }
+    }
 }
 
 // --- Den ---

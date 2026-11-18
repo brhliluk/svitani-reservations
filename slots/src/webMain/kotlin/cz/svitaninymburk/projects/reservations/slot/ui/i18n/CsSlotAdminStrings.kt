@@ -20,6 +20,8 @@ object CsSlotAdminStrings : SlotAdminStrings {
     override val tabDay = "Den"
     override val tabSchedule = "Rozvrh"
     override val tabSettings = "Nastavení"
+    override val tabHistory = "Historie"
+    override val historySubtitle = "Rezervace, storna, platby, odeslané e-maily a úpravy služby"
     override val publish = "Zveřejnit"
     override val unpublish = "Skrýt"
     override val deleteService = "Smazat službu"

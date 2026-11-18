@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.slot
 
+import cz.svitaninymburk.projects.reservations.audit.AuditActorType
+import cz.svitaninymburk.projects.reservations.audit.AuditCategory
 import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import cz.svitaninymburk.projects.reservations.event.PriceModifier
 import cz.svitaninymburk.projects.reservations.event.TimeRangeFieldDefinition
@@ -60,6 +62,7 @@ class SlotAdminServiceSpec {
         availability = SlotAvailability(serviceRepo, ruleRepo, exceptionRepo, reservationRepo),
         reservations = reservationRepo,
         audit = AuditService(auditRepo),
+        auditLog = auditRepo,
         canceller = { refs, title, refund -> cancelled += Triple(refs, title, refund) },
         clock = object : Clock {
             override fun now(): Instant = this@SlotAdminServiceSpec.now.toInstant(APP_TIMEZONE)
@@ -247,6 +250,57 @@ class SlotAdminServiceSpec {
         assertEquals(listOf("První", "Druhá"), overview.reservations.map { it.contactName })
         // 8:00 obsazená jednou rezervací se 2 dětmi z kapacity 4.
         assertEquals(2, overview.segments.first().free)
+    }
+
+    private fun reservationEvent(type: AuditEventType, reservationId: Uuid) = runBlocking {
+        auditRepo.record(
+            NewAuditEvent(
+                type = type,
+                actorType = AuditActorType.CUSTOMER,
+                actorLabel = "jana@example.cz",
+                subjectLabel = "Nováková",
+                reservationId = reservationId,
+            )
+        )
+    }
+
+    @Test
+    fun auditLogHasServiceManagementAndItsReservationsIncludingCancelled() = runBlocking {
+        val id = created()
+        val other = created()
+        val active = reserve(id, LocalDateTime(2026, 10, 20, 8, 0), LocalDateTime(2026, 10, 20, 10, 0))
+        val cancelledOne = reserve(id, LocalDateTime(2026, 10, 22, 8, 0), LocalDateTime(2026, 10, 22, 10, 0), status = Reservation.Status.CANCELLED)
+        val foreign = reserve(other, LocalDateTime(2026, 10, 20, 8, 0), LocalDateTime(2026, 10, 20, 10, 0))
+        reservationRepo.save(active.copy(contactPhone = "+420777123456"))
+        reservationEvent(AuditEventType.RESERVATION_CREATED, active.id)
+        reservationEvent(AuditEventType.RESERVATION_CANCELLED, cancelledOne.id)
+        reservationEvent(AuditEventType.RESERVATION_CREATED, foreign.id)
+
+        val page = admin.getAuditLog(id, 0, 50, null).getOrNull()!!
+
+        // Založení + rozvrh této služby a dvě rezervační události; nic z druhé služby.
+        assertEquals(4L, page.totalCount)
+        assertEquals(
+            setOf(AuditEventType.EVENT_CREATED, AuditEventType.EVENT_UPDATED, AuditEventType.RESERVATION_CREATED, AuditEventType.RESERVATION_CANCELLED),
+            page.items.map { it.type }.toSet(),
+        )
+        assertTrue(page.items.none { it.reservationId == foreign.id })
+        assertEquals("+420777123456", page.items.single { it.reservationId == active.id }.contactPhone)
+
+        val reservationsOnly = admin.getAuditLog(id, 0, 50, AuditCategory.RESERVATION).getOrNull()!!
+        assertEquals(setOf(active.id, cancelledOne.id), reservationsOnly.items.map { it.reservationId }.toSet())
+    }
+
+    @Test
+    fun auditLogIsPaged() = runBlocking {
+        val id = created()
+        val first = admin.getAuditLog(id, 0, 1, null).getOrNull()!!
+        val second = admin.getAuditLog(id, 1, 1, null).getOrNull()!!
+        assertEquals(2L, first.totalCount)
+        assertEquals(
+            setOf(AuditEventType.EVENT_CREATED, AuditEventType.EVENT_UPDATED),
+            (first.items + second.items).map { it.type }.toSet(),
+        )
     }
 
     private class RecordingAudit(private val inner: InMemoryAuditRepository = InMemoryAuditRepository()) : AuditRepository by inner {

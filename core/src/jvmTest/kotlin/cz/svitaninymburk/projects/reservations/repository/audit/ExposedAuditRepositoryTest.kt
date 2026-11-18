@@ -40,6 +40,7 @@ class ExposedAuditRepositoryTest {
         type: AuditEventType = AuditEventType.RESERVATION_CREATED,
         seriesId: Uuid? = null,
         instanceId: Uuid? = null,
+        reservationId: Uuid? = null,
         daysAgo: Long = 0,
         outcome: AuditOutcome? = null,
     ) = NewAuditEvent(
@@ -49,6 +50,7 @@ class ExposedAuditRepositoryTest {
         subjectLabel = "Jana Nováková",
         seriesId = seriesId,
         instanceId = instanceId,
+        reservationId = reservationId,
         outcome = outcome,
         occurredAt = Clock.System.now() - daysAgo.days,
     )
@@ -76,6 +78,28 @@ class ExposedAuditRepositoryTest {
 
         assertEquals(listOf(AuditEventType.SERIES_UNPUBLISHED), found.map { it.type })
         assertEquals(AuditCategory.MANAGEMENT, found.single().category)
+    }
+
+    /** Historie hlídání: rezervace služby podle `reservation_id`, správa služby podle `instance_id`. */
+    @Test
+    fun `slot service history combines its reservations and its own management`() = runBlocking {
+        val service = Uuid.random()
+        val booked = Uuid.random()
+        val cancelled = Uuid.random()
+        repository.record(event(type = AuditEventType.EVENT_UPDATED, instanceId = service, daysAgo = 3))
+        repository.record(event(reservationId = booked, daysAgo = 2))
+        repository.record(event(type = AuditEventType.RESERVATION_CANCELLED, reservationId = cancelled, daysAgo = 1))
+        repository.record(event(reservationId = Uuid.random()))
+
+        val all = repository.findForReservations(service, listOf(booked, cancelled), category = null, page = 0, pageSize = 50)
+        assertEquals(
+            listOf(AuditEventType.RESERVATION_CANCELLED, AuditEventType.RESERVATION_CREATED, AuditEventType.EVENT_UPDATED),
+            all.map { it.type },
+        )
+        assertEquals(3, repository.countForReservations(service, listOf(booked, cancelled), category = null))
+        assertEquals(1, repository.countForReservations(service, listOf(booked, cancelled), category = AuditCategory.MANAGEMENT))
+        // Služba bez rezervací: jen její správa, žádné prázdné IN ().
+        assertEquals(1, repository.countForReservations(service, emptyList(), category = null))
     }
 
     @Test

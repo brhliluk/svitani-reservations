@@ -129,6 +129,26 @@ interface AuditRepository {
         parentSeriesId: Uuid? = null,
     ): Long
 
+    /**
+     * Historie cíle, který si audit sám nevede — služby hlídání (volitelný modul).
+     *
+     * Bere záznamy k rezervacím [reservationIds] (vytvoření, storna, maily, platby)
+     * a správu cíle samotného, která se zapisuje s `instance_id` = [subjectId].
+     */
+    suspend fun findForReservations(
+        subjectId: Uuid,
+        reservationIds: Collection<Uuid>,
+        category: AuditCategory?,
+        page: Int,
+        pageSize: Int,
+    ): List<AuditEvent>
+
+    suspend fun countForReservations(
+        subjectId: Uuid,
+        reservationIds: Collection<Uuid>,
+        category: AuditCategory?,
+    ): Long
+
     suspend fun countAll(): Long
 
     /** Vrací počet smazaných řádků. */
@@ -184,6 +204,29 @@ class ExposedAuditRepository(private val database: Database? = null) : AuditRepo
         AuditEventsTable.selectAll().where { eventFilter(eventId, isSeries, category, parentSeriesId) }.count()
     }
 
+    override suspend fun findForReservations(
+        subjectId: Uuid,
+        reservationIds: Collection<Uuid>,
+        category: AuditCategory?,
+        page: Int,
+        pageSize: Int,
+    ): List<AuditEvent> = query {
+        AuditEventsTable.selectAll()
+            .where { reservationsFilter(subjectId, reservationIds, category) }
+            .orderBy(AuditEventsTable.occurredAt, SortOrder.DESC)
+            .limit(pageSize)
+            .offset(page.toLong() * pageSize)
+            .map { it.toAuditEvent() }
+    }
+
+    override suspend fun countForReservations(
+        subjectId: Uuid,
+        reservationIds: Collection<Uuid>,
+        category: AuditCategory?,
+    ): Long = query {
+        AuditEventsTable.selectAll().where { reservationsFilter(subjectId, reservationIds, category) }.count()
+    }
+
     override suspend fun countAll(): Long = query { AuditEventsTable.selectAll().count() }
 
     override suspend fun deleteOlderThan(cutoff: Instant): Int = query {
@@ -220,5 +263,16 @@ private fun eventFilter(
                 ((AuditEventsTable.seriesId eq parentSeriesId) and AuditEventsTable.instanceId.isNull())
         else -> AuditEventsTable.instanceId eq eventId
     }
+    return if (category == null) subject else subject and (AuditEventsTable.category eq category)
+}
+
+// IN seznam stačí: hlídání má rezervací jednotky tisíc, SQLite snese přes 32 tisíc parametrů.
+private fun reservationsFilter(
+    subjectId: Uuid,
+    reservationIds: Collection<Uuid>,
+    category: AuditCategory?,
+): Op<Boolean> {
+    val bySubject = AuditEventsTable.instanceId eq subjectId
+    val subject = if (reservationIds.isEmpty()) bySubject else bySubject or (AuditEventsTable.reservationId inList reservationIds)
     return if (category == null) subject else subject and (AuditEventsTable.category eq category)
 }

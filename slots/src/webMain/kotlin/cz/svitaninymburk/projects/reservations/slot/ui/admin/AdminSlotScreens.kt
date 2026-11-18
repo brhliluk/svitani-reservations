@@ -12,6 +12,8 @@ import cz.svitaninymburk.projects.reservations.slot.ui.admin.usecase.SLOT_TAB_PA
 import cz.svitaninymburk.projects.reservations.slot.ui.admin.usecase.adminSlotServiceLink
 import cz.svitaninymburk.projects.reservations.slot.ui.admin.usecase.slotAdminTabOf
 import cz.svitaninymburk.projects.reservations.slot.ui.i18n.slotAdminStrings
+import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.AuditLogCard
+import cz.svitaninymburk.projects.reservations.ui.admin.events.detail.ResendEmailModal
 import cz.svitaninymburk.projects.reservations.ui.util.ConfirmModal
 import cz.svitaninymburk.projects.reservations.ui.util.Toast
 import cz.svitaninymburk.projects.reservations.ui.util.ToastType
@@ -223,6 +225,7 @@ private fun IComponent.SlotServiceDetail(serviceId: Uuid, initialTab: SlotAdminT
                         SlotAdminTab.DAY to s.tabDay,
                         SlotAdminTab.SCHEDULE to s.tabSchedule,
                         SlotAdminTab.SETTINGS to s.tabSettings,
+                        SlotAdminTab.HISTORY to s.tabHistory,
                     ).forEach { (tab, label) ->
                         button(className = if (model.tab == tab) "tab tab-active" else "tab") {
                             attribute("role", "tab")
@@ -237,6 +240,7 @@ private fun IComponent.SlotServiceDetail(serviceId: Uuid, initialTab: SlotAdminT
                     SlotAdminTab.DAY -> DayTab(model.day, service)
                     SlotAdminTab.SCHEDULE -> ScheduleTab(model.schedule)
                     SlotAdminTab.SETTINGS -> SettingsTab(model.settings)
+                    SlotAdminTab.HISTORY -> HistoryTab(model.history, serviceId)
                 }
 
                 if (model.showDelete) {
@@ -261,9 +265,39 @@ private fun IComponent.SlotServiceDetail(serviceId: Uuid, initialTab: SlotAdminT
         }
     }
 
-    listOf(model.toast, model.day.toast, model.schedule.toast, model.settings.toast).firstOrNull { it != null }?.let { toast ->
+    listOf(model.toast, model.day.toast, model.schedule.toast, model.settings.toast, model.history.toast).firstOrNull { it != null }?.let { toast ->
         Toast(message = toast.message, type = toast.type) {
             model.dismissToast(); model.day.dismissToast(); model.schedule.dismissToast(); model.settings.dismissToast()
+            model.history.dismissToast()
         }
+    }
+}
+
+@Composable
+private fun IComponent.HistoryTab(model: SlotHistoryModel, serviceId: Uuid) {
+    LaunchedEffect(Unit) { model.ensureLoaded() }
+    AuditLogCard(
+        currentEventId = serviceId.toString(),
+        page = model.page,
+        errorMessage = model.error,
+        isExpanded = true,
+        isLoading = model.isLoading,
+        currentPage = model.currentPage,
+        category = model.category,
+        resendingId = model.resendingId,
+        onToggle = {},
+        onPageChange = { model.goToPage(it) },
+        onCategoryChange = { model.changeCategory(it) },
+        onResend = { model.resendPending = it },
+        collapsible = false,
+        subtitle = slotAdminStrings.historySubtitle,
+    )
+    model.resendPending?.let { entry ->
+        ResendEmailModal(
+            recipient = entry.recipient.orEmpty(),
+            isLoading = model.resendingId != null,
+            onConfirm = { model.resend(entry) },
+            onDismiss = { model.resendPending = null },
+        )
     }
 }

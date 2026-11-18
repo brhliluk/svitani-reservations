@@ -4,7 +4,10 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
+import cz.svitaninymburk.projects.reservations.admin.AuditLogPage
+import cz.svitaninymburk.projects.reservations.audit.AuditCategory
 import cz.svitaninymburk.projects.reservations.audit.AuditEventType
+import cz.svitaninymburk.projects.reservations.repository.audit.AuditRepository
 import cz.svitaninymburk.projects.reservations.repository.reservation.ReservationRepository
 import cz.svitaninymburk.projects.reservations.reservation.Reference
 import cz.svitaninymburk.projects.reservations.reservation.Reservation
@@ -32,6 +35,9 @@ fun interface DeletedTargetCanceller {
 /**
  * Správa hlídání pro admina. Rozvrh ani nastavení nikdy samy rezervace neruší —
  * jen je ukážou ([previewSchedule]); rušení je výslovná akce (smazání služby).
+ *
+ * Správa služby se v historii vede s `instance_id` = id služby — audit jádra o službách
+ * neví, takže si je odtud [getAuditLog] dohledá (rezervace podle `reservation_id`).
  */
 class SlotAdminService(
     private val services: SlotServiceRepository,
@@ -40,6 +46,7 @@ class SlotAdminService(
     private val availability: SlotAvailability,
     private val reservations: ReservationRepository,
     private val audit: AuditService,
+    private val auditLog: AuditRepository,
     private val canceller: DeletedTargetCanceller,
     private val clock: Clock = Clock.System,
 ) : SlotAdminServiceInterface {
@@ -66,6 +73,7 @@ class SlotAdminService(
         audit.record(
             type = AuditEventType.EVENT_CREATED,
             subjectLabel = normalized.title,
+            instanceId = normalized.id,
             detail = "Hlídání: založena služba ${normalized.title}",
         )
         normalized.id
@@ -81,6 +89,7 @@ class SlotAdminService(
         audit.record(
             type = AuditEventType.EVENT_UPDATED,
             subjectLabel = normalized.title,
+            instanceId = normalized.id,
             detail = "Hlídání: upraveno nastavení služby",
         )
     }
@@ -92,6 +101,7 @@ class SlotAdminService(
         audit.record(
             type = if (published) AuditEventType.EVENT_PUBLISHED else AuditEventType.EVENT_UNPUBLISHED,
             subjectLabel = stored.title,
+            instanceId = id,
             detail = if (published) "Hlídání: služba zveřejněna" else "Hlídání: služba skryta",
         )
     }
@@ -104,6 +114,7 @@ class SlotAdminService(
         audit.record(
             type = AuditEventType.EVENT_DELETED,
             subjectLabel = stored.title,
+            instanceId = id,
             detail = "Hlídání: smazána služba ${stored.title}, zrušeno rezervací: ${active.size}" +
                 if (refund) ", kredit vracen" else ", bez vracení kreditu",
         )
@@ -157,6 +168,7 @@ class SlotAdminService(
         audit.record(
             type = AuditEventType.EVENT_UPDATED,
             subjectLabel = service.title,
+            instanceId = id,
             detail = "Hlídání: upraven rozvrh (oken: ${newRules.size}, výjimek: ${newExceptions.size})",
         )
     }
@@ -169,6 +181,29 @@ class SlotAdminService(
             .map { it.toRow() }
             .sortedWith(compareBy({ it.start }, { it.contactName }))
         SlotDayOverview(date, segments, dayReservations)
+    }
+
+    override suspend fun getAuditLog(
+        id: Uuid,
+        page: Int,
+        pageSize: Int,
+        category: AuditCategory?,
+    ): Either<SlotAdminError, AuditLogPage> = either {
+        // Smazaná služba historii mít může (rezervace zůstávají), proto se existence neověřuje.
+        val safePage = page.coerceAtLeast(0)
+        val safeSize = pageSize.coerceIn(1, 200)
+        val reservationIds = reservations.findSlotReservationIds(id)
+        val items = auditLog.findForReservations(id, reservationIds, category, safePage, safeSize)
+        val total = auditLog.countForReservations(id, reservationIds, category)
+
+        // Telefon se v historii neukládá — doplní se z aktuální rezervace, stejně jako u akcí.
+        val phones = reservations.findByIds(items.mapNotNull { it.reservationId }.toSet())
+            .mapNotNull { res -> res.contactPhone?.takeIf { it.isNotBlank() }?.let { res.id to it } }
+            .toMap()
+        val withPhones = items.map { event ->
+            event.reservationId?.let(phones::get)?.let { event.copy(contactPhone = it) } ?: event
+        }
+        AuditLogPage(items = withPhones, page = safePage, pageSize = safeSize, totalCount = total)
     }
 
     /** Aktivní rezervace, které ještě neskončily. */
