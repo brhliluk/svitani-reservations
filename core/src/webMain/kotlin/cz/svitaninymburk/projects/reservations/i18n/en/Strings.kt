@@ -275,6 +275,7 @@ object EnStrings : AppStrings {
         AuditEventType.RESERVATION_WAITLIST_JOINED -> "Joined waitlist"
         AuditEventType.RESERVATION_WAITLIST_PROMOTED -> "Promoted from waitlist"
         AuditEventType.RESERVATION_CANCELLED -> "Reservation cancelled"
+        AuditEventType.RESERVATION_CANCEL_REJECTED -> "Cancellation rejected"
         AuditEventType.RESERVATION_CLAIMED -> "Reservation linked to account"
         AuditEventType.RESERVATION_LESSON_OPT_OUT -> "Lesson opt-out"
         AuditEventType.RESERVATION_LESSON_OPT_OUT_REVOKED -> "Lesson opt-out revoked"

@@ -721,6 +721,59 @@ open class ReservationService(
         force: Boolean,
         refundAmount: Double?,
         ignoreDeadline: Boolean,
+    ): Either<ReservationError.CancelReservation, CancellationResult> =
+        cancelReservationUnaudited(reservationId, instanceId, walletCode, force, refundAmount, ignoreDeadline)
+            .onLeft { error -> recordRejectedCancellation(reservationId, instanceId, error) }
+
+    /**
+     * Odmítnuté storno nic nezmění, takže by po něm jinak nezůstala žádná stopa —
+     * a když zákazník tvrdí „rušila jsem to“, nebylo by čím to potvrdit ani vyvrátit.
+     * Bez existující rezervace není kam záznam pověsit, takže se nezapisuje.
+     * Zápis nesmí shodit odpověď s chybou, kterou zákazník potřebuje vidět.
+     */
+    private suspend fun recordRejectedCancellation(
+        reservationId: Uuid,
+        instanceId: Uuid?,
+        error: ReservationError.CancelReservation,
+    ) {
+        runCatching {
+            val reservation = reservationRepository.findById(reservationId) ?: return
+            val target = targetResolver.resolve(reservation.reference)
+            val subject = target?.let { auditSubjectFor(it, reservation.id) }
+            val reason = when (error) {
+                ReservationError.ReservationNotFound -> "rezervace je neaktivní nebo patří jinému účtu"
+                ReservationError.AlreadyCancelled -> "rezervace už byla zrušená"
+                ReservationError.EventAlreadyStarted -> "termín už začal"
+                ReservationError.EventAlreadyFinished -> "lekce je zrušená"
+                ReservationError.SeriesAlreadyStarted -> "kurz už běží, zbývá omluvenka z lekcí"
+                ReservationError.AlreadyOptedOut -> "z lekce už je omluvený"
+                ReservationError.NotASeriesReservation, ReservationError.InstanceNotInSeries -> "lekce nepatří ke kurzu rezervace"
+                ReservationError.RefundAmountRequired, ReservationError.InvalidRefundAmount -> "chybí platná částka vratky"
+                ReservationError.WalletNotFound -> "neexistující kód peněženky"
+                ReservationError.WalletEmailMismatch -> "e-mail nesedí na peněženku"
+            }
+            // Cizí účet rezervaci nevlastní — aktér je ten, kdo volal, ne její kontakt.
+            val actor = if (error == ReservationError.ReservationNotFound && !isAdminCaller()) audit.currentActor()
+            else actorFor(reservation)
+            audit.record(
+                type = AuditEventType.RESERVATION_CANCEL_REJECTED,
+                actor = actor,
+                subjectLabel = reservation.contactName,
+                seriesId = subject?.seriesId,
+                instanceId = instanceId ?: subject?.instanceId,
+                reservationId = reservation.id,
+                detail = if (instanceId != null) "omluvenka z lekce odmítnuta: $reason" else "storno odmítnuto: $reason",
+            )
+        }.onFailure { logger.warn("Failed to audit rejected cancellation of $reservationId: ${it.message}") }
+    }
+
+    private suspend fun cancelReservationUnaudited(
+        reservationId: Uuid,
+        instanceId: Uuid?,
+        walletCode: String?,
+        force: Boolean,
+        refundAmount: Double?,
+        ignoreDeadline: Boolean,
     ): Either<ReservationError.CancelReservation, CancellationResult> = either {
         val reservation = ensureNotNull(reservationRepository.findById(reservationId)) { ReservationError.ReservationNotFound }
         // Přepsat uzávěrku smí jen admin — provoz vrací peníze, když chyba není na

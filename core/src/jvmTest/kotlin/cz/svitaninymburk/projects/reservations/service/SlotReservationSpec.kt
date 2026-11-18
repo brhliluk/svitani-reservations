@@ -1,5 +1,7 @@
 package cz.svitaninymburk.projects.reservations.service
 
+import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
 import cz.svitaninymburk.projects.reservations.StubQrCodeGenerator
 import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.event.EventSeries
@@ -41,6 +43,7 @@ class SlotReservationSpec {
     private val seriesRepo = InMemoryEventSeriesRepository()
     private val reservationRepo = InMemoryReservationRepository()
     private val walletService = WalletService(InMemoryWalletRepository())
+    private val auditRepo = InMemoryAuditRepository()
 
     /** Služba úseků tak, jak ji vidí jádro: jen data cíle. */
     private val provider = object : SlotBookingProvider {
@@ -86,6 +89,7 @@ class SlotReservationSpec {
             )
         ),
         targetResolver = resolver(withProvider),
+        audit = AuditService(auditRepo),
     ) {
         override suspend fun currentCallerUserId(): Uuid? = null
         override suspend fun isAdminCaller(): Boolean = admin
@@ -168,6 +172,9 @@ class SlotReservationSpec {
         )
 
         assertEquals(ReservationError.EventAlreadyStarted, TestService().cancelReservation(started.id).leftOrNull())
+        val rejected = auditRepo.recordedEvents().single { it.type == AuditEventType.RESERVATION_CANCEL_REJECTED }
+        assertEquals(started.id, rejected.reservationId, "odmítnutý pokus patří do historie služby přes rezervaci")
+        assertEquals("storno odmítnuto: termín už začal", rejected.detail)
         assertTrue(TestService(admin = true).cancelReservation(started.id).isRight())
         assertEquals(Reservation.Status.CANCELLED, reservationRepo.findById(started.id)?.status)
         Unit

@@ -26,6 +26,11 @@ enum class AuditEventType(val category: AuditCategory) {
     RESERVATION_WAITLIST_JOINED(AuditCategory.RESERVATION),
     RESERVATION_WAITLIST_PROMOTED(AuditCategory.RESERVATION),
     RESERVATION_CANCELLED(AuditCategory.RESERVATION),
+    /**
+     * Storno nebo omluvenku server odmítl (po začátku, podruhé, špatná peněženka…).
+     * Rezervace se nezměnila — záznam je tu, aby šlo doložit, že se o to zákazník pokusil.
+     */
+    RESERVATION_CANCEL_REJECTED(AuditCategory.RESERVATION),
     /** Host si rezervaci bez účtu připsal ke svému účtu (shoda kontaktního e-mailu). */
     RESERVATION_CLAIMED(AuditCategory.RESERVATION),
     RESERVATION_LESSON_OPT_OUT(AuditCategory.RESERVATION),

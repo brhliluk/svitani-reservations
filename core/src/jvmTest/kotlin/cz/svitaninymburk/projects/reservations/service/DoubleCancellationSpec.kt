@@ -1,6 +1,8 @@
 package cz.svitaninymburk.projects.reservations.service
 
 import cz.svitaninymburk.projects.reservations.StubQrCodeGenerator
+import cz.svitaninymburk.projects.reservations.audit.AuditEventType
+import cz.svitaninymburk.projects.reservations.repository.audit.InMemoryAuditRepository
 import cz.svitaninymburk.projects.reservations.error.ReservationError
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventDefinitionRepository
@@ -33,6 +35,7 @@ class DoubleCancellationSpec {
     private val instanceRepo = InMemoryEventInstanceRepository()
     private val reservationRepo = InMemoryReservationRepository()
     private val walletRepo = InMemoryWalletRepository()
+    private val auditRepo = InMemoryAuditRepository()
 
     private val service = ReservationService(
         eventInstanceRepository = instanceRepo,
@@ -53,6 +56,7 @@ class DoubleCancellationSpec {
                 gmailAppPassword = "", senderDisplayName = "",
             )
         ),
+        audit = AuditService(auditRepo),
     )
 
     private val instanceId = Uuid.parse("00000000-0000-0000-0000-0000000000e1")
@@ -114,5 +118,37 @@ class DoubleCancellationSpec {
             instanceRepo.get(instanceId)!!.occupiedSpots,
             "místa se smí uvolnit jen jednou, jinak čítač spadne do záporu",
         )
+    }
+
+    /** Zákazník tvrdí, že rušil — odmítnutý pokus musí v historii zůstat. */
+    @Test
+    fun `rejected cancellation is recorded in history`() = runBlocking {
+        val reservation = prepare()
+        service.cancelReservation(reservation.id)
+
+        service.cancelReservation(reservation.id)
+
+        val rejected = auditRepo.recordedEvents().single { it.type == AuditEventType.RESERVATION_CANCEL_REJECTED }
+        assertEquals(reservation.id, rejected.reservationId)
+        assertEquals(instanceId, rejected.instanceId, "musí být vidět v historii akce")
+        assertEquals("storno odmítnuto: rezervace už byla zrušená", rejected.detail)
+        assertEquals("tester@example.com", rejected.actorLabel)
+    }
+
+    @Test
+    fun `successful cancellation records no rejection`() = runBlocking {
+        val reservation = prepare()
+
+        service.cancelReservation(reservation.id)
+
+        assertTrue(auditRepo.recordedEvents().none { it.type == AuditEventType.RESERVATION_CANCEL_REJECTED })
+    }
+
+    @Test
+    fun `cancellation of unknown reservation records nothing`() = runBlocking {
+        val result = service.cancelReservation(Uuid.random())
+
+        assertEquals(ReservationError.ReservationNotFound, result.leftOrNull())
+        assertTrue(auditRepo.recordedEvents().isEmpty())
     }
 }

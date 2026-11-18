@@ -280,6 +280,7 @@ object CsStrings : AppStrings, ErrorStrings by CsErrorStrings {
         AuditEventType.RESERVATION_WAITLIST_JOINED -> "Zápis do pořadníku"
         AuditEventType.RESERVATION_WAITLIST_PROMOTED -> "Posun z pořadníku"
         AuditEventType.RESERVATION_CANCELLED -> "Storno rezervace"
+        AuditEventType.RESERVATION_CANCEL_REJECTED -> "Odmítnuté storno"
         AuditEventType.RESERVATION_CLAIMED -> "Přidání rezervace k účtu"
         AuditEventType.RESERVATION_LESSON_OPT_OUT -> "Omluvenka z lekce"
         AuditEventType.RESERVATION_LESSON_OPT_OUT_REVOKED -> "Omluvenka vzata zpět"
