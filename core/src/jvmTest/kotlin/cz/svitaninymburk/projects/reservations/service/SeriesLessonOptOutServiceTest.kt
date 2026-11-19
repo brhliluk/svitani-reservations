@@ -3,8 +3,10 @@ package cz.svitaninymburk.projects.reservations.service
 import arrow.core.right
 import cz.svitaninymburk.projects.reservations.error.EmailError
 import cz.svitaninymburk.projects.reservations.error.ReservationError
+import cz.svitaninymburk.projects.reservations.event.EventDefinition
 import cz.svitaninymburk.projects.reservations.event.EventInstance
 import cz.svitaninymburk.projects.reservations.event.EventSeries
+import cz.svitaninymburk.projects.reservations.CapturingLectorEmailService
 import cz.svitaninymburk.projects.reservations.StubQrCodeGenerator
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventDefinitionRepository
 import cz.svitaninymburk.projects.reservations.repository.event.InMemoryEventInstanceRepository
@@ -27,6 +29,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
 import kotlin.uuid.Uuid
 
 class SeriesLessonOptOutServiceTest {
@@ -50,13 +53,14 @@ class SeriesLessonOptOutServiceTest {
         optOutRepo: InMemorySeriesLessonOptOutRepository,
         walletSvc: WalletService,
         private val callerId: Uuid? = testCallerId,
+        lectorEmailService: LectorEmailService = ConsoleEmailService(),
     ) : ReservationService(
         eventInstanceRepository = instanceRepo,
         eventSeriesRepository = seriesRepo,
         eventDefinitionRepository = defRepo,
         reservationRepository = reservationRepo,
         emailService = ConsoleEmailService(),
-        lectorEmailService = ConsoleEmailService(),
+        lectorEmailService = lectorEmailService,
         qrCodeService = StubQrCodeGenerator(),
         paymentTrigger = PaymentTrigger(),
         appBaseUrl = "https://test.example.com",
@@ -79,6 +83,7 @@ class SeriesLessonOptOutServiceTest {
         optOutRepo: InMemorySeriesLessonOptOutRepository = InMemorySeriesLessonOptOutRepository(),
         walletSvc: WalletService = WalletService(InMemoryWalletRepository()),
         callerId: Uuid? = testCallerId,
+        lectorEmailService: LectorEmailService = ConsoleEmailService(),
     ) = TestReservationService(
         instanceRepo = instanceRepo,
         seriesRepo = seriesRepo,
@@ -87,6 +92,7 @@ class SeriesLessonOptOutServiceTest {
         optOutRepo = optOutRepo,
         walletSvc = walletSvc,
         callerId = callerId,
+        lectorEmailService = lectorEmailService,
     )
 
     private fun makeSeries(id: Uuid = Uuid.random()) = EventSeries(
@@ -704,6 +710,57 @@ class SeriesLessonOptOutServiceTest {
             150.0, afterPayment.getOrNull()?.walletCreditAmount,
             "plný kredit — dřívější bezplatná omluvenka nesmí strop snižovat",
         )
+        Unit
+    }
+
+    @Test
+    fun `lesson opt-out notifies lectors of the lesson, the series and the definition`() = runBlocking {
+        // Lektor přidaný ke kurzu až po vytvoření lekcí na lekcích chybí — o omluvenkách
+        // se musí dozvědět stejně jako o stornu celé rezervace.
+        val instanceRepo = InMemoryEventInstanceRepository()
+        val seriesRepo = InMemoryEventSeriesRepository()
+        val defRepo = InMemoryEventDefinitionRepository()
+        val reservationRepo = InMemoryReservationRepository()
+        val lectorEmails = CapturingLectorEmailService()
+
+        val definition = EventDefinition(
+            id = Uuid.random(),
+            title = "Test Event",
+            description = "",
+            defaultPrice = 100.0,
+            defaultCapacity = 10,
+            defaultDuration = 1.hours,
+            allowedPaymentTypes = listOf(PaymentType.ON_SITE),
+            customFields = emptyList(),
+            ownerEmails = listOf("definition@example.com"),
+        )
+        defRepo.create(definition)
+        val series = makeSeries().copy(
+            definitionId = definition.id,
+            ownerEmails = listOf("lesson@example.com", "series@example.com"),
+        )
+        seriesRepo.create(series)
+        val instance = makeInstance(series.id, ownerEmails = listOf("lesson@example.com"))
+            .copy(definitionId = definition.id)
+        instanceRepo.create(instance)
+        val reservation = makeSeriesReservation(series.id)
+        reservationRepo.save(reservation)
+
+        val service = makeService(
+            instanceRepo = instanceRepo,
+            seriesRepo = seriesRepo,
+            defRepo = defRepo,
+            reservationRepo = reservationRepo,
+            lectorEmailService = lectorEmails,
+        )
+
+        val result = service.cancelReservation(reservation.id, instance.id)
+        assertTrue(result.isRight(), "omluvenka musí projít, dostal: $result")
+        assertEquals(
+            setOf("lesson@example.com", "series@example.com", "definition@example.com"),
+            lectorEmails.sentEmails.toSet(),
+        )
+        assertEquals(3, lectorEmails.sentEmails.size, "každý lektor jen jednou: ${lectorEmails.sentEmails}")
         Unit
     }
 }

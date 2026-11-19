@@ -873,7 +873,10 @@ open class ReservationService(
                         locale = reservation.locale,
                     ).onLeft { captureEmailError(logger, "Failed to send opt-out email to ${reservation.contactEmail}: $it") }
 
-                    val ownerEmails = parseOwnerEmails(instance.ownerEmails)
+                    // Lektory hledat stejně jako u storna celé rezervace (lekce, kurz i definice).
+                    // Jen z lekce to nestačí: e-mail přidaný ke kurzu až po vytvoření lekcí
+                    // na ně nedoputuje a lektor by se o omluvenkách nedozvěděl.
+                    val ownerEmails = resolveOwnerEmails(ReservationTarget.Instance(instance))
                     ownerEmails.forEach { ownerEmail ->
                         lectorEmailService.sendLectorLessonOptOutNotification(
                             lectorEmail = ownerEmail,
